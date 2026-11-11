@@ -50,11 +50,11 @@ const BlockState* _state(std::string_view text)
 {
     const std::string source(text);
     command::StringReader reader{source};
-    command::BlockStateInput input = command::BlockStateArgumentType().parse(reader);
-    if (!input.isValid()) {
+    auto input = command::BlockStateArgumentType().parse(reader);
+    if (input.failed() || !input.value().isValid()) {
         return nullptr;
     }
-    return input.state();
+    return input.value().state();
 }
 
 class MapBlockColorTest : public testing::Test {

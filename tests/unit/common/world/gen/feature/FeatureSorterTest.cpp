@@ -30,6 +30,7 @@
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 #include "server/world/gen/placement/Placement.hpp"
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <memory>
@@ -129,8 +130,15 @@ protected:
         PlacedFeatureRegistry::instance().clear();
         originalAssertConfig_ = mc::assert::AssertManager::instance().config();
         mc::assert::AssertConfig config;
+        // 生产库以 -fno-exceptions 编译，从 handleFailure 内部抛异常会 std::terminate。
+        // 改用「按诊断内容选择专属退出码 + _Exit」的处理器，配合 EXPECT_EXIT 验证断言路径
+        // 与诊断信息（fork 后无法回传内存状态，退出码即观察通道）。
         config.handler = [](const mc::assert::AssertFailure& failure) {
-            throw mc::assert::AssertException(failure);
+            const std::string& msg = failure.message;
+            const bool hasCycle = msg.find("cycle") != std::string::npos;
+            const bool hasA = msg.find("feature_a") != std::string::npos;
+            const bool hasB = msg.find("feature_b") != std::string::npos;
+            std::_Exit(hasCycle && hasA && hasB ? 42 : 41);
         };
         mc::assert::AssertManager::instance().setConfig(config);
     }
@@ -579,15 +587,16 @@ TEST_F(FeatureSorterTest, CycleDetectionThrowsAssert)
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
 
-    // 成环时应抛出 AssertException（MC_ASSERT_RELEASE_MSG(false, ...) 触发）
-    EXPECT_THROW(FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), mc::assert::AssertException);
+    // 成环时触发 MC_ASSERT_RELEASE_MSG(false, ...)：子进程应以 42 退出，
+    // 说明断言被触发且诊断消息包含 cycle / feature_a / feature_b。
+    EXPECT_EXIT(
+        (void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), ::testing::ExitedWithCode(42), "");
 }
 
 TEST_F(FeatureSorterTest, CycleExceptionMessageContainsDiagnosticInfo)
 {
     auto& registry = PlacedFeatureRegistry::instance();
 
-    // 构造人工环：A→B (生物群系 0) 和 B→A (生物群系 1)
     const PlacedFeature* featureA = registerPlacedStub(registry, "feature_a", DecorationStage::VegetalDecoration);
     const PlacedFeature* featureB = registerPlacedStub(registry, "feature_b", DecorationStage::VegetalDecoration);
 
@@ -604,17 +613,10 @@ TEST_F(FeatureSorterTest, CycleExceptionMessageContainsDiagnosticInfo)
     auto getFeatures = makeGetFeatures(biomeData);
     std::vector<BiomeId> biomes = {0, 1};
 
-    try {
-        FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry);
-        FAIL() << "Expected AssertException to be thrown";
-    }
-    catch (const mc::assert::AssertException& ex) {
-        const std::string msg = ex.what();
-        // 断言消息应包含环节点链和生物群系来源的诊断信息
-        EXPECT_NE(msg.find("cycle"), std::string::npos);
-        EXPECT_NE(msg.find("feature_a"), std::string::npos);
-        EXPECT_NE(msg.find("feature_b"), std::string::npos);
-    }
+    // 诊断信息校验已并入夹具处理器：只有消息同时包含 cycle / feature_a / feature_b
+    // 才会以 42 退出，否则以 41 退出，因此这里断言退出码即可覆盖原用例意图。
+    EXPECT_EXIT(
+        (void)FeatureSorter::buildFeaturesPerStep(biomes, getFeatures, registry), ::testing::ExitedWithCode(42), "");
 }
 
 TEST_F(FeatureSorterTest, UnregisteredFeatureIdSkipped)

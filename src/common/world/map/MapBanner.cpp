@@ -24,6 +24,7 @@
 #include "MapBanner.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include "entity/serialization/NbtHelper.hpp"
@@ -75,13 +76,12 @@ MapBanner MapBanner::fromNbt(const nbt::tags::compound_tag& tag)
     std::unique_ptr<text::ITextComponent> name;
     auto nameStr = nbt_helper::tryGetString(tag, "name");
     if (nameStr.has_value()) {
-        try {
-            auto json = nlohmann::json::parse(nameStr.value());
-            name = text::ITextComponent::fromJson(json);
-        }
-        catch (const nlohmann::json::exception&) {
-            // JSON 解析失败，回退为纯文本组件
+        // JSON 解析失败时回退为纯文本组件（地图数据来自存档，属于外部输入）
+        auto nameJson = util::json::parse(nameStr.value());
+        if (nameJson.failed()) {
             name = std::make_unique<text::StringTextComponent>(nameStr.value());
+        } else {
+            name = text::ITextComponent::fromJson(nameJson.value());
         }
     }
 

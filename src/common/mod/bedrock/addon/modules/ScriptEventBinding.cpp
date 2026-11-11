@@ -29,6 +29,7 @@
 #include "common/mod/bedrock/addon/event/BeforeEventSignal.hpp"
 #include "common/mod/bedrock/addon/event/ScriptEventData.hpp"
 
+#include "common/util/assert/AssertMacros.hpp"
 #include <algorithm>
 #include <any>
 #include <array>
@@ -281,17 +282,21 @@ void registerEventBindings(IScriptBindingContext& context,
             if (signal.info.isBefore) {
                 handle = signal.bus->beforeEvents().subscribe(signal.info.typeIdx,
                     [callback, options, initialize = signal.initialize, name = signal.info.name](std::any& value) {
-                        auto& data = std::any_cast<ScriptEventData&>(value);
-                        data.cancelled = _invoke(callback, options, initialize, name, data, true) || data.cancelled;
+                        // 指针形式：载荷类型由事件总线按 typeIdx 保证，不匹配属编程错误
+                        auto* data = std::any_cast<ScriptEventData>(&value);
+                        MC_ASSERT_RELEASE_MSG(
+                            data != nullptr, "ScriptEventBinding: before-event payload type mismatch");
+                        data->cancelled = _invoke(callback, options, initialize, name, *data, true) || data->cancelled;
 
-                        return data.cancelled;
+                        return data->cancelled;
                     });
             } else {
                 handle = signal.bus->afterEvents().subscribe(signal.info.typeIdx,
                     [callback, options, initialize = signal.initialize, name = signal.info.name](
                         const std::any& value) {
-                        _invoke(
-                            callback, options, initialize, name, std::any_cast<const ScriptEventData&>(value), false);
+                        const auto* data = std::any_cast<ScriptEventData>(&value);
+                        MC_ASSERT_RELEASE_MSG(data != nullptr, "ScriptEventBinding: after-event payload type mismatch");
+                        _invoke(callback, options, initialize, name, *data, false);
                     });
             }
 

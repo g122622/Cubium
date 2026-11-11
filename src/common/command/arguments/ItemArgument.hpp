@@ -27,7 +27,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
@@ -116,19 +116,19 @@ private:
  */
 class ItemArgumentType : public ArgumentType<ItemInput> {
 public:
-    [[nodiscard]] ItemInput parse(StringReader& reader) override
+    [[nodiscard]] Result<ItemInput, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
+        const i32 start = reader.getCursor();
 
         // 读取物品名称：与原版一样走 Identifier 命令语法（不读引号、不认大写、单个冒号）。
-        const ResourceLocation location = readResourceLocationId(reader);
+        MC_TRY_DECLARE(location, readResourceLocationId(reader));
 
         // 查找物品
         const Item* item = ItemRegistry::instance().getItem(location);
 
         if (item == nullptr) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
+            return CommandError(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
         }
 
         // air 物品特判：vanilla 中 minecraft:air 是空堆的同义物品，命令层用 air 清空槽位。
@@ -309,7 +309,7 @@ private:
  */
 class ItemPredicateArgumentType : public ArgumentType<ItemPredicateInput> {
 public:
-    [[nodiscard]] ItemPredicateInput parse(StringReader& reader) override;
+    [[nodiscard]] Result<ItemPredicateInput, CommandError> parse(StringReader& reader) override;
 
     [[nodiscard]] std::string getTypeName() const noexcept override
     {

@@ -27,6 +27,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/function/MacroFunction.hpp"
 #include "server/function/StringTemplate.hpp"
 #include <algorithm>
@@ -452,64 +453,59 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
 Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
     const ResourceLocation& tagId, const std::string& jsonContent)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(jsonContent);
+    auto parsedJson = util::json::parse(jsonContent);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
+    TagData tagData;
+    tagData.id = tagId;
 
-        TagData tagData;
-        tagData.id = tagId;
+    // 解析 replace 字段（可选，默认 false）
+    if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+        tagData.replace = jsonObj["replace"].get<bool>();
+    }
 
-        // 解析 replace 字段（可选，默认 false）
-        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
-            tagData.replace = jsonObj["replace"].get<bool>();
-        }
+    // 解析 values 数组（必需）
+    if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "Function tag '" + tagId.toString() + "' missing 'values' array");
+    }
 
-        // 解析 values 数组（必需）
-        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "Function tag '" + tagId.toString() + "' missing 'values' array");
-        }
-
-        for (const auto& value : jsonObj["values"]) {
-            if (value.is_string()) {
-                // 字符串格式: "namespace:path" 或 "#namespace:tag"
-                // 字符串格式默认 required=true
-                std::string entry = value.get<std::string>();
-                resolveTagEntry(entry, true, tagData.entries);
-            } else if (value.is_object()) {
-                // 对象格式: {"id":"namespace:path","required":false}
-                // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
-                if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped",
-                        tagId.toString());
-                    continue;
-                }
-
-                std::string id = value["id"].get<std::string>();
-                if (id.empty()) {
-                    spdlog::warn(
-                        "FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
-                    continue;
-                }
-
-                // 解析 required 字段（可选，默认 true）
-                bool required = true;
-                if (value.contains("required") && value["required"].is_boolean()) {
-                    required = value["required"].get<bool>();
-                }
-
-                resolveTagEntry(id, required, tagData.entries);
-            } else {
-                spdlog::warn("FunctionLoader: Value in tag '{}' is not a string or object, skipped", tagId.toString());
+    for (const auto& value : jsonObj["values"]) {
+        if (value.is_string()) {
+            // 字符串格式: "namespace:path" 或 "#namespace:tag"
+            // 字符串格式默认 required=true
+            std::string entry = value.get<std::string>();
+            resolveTagEntry(entry, true, tagData.entries);
+        } else if (value.is_object()) {
+            // 对象格式: {"id":"namespace:path","required":false}
+            // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
+            if (!value.contains("id") || !value["id"].is_string()) {
+                spdlog::warn(
+                    "FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped", tagId.toString());
+                continue;
             }
-        }
 
-        return tagData;
+            std::string id = value["id"].get<std::string>();
+            if (id.empty()) {
+                spdlog::warn(
+                    "FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
+                continue;
+            }
+
+            // 解析 required 字段（可选，默认 true）
+            bool required = true;
+            if (value.contains("required") && value["required"].is_boolean()) {
+                required = value["required"].get<bool>();
+            }
+
+            resolveTagEntry(id, required, tagData.entries);
+        } else {
+            spdlog::warn("FunctionLoader: Value in tag '{}' is not a string or object, skipped", tagId.toString());
+        }
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
-    }
+
+    return tagData;
 }
 
 void FunctionLoader::resolveTagEntry(const std::string& entry, bool required, std::vector<TagEntry>& entries)
@@ -566,14 +562,13 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
     /// 对应 MC 1.21.11 FunctionBuilder#addMacro
     auto addMacroLine = [&](const std::string& macroBody, Size lineNumber) -> Result<void> {
         // 解析 $(var) 语法
-        StringTemplate tmpl;
-        try {
-            tmpl = StringTemplate::fromString(macroBody);
-        }
-        catch (const std::exception& e) {
+        auto templateResult = StringTemplate::fromString(macroBody);
+        if (templateResult.failed()) {
             return Error(ErrorCode::ResourceParseError,
-                "Can't parse function line " + std::to_string(lineNumber) + ": '" + macroBody + "' (" + e.what() + ")");
+                "Can't parse function line " + std::to_string(lineNumber) + ": '" + macroBody + "' (" +
+                    templateResult.error().message() + ")");
         }
+        StringTemplate tmpl = std::move(templateResult).value();
 
         // 首次遇到 $ 宏行时切换到 macro 模式：把已累积的 commands 转为 PlainTextEntry
         if (!result.isMacro()) {

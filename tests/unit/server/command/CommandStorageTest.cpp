@@ -264,8 +264,9 @@ TEST(CommandStorageTest, StorageDataAccessorWithCommandStorage)
     // 通过 StorageDataAccessor 读取
     StorageDataAccessor accessor(&storage, id);
 
-    auto readData = accessor.getData();
-    ASSERT_NE(readData, nullptr);
+    auto readDataResult = accessor.getData();
+    ASSERT_TRUE(readDataResult.success()) << readDataResult.error().toString();
+    auto readData = std::move(readDataResult).value();
     auto it = readData->value.find("name");
     ASSERT_NE(it, readData->value.end());
     auto* str = dynamic_cast<const nbt::tags::string_tag*>(it->second.get());

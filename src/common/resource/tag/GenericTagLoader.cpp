@@ -25,6 +25,7 @@
 
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -80,61 +81,55 @@ struct _MergedTagData {
  */
 Result<_RawTagData> _parseJsonRaw(const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
+    _RawTagData rawData;
 
-        _RawTagData rawData;
+    // 解析 replace 字段（可选，默认 false）
+    if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+        rawData.replace = jsonObj["replace"].get<bool>();
+    }
 
-        // 解析 replace 字段（可选，默认 false）
-        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
-            rawData.replace = jsonObj["replace"].get<bool>();
-        }
+    // 解析 values 数组
+    if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "tag missing 'values' array");
+    }
 
-        // 解析 values 数组
-        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "tag missing 'values' array");
-        }
-
-        for (const auto& value : jsonObj["values"]) {
-            if (value.is_string()) {
-                // 字符串格式: "minecraft:stone" 或 "#minecraft:base_stone_overworld"
-                // 字符串格式默认 required=true
-                rawData.entries.push_back({value.get<std::string>(), true});
-            } else if (value.is_object()) {
-                // 对象格式: {"id":"minecraft:stone","required":false}
-                if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::error(
-                        "GenericTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
-                    continue;
-                }
-
-                std::string id = value["id"].get<std::string>();
-                if (id.empty()) {
-                    spdlog::error(
-                        "GenericTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
-                    continue;
-                }
-
-                bool required = true;
-                if (value.contains("required") && value["required"].is_boolean()) {
-                    required = value["required"].get<bool>();
-                }
-
-                rawData.entries.push_back({id, required});
-            } else {
+    for (const auto& value : jsonObj["values"]) {
+        if (value.is_string()) {
+            // 字符串格式: "minecraft:stone" 或 "#minecraft:base_stone_overworld"
+            // 字符串格式默认 required=true
+            rawData.entries.push_back({value.get<std::string>(), true});
+        } else if (value.is_object()) {
+            // 对象格式: {"id":"minecraft:stone","required":false}
+            if (!value.contains("id") || !value["id"].is_string()) {
                 spdlog::error(
-                    "GenericTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                    "GenericTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                continue;
             }
-        }
 
-        return rawData;
+            std::string id = value["id"].get<std::string>();
+            if (id.empty()) {
+                spdlog::error("GenericTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
+                continue;
+            }
+
+            bool required = true;
+            if (value.contains("required") && value["required"].is_boolean()) {
+                required = value["required"].get<bool>();
+            }
+
+            rawData.entries.push_back({id, required});
+        } else {
+            spdlog::error(
+                "GenericTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+        }
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
-    }
+
+    return rawData;
 }
 
 /**

@@ -23,7 +23,7 @@
 
 #include "DataAccessor.hpp"
 #include "common/command/arguments/NbtPath.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -57,10 +57,10 @@ BlockDataAccessor::BlockDataAccessor(IWorld* world, const BlockPos& pos)
     }
 }
 
-std::unique_ptr<nbt::tags::compound_tag> BlockDataAccessor::getData() const
+Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> BlockDataAccessor::getData() const
 {
     if (m_blockEntity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
+        return CommandError(CommandErrorType::NbtPathNotFound,
             "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
                 std::to_string(m_pos.z),
             0);
@@ -72,10 +72,10 @@ std::unique_ptr<nbt::tags::compound_tag> BlockDataAccessor::getData() const
     return compound;
 }
 
-void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
+Result<void, CommandError> BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_blockEntity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound,
+        return CommandError(CommandErrorType::NbtPathNotFound,
             "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
                 std::to_string(m_pos.z),
             0);
@@ -98,6 +98,8 @@ void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
     if (m_world != nullptr) {
         m_world->notifyBlockUpdate(m_pos);
     }
+
+    return Result<void, CommandError>::ok();
 }
 
 std::string BlockDataAccessor::getDisplayName() const
@@ -142,10 +144,10 @@ bool EntityDataAccessor::isPlayer() const
     return m_entity != nullptr && dynamic_cast<const Player*>(m_entity) != nullptr;
 }
 
-std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
+Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> EntityDataAccessor::getData() const
 {
     if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
+        return CommandError(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
     }
 
     // 使用 Entity 原生 NBT 序列化，获取完整数据
@@ -155,15 +157,15 @@ std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
     return compound;
 }
 
-void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
+Result<void, CommandError> EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
+        return CommandError(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
     }
 
     // 玩家实体不允许直接修改 NBT
     if (isPlayer()) {
-        throw CommandException(CommandErrorType::NbtPathInvalidType, "Cannot modify player data directly", 0);
+        return CommandError(CommandErrorType::NbtPathInvalidType, "Cannot modify player data directly", 0);
     }
 
     // 参考 MC Java: EntityDataAccessor.setData()
@@ -182,12 +184,13 @@ void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
     // 4. 使用 Entity 原生 NBT 反序列化加载合并后的数据
     auto result = m_entity->readFromNBT(current);
     if (!result.success()) {
-        throw CommandException(
+        return CommandError(
             CommandErrorType::NbtPathInvalidType, "Failed to load entity data: " + result.error().message(), 0);
     }
 
     // 5. 恢复 UUID（UUID 不应被 /data 命令修改）
     m_entity->setUuid(savedUuid);
+    return Result<void, CommandError>::ok();
 }
 
 std::string EntityDataAccessor::getDisplayName() const
@@ -234,19 +237,19 @@ StorageDataAccessor::StorageDataAccessor(CommandStorage* storage, const Resource
     , m_id(id)
 {}
 
-std::unique_ptr<nbt::tags::compound_tag> StorageDataAccessor::getData() const
+Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> StorageDataAccessor::getData() const
 {
     if (m_storage == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
+        return CommandError(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
     }
 
     return m_storage->get(m_id);
 }
 
-void StorageDataAccessor::mergeData(const nbt::tags::compound_tag& data)
+Result<void, CommandError> StorageDataAccessor::mergeData(const nbt::tags::compound_tag& data)
 {
     if (m_storage == nullptr) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
+        return CommandError(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
     }
 
     auto existing = m_storage->get(m_id);
@@ -260,6 +263,7 @@ void StorageDataAccessor::mergeData(const nbt::tags::compound_tag& data)
     }
 
     m_storage->set(m_id, *existing);
+    return Result<void, CommandError>::ok();
 }
 
 std::string StorageDataAccessor::getDisplayName() const

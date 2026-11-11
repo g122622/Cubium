@@ -32,6 +32,8 @@
 #include <utility>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 namespace mc {
 namespace world {
 namespace village {
@@ -239,7 +241,13 @@ void VillageGossipManager::deserialize(const nbt::tags::compound_tag& tag)
     }
 
     for (const auto& playerTag : gossipsList->value) {
-        u64 playerId = static_cast<u64>(playerTag.get<nbt::tags::long_tag>("PlayerId"));
+        const auto* playerIdTag = playerTag.findAs<nbt::tags::long_tag>("PlayerId");
+        if (playerIdTag == nullptr) {
+            spdlog::warn("VillageGossipManager::deserialize: gossip record without PlayerId, record skipped");
+            continue;
+        }
+
+        const u64 playerId = static_cast<u64>(playerIdTag->value);
 
         auto entriesIt = playerTag.value.find("Entries");
         if (entriesIt != playerTag.value.end()) {
@@ -249,10 +257,20 @@ void VillageGossipManager::deserialize(const nbt::tags::compound_tag& tag)
                 entries.reserve(entriesList->value.size());
 
                 for (const auto& entryTag : entriesList->value) {
+                    const auto* typeTag = entryTag.findAs<nbt::tags::int_tag>("Type");
+                    const auto* valueTag = entryTag.findAs<nbt::tags::int_tag>("Value");
+                    const auto* updateTag = entryTag.findAs<nbt::tags::long_tag>("LastUpdateTime");
+                    if (typeTag == nullptr || valueTag == nullptr || updateTag == nullptr || typeTag->value < 0 ||
+                        typeTag->value > static_cast<i32>(VillageGossipType::MajorPositive)) {
+                        // 单条流言损坏不影响同一玩家的其余流言
+                        spdlog::warn("VillageGossipManager::deserialize: malformed gossip entry, entry skipped");
+                        continue;
+                    }
+
                     GossipEntry entry;
-                    entry.type = static_cast<VillageGossipType>(entryTag.get<nbt::tags::int_tag>("Type"));
-                    entry.value = entryTag.get<nbt::tags::int_tag>("Value");
-                    entry.lastUpdateTime = entryTag.get<nbt::tags::long_tag>("LastUpdateTime");
+                    entry.type = static_cast<VillageGossipType>(typeTag->value);
+                    entry.value = valueTag->value;
+                    entry.lastUpdateTime = updateTag->value;
                     entries.push_back(entry);
                 }
 

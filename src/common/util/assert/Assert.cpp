@@ -199,33 +199,9 @@ std::string AssertManager::captureStackTrace() const
     std::abort();
 }
 
-// ============================================================================
-// 异常断言处理器
-// ============================================================================
-
-[[noreturn]] void throwAssertHandler(const AssertFailure& failure)
-{
-    throw AssertException(failure);
-}
-
-// ============================================================================
-// AssertException
-// ============================================================================
-
-AssertException::AssertException(const AssertFailure& failure)
-    : m_failure(failure)
-{
-    std::ostringstream oss;
-    oss << "Assertion failed: " << failure.expression;
-
-    if (!failure.message.empty()) {
-        oss << " - " << failure.message;
-    }
-
-    oss << " at " << failure.file << ":" << failure.line << " in " << failure.function;
-
-    m_what = oss.str();
-}
+// 断言异常机制（throwAssertHandler / AssertException）已移出生产库：
+// 生产 target 以 -fno-exceptions 编译，永远用不到抛异常的处理器；
+// 其定义由测试侧 tests/unit/common/AssertExceptionSupport.cpp 提供。
 
 // ============================================================================
 // 帮助函数

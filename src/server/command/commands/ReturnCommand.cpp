@@ -106,9 +106,8 @@ i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
     auto parseResult = registry.dispatcher().parse(fullCommand, source);
     if (!parseResult.isSuccess()) {
         const auto& error = parseResult.getError();
-        throw CommandException(error.has_value() ? error->type() : CommandErrorType::Unknown,
-            error.has_value() ? error->message() : "Invalid command: " + command,
-            error.has_value() ? error->cursor() : 0);
+        source.sendError(error.has_value() ? error->message() : "Invalid command: " + command);
+        return 0;
     }
     if (parseResult.getContext() == nullptr) {
         source.sendError("commands.return.failed.notFound");

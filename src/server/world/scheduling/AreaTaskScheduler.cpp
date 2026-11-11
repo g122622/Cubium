@@ -69,6 +69,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             }
             // 计算池在 execute 返回后才决定是否调用 onCancel。任务体必须保留到这次
             // 决定完成，否则执行期间收到取消的任务会丢失取消收尾及其持有的依赖引用。
+            // 去异常化后任务体不再抛异常（失败通过返回值表达），无需 try/catch 兜底。
             return m_dispatch.task->body->execute(abortSignal);
         }
 
@@ -110,15 +111,8 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
 
     static void _cancelBody(const TaskPtr& task)
     {
-        try {
-            task->body->onCancel();
-        }
-        catch (const std::exception& e) {
-            spdlog::error("[AreaTaskScheduler] Cancellation threw: {}", e.what());
-        }
-        catch (...) {
-            spdlog::error("[AreaTaskScheduler] Cancellation threw an unknown exception");
-        }
+        // 任务回调契约：不得抛异常（-fno-exceptions 下也无从抛出）。
+        task->body->onCancel();
     }
 
     static void _callback(const TaskPtr& task, bool success)
@@ -126,15 +120,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         if (!task->callback) {
             return;
         }
-        try {
-            task->callback(success, task->body.get());
-        }
-        catch (const std::exception& e) {
-            spdlog::error("[AreaTaskScheduler] Callback threw: {}", e.what());
-        }
-        catch (...) {
-            spdlog::error("[AreaTaskScheduler] Callback threw an unknown exception");
-        }
+        task->callback(success, task->body.get());
     }
 
     void _scheduleLocked(const TaskPtr& task, std::vector<Dispatch>& ready)
@@ -316,14 +302,8 @@ AreaTaskScheduler::AreaTaskScheduler(util::UniversalWorkerPool* executor)
 
 AreaTaskScheduler::~AreaTaskScheduler()
 {
-    try {
-        shutdown();
-    }
-    catch (...) {
-        // 关闭失败时不能继续销毁仍可能被任务访问的世界，保持析构的终止语义。
-        spdlog::critical("[AreaTaskScheduler] Shutdown failed during destruction");
-        std::terminate();
-    }
+    // 去异常化后 shutdown() 不会抛异常（失败一律走日志 + 状态）。
+    shutdown();
 }
 
 void AreaTaskScheduler::setExecutor(util::UniversalWorkerPool* executor)

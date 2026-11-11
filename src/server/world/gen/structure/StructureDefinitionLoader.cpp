@@ -32,6 +32,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/PoolAliasBinding.hpp"
 #include "server/world/gen/structure/JigsawStructure.hpp"
@@ -172,213 +173,208 @@ Result<size_t> StructureDefinitionLoader::loadFromResourcePack(const IResourcePa
 
 Result<void> StructureDefinitionLoader::loadFromJson(const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
+    auto def = std::make_unique<StructureDefinition>();
+    def->id = location;
 
-        auto def = std::make_unique<StructureDefinition>();
-        def->id = location;
+    // 解析结构类型
+    if (jsonObj.contains("type") && jsonObj["type"].is_string()) {
+        def->type = jsonObj["type"].get<std::string>();
+    } else {
+        return Error(ErrorCode::InvalidData, "Structure definition missing 'type' field");
+    }
 
-        // 解析结构类型
-        if (jsonObj.contains("type") && jsonObj["type"].is_string()) {
-            def->type = jsonObj["type"].get<std::string>();
+    // 解析生物群系列表/标签
+    if (jsonObj.contains("biomes") && jsonObj["biomes"].is_string()) {
+        def->biomes = ResourceLocation(jsonObj["biomes"].get<std::string>());
+    }
+
+    // 解析生成阶段
+    if (jsonObj.contains("step") && jsonObj["step"].is_string()) {
+        def->step = _parseDecorationStage(jsonObj["step"].get<std::string>());
+    }
+
+    // 解析地形适配模式
+    if (jsonObj.contains("terrain_adaptation") && jsonObj["terrain_adaptation"].is_string()) {
+        def->terrainAdaptation = _parseTerrainAdaptation(jsonObj["terrain_adaptation"].get<std::string>());
+    }
+
+    // 解析 Jigsaw 专用参数
+    if (jsonObj.contains("start_pool") && jsonObj["start_pool"].is_string()) {
+        def->startPool = ResourceLocation(jsonObj["start_pool"].get<std::string>());
+    }
+
+    if (jsonObj.contains("size") && jsonObj["size"].is_number_integer()) {
+        def->size = jsonObj["size"].get<i32>();
+    }
+
+    if (jsonObj.contains("height") && jsonObj["height"].is_object()) {
+        auto heightResult = valueprovider::HeightProviderParser::parse(jsonObj["height"]);
+        if (heightResult.success()) {
+            def->height = heightResult.value();
         } else {
-            return Error(ErrorCode::InvalidData, "Structure definition missing 'type' field");
+            spdlog::warn("Structure '{}': failed to parse height ({}), structure will not generate",
+                def->id.toString(),
+                heightResult.error().message());
         }
-
-        // 解析生物群系列表/标签
-        if (jsonObj.contains("biomes") && jsonObj["biomes"].is_string()) {
-            def->biomes = ResourceLocation(jsonObj["biomes"].get<std::string>());
-        }
-
-        // 解析生成阶段
-        if (jsonObj.contains("step") && jsonObj["step"].is_string()) {
-            def->step = _parseDecorationStage(jsonObj["step"].get<std::string>());
-        }
-
-        // 解析地形适配模式
-        if (jsonObj.contains("terrain_adaptation") && jsonObj["terrain_adaptation"].is_string()) {
-            def->terrainAdaptation = _parseTerrainAdaptation(jsonObj["terrain_adaptation"].get<std::string>());
-        }
-
-        // 解析 Jigsaw 专用参数
-        if (jsonObj.contains("start_pool") && jsonObj["start_pool"].is_string()) {
-            def->startPool = ResourceLocation(jsonObj["start_pool"].get<std::string>());
-        }
-
-        if (jsonObj.contains("size") && jsonObj["size"].is_number_integer()) {
-            def->size = jsonObj["size"].get<i32>();
-        }
-
-        if (jsonObj.contains("height") && jsonObj["height"].is_object()) {
-            auto heightResult = valueprovider::HeightProviderParser::parse(jsonObj["height"]);
+    }
+    if (jsonObj.contains("start_height")) {
+        // start_height 两种形式：
+        //   简写（单键锚点）：{ "absolute": 0 } / { "above_bottom": N } / { "below_top": N }
+        //     —— MC HeightProvider.CODEC 将单键锚点视作 constant，本项目同此处理。
+        //   分派（带 type）：{ "type": "minecraft:uniform", "min_inclusive": {...}, ... }
+        //     —— 委托 HeightProviderParser::parse 解析。
+        const auto& heightJson = jsonObj["start_height"];
+        if (heightJson.is_object() && heightJson.contains("type") && heightJson["type"].is_string()) {
+            auto heightResult = valueprovider::HeightProviderParser::parse(heightJson);
             if (heightResult.success()) {
-                def->height = heightResult.value();
+                def->startHeight = heightResult.value();
             } else {
-                spdlog::warn("Structure '{}': failed to parse height ({}), structure will not generate",
-                    def->id.toString(),
+                spdlog::warn("Structure '{}': failed to parse start_height ({}), defaulting to absolute 0",
+                    location.toString(),
                     heightResult.error().message());
             }
-        }
-        if (jsonObj.contains("start_height")) {
-            // start_height 两种形式：
-            //   简写（单键锚点）：{ "absolute": 0 } / { "above_bottom": N } / { "below_top": N }
-            //     —— MC HeightProvider.CODEC 将单键锚点视作 constant，本项目同此处理。
-            //   分派（带 type）：{ "type": "minecraft:uniform", "min_inclusive": {...}, ... }
-            //     —— 委托 HeightProviderParser::parse 解析。
-            const auto& heightJson = jsonObj["start_height"];
-            if (heightJson.is_object() && heightJson.contains("type") && heightJson["type"].is_string()) {
-                auto heightResult = valueprovider::HeightProviderParser::parse(heightJson);
-                if (heightResult.success()) {
-                    def->startHeight = heightResult.value();
-                } else {
-                    spdlog::warn("Structure '{}': failed to parse start_height ({}), defaulting to absolute 0",
-                        location.toString(),
-                        heightResult.error().message());
-                }
+        } else {
+            auto anchorResult = valueprovider::HeightProviderParser::parseAnchor(heightJson);
+            if (anchorResult.success()) {
+                def->startHeight = valueprovider::ConstantHeight::create(anchorResult.value());
             } else {
-                auto anchorResult = valueprovider::HeightProviderParser::parseAnchor(heightJson);
-                if (anchorResult.success()) {
-                    def->startHeight = valueprovider::ConstantHeight::create(anchorResult.value());
-                } else {
-                    spdlog::warn("Structure '{}': failed to parse start_height anchor ({}), defaulting to absolute 0",
-                        location.toString(),
-                        anchorResult.error().message());
-                }
+                spdlog::warn("Structure '{}': failed to parse start_height anchor ({}), defaulting to absolute 0",
+                    location.toString(),
+                    anchorResult.error().message());
             }
         }
-
-        if (jsonObj.contains("project_start_to_heightmap") && jsonObj["project_start_to_heightmap"].is_string()) {
-            def->projectStartToHeightmap = true;
-            def->heightmapName = jsonObj["project_start_to_heightmap"].get<std::string>();
-        }
-
-        if (jsonObj.contains("max_distance_from_center") && jsonObj["max_distance_from_center"].is_number_integer()) {
-            def->maxDistanceFromCenter = MaxDistance(jsonObj["max_distance_from_center"].get<i32>());
-        }
-
-        if (jsonObj.contains("start_jigsaw_name") && jsonObj["start_jigsaw_name"].is_string()) {
-            def->startJigsawName = ResourceLocation(jsonObj["start_jigsaw_name"].get<std::string>());
-        }
-
-        if (jsonObj.contains("use_expansion_hack") && jsonObj["use_expansion_hack"].is_boolean()) {
-            def->useExpansionHack = jsonObj["use_expansion_hack"].get<bool>();
-        }
-
-        // 解析维度填充
-        if (jsonObj.contains("dimension_padding")) {
-            const auto& padding = jsonObj["dimension_padding"];
-            if (padding.is_object()) {
-                if (padding.contains("bottom") && padding["bottom"].is_number_integer()) {
-                    def->dimensionPadding.bottom = padding["bottom"].get<i32>();
-                }
-                if (padding.contains("top") && padding["top"].is_number_integer()) {
-                    def->dimensionPadding.top = padding["top"].get<i32>();
-                }
-            } else if (padding.is_number_integer()) {
-                // 简写形式：单一数字同时应用于 top 和 bottom
-                i32 value = padding.get<i32>();
-                def->dimensionPadding.bottom = value;
-                def->dimensionPadding.top = value;
-            }
-        }
-
-        // 解析液体设置
-        if (jsonObj.contains("liquid_settings") && jsonObj["liquid_settings"].is_string()) {
-            def->liquidSettings = _parseLiquidSettings(jsonObj["liquid_settings"].get<std::string>());
-        }
-
-        // 解析生物生成覆盖（按类别分键）
-        if (jsonObj.contains("spawn_overrides") && jsonObj["spawn_overrides"].is_object()) {
-            _parseSpawnOverrides(jsonObj["spawn_overrides"], def->spawnOverrides);
-        }
-
-        // 解析池别名
-        if (jsonObj.contains("pool_aliases") && jsonObj["pool_aliases"].is_array()) {
-            _parsePoolAliasBindings(jsonObj["pool_aliases"], def->poolAliases);
-        }
-
-        // 解析废墟传送门的 setup 表
-        if (jsonObj.contains("setups") && jsonObj["setups"].is_array()) {
-            _parseRuinedPortalSetups(jsonObj["setups"], def->ruinedPortalSetups);
-        }
-
-        // 海底废墟的两个概率：原版是 OceanRuinStructure 编解码器的必填字段之外的
-        // `large_probability` / `cluster_probability`，直接参与随机判定，不能写死常量。
-        if (def->type == "minecraft:ocean_ruin") {
-            // 两个字段在原版编解码器里没有默认值，缺失即配置错误，必须报出来而不是补一个猜测值。
-            if (!jsonObj.contains("large_probability") || !jsonObj.contains("cluster_probability")) {
-                return Error(ErrorCode::InvalidData,
-                    "ocean_ruin structure '" + location.toString() +
-                        "' is missing large_probability or cluster_probability");
-            }
-            def->oceanRuinConfig.largeProbability = jsonObj["large_probability"].get<f32>();
-            def->oceanRuinConfig.clusterProbability = jsonObj["cluster_probability"].get<f32>();
-            // 暖/冷变体由结构定义决定（结构集按群系标签各自挑一个），不是按生成点群系现判。
-            if (!jsonObj.contains("biome_temp")) {
-                return Error(
-                    ErrorCode::InvalidData, "ocean_ruin structure '" + location.toString() + "' is missing biome_temp");
-            }
-            const std::string biomeTemp = jsonObj["biome_temp"].get<std::string>();
-            if (biomeTemp == "warm") {
-                def->oceanRuinBiomeTemp = OceanRuinType::Warm;
-            } else if (biomeTemp == "cold") {
-                def->oceanRuinBiomeTemp = OceanRuinType::Cold;
-            } else {
-                return Error(ErrorCode::InvalidData,
-                    "ocean_ruin structure '" + location.toString() + "' has unknown biome_temp '" + biomeTemp + "'");
-            }
-            def->oceanRuinConfig.biomeType = def->oceanRuinBiomeTemp;
-        }
-
-        // 存储定义
-        // spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
-        s_byId[location] = def.get();
-
-        // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。
-        // 工厂内部深拷贝 HeightProvider/PoolAliasBindings，def 所有权保留在 s_definitions。
-        // 注意：调用方须先 initializeBuiltinStructureTypes() 注册工厂。
-        //
-        // 【不得静默跳过】此前"未注册该 type 时静默跳过"是一条兜底策略，代价极高：
-        // 结构类型名一旦与原版数据包不一致（原版 1.21 已把 jungle_pyramid 类型改名为
-        // jungle_temple、monument 改名为 ocean_monument，而本文件所在仓库仍注册旧名），
-        // 该结构就会**根本不存在**，其所在结构集随即被 _hasBiomesForStructureSet 判为
-        // "本维度无匹配群系"而整集跳过——表现为丛林神庙/海底神殿整片消失，且不报错。
-        // 现改为硬失败：类型注册表已初始化（生产与测试夹具都会先调
-        // initializeBuiltinStructureTypes）却遇到未知 type，属配置错误，必须立刻暴露。
-        if (!StructureTypeRegistry::instance().has(def->type)) {
-            spdlog::error("[STRUCT] structure '{}' declares unknown type '{}'; the C++ type registry is out of "
-                          "sync with the data pack",
-                location.toString(),
-                def->type);
-        }
-        MC_ASSERT_RELEASE(StructureTypeRegistry::instance().has(def->type));
-
-        auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
-        if (createResult.failed()) {
-            spdlog::error("[STRUCT] structure '{}' (type '{}') failed to construct: {}",
-                location.toString(),
-                def->type,
-                createResult.error().message());
-        }
-        MC_ASSERT_RELEASE(createResult.success());
-
-        auto structure = createResult.value();
-        if (structure == nullptr) {
-            spdlog::error("[STRUCT] structure '{}' (type '{}'): factory returned null", location.toString(), def->type);
-        }
-        MC_ASSERT_RELEASE(structure != nullptr);
-        StructureRegistry::registerStructure(std::move(structure));
-
-        s_definitions.push_back(std::move(def));
-
-        return Result<void>::ok();
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
+
+    if (jsonObj.contains("project_start_to_heightmap") && jsonObj["project_start_to_heightmap"].is_string()) {
+        def->projectStartToHeightmap = true;
+        def->heightmapName = jsonObj["project_start_to_heightmap"].get<std::string>();
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse structure definition: ") + e.what());
+
+    if (jsonObj.contains("max_distance_from_center") && jsonObj["max_distance_from_center"].is_number_integer()) {
+        def->maxDistanceFromCenter = MaxDistance(jsonObj["max_distance_from_center"].get<i32>());
     }
+
+    if (jsonObj.contains("start_jigsaw_name") && jsonObj["start_jigsaw_name"].is_string()) {
+        def->startJigsawName = ResourceLocation(jsonObj["start_jigsaw_name"].get<std::string>());
+    }
+
+    if (jsonObj.contains("use_expansion_hack") && jsonObj["use_expansion_hack"].is_boolean()) {
+        def->useExpansionHack = jsonObj["use_expansion_hack"].get<bool>();
+    }
+
+    // 解析维度填充
+    if (jsonObj.contains("dimension_padding")) {
+        const auto& padding = jsonObj["dimension_padding"];
+        if (padding.is_object()) {
+            if (padding.contains("bottom") && padding["bottom"].is_number_integer()) {
+                def->dimensionPadding.bottom = padding["bottom"].get<i32>();
+            }
+            if (padding.contains("top") && padding["top"].is_number_integer()) {
+                def->dimensionPadding.top = padding["top"].get<i32>();
+            }
+        } else if (padding.is_number_integer()) {
+            // 简写形式：单一数字同时应用于 top 和 bottom
+            i32 value = padding.get<i32>();
+            def->dimensionPadding.bottom = value;
+            def->dimensionPadding.top = value;
+        }
+    }
+
+    // 解析液体设置
+    if (jsonObj.contains("liquid_settings") && jsonObj["liquid_settings"].is_string()) {
+        def->liquidSettings = _parseLiquidSettings(jsonObj["liquid_settings"].get<std::string>());
+    }
+
+    // 解析生物生成覆盖（按类别分键）
+    if (jsonObj.contains("spawn_overrides") && jsonObj["spawn_overrides"].is_object()) {
+        _parseSpawnOverrides(jsonObj["spawn_overrides"], def->spawnOverrides);
+    }
+
+    // 解析池别名
+    if (jsonObj.contains("pool_aliases") && jsonObj["pool_aliases"].is_array()) {
+        _parsePoolAliasBindings(jsonObj["pool_aliases"], def->poolAliases);
+    }
+
+    // 解析废墟传送门的 setup 表
+    if (jsonObj.contains("setups") && jsonObj["setups"].is_array()) {
+        _parseRuinedPortalSetups(jsonObj["setups"], def->ruinedPortalSetups);
+    }
+
+    // 海底废墟的两个概率：原版是 OceanRuinStructure 编解码器的必填字段之外的
+    // `large_probability` / `cluster_probability`，直接参与随机判定，不能写死常量。
+    if (def->type == "minecraft:ocean_ruin") {
+        // 两个字段在原版编解码器里没有默认值，缺失即配置错误，必须报出来而不是补一个猜测值。
+        if (!jsonObj.contains("large_probability") || !jsonObj.contains("cluster_probability")) {
+            return Error(ErrorCode::InvalidData,
+                "ocean_ruin structure '" + location.toString() +
+                    "' is missing large_probability or cluster_probability");
+        }
+        def->oceanRuinConfig.largeProbability = jsonObj["large_probability"].get<f32>();
+        def->oceanRuinConfig.clusterProbability = jsonObj["cluster_probability"].get<f32>();
+        // 暖/冷变体由结构定义决定（结构集按群系标签各自挑一个），不是按生成点群系现判。
+        if (!jsonObj.contains("biome_temp")) {
+            return Error(
+                ErrorCode::InvalidData, "ocean_ruin structure '" + location.toString() + "' is missing biome_temp");
+        }
+        const std::string biomeTemp = jsonObj["biome_temp"].get<std::string>();
+        if (biomeTemp == "warm") {
+            def->oceanRuinBiomeTemp = OceanRuinType::Warm;
+        } else if (biomeTemp == "cold") {
+            def->oceanRuinBiomeTemp = OceanRuinType::Cold;
+        } else {
+            return Error(ErrorCode::InvalidData,
+                "ocean_ruin structure '" + location.toString() + "' has unknown biome_temp '" + biomeTemp + "'");
+        }
+        def->oceanRuinConfig.biomeType = def->oceanRuinBiomeTemp;
+    }
+
+    // 存储定义
+    // spdlog::info("Loaded structure definition '{}' (type={})", location.toString(), def->type);
+    s_byId[location] = def.get();
+
+    // 数据驱动构造：按 type 工厂从已解析定义构造子类并注册到 StructureRegistry。
+    // 工厂内部深拷贝 HeightProvider/PoolAliasBindings，def 所有权保留在 s_definitions。
+    // 注意：调用方须先 initializeBuiltinStructureTypes() 注册工厂。
+    //
+    // 【不得静默跳过】此前"未注册该 type 时静默跳过"是一条兜底策略，代价极高：
+    // 结构类型名一旦与原版数据包不一致（原版 1.21 已把 jungle_pyramid 类型改名为
+    // jungle_temple、monument 改名为 ocean_monument，而本文件所在仓库仍注册旧名），
+    // 该结构就会**根本不存在**，其所在结构集随即被 _hasBiomesForStructureSet 判为
+    // "本维度无匹配群系"而整集跳过——表现为丛林神庙/海底神殿整片消失，且不报错。
+    // 现改为硬失败：类型注册表已初始化（生产与测试夹具都会先调
+    // initializeBuiltinStructureTypes）却遇到未知 type，属配置错误，必须立刻暴露。
+    if (!StructureTypeRegistry::instance().has(def->type)) {
+        spdlog::error("[STRUCT] structure '{}' declares unknown type '{}'; the C++ type registry is out of "
+                      "sync with the data pack",
+            location.toString(),
+            def->type);
+    }
+    MC_ASSERT_RELEASE(StructureTypeRegistry::instance().has(def->type));
+
+    auto createResult = StructureTypeRegistry::instance().create(def->type, *def);
+    if (createResult.failed()) {
+        spdlog::error("[STRUCT] structure '{}' (type '{}') failed to construct: {}",
+            location.toString(),
+            def->type,
+            createResult.error().message());
+    }
+    MC_ASSERT_RELEASE(createResult.success());
+
+    auto structure = createResult.value();
+    if (structure == nullptr) {
+        spdlog::error("[STRUCT] structure '{}' (type '{}'): factory returned null", location.toString(), def->type);
+    }
+    MC_ASSERT_RELEASE(structure != nullptr);
+    StructureRegistry::registerStructure(std::move(structure));
+
+    s_definitions.push_back(std::move(def));
+
+    return Result<void>::ok();
 }
 
 const StructureDefinition* StructureDefinitionLoader::getDefinition(const ResourceLocation& id)

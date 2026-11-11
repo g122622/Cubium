@@ -24,6 +24,7 @@
 #include "TrimMaterials.hpp"
 #include "TrimMaterial.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <optional>
 #include <utility>
 #include <nlohmann/json.hpp>
@@ -108,14 +109,13 @@ Result<std::size_t> TrimMaterials::loadFromDataPackRepository(const resource::Da
             }
             const auto& content = versions.back();
 
-            nlohmann::json json;
-            try {
-                json = nlohmann::json::parse(content.content);
+            // 外部数据：坏文件以 Error 返回并由上层记录日志，不让解析异常逃逸
+            auto jsonResult = util::json::parse(content.content);
+            if (jsonResult.failed()) {
+                return Error(ErrorCode::InvalidData,
+                    "trim_material: failed to parse " + resourcePath + ": " + jsonResult.error().message());
             }
-            catch (const std::exception& e) {
-                return Error(
-                    ErrorCode::InvalidData, "trim_material: 解析失败 " + resourcePath + "：" + std::string(e.what()));
-            }
+            const nlohmann::json& json = jsonResult.value();
 
             const auto id = _materialIdFromPath(resourcePath);
             if (!id.has_value()) {

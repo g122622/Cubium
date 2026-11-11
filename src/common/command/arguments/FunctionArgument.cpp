@@ -24,7 +24,7 @@
 #include "FunctionArgument.hpp"
 
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <cstddef>
@@ -63,7 +63,7 @@ static std::string readIdentifierGreedy(StringReader& reader)
     return std::string(reader.getString().substr(startIdx, endIdx - startIdx));
 }
 
-FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
+Result<FunctionArgumentResult, CommandError> FunctionArgumentType::parse(StringReader& reader)
 {
     i32 start = reader.getCursor();
 
@@ -73,7 +73,7 @@ FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
         std::string str = readIdentifierGreedy(reader);
         if (str.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::StringExpected, "Expected function tag name after '#'", start);
+            return CommandError(CommandErrorType::StringExpected, "Expected function tag name after '#'", start);
         }
         ResourceLocation id = ResourceLocation::parse(str);
         return FunctionArgumentResult(std::move(id), true);
@@ -83,7 +83,7 @@ FunctionArgumentResult FunctionArgumentType::parse(StringReader& reader)
     std::string str = readIdentifierGreedy(reader);
     if (str.empty()) {
         reader.setCursor(start);
-        throw CommandException(CommandErrorType::StringExpected, "Expected function name", start);
+        return CommandError(CommandErrorType::StringExpected, "Expected function name", start);
     }
 
     ResourceLocation id = ResourceLocation::parse(str);

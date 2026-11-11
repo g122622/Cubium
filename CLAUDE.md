@@ -79,7 +79,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `pipeline::Connection<RegistryByteBuf>` - 网络管道连接，对外 API 为 `send(ir::IrPacket)` / `onPacket(listener)`，位于 `network/pipeline/Connection.hpp`
 - `transport::LocalTransport` - 集成服务器同进程零拷贝直传 IR 包（取代旧 IServerConnection/LocalEndpoint/LocalConnectionPair）
 
-**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，由 `backend/java/codecs/` 中的 codec 进行 IR ↔ wire 双向转换。旧的 12 字节定长头与 `PacketSender::encapsulatePacket`/`PacketHandler::handlePacket`/`dispatchPacket` 漏斗已删除。
+**线格式**：Java 后端为 VarInt(length) + VarInt(packetID) + payload，IR ↔ wire 双向转换由 `backend/java/codecs/` 的 codec 完成。
 
 **入站分发**（两条链路职责与实现方式不同，不要混为一谈）：
 - **服务端**：`ClientSession::handleInbound(const ir::IrPacket&)` 先交给握手处理器，再转到 `ServerPlayHandler::route(PlayerId, const ir::IrPacket&)`（`server/network/play/ServerPlayHandler.hpp`）。`route` 是**集中的 if/`std::holds_alternative` 分发表**（不是 `std::visit`），按包族转调 `MovementHandler` / `BlockActionHandler` / `EntityActionHandler` / `ChatHandler` / `PlayerStateHandler` / `SessionSignalHandler`。新增服务端入站包时在 `route` 里加一个分支并转调对应 handler，不要另起一套分发器。
@@ -96,6 +96,7 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 - `Error` - 错误容器，构造为 `Error(ErrorCode code, std::string_view message, std::string_view source)`，并提供静态工厂 `Error::ok()` / `Error::invalidArgument()` / `Error::notFound()` / `Error::fileNotFound()` / `Error::connectionFailed()` / `Error::unknown()`
 - 【重要】`Result::value()` 在结果失败时会 **断言崩溃**（`MC_ASSERT_RELEASE`，消息带原始错误信息；`Result<T>` 与 `Result<std::unique_ptr<T, D>>` 都是如此）。取 `value()` 之前必须已经确认 `success()`，否则进程会直接终止。
 - 新增代码不允许使用c++异常，统一走Result/Error体系。
+- 【重要】**外部不可信输入（数据包/存档/网络/命令文本）不得用抛出 API 读取**，改用：数值 `util::parseXxx`（禁 `std::sto*`）、JSON `util::json::parse/getXxx/findField`（禁 `json::parse`/`.get<T>()`/`.at()`）、NBT `tags::*::read`/`parseMojangson`（均返回 `Result`）、字符校验 `util::allOfCharacters`/`util::isValidIpv4`（禁 `std::regex`）。详见 `common/util/json/README.md`
 
 ### 设置类型
 - `BooleanOption`, `RangeOption`, `FloatOption` - 设置选项类型
@@ -268,12 +269,11 @@ block/
 - `Contexts::bedrock_disk` - 基岩版磁盘格式
 - `Contexts::mojangson` - Mojangson 文本格式
 
-**使用示例**
+**读取入口（一律返回 `Result`）**：`tags::compound_tag::read(stream)`、`tags::read(TagId, stream)`、`readCompoundInto(...)`、`parseMojangson(text)`；库内不抛异常，格式错误统一为 `Error`。`get<TagT>`/list `operator[]` 走断言（键缺失、类型不符、越界 = 调用方违约），读外部数据前先 `find`/`contains` 判空。
+
 ```cpp
 mc::nbt::tags::compound_tag tag;
 tag.put("name", std::string("Test"));
-tag.put("value", 42);
-auto& str = tag.get<mc::nbt::tags::string_tag>("name");
 ```
 
 ### 性能追踪（Perfetto + Tracy 双轨）
@@ -316,27 +316,7 @@ MC_TRACE_INSTANT_EVENT(TraceEvents.Game.Tick, "SomethingHappened");
 
 ## 错误处理模式
 
-对可能失败的操作使用 `Result<T>`：
-
-```cpp
-// 返回值或错误
-Result<int> divide(int a, int b) {
-    if (b == 0) {
-        return Error(ErrorCode::InvalidArgument, "Division by zero");
-    }
-    return a / b;  // 隐式转换
-}
-
-// 检查结果
-auto result = divide(10, 2);
-if (result.success()) {
-    int value = result.value();
-} else {
-    // 处理错误
-}
-```
-
-若要使用错误码，必须参照相关定义文件。
+对可能失败的操作一律用 `Result<T>` 返回错误，用法与错误码定义见下文「7.1 Result类型使用」；新增代码禁止用 C++ 异常表达失败（见「错误处理」小节的非抛出读取入口清单）。
 
 ## 断言库
 
@@ -566,38 +546,10 @@ src/client/renderer/
 ### 2.3 禁止使用的特性
 
 ```cpp
-// ❌ 禁止：C风格强制转换
-int* ptr = (int*)malloc(sizeof(int));
-
-// ✅ 推荐：C++风格强制转换
-int* ptr = static_cast<int*>(malloc(sizeof(int)));
-
-// ❌ 禁止：原始数组
-int arr[10];
-
-// ✅ 推荐：std::array或std::vector
-std::array<int, 10> arr;
-std::vector<int> vec;
-
-// ❌ 禁止：宏定义常量
-#define MAX_PLAYERS 100
-
-// ✅ 推荐：constexpr常量
-inline constexpr int MAX_PLAYERS = 100;
-
-// ❌ 禁止：异常会导致性能问题，建议使用Result/Expected类型处理错误
-// 对于现有存量代码中的异常处理，考虑到兼容性，暂时不强制重构，但新代码中强烈建议不要使用异常。
-try {
-    // 正常逻辑
-} catch (...) {
-    // 错误处理
-}
-
-// ✅ 推荐：使用Result/Expected类型
-Result<void> result = doSomething();
-if (!result.success()) {
-    // 错误处理
-}
+int* ptr = (int*)malloc(sizeof(int));          // ❌ C 风格转换 → static_cast
+int arr[10];                                   // ❌ 原始数组 → std::array / std::vector
+#define MAX_PLAYERS 100                        // ❌ 宏常量 → inline constexpr
+try { /* ... */ } catch (...) { /* ... */ }    // ❌ 用异常表达失败 → Result<T>
 ```
 
 ### 2.4 类设计规范
@@ -793,19 +745,16 @@ using namespace std;  // ❌
 ```cpp
 /**
  * @brief 加载区块
- * 
- * 从磁盘或缓存中加载指定位置的区块。如果区块不存在，
- * 则使用世界生成器生成新区块。
- * 
+ *
+ * 从磁盘或缓存加载指定位置的区块；不存在时用世界生成器生成。
+ *
  * @param pos 区块位置
- * @param priority 加载优先级（0-10，10最高）
- * @return Result<std::shared_ptr<Chunk>> 加载结果
- * 
- * @note 此方法是异步的，返回后区块可能尚未完全加载
- * @warning 不要在主线程中调用高优先级加载
- * 
+ * @param priority 加载优先级（0-10，10 最高）
+ * @return 加载结果
+ * @note 异步：返回后区块可能尚未完全加载
+ * @warning 不要在主线程调用高优先级加载
  */
-Result<std::shared_ptr<Chunk>> loadChunk(ChunkPos pos, int priority);
+[[nodiscard]] Result<std::shared_ptr<Chunk>> loadChunk(ChunkPos pos, i32 priority);
 ```
 
 ### 5.2 行内注释
@@ -841,30 +790,18 @@ float alpha = smoothstep(0.0f, 1.0f, deltaTime * 5.0f);
 下面这些“对齐MC”之类的注释不能出现；如果你发现代码中有这些注释，顺手将它们删除：
 
 ```cpp
-    // 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理 ❌这行注释要删了
-    m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
+// ❌ 参考 MC 1.16.5 Minecraft.runTick() 中闪电闪烁的处理
+m_renderer->setLightningFlashBrightness(m_world.weather().lightningFlashBrightness());
 
-    // 对齐 MC 1.21.11 FirstPersonRenderer::renderArmFirstPerson。 ❌这行注释要删了
-    const f32 sqrtSwing = std::sqrt(swingProgress);
+// ❌ 对齐 MC 1.21.11 FirstPersonRenderer::renderArmFirstPerson。
+const f32 sqrtSwing = std::sqrt(swingProgress);
 
-    // 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors   ❌这行注释要删了
-
-/**
- * @brief 基于方块坐标的位置目标
- *
- * 对齐 MC 1.16.5 BlockPosWrapper，始终使用方块中心点作为导航/注视位置。 ❌这行注释要删了
- */
-class BlockPosTarget final : public IPositionTarget {}
-
-    // 水生生物 - MC 1.16.5 权重 ❌这行注释要删了
-    info.setMaxWaterCreatureInstances(DEFAULT_MAX_WATER_CREATURES);
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:cod", 15, 3, 6)); // MC 1.16.5: 15 ❌这行注释要删了
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:salmon", 15, 1, 5)); // MC 1.16.5: 15 ❌这行注释要删了
-    info.addWaterCreatureSpawn(SpawnEntry("minecraft:squid", 3, 1, 4)); // MC 1.16.5: 3 ❌这行注释要删了
-
-        // 触发通用的 EffectsChangedTrigger
-        // 参考 MC 1.16.5: CriteriaTriggers.EFFECTS_CHANGED.trigger(ServerPlayer) ❌这行注释要删了
+// ❌ 参考: net.minecraft.block.LiquidBlock#reactWithNeighbors
+// ❌ 水生生物 - MC 1.16.5 权重
+// ❌ 对齐 MC 1.16.5 BlockPosWrapper（Doxygen 注释里同样禁止）
 ```
+
+即：凡是"参考/对齐某版 MC 源码"的溯源注释一律删除——需要记录的是**当前实现为什么这样做**，而不是它抄自哪个文件。
 
 ---
 
@@ -901,21 +838,6 @@ void processString(std::string_view str);
 ### 7.1 Result类型使用
 
 ```cpp
-// ✅ 推荐：使用Result类型处理错误
-Result<void> initialize() {
-    auto result = createWindow();
-    if (!result.success()) {
-        return result;  // 传播错误
-    }
-
-    result = createRenderer();
-    if (!result.success()) {
-        return result;
-    }
-
-    return Result<void>::ok();
-}
-
 // ✅ 推荐：用 MC_TRY / MC_TRY_ASSIGN 宏简化传播（宏名带 MC_ 前缀，没有裸 TRY 宏）
 Result<void> initialize() {
     MC_TRY(createWindow());
@@ -984,22 +906,11 @@ Result<Chunk*> loadChunk(ChunkPos pos) {
 ### 9.2 避免的性能陷阱
 
 ```cpp
-// ❌ 禁止：不必要的拷贝
-std::string getName() { return m_name; }  // ❌
-
-// ✅ 推荐：返回const引用
-const std::string& getName() const { return m_name; }  // ✅
-
-// ❌ 禁止：在循环中重复计算
-for (int i = 0; i < vec.size(); i++) {  // size()每次调用
-    // ...
-}
-
-// ✅ 推荐：缓存循环条件
-for (int i = 0, n = vec.size(); i < n; i++) {  // ✅
-    // ...
-}
-
+std::string getName() { return m_name; }                     // ❌ 不必要拷贝
+const std::string& getName() const { return m_name; }        // ✅
+for (i32 i = 0; i < static_cast<i32>(vec.size()); ++i) {}    // ❌ 循环内反复取 size()
+const i32 count = static_cast<i32>(vec.size());              // ✅ 先缓存
+for (i32 i = 0; i < count; ++i) {}
 ```
 
 ---
@@ -1009,33 +920,23 @@ for (int i = 0, n = vec.size(); i < n; i++) {  // ✅
 ### 10.1 输入验证
 
 ```cpp
-// ✅ 推荐：验证所有外部输入
-Result<void> loadFile(const std::string& path) {
-    // 验证路径
+Result<void> loadFile(std::string_view path) {
     if (path.empty()) {
         return Error::invalidArgument("Path cannot be empty");
     }
-    
-    // 防止路径遍历
-    if (path.find("..") != std::string::npos) {
+    if (path.find("..") != std::string_view::npos) {   // 防路径遍历
         return Error::invalidArgument("Invalid path");
     }
-    
-    // 验证文件扩展名
     if (!path.ends_with(".json")) {
         return Error::invalidArgument("Invalid file type");
     }
-    
     // ...
 }
 
-// ✅ 推荐：限制输入大小
-void processMessage(const std::string& message) {
-    constexpr size_t MAX_MESSAGE_LENGTH = 256;
-    if (message.length() > MAX_MESSAGE_LENGTH) {
-        return Error::invalidArgument("Message too long");
-    }
-    // ...
+// 同时限制长度（外部输入的字符串一律设上限）
+constexpr size_t MAX_MESSAGE_LENGTH = 256;
+if (message.length() > MAX_MESSAGE_LENGTH) {
+    return Error::invalidArgument("Message too long");
 }
 ```
 
@@ -1097,9 +998,14 @@ benchmark 默认关闭，需显式传 `-DMC_BUILD_BENCHMARKS=ON`。客户端测�
 
 `tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
 
+【重要】**生产 target 默认在 `-fno-exceptions` 下编译**（`MC_ENABLE_NO_EXCEPTIONS` 默认 ON，开关定义在 `cmake/BuildOptions.cmake`）。作用范围是 `mc_common` / `mc_gen` / `mc_server_shared` / `mc_server_storage` / `mc_bedrock_addon` / `minecraft-server`；`mc_tests` 与 `mc_benchmark` **故意保留异常**（gtest 死亡测试、`benchmark/MemoryProfiler.cpp` 的全局 `operator new` 依赖它）。两个直接后果：
+
+1. 往 `src/` 里写 `throw` / `try` / `catch` 会**编译失败**，失败一律走 `Result` + `Error`；断言走 `MC_ASSERT_RELEASE`（abort），因此断言失败类测试只能用 `EXPECT_DEATH` / `EXPECT_EXIT`，不能用 `EXPECT_THROW`。
+2. PCH 的异常模式必须与使用方一致，所以 `mc_tests` 在开关开启时**不能** `REUSE_FROM mc_common`，改为用同一份 `pch_common.hpp` 自带 PCH（已封装在 `mc_configure_unit_target()` 里，新增测试目标复用它即可）。
+
 【重要】**本项目只支持 `RelWithDebInfo` 与 `Release` 两种配置，Debug 构建已被彻底移除**（`CMAKE_CONFIGURATION_TYPES` 固定为 `RelWithDebInfo;Release`，preset 中不再有 debug 项）。原因：`-O0` 下区块生成、网络包编解码慢一个数量级，没有实用价值。
 
-`RelWithDebInfo` 的编译选项固定为 `-O2 -DNDEBUG -gline-tables-only -gno-pubnames`，不使用 CMake 默认的 `-g`：本工程模板实例化密集，默认 `-g` 曾使单个 `.o` 达到 188 MB（其中类型名字符串表 142 MB、代码段 0.9 MB），整个 `build/` 膨胀到 74 GB。行号级调试信息把同一 `.o` 降到 41 MB（-78%），单 TU 编译时间也下降约 25%，崩溃栈仍能给出文件与行号。**调试一律用日志（日志必须是英文），不要指望调试器看变量**。
+`RelWithDebInfo` 固定用 `-O2 -DNDEBUG -gline-tables-only -gno-pubnames`，**不要改回 CMake 默认的 `-g`**：本工程模板实例化密集，默认 `-g` 会让单个 `.o` 膨胀到 188 MB、`build/` 到 74 GB。**调试一律看日志（英文），不要指望调试器看变量**。
 
 ### 判断构建是否真的结束（不要被重定向日志骗了）
 
@@ -1192,30 +1098,15 @@ benchmark 默认关闭，需显式传 `-DMC_BUILD_BENCHMARKS=ON`。客户端测�
    而诊断在参数行，抑制失效；同理行尾 `NOLINTNEXTLINE` 抑制的是下一行而非本行。**统一使用参数行上方的
    独立 `// NOLINTNEXTLINE(检查名)` 行**。
 
-正确写法（抑制写在目标参数行正上方，且中间无其他行）：
+正确写法（抑制紧贴目标参数行，说明写在抑制行之前）：
 
 ```cpp
-// heldItem 必须按值传入：ItemUseContext 构造函数对该 stack 做 const_cast 后持有可写指针，
-// onItemUse 内 getItemStackMut() 会直接改它；若指向权威槽，物品侧的自改会绕过下方
-// itemId/damage 对比，导致外层再 shrink 一次（双重消耗）。
-Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
-    PlayerId playerId,
-    const BlockPos& pos,
-    const Vector3& hitPos,
-    Direction face,
-    Hand hand,
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+// 原因说明写在这里……
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
     ItemStack heldItem)
 ```
 
-错误写法（抑制与签名之间夹了注释行 → 抑制落到注释行上，静默失效）：
-
-```cpp
-// NOLINTNEXTLINE(performance-unnecessary-value-param) — heldItem 必须按值传入：
-// ItemUseContext 构造函数对该 stack 做 const_cast 后持有可写指针……
-Result<BlockUseResult> BlockInteractionManager::handleItemUseOn(
-    PlayerId playerId, const BlockPos& pos, ...)
-```
+错误写法：抑制行与参数行之间夹了注释/函数名行 → 抑制静默失效。
 
 改完必须用 `./scripts/tidy/tidy.sh --checks='-*,<检查名>' <文件>` 实测确认抑制生效（输出中不应再出现该诊断）。
 

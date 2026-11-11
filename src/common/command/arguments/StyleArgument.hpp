@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/StyleNbt.hpp"
@@ -52,12 +52,12 @@ using StylePtr = std::shared_ptr<text::Style>;
 
 class StyleArgumentType : public ArgumentType<StylePtr> {
 public:
-    [[nodiscard]] StylePtr parse(StringReader& reader) override
+    [[nodiscard]] Result<StylePtr, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         const std::string text = _readCompoundText(reader);
         if (text.empty()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected style at position " + std::to_string(start), start);
         }
 
@@ -65,12 +65,12 @@ public:
         // 静默回退会让写错的命令看起来成功、实际把格式清成了「无样式」。
         auto tagResult = nbt::parseMojangson(text);
         if (tagResult.failed()) {
-            throw CommandException(CommandErrorType::Unknown, "Invalid style (not valid SNBT): " + text, start);
+            return CommandError(CommandErrorType::Unknown, "Invalid style (not valid SNBT): " + text, start);
         }
         auto tag = std::move(tagResult).value();
         auto style = text::styleFromNbt(*tag);
         if (style.failed()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Invalid style " + text + ": " + style.error().message(), start);
         }
 

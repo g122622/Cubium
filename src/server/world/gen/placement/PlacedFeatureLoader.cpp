@@ -38,6 +38,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
@@ -262,8 +263,10 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         if (!node.contains("max_steps") || !node["max_steps"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "environment_scan placement missing 'max_steps' integer");
         }
+        i32 maxSteps = 0;
+        MC_TRY_ASSIGN(maxSteps, util::json::getInt32(node, "max_steps"));
         config = std::make_unique<EnvironmentScanConfig>(
-            dirOpt.value(), targetResult.value(), std::move(allowedPred), node["max_steps"].get<i32>());
+            dirOpt.value(), targetResult.value(), std::move(allowedPred), maxSteps);
     } else if (type == "random_offset") {
         // random_offset: {xz_spread, y_spread}，二者均为 IntProvider（CODEC 范围 [-16,16]），
         // vanilla JSON 常用裸整数（如 0/-1）。xz_spread 给 dx 与 dz 各独立采样一次，y_spread 给 dy。
@@ -289,13 +292,16 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
             return Error(
                 ErrorCode::InvalidData, "surface_water_depth_filter placement missing 'max_water_depth' integer");
         }
-        config = std::make_unique<WaterDepthThresholdConfig>(node["max_water_depth"].get<i32>());
+        i32 maxWaterDepth = 0;
+        MC_TRY_ASSIGN(maxWaterDepth, util::json::getInt32(node, "max_water_depth"));
+        config = std::make_unique<WaterDepthThresholdConfig>(maxWaterDepth);
     } else if (type == "rarity_filter") {
         // rarity_filter: {chance}（裸整数，POSITIVE_INT 即 >=1）。以 1/chance 概率通过。
         if (!node.contains("chance") || !node["chance"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "rarity_filter placement missing 'chance' integer");
         }
-        const i32 chance = node["chance"].get<i32>();
+        i32 chance = 0;
+        MC_TRY_ASSIGN(chance, util::json::getInt32(node, "chance"));
         if (chance < 1) {
             return Error(ErrorCode::InvalidData,
                 "rarity_filter placement 'chance' must be >= 1 (POSITIVE_INT), got " + std::to_string(chance));
@@ -306,10 +312,11 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         if (!node.contains("heightmap") || !node["heightmap"].is_string()) {
             return Error(ErrorCode::InvalidData, "heightmap placement missing 'heightmap' string");
         }
-        const auto heightmapOpt = world::chunk::heightmapTypeFromString(node["heightmap"].get<std::string>());
+        std::string heightmapName;
+        MC_TRY_ASSIGN(heightmapName, util::json::getString(node, "heightmap"));
+        const auto heightmapOpt = world::chunk::heightmapTypeFromString(heightmapName);
         if (!heightmapOpt.has_value()) {
-            return Error(ErrorCode::InvalidData,
-                "heightmap placement: unknown heightmap type '" + node["heightmap"].get<std::string>() + "'");
+            return Error(ErrorCode::InvalidData, "heightmap placement: unknown heightmap type '" + heightmapName + "'");
         }
         config = std::make_unique<HeightmapPlacementConfig>(heightmapOpt.value());
     } else if (type == "fixed_placement") {
@@ -325,7 +332,13 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
                 return Error(
                     ErrorCode::InvalidData, "fixed_placement placement: each position must be [x,y,z] integers");
             }
-            positions.emplace_back(entry[0].get<i32>(), entry[1].get<i32>(), entry[2].get<i32>());
+            i32 posX = 0;
+            i32 posY = 0;
+            i32 posZ = 0;
+            MC_TRY_ASSIGN(posX, util::json::getInt32At(entry, 0));
+            MC_TRY_ASSIGN(posY, util::json::getInt32At(entry, 1));
+            MC_TRY_ASSIGN(posZ, util::json::getInt32At(entry, 2));
+            positions.emplace_back(posX, posY, posZ);
         }
         config = std::make_unique<FixedPlacementConfig>(std::move(positions));
     } else if (type == "count_on_every_layer") {
@@ -350,8 +363,13 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         if (!node.contains("above_noise") || !node["above_noise"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "noise_threshold_count placement missing 'above_noise' integer");
         }
-        config = std::make_unique<NoiseThresholdCountConfig>(
-            node["noise_level"].get<f64>(), node["below_noise"].get<i32>(), node["above_noise"].get<i32>());
+        f64 noiseLevel = 0.0;
+        i32 belowNoise = 0;
+        i32 aboveNoise = 0;
+        MC_TRY_ASSIGN(noiseLevel, util::json::getFloat64(node, "noise_level"));
+        MC_TRY_ASSIGN(belowNoise, util::json::getInt32(node, "below_noise"));
+        MC_TRY_ASSIGN(aboveNoise, util::json::getInt32(node, "above_noise"));
+        config = std::make_unique<NoiseThresholdCountConfig>(noiseLevel, belowNoise, aboveNoise);
     } else if (type == "noise_based_count") {
         // noise_based_count: {noise_to_count_ratio: i32, noise_factor: f64, noise_offset: f64 (缺省 0)}。
         if (!node.contains("noise_to_count_ratio") || !node["noise_to_count_ratio"].is_number_integer()) {
@@ -360,23 +378,27 @@ Result<std::unique_ptr<ConfiguredPlacement>> parsePlacementNode(
         if (!node.contains("noise_factor") || !node["noise_factor"].is_number()) {
             return Error(ErrorCode::InvalidData, "noise_based_count placement missing 'noise_factor' number");
         }
-        const f64 noiseOffset = node.value("noise_offset", 0.0);
-        config = std::make_unique<NoiseBasedCountConfig>(
-            node["noise_to_count_ratio"].get<i32>(), node["noise_factor"].get<f64>(), noiseOffset);
+        i32 noiseToCountRatio = 0;
+        f64 noiseFactor = 0.0;
+        MC_TRY_ASSIGN(noiseToCountRatio, util::json::getInt32(node, "noise_to_count_ratio"));
+        MC_TRY_ASSIGN(noiseFactor, util::json::getFloat64(node, "noise_factor"));
+        const f64 noiseOffset = util::json::getFloat64Or(node, "noise_offset", 0.0);
+        config = std::make_unique<NoiseBasedCountConfig>(noiseToCountRatio, noiseFactor, noiseOffset);
     } else if (type == "surface_relative_threshold_filter") {
         // surface_relative_threshold_filter: {heightmap, min_inclusive? i32, max_inclusive? i32}。
         if (!node.contains("heightmap") || !node["heightmap"].is_string()) {
             return Error(
                 ErrorCode::InvalidData, "surface_relative_threshold_filter placement missing 'heightmap' string");
         }
-        const auto heightmapOpt = world::chunk::heightmapTypeFromString(node["heightmap"].get<std::string>());
+        std::string heightmapName;
+        MC_TRY_ASSIGN(heightmapName, util::json::getString(node, "heightmap"));
+        const auto heightmapOpt = world::chunk::heightmapTypeFromString(heightmapName);
         if (!heightmapOpt.has_value()) {
             return Error(ErrorCode::InvalidData,
-                "surface_relative_threshold_filter placement: unknown heightmap type '" +
-                    node["heightmap"].get<std::string>() + "'");
+                "surface_relative_threshold_filter placement: unknown heightmap type '" + heightmapName + "'");
         }
-        const i32 minInclusive = node.value("min_inclusive", std::numeric_limits<i32>::min());
-        const i32 maxInclusive = node.value("max_inclusive", std::numeric_limits<i32>::max());
+        const i32 minInclusive = util::json::getInt32Or(node, "min_inclusive", std::numeric_limits<i32>::min());
+        const i32 maxInclusive = util::json::getInt32Or(node, "max_inclusive", std::numeric_limits<i32>::max());
         config =
             std::make_unique<SurfaceRelativeThresholdFilterConfig>(heightmapOpt.value(), minInclusive, maxInclusive);
     } else {
@@ -506,14 +528,12 @@ Result<size_t> PlacedFeatureLoader::loadFromDataPackRepository(const resource::D
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {
@@ -559,14 +579,12 @@ Result<size_t> PlacedFeatureLoader::loadFromResourcePack(const resource::IResour
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse placed_feature {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (!parseResult.success()) {

@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/command/arguments/NbtPath.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -59,16 +59,16 @@ public:
     /**
      * @brief 获取目标的 NBT 数据
      * @return 包含所有数据的复合标签
-     * @throws CommandException 如果无法获取数据
+     * @throws CommandError 如果无法获取数据
      */
-    [[nodiscard]] virtual std::unique_ptr<nbt::tags::compound_tag> getData() const = 0;
+    [[nodiscard]] virtual Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const = 0;
 
     /**
      * @brief 合并 NBT 数据到目标
      * @param data 要合并的数据
-     * @throws CommandException 如果无法合并数据或数据未改变
+     * @throws CommandError 如果无法合并数据或数据未改变
      */
-    virtual void mergeData(const nbt::tags::compound_tag& data) = 0;
+    [[nodiscard]] virtual Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) = 0;
 
     /**
      * @brief 获取目标的显示名称
@@ -113,8 +113,8 @@ public:
      */
     BlockDataAccessor(IWorld* world, const BlockPos& pos);
 
-    [[nodiscard]] std::unique_ptr<nbt::tags::compound_tag> getData() const override;
-    void mergeData(const nbt::tags::compound_tag& data) override;
+    [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
+    [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
@@ -156,8 +156,8 @@ public:
      */
     explicit EntityDataAccessor(::mc::Entity* entity);
 
-    [[nodiscard]] std::unique_ptr<nbt::tags::compound_tag> getData() const override;
-    void mergeData(const nbt::tags::compound_tag& data) override;
+    [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
+    [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
@@ -196,8 +196,8 @@ public:
      */
     StorageDataAccessor(class CommandStorage* storage, const ResourceLocation& id);
 
-    [[nodiscard]] std::unique_ptr<nbt::tags::compound_tag> getData() const override;
-    void mergeData(const nbt::tags::compound_tag& data) override;
+    [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
+    [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::string getModifiedMessage() const override;
     [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;

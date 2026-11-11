@@ -24,6 +24,7 @@
 #include "WorldNameSanitizer.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
@@ -152,14 +153,13 @@ bool WorldNameSanitizer::_parseExistingNameWithNumber(
         }
     }
 
-    try {
-        number = std::stoi(numStr);
-        baseName = name.substr(0, spacePos);
-        return true;
-    }
-    catch (...) {
+    auto parsed = util::parseInt32(numStr);
+    if (parsed.failed()) {
         return false;
     }
+    number = parsed.value();
+    baseName = name.substr(0, spacePos);
+    return true;
 }
 
 Result<std::string> WorldNameSanitizer::findAvailableLevelId(

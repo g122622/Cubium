@@ -166,10 +166,14 @@ public:
 
     /**
      * @brief 从NBT反序列化
+     *
+     * 存档属于不可信输入：坐标或类型缺失、越界时返回 `std::nullopt` 并记录告警，
+     * 由调用方跳过该 POI，而不是断言崩溃。
+     *
      * @param tag NBT标签
-     * @return 反序列化后的POI
+     * @return 反序列化后的POI；数据非法时为 `std::nullopt`
      */
-    static PointOfInterest deserialize(const nbt::tags::compound_tag& tag);
+    [[nodiscard]] static std::optional<PointOfInterest> deserialize(const nbt::tags::compound_tag& tag);
 
 private:
     /// POI位置

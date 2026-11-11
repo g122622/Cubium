@@ -13,6 +13,19 @@ option(MC_BUILD_FUZZERS "Build libFuzzer protocol fuzz targets (tests/fuzz)" OFF
 # 一致性验证流程。开启后目标仍为 EXCLUDE_FROM_ALL，须显式 --target diff_probes 构建。
 option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
+# 生产 target 禁用 C++ 异常（-fno-exceptions，Windows 另需 _HAS_EXCEPTIONS=0）。
+#
+# 默认 ON：生产 target 已全量在 -fno-exceptions 下构建通过，去异常化是既定架构约束，
+# 不是可选优化。新增生产代码若用到异常会在编译期直接失败，而不是留到运行期。
+#
+# 打开后：生产 target 的断言一律走 defaultAssertHandler（abort + 诊断输出），
+# tests target 仍保留异常（gtest 的 EXPECT_THROW 与 AssertException 支持依赖它）。
+# 详见 docs/iterations/exception禁用指南.md。
+option(MC_ENABLE_NO_EXCEPTIONS "Compile production targets with -fno-exceptions" ON)
+# 灰度开关：为空表示「全部生产 target」；填分号分隔的 target 名则只对子集生效。
+# 用途是分 target 逐步去异常化（例如先只给 mc_common 打开，验证通过后再扩到 server）。
+set(MC_NO_EXCEPTIONS_TARGETS "" CACHE STRING
+    "MC_ENABLE_NO_EXCEPTIONS 生效的 target 子集（分号分隔）；留空表示全部生产 target")
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
 # Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。

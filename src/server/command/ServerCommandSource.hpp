@@ -141,13 +141,6 @@ public:
     }
 
     /**
-     * @brief 获取执行实体，如果为空则抛出异常
-     * @return 执行实体引用
-     * @throws CommandException 如果没有关联实体（如控制台执行命令）
-     */
-    [[nodiscard]] Entity& entityOrException() const;
-
-    /**
      * @brief 获取逻辑玩家ID
      */
     [[nodiscard]] PlayerId playerId() const noexcept
@@ -216,12 +209,6 @@ public:
     {
         return m_player != nullptr || m_playerId != 0;
     }
-
-    /**
-     * @brief 断言是玩家
-     * @throws CommandException 如果不是玩家
-     */
-    [[nodiscard]] ServerPlayer& assertPlayer() const;
 
     // ========== 派生命令源 ==========
 

@@ -23,11 +23,37 @@
 
 #include "server/function/MacroFunction.hpp"
 #include "server/function/StringTemplate.hpp"
+#include <optional>
 #include <stdexcept>
 #include <gtest/gtest.h>
 
 using namespace mc;
 using namespace mc::function;
+
+// ========== 测试辅助 ==========
+
+namespace {
+
+/// 测试辅助：模板解析失败时让用例直接失败（模板字面量在测试里恒为合法）
+StringTemplate _parseTemplateOrFail(const std::string& text)
+{
+    auto result = StringTemplate::fromString(text);
+    EXPECT_TRUE(result.success()) << "test fixture template must be valid: " << text;
+    return std::move(result).value();
+}
+
+/// 测试辅助：实例化成功返回命令列表，失败返回 nullopt
+std::optional<std::vector<std::string>> _instantiate(
+    const MacroFunction& func, const nbt::tags::compound_tag* arguments)
+{
+    auto result = func.instantiate(arguments);
+    if (result.failed()) {
+        return std::nullopt;
+    }
+    return std::move(result).value();
+}
+
+} // namespace
 
 /**
  * @brief MacroFunction 单元测试
@@ -43,7 +69,7 @@ protected:
         std::vector<std::string> parameters = {"name"};
 
         // 宏行：say $(name)
-        auto tmpl = StringTemplate::fromString("say $(name)");
+        auto tmpl = _parseTemplateOrFail("say $(name)");
         entries.push_back(MacroFunctionEntry::macro(std::move(tmpl), {0}));
         // 纯文本行：say hello
         entries.push_back(MacroFunctionEntry::plainText("say hello"));
@@ -59,7 +85,7 @@ protected:
         std::vector<std::string> parameters = {"a", "b"};
 
         // 宏行：tellraw @a {"text":"$(a) $(b)"}
-        auto tmpl = StringTemplate::fromString("tellraw @a {\"text\":\"$(a) $(b)\"}");
+        auto tmpl = _parseTemplateOrFail("tellraw @a {\"text\":\"$(a) $(b)\"}");
         entries.push_back(MacroFunctionEntry::macro(std::move(tmpl), {0, 1}));
 
         return std::make_unique<MacroFunction>(
@@ -74,7 +100,7 @@ protected:
 
         // 宏行：say $(a) $(a)
         // StringTemplate 会把 variables 解析为 ["a", "a"]，需要两个 indices 都指向 0
-        auto tmpl = StringTemplate::fromString("say $(a) $(a)");
+        auto tmpl = _parseTemplateOrFail("say $(a) $(a)");
         EXPECT_EQ(tmpl.variables().size(), 2u);
         entries.push_back(MacroFunctionEntry::macro(std::move(tmpl), {0, 0}));
 
@@ -193,18 +219,19 @@ TEST_F(MacroFunctionTest, Stringify_Compound_UsesSNBT)
 
 // ========== instantiate ==========
 
-TEST_F(MacroFunctionTest, Instantiate_NullArguments_Throws)
+TEST_F(MacroFunctionTest, Instantiate_NullArguments_ReturnsError)
 {
     auto func = makeSimpleMacroFunction();
-    EXPECT_THROW(func->instantiate(nullptr), FunctionInstantiationException);
+    // 缺参属于调用方输入错误：返回错误，由 execute 计入 failureCount
+    EXPECT_TRUE(func->instantiate(nullptr).failed());
 }
 
-TEST_F(MacroFunctionTest, Instantiate_MissingParameter_Throws)
+TEST_F(MacroFunctionTest, Instantiate_MissingParameter_ReturnsError)
 {
     auto func = makeSimpleMacroFunction();
     nbt::tags::compound_tag args;
     // 不含 "name" 形参
-    EXPECT_THROW(func->instantiate(&args), FunctionInstantiationException);
+    EXPECT_TRUE(func->instantiate(&args).failed());
 }
 
 TEST_F(MacroFunctionTest, Instantiate_SingleParameter)
@@ -212,10 +239,11 @@ TEST_F(MacroFunctionTest, Instantiate_SingleParameter)
     auto func = makeSimpleMacroFunction();
     nbt::tags::compound_tag args;
     args.put("name", std::string("Steve"));
-    auto commands = func->instantiate(&args);
-    ASSERT_EQ(commands.size(), 2u);
-    EXPECT_EQ(commands[0], "say Steve");
-    EXPECT_EQ(commands[1], "say hello");
+    auto commands = _instantiate(*func, &args);
+    ASSERT_TRUE(commands.has_value());
+    ASSERT_EQ(commands->size(), 2u);
+    EXPECT_EQ(commands->at(0), "say Steve");
+    EXPECT_EQ(commands->at(1), "say hello");
 }
 
 TEST_F(MacroFunctionTest, Instantiate_MultipleParameters)
@@ -224,9 +252,10 @@ TEST_F(MacroFunctionTest, Instantiate_MultipleParameters)
     nbt::tags::compound_tag args;
     args.put("a", std::string("Hello"));
     args.put("b", std::string("World"));
-    auto commands = func->instantiate(&args);
-    ASSERT_EQ(commands.size(), 1u);
-    EXPECT_EQ(commands[0], "tellraw @a {\"text\":\"Hello World\"}");
+    auto commands = _instantiate(*func, &args);
+    ASSERT_TRUE(commands.has_value());
+    ASSERT_EQ(commands->size(), 1u);
+    EXPECT_EQ(commands->at(0), "tellraw @a {\"text\":\"Hello World\"}");
 }
 
 TEST_F(MacroFunctionTest, Instantiate_RepeatedVariable)
@@ -234,9 +263,10 @@ TEST_F(MacroFunctionTest, Instantiate_RepeatedVariable)
     auto func = makeRepeatedVarMacroFunction();
     nbt::tags::compound_tag args;
     args.put("a", std::string("X"));
-    auto commands = func->instantiate(&args);
-    ASSERT_EQ(commands.size(), 1u);
-    EXPECT_EQ(commands[0], "say X X");
+    auto commands = _instantiate(*func, &args);
+    ASSERT_TRUE(commands.has_value());
+    ASSERT_EQ(commands->size(), 1u);
+    EXPECT_EQ(commands->at(0), "say X X");
 }
 
 TEST_F(MacroFunctionTest, Instantiate_NumericParameter_Stringify)
@@ -245,17 +275,18 @@ TEST_F(MacroFunctionTest, Instantiate_NumericParameter_Stringify)
     std::vector<MacroFunctionEntry> entries;
     std::vector<std::string> parameters = {"count"};
 
-    auto tmpl = StringTemplate::fromString("give @a diamond $(count)");
+    auto tmpl = _parseTemplateOrFail("give @a diamond $(count)");
     entries.push_back(MacroFunctionEntry::macro(std::move(tmpl), {0}));
 
     MacroFunction func(ResourceLocation("minecraft", "numeric"), std::move(entries), std::move(parameters));
 
     nbt::tags::compound_tag args;
     args.put("count", static_cast<std::int8_t>(5));
-    auto commands = func.instantiate(&args);
-    ASSERT_EQ(commands.size(), 1u);
+    auto commands = _instantiate(func, &args);
+    ASSERT_TRUE(commands.has_value());
+    ASSERT_EQ(commands->size(), 1u);
     // Byte → "5"（int 字符串）
-    EXPECT_EQ(commands[0], "give @a diamond 5");
+    EXPECT_EQ(commands->at(0), "give @a diamond 5");
 }
 
 // ========== LRU 缓存 ==========
@@ -265,16 +296,18 @@ TEST_F(MacroFunctionTest, Cache_HitReturnsSameCommands)
     auto func = makeSimpleMacroFunction();
     nbt::tags::compound_tag args1;
     args1.put("name", std::string("Steve"));
-    auto commands1 = func->instantiate(&args1);
+    auto commands1 = _instantiate(*func, &args1);
+    ASSERT_TRUE(commands1.has_value());
 
     nbt::tags::compound_tag args2;
     args2.put("name", std::string("Steve"));
-    auto commands2 = func->instantiate(&args2);
+    auto commands2 = _instantiate(*func, &args2);
+    ASSERT_TRUE(commands2.has_value());
 
     // 两次调用应返回相同的命令列表
-    ASSERT_EQ(commands1.size(), commands2.size());
-    for (Size i = 0; i < commands1.size(); ++i) {
-        EXPECT_EQ(commands1[i], commands2[i]);
+    ASSERT_EQ(commands1->size(), commands2->size());
+    for (Size i = 0; i < commands1->size(); ++i) {
+        EXPECT_EQ(commands1->at(i), commands2->at(i));
     }
 }
 
@@ -283,13 +316,15 @@ TEST_F(MacroFunctionTest, Cache_DifferentArgumentsProduceDifferentCommands)
     auto func = makeSimpleMacroFunction();
     nbt::tags::compound_tag args1;
     args1.put("name", std::string("Steve"));
-    auto commands1 = func->instantiate(&args1);
-    EXPECT_EQ(commands1[0], "say Steve");
+    auto commands1 = _instantiate(*func, &args1);
+    ASSERT_TRUE(commands1.has_value());
+    EXPECT_EQ(commands1->at(0), "say Steve");
 
     nbt::tags::compound_tag args2;
     args2.put("name", std::string("Alex"));
-    auto commands2 = func->instantiate(&args2);
-    EXPECT_EQ(commands2[0], "say Alex");
+    auto commands2 = _instantiate(*func, &args2);
+    ASSERT_TRUE(commands2.has_value());
+    EXPECT_EQ(commands2->at(0), "say Alex");
 }
 
 TEST_F(MacroFunctionTest, Cache_EvictionAtMaxEntries)
@@ -297,16 +332,18 @@ TEST_F(MacroFunctionTest, Cache_EvictionAtMaxEntries)
     // 验证缓存上限 MAX_CACHE_ENTRIES = 8 不会导致内存无限增长或崩溃
     auto func = makeSimpleMacroFunction();
     // 注入 10 个不同的参数组合（超过缓存上限 8）
-    for (int i = 0; i < 10; ++i) {
+    for (i32 i = 0; i < 10; ++i) {
         nbt::tags::compound_tag args;
         args.put("name", std::string("player") + std::to_string(i));
-        auto commands = func->instantiate(&args);
-        ASSERT_EQ(commands.size(), 2u);
-        EXPECT_EQ(commands[0], "say player" + std::to_string(i));
+        auto commands = _instantiate(*func, &args);
+        ASSERT_TRUE(commands.has_value());
+        ASSERT_EQ(commands->size(), 2u);
+        EXPECT_EQ(commands->at(0), "say player" + std::to_string(i));
     }
     // 再访问一次最早条目（应重新实例化，因为已被淘汰）
     nbt::tags::compound_tag args;
     args.put("name", std::string("player0"));
-    auto commands = func->instantiate(&args);
-    EXPECT_EQ(commands[0], "say player0");
+    auto commands = _instantiate(*func, &args);
+    ASSERT_TRUE(commands.has_value());
+    EXPECT_EQ(commands->at(0), "say player0");
 }

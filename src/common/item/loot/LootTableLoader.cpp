@@ -32,10 +32,12 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -220,15 +222,19 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDirectory(
 
     // 收集所有 .json 文件
     std::vector<fs::path> jsonFiles;
-    try {
-        for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                jsonFiles.push_back(entry.path());
-            }
+    // 用 error_code 重载遍历：目录不可读时返回空列表并上报，不抛 filesystem_error
+    std::error_code iterateEc;
+    for (fs::recursive_directory_iterator it(directoryPath, fs::directory_options::none, iterateEc), end; it != end;
+        it.increment(iterateEc)) {
+        if (iterateEc) {
+            return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + iterateEc.message());
+        }
+        if (it->is_regular_file() && it->path().extension() == ".json") {
+            jsonFiles.push_back(it->path());
         }
     }
-    catch (const fs::filesystem_error& e) {
-        return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + std::string(e.what()));
+    if (iterateEc) {
+        return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + iterateEc.message());
     }
 
     Size total = jsonFiles.size();
@@ -283,13 +289,12 @@ Result<std::string> LootTableLoader::loadJson(const std::string& id, const std::
     MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "LootTableLoader::loadJson", "id", id);
 
     // 解析 JSON
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(jsonString);
+    auto jsonResult = util::json::parse(jsonString);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::ResourceParseError,
+            "JSON parse error for loot table '" + id + "': " + jsonResult.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError, "JSON parse error for loot table '" + id + "': " + e.what());
-    }
+    auto json = std::move(jsonResult).value();
 
     // 使用 LootSerializers 解析掉落表
     auto tableResult = LootTable::fromJson(jsonString);

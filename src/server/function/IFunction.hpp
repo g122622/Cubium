@@ -26,9 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <optional>
-#include <stdexcept>
 #include <string>
-#include <utility>
 
 namespace mc {
 
@@ -59,31 +57,6 @@ struct FunctionExecuteResult {
     /// 函数通过 /return 给出的返回值；未 return 时为 nullopt。
     /// /execute if function 依据它判定（原版语义：返回值 > 0 视为成立）。
     std::optional<i32> returnValue;
-};
-
-/**
- * @brief 函数实例化异常
- *
- * 对应 MC 1.21.11 的 net.minecraft.commands.FunctionInstantiationException。
- *
- * 在宏函数实例化（CompoundTag 参数替换）过程中发生错误时抛出：
- * - 缺少参数（commands.function.error.missing_arguments / missing_argument）
- * - 替换后命令解析失败（commands.function.error.parse）
- */
-class FunctionInstantiationException : public std::runtime_error {
-public:
-    explicit FunctionInstantiationException(std::string message)
-        : std::runtime_error(message)
-        , m_message(std::move(message))
-    {}
-
-    [[nodiscard]] const std::string& message() const noexcept
-    {
-        return m_message;
-    }
-
-private:
-    std::string m_message;
 };
 
 /**
@@ -129,8 +102,8 @@ public:
      * @brief 执行函数
      *
      * 普通函数：逐行通过 CommandRegistry 执行，忽略 arguments。
-     * 宏函数：先用 arguments 实例化 $(var) 占位符，再逐行执行。
-     *        arguments 为 nullptr 时，宏函数抛 FunctionInstantiationException。
+     * 宏函数：先用 arguments 实例化 $(var) 占位符，再逐行执行；
+     *        arguments 为 nullptr 或缺少形参时整体失败（逐条计为失败，不执行任何一行）。
      *
      * @param manager 函数管理器（用于获取 CommandRegistry 等依赖）
      * @param source 命令源（权限等级、反馈等）

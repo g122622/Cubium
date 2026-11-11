@@ -26,8 +26,9 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <any>
 #include <memory>
 #include <optional>
@@ -38,6 +39,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc::command {
 
@@ -97,17 +99,19 @@ public:
      * @tparam T 参数类型
      * @param name 参数名
      * @return 参数值
-     * @throws std::out_of_range 如果参数不存在
-     * @throws std::bad_any_cast 如果类型不匹配
+     * @note 参数不存在属于调用方违约，断言崩溃（不再抛 std::out_of_range）
      */
     template <typename T>
     [[nodiscard]] T getArgument(const std::string& name) const
     {
-        auto it = m_arguments.find(name);
-        if (it == m_arguments.end()) {
-            throw std::out_of_range("Argument not found: " + name);
-        }
-        return std::any_cast<T>(it->second.value);
+        const auto it = m_arguments.find(name);
+        // 取不存在的参数属于调用方违约（解析器与执行器的参数名对不上），断言崩溃优于抛异常。
+        MC_ASSERT_RELEASE_MSG(it != m_arguments.end(), "CommandContext::getArgument: argument not found");
+        // 指针形式：类型不匹配时返回 nullptr，不抛 std::bad_any_cast；
+        // 取到 nullptr 说明解析器与执行器对同一参数的类型约定不一致，属编程错误。
+        const auto* value = std::any_cast<T>(&it->second.value);
+        MC_ASSERT_RELEASE_MSG(value != nullptr, "CommandContext::getArgument: argument type mismatch");
+        return *value;
     }
 
     /**
@@ -128,14 +132,12 @@ public:
 
     /**
      * @brief 按 std::any 取出参数值（不校验类型），用于把参数值搬到另一个槽名。
-     * @throws std::out_of_range 如果参数不存在
+     * @note 参数不存在属于调用方违约，断言崩溃（不再抛 std::out_of_range）
      */
     [[nodiscard]] std::any getArgumentAny(const std::string& name) const
     {
-        auto it = m_arguments.find(name);
-        if (it == m_arguments.end()) {
-            throw std::out_of_range("Argument not found: " + name);
-        }
+        const auto it = m_arguments.find(name);
+        MC_ASSERT_RELEASE_MSG(it != m_arguments.end(), "CommandContext::getArgumentAny: argument not found");
         return it->second.value;
     }
 
@@ -164,12 +166,14 @@ public:
         if (it == m_arguments.end()) {
             return defaultValue;
         }
-        try {
-            return std::any_cast<T>(it->second.value);
-        }
-        catch (...) {
+        // 类型不匹配说明解析器与执行器的类型约定不一致：记录 warn 后返回默认值，
+        // 不再用 catch(...) 静默吞掉（原先连日志都没有）。
+        const auto* value = std::any_cast<T>(&it->second.value);
+        if (value == nullptr) {
+            spdlog::warn("CommandContext::getArgumentOr: argument '{}' has an unexpected type; using default", name);
             return defaultValue;
         }
+        return *value;
     }
 
     /**
@@ -391,7 +395,7 @@ public:
         , m_remaining(remaining)
     {}
 
-    ParseResults(CommandException error, i32 cursor)
+    ParseResults(CommandError error, i32 cursor)
         : m_error(std::move(error))
         , m_errorCursor(cursor)
     {}
@@ -419,7 +423,7 @@ public:
         return m_context.get();
     }
 
-    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept
+    [[nodiscard]] const std::optional<CommandError>& getError() const noexcept
     {
         return m_error;
     }
@@ -446,7 +450,7 @@ public:
      * 与 brigadier 一致：只看解析错误。剩余文本是否算错误由 parseNodes 决定——它只会
      * 把「输入用完」的结果当成成功候选，所以这里不再额外检查 remaining。
      */
-    [[nodiscard]] std::optional<CommandException> getException() const
+    [[nodiscard]] std::optional<CommandError> getException() const
     {
         return m_error;
     }
@@ -456,7 +460,7 @@ private:
     // 注意：remaining 的源头是 parse 里的临时 StringReader，切成视图会悬垂：
     // 对象被移动/返回时视图仍指向旧对象的成员。这里只保存一份拥有的副本。
     std::string m_remaining;
-    std::optional<CommandException> m_error;
+    std::optional<CommandError> m_error;
     i32 m_errorCursor = -1;
 };
 

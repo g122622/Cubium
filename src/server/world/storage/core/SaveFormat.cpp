@@ -265,66 +265,61 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectJavaVersion(const std::filesys
         return Error(ErrorCode::FileNotFound, "level.dat not found");
     }
 
-    try {
-        std::ifstream file(levelDatPath, std::ios::binary);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, "Cannot open level.dat");
-        }
+    std::ifstream file(levelDatPath, std::ios::binary);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, "Cannot open level.dat");
+    }
 
-        std::vector<u8> compressed((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
+    std::vector<u8> compressed((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
 
-        if (compressed.empty()) {
-            return Error(ErrorCode::FileCorrupted, "level.dat is empty");
-        }
+    if (compressed.empty()) {
+        return Error(ErrorCode::FileCorrupted, "level.dat is empty");
+    }
 
-        auto decompressed = mc::util::decompressGzip(compressed);
-        if (decompressed.empty()) {
-            return Error(ErrorCode::DecompressionFailed, "Failed to decompress level.dat");
-        }
+    auto decompressed = mc::util::decompressGzip(compressed);
+    if (decompressed.empty()) {
+        return Error(ErrorCode::DecompressionFailed, "Failed to decompress level.dat");
+    }
 
-        std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
-        stream >> mc::nbt::contexts::java;
-        auto rootResult = mc::nbt::tags::compound_tag::read(stream);
-        if (rootResult.failed()) {
-            return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT: " + rootResult.error().message());
-        }
-        auto root = std::move(rootResult).value();
+    std::istringstream stream(std::string(decompressed.begin(), decompressed.end()));
+    stream >> mc::nbt::contexts::java;
+    auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse level.dat NBT: " + rootResult.error().message());
+    }
+    auto root = std::move(rootResult).value();
 
-        // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
-        const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
+    // Java 写出的 level.dat 根标签带 id+name 前缀，读取时会多出一层空键包装
+    const mc::nbt::tags::compound_tag& levelData = mc::nbt::unwrapRootCompound(*root);
 
-        SaveFormatInfo info;
-        info.format = SaveFormat::JavaAnvil;
-        info.readonly = true;
+    SaveFormatInfo info;
+    info.format = SaveFormat::JavaAnvil;
+    info.readonly = true;
 
-        // 读取 DataVersion
-        if (levelData.value.count("Data") != 0) {
-            auto* data = dynamic_cast<mc::nbt::tags::compound_tag*>(levelData.value.at("Data").get());
-            if (data) {
-                if (data->value.count("DataVersion") != 0) {
-                    info.dataVersion = static_cast<i32>(data->get<mc::nbt::tags::int_tag>("DataVersion"));
-                }
-                // 读取版本名称
-                if (data->value.count("Version") != 0) {
-                    auto* version = dynamic_cast<mc::nbt::tags::compound_tag*>(data->value.at("Version").get());
-                    if (version && version->value.count("Name") != 0) {
-                        info.formatName = "Java " + version->get<mc::nbt::tags::string_tag>("Name");
-                    }
+    // 读取 DataVersion
+    if (levelData.value.count("Data") != 0) {
+        auto* data = dynamic_cast<mc::nbt::tags::compound_tag*>(levelData.value.at("Data").get());
+        if (data) {
+            if (data->value.count("DataVersion") != 0) {
+                info.dataVersion = static_cast<i32>(data->get<mc::nbt::tags::int_tag>("DataVersion"));
+            }
+            // 读取版本名称
+            if (data->value.count("Version") != 0) {
+                auto* version = dynamic_cast<mc::nbt::tags::compound_tag*>(data->value.at("Version").get());
+                if (version && version->value.count("Name") != 0) {
+                    info.formatName = "Java " + version->get<mc::nbt::tags::string_tag>("Name");
                 }
             }
         }
-
-        if (info.formatName.empty()) {
-            info.formatName = "Java Anvil";
-        }
-
-        spdlog::info("SaveFormatDetector: Java version: {} (DataVersion: {})", info.formatName, info.dataVersion);
-        return info;
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to read Java level.dat: {}", e.what()));
+
+    if (info.formatName.empty()) {
+        info.formatName = "Java Anvil";
     }
+
+    spdlog::info("SaveFormatDetector: Java version: {} (DataVersion: {})", info.formatName, info.dataVersion);
+    return info;
 }
 
 bool SaveFormatDetector::_isCubiumAuthoredWorld(const mc::nbt::tags::compound_tag& root)
@@ -362,68 +357,63 @@ Result<SaveFormatInfo> SaveFormatDetector::_detectBedrockVersion(const std::file
         return Error(ErrorCode::FileNotFound, "level.dat not found");
     }
 
-    try {
-        std::ifstream file(levelDatPath, std::ios::binary);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, "Cannot open level.dat");
-        }
+    std::ifstream file(levelDatPath, std::ios::binary);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, "Cannot open level.dat");
+    }
 
-        // 基岩版 level.dat 有 8 字节头
-        u8 header[8] = {};
-        if (!file.read(reinterpret_cast<char*>(header), 8)) {
-            return Error(ErrorCode::FileCorrupted, "Failed to read Bedrock level.dat header");
-        }
+    // 基岩版 level.dat 有 8 字节头
+    u8 header[8] = {};
+    if (!file.read(reinterpret_cast<char*>(header), 8)) {
+        return Error(ErrorCode::FileCorrupted, "Failed to read Bedrock level.dat header");
+    }
 
-        // 跳过 8 字节头后读取 NBT
-        std::vector<u8> nbtData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
+    // 跳过 8 字节头后读取 NBT
+    std::vector<u8> nbtData((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
 
-        std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
-        stream >> mc::nbt::contexts::bedrock_disk;
-        auto rootResult = mc::nbt::tags::compound_tag::read(stream);
-        if (rootResult.failed()) {
-            return Error(
-                ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT: " + rootResult.error().message());
-        }
-        auto root = std::move(rootResult).value();
+    std::istringstream stream(std::string(nbtData.begin(), nbtData.end()));
+    stream >> mc::nbt::contexts::bedrock_disk;
+    auto rootResult = mc::nbt::tags::compound_tag::read(stream);
+    if (rootResult.failed()) {
+        return Error(
+            ErrorCode::FileCorrupted, "Failed to parse Bedrock level.dat NBT: " + rootResult.error().message());
+    }
+    auto root = std::move(rootResult).value();
 
-        SaveFormatInfo info;
-        info.format = SaveFormat::BedrockLDB;
-        info.readonly = true;
+    SaveFormatInfo info;
+    info.format = SaveFormat::BedrockLDB;
+    info.readonly = true;
 
-        // 读取版本信息
-        if (root->value.count("lastOpenedWithVersion") != 0) {
-            // lastOpenedWithVersion 是 IntList，格式 [major, minor, patch, revision, ...]
-            auto* versionList = dynamic_cast<mc::nbt::tags::int_list_tag*>(root->value["lastOpenedWithVersion"].get());
-            if (versionList && versionList->size() >= 2) {
-                i32 major = 0;
-                i32 minor = 0;
-                i32 patch = 0;
-                const auto& values = versionList->value;
-                if (values.size() >= 1) {
-                    major = static_cast<i32>(values[0]);
-                }
-                if (values.size() >= 2) {
-                    minor = static_cast<i32>(values[1]);
-                }
-                if (values.size() >= 3) {
-                    patch = static_cast<i32>(values[2]);
-                }
-                info.dataVersion = major; // 用协议版本作为 dataVersion
-                info.formatName = fmt::format("Bedrock {}.{}.{}", major, minor, patch);
+    // 读取版本信息
+    if (root->value.count("lastOpenedWithVersion") != 0) {
+        // lastOpenedWithVersion 是 IntList，格式 [major, minor, patch, revision, ...]
+        auto* versionList = dynamic_cast<mc::nbt::tags::int_list_tag*>(root->value["lastOpenedWithVersion"].get());
+        if (versionList && versionList->size() >= 2) {
+            i32 major = 0;
+            i32 minor = 0;
+            i32 patch = 0;
+            const auto& values = versionList->value;
+            if (values.size() >= 1) {
+                major = static_cast<i32>(values[0]);
             }
+            if (values.size() >= 2) {
+                minor = static_cast<i32>(values[1]);
+            }
+            if (values.size() >= 3) {
+                patch = static_cast<i32>(values[2]);
+            }
+            info.dataVersion = major; // 用协议版本作为 dataVersion
+            info.formatName = fmt::format("Bedrock {}.{}.{}", major, minor, patch);
         }
-
-        if (info.formatName.empty()) {
-            info.formatName = "Bedrock LevelDB";
-        }
-
-        spdlog::info("SaveFormatDetector: Bedrock version: {} (protocol: {})", info.formatName, info.dataVersion);
-        return info;
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to read Bedrock level.dat: {}", e.what()));
+
+    if (info.formatName.empty()) {
+        info.formatName = "Bedrock LevelDB";
     }
+
+    spdlog::info("SaveFormatDetector: Bedrock version: {} (protocol: {})", info.formatName, info.dataVersion);
+    return info;
 }
 
 } // namespace mc::world::storage

@@ -343,7 +343,9 @@ TEST_F(EnchantCommandTest, CurseEnchantment)
 TEST_F(EnchantCommandTest, NegativeLevel)
 {
     // 原版 level 是 integer(0, 32767)：可以写出 -1，但解析时因低于下限而失败。
-    const auto parse = m_server.commandRegistry().dispatcher().parse("enchant @p sharpness -1", m_console);
+    auto parseResult = m_server.commandRegistry().dispatcher().parse("enchant @p sharpness -1", m_console);
+
+    auto& parse = parseResult;
     EXPECT_FALSE(parse.isSuccess());
     if (const auto ex = parse.getException()) {
         EXPECT_EQ(ex->type(), mc::command::CommandErrorType::IntegerTooLow);

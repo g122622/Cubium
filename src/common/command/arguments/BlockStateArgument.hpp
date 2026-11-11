@@ -32,7 +32,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/IProperty.hpp"
@@ -107,14 +107,14 @@ private:
  */
 class BlockStateArgumentType : public ArgumentType<BlockStateInput> {
 public:
-    [[nodiscard]] BlockStateInput parse(StringReader& reader) override
+    [[nodiscard]] Result<BlockStateInput, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
+        const i32 start = reader.getCursor();
 
         // 读取整个方块状态文本（id 与 `[属性=值,...]`）。原版这一步用
         // BlockStateParser.parseForBlock 一次读完块名和属性列表；这里先把整段文本读回来，
         // 下面再按 `[` / `]` 拆开——块名部分随后按 Identifier 规则严格校验。
-        std::string blockIdStr = reader.readString();
+        MC_TRY_DECLARE(blockIdStr, reader.readString());
 
         // 解析方块 ID 和属性
         return _parseBlockState(blockIdStr, reader, start);
@@ -144,7 +144,8 @@ private:
      * @param start 开始位置
      * @return 解析后的方块状态输入
      */
-    [[nodiscard]] BlockStateInput _parseBlockState(const std::string& input, StringReader& reader, i32 start)
+    [[nodiscard]] Result<BlockStateInput, CommandError> _parseBlockState(
+        const std::string& input, StringReader& reader, i32 start)
     {
         // 分离方块名和属性部分
         size_t bracketPos = input.find('[');
@@ -170,7 +171,7 @@ private:
         // 获取方块
         Block* block = BlockRegistry::instance().getBlock(location);
         if (block == nullptr) {
-            throw CommandException(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
+            return CommandError(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
         }
 
         // 获取默认状态
@@ -179,7 +180,7 @@ private:
         // 解析并应用属性
         std::vector<const IProperty*> explicitProps;
         if (!propsStr.empty()) {
-            state = _applyProperties(block, state, propsStr, reader, start, explicitProps);
+            MC_TRY_ASSIGN(state, _applyProperties(block, state, propsStr, reader, start, explicitProps));
         }
 
         return BlockStateInput(state, std::move(explicitProps));
@@ -195,7 +196,7 @@ private:
      * @param start 开始位置
      * @return 应用属性后的方块状态
      */
-    [[nodiscard]] const BlockState* _applyProperties(const Block* block,
+    [[nodiscard]] Result<const BlockState*, CommandError> _applyProperties(const Block* block,
         const BlockState* defaultState,
         const std::string& propsStr,
         StringReader& reader,
@@ -221,7 +222,7 @@ private:
             // 读取属性名
             size_t eqPos = propsStr.find('=', startPos);
             if (eqPos == std::string::npos) {
-                throw CommandException(CommandErrorType::Unknown,
+                return CommandError(CommandErrorType::Unknown,
                     "Expected '=' after property name in: " + propsStr.substr(startPos),
                     start);
             }
@@ -251,7 +252,7 @@ private:
             // 查找属性
             auto propIt = properties.find(propName);
             if (propIt == properties.end()) {
-                throw CommandException(CommandErrorType::Unknown,
+                return CommandError(CommandErrorType::Unknown,
                     "Unknown property '" + propName + "' for block " + block->blockLocation().toString(),
                     start);
             }
@@ -260,14 +261,14 @@ private:
 
             // 检查重复属性
             if (wantedProps.find(prop) != wantedProps.end()) {
-                throw CommandException(
+                return CommandError(
                     CommandErrorType::Unknown, "Duplicate property '" + propName + "' in block state", start);
             }
 
             // 解析属性值
             auto parsedValue = prop->parseValue(propValue);
             if (!parsedValue) {
-                throw CommandException(CommandErrorType::Unknown,
+                return CommandError(CommandErrorType::Unknown,
                     "Invalid value '" + propValue + "' for property '" + propName + "' of block " +
                         block->blockLocation().toString(),
                     start);
@@ -310,7 +311,7 @@ private:
  */
 class BlockPredicateArgumentType : public ArgumentType<BlockStateInput> {
 public:
-    [[nodiscard]] BlockStateInput parse(StringReader& reader) override
+    [[nodiscard]] Result<BlockStateInput, CommandError> parse(StringReader& reader) override
     {
         return m_states.parse(reader);
     }

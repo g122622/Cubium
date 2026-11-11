@@ -38,12 +38,12 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 using mc::ResourceLocation;
+using mc::command::CommandError;
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
 using mc::command::FunctionArgumentResult;
 using mc::command::FunctionArgumentType;
 using mc::command::StringReader;
@@ -81,7 +81,7 @@ TEST_F(FunctionArgumentResultTest, TagReference)
 
 TEST_F(FunctionArgumentResultTest, DisplayNameWithoutNamespace)
 {
-    ResourceLocation id = ResourceLocation::parse("my_function");
+    const ResourceLocation id = ResourceLocation::parse("my_function");
     FunctionArgumentResult result(id);
     EXPECT_FALSE(result.isTag());
     // ResourceLocation::parse 默认命名空间为 minecraft
@@ -99,7 +99,9 @@ TEST_F(FunctionArgumentTypeTest, ParseSimpleFunctionName)
 {
     // "foo" — 简单函数名，默认命名空间为 minecraft
     StringReader reader("foo");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().path(), "foo");
     EXPECT_EQ(reader.getCursor(), 3); // 消费了 "foo"
@@ -109,7 +111,9 @@ TEST_F(FunctionArgumentTypeTest, ParseNamespacedFunctionName)
 {
     // "minecraft:foo/bar" — 带命名空间和路径的函数名（17 字符）
     StringReader reader("minecraft:foo/bar");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "foo/bar");
@@ -120,7 +124,9 @@ TEST_F(FunctionArgumentTypeTest, ParseCustomNamespaceFunction)
 {
     // "mydatapack:custom/function" — 自定义命名空间（26 字符）
     StringReader reader("mydatapack:custom/function");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "mydatapack");
     EXPECT_EQ(result.id().path(), "custom/function");
@@ -131,7 +137,9 @@ TEST_F(FunctionArgumentTypeTest, ParseTagReference)
 {
     // "#minecraft:tick" — 标签引用（15 字符）
     StringReader reader("#minecraft:tick");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "tick");
@@ -142,7 +150,9 @@ TEST_F(FunctionArgumentTypeTest, ParseTagReferenceNoNamespace)
 {
     // "#my_tag" — 无命名空间的标签引用，默认为 minecraft
     StringReader reader("#my_tag");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "my_tag");
@@ -152,7 +162,9 @@ TEST_F(FunctionArgumentTypeTest, ParseTagReferenceWithNamespace)
 {
     // "#mymod:tags/test" — 带命名空间和路径的标签引用（16 字符）
     StringReader reader("#mymod:tags/test");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "mymod");
     EXPECT_EQ(result.id().path(), "tags/test");
@@ -164,7 +176,9 @@ TEST_F(FunctionArgumentTypeTest, ParseFunctionWithTrailingSpace)
     // "minecraft:foo 123" — 后面有空格时，只在空格前停止读取
     // "minecraft:foo" = 13 字符
     StringReader reader("minecraft:foo 123");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "foo");
@@ -176,7 +190,9 @@ TEST_F(FunctionArgumentTypeTest, ParseTagWithTrailingSpace)
     // "#minecraft:load extra" — 标签引用后有空格
     // "#minecraft:load" = 15 字符
     StringReader reader("#minecraft:load extra");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "load");
@@ -187,28 +203,30 @@ TEST_F(FunctionArgumentTypeTest, ParseEmptyInputThrows)
 {
     // 空输入应抛出异常
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseHashOnlyThrows)
 {
     // 只有 "#" 后面没有标识符应抛出异常
     StringReader reader("#");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseHashFollowedBySpaceThrows)
 {
     // "# " 后面只有空格应抛出异常
     StringReader reader("# ");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseFunctionWithDotsAndDashes)
 {
     // "minecraft:foo.bar-baz" — 包含点和短横线的函数名
     StringReader reader("minecraft:foo.bar-baz");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "foo.bar-baz");
@@ -247,7 +265,9 @@ TEST_F(FunctionArgumentGreedyReadTest, StopsAtInvalidCharacters)
     // "minecraft:foo!bar" — '!' 不是合法标识符字符，应在 '!' 处停止读取
     // "minecraft:foo" = 13 字符
     StringReader reader("minecraft:foo!bar");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "foo");
@@ -258,7 +278,9 @@ TEST_F(FunctionArgumentGreedyReadTest, StopsAtSpaceInFunction)
 {
     // "foo bar" — 空格不是合法标识符字符
     StringReader reader("foo bar");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().path(), "foo");
     EXPECT_EQ(reader.getCursor(), 3);
@@ -269,7 +291,9 @@ TEST_F(FunctionArgumentGreedyReadTest, StopsAtInvalidCharInTag)
     // "#minecraft:ti ck" — 标签中有空格
     // "#minecraft:ti" = 13 字符
     StringReader reader("#minecraft:ti ck");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "ti");
@@ -282,7 +306,9 @@ TEST_F(FunctionArgumentGreedyReadTest, UppercaseNotConsumed)
     // "minecraft:FOO" — 'F' 不是合法标识符字符
     // "minecraft:" = 10 字符
     StringReader reader("minecraft:FOO");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     // 贪婪读取在 ':' 后的 'F' 处停止，ResourceLocation::parse("minecraft:") 会解析为
     // namespace="minecraft", path=""（空路径）
@@ -293,7 +319,9 @@ TEST_F(FunctionArgumentGreedyReadTest, UnderscoreAndDigitsAllowed)
 {
     // "minecraft:func_01" — 下划线和数字是合法的
     StringReader reader("minecraft:func_01");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_FALSE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "func_01");
@@ -304,7 +332,9 @@ TEST_F(FunctionArgumentGreedyReadTest, TagStopsAtExclamationMark)
     // "#minecraft:tick!" — '!' 不是合法标识符字符
     // "#minecraft:tick" = 15 字符
     StringReader reader("#minecraft:tick!");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.id().namespace_(), "minecraft");
     EXPECT_EQ(result.id().path(), "tick");

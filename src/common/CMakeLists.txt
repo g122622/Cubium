@@ -791,7 +791,7 @@ add_library(mc_common STATIC
 
     # Command
     command/CommandTreeSnapshot.cpp
-    command/exceptions/CommandExceptions.cpp
+    command/errors/CommandErrors.cpp
     command/arguments/EntityArgument.cpp
     command/arguments/FunctionArgument.cpp
     command/arguments/ItemArgument.cpp
@@ -1384,6 +1384,12 @@ add_library(mc_common STATIC
 
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp
+
+    # 不抛异常的文本数值解析（from_chars 封装，取代 std::sto*）
+    util/NumberParsing.cpp
+
+    # 不抛异常的 nlohmann-json 访问层（数据包/网络等外部输入的读取入口）
+    util/json/JsonRead.cpp
 
     # Property system
     util/property/EnumProperty.cpp

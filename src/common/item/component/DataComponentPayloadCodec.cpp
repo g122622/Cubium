@@ -40,11 +40,13 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <algorithm>
 #include <array>
 
+#include "common/util/json/JsonRead.hpp"
 #include <memory>
 #include <string>
 #include <utility>
@@ -916,8 +918,18 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                     // 写侧存的是组件 JSON 字符串（见 payloadToNbt），这里用
                     // ITextComponent::fromJson 解析回组件；TextParser::parse 只认
                     // legacy § 格式，会把 JSON 当纯文本导致 getUnformattedText 退化为 JSON 原文。
+                    // 物品数据来自存档/网络（外部输入）：JSON 非法时退化为原始文本组件，
+                    // 不让 parse_error 逃逸（-fno-exceptions 下会终止进程）。
+                    auto nameJson = util::json::parse(s);
+                    if (nameJson.failed()) {
+                        spdlog::warn(
+                            "DataComponentPayloadCodec: invalid component JSON, falling back to plain text: {}",
+                            nameJson.error().message());
+                        return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::TextComponent>,
+                            std::make_unique<text::StringTextComponent>(s)};
+                    }
                     return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::TextComponent>,
-                        text::ITextComponent::fromJson(nlohmann::json::parse(s))};
+                        text::ITextComponent::fromJson(nameJson.value())};
                 }
             }
             return DataComponentPayload{std::in_place_index<ComponentPayloadIndex::TextComponent>, nullptr};
@@ -933,7 +945,14 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                 if (list.element_id() == TagId::String) {
                     if (const auto* sl = dynamic_cast<const nbt::tags::string_list_tag*>(&list); sl != nullptr) {
                         for (const auto& s : sl->value) {
-                            lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(s)));
+                            auto lineJson = util::json::parse(s);
+                            if (lineJson.failed()) {
+                                spdlog::warn("DataComponentPayloadCodec: invalid lore JSON, using plain text: {}",
+                                    lineJson.error().message());
+                                lines.push_back(std::make_unique<text::StringTextComponent>(s));
+                                continue;
+                            }
+                            lines.push_back(text::ITextComponent::fromJson(lineJson.value()));
                         }
                     } else if (const auto* generic = dynamic_cast<const nbt::tags::tag_list_tag*>(&list);
                         generic != nullptr) {
@@ -941,8 +960,15 @@ DataComponentPayload nbtToPayload(DataComponentType type, const nbt::tags::tag& 
                             if (element == nullptr || element->id() != TagId::String) {
                                 continue;
                             }
-                            const auto& text = dynamic_cast<const nbt::tags::string_tag&>(*element).value;
-                            lines.push_back(text::ITextComponent::fromJson(nlohmann::json::parse(text)));
+                            const auto& lineText = dynamic_cast<const nbt::tags::string_tag&>(*element).value;
+                            auto lineJson = util::json::parse(lineText);
+                            if (lineJson.failed()) {
+                                spdlog::warn("DataComponentPayloadCodec: invalid lore JSON, using plain text: {}",
+                                    lineJson.error().message());
+                                lines.push_back(std::make_unique<text::StringTextComponent>(lineText));
+                                continue;
+                            }
+                            lines.push_back(text::ITextComponent::fromJson(lineJson.value()));
                         }
                     }
                 }

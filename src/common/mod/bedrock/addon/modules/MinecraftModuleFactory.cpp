@@ -94,6 +94,7 @@
 #include "common/world/fluid/Fluid.hpp"                         // FluidState/Fluid（Block.isWaterlogged 判定流体类型）
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
+#include "common/util/NumberParsing.hpp"
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -2946,13 +2947,12 @@ bool MinecraftModuleFactory::registerBindings(IScriptContext& context)
                 const std::string valStr = entry.property->valueToString(entry.valueIndex);
                 const char* tn = entry.property->typeName();
                 if (tn == std::string("IntegerProperty")) {
-                    // 数字属性：值字符串形如 "2"，转 i32 返 number。
-                    try {
-                        return ctx.createInt32(static_cast<i32>(std::stol(valStr)));
+                    // 数字属性：值字符串形如 "2"，转 i32 返 number；解析失败降级返字符串
+                    auto parsed = util::parseInt32(valStr);
+                    if (parsed.failed()) {
+                        return ctx.createString(valStr);
                     }
-                    catch (...) {
-                        return ctx.createString(valStr); // 解析失败降级返字符串
-                    }
+                    return ctx.createInt32(parsed.value());
                 }
 
                 if (tn == std::string("BooleanProperty")) {

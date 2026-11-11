@@ -70,6 +70,9 @@ add_executable(mc_tests
     common/test_property.cpp
     common/util/StateHolderTest.cpp
     common/util/DirectionTest.cpp
+    common/util/NumberParsingTest.cpp
+    common/util/JsonReadTest.cpp
+    common/AssertExceptionSupport.cpp
     common/util/text/Utf8Test.cpp
     common/test_block.cpp
     common/test_block_map_color.cpp
@@ -1729,7 +1732,19 @@ function(mc_configure_unit_target targetName)
         "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_definitions(${targetName} PRIVATE
         MC_SOURCE_DIR="${CMAKE_SOURCE_DIR}" MC_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
-    target_precompile_headers(${targetName} REUSE_FROM mc_common)
+    # 复用 mc_common 的 PCH：测试目标 TU 数极多，其中大多数都包含 common/ 头文件，
+    # 复用 PCH 省掉了每个 TU 重新解析标准库与项目头的开销。
+    #
+    # 【例外】开启 MC_ENABLE_NO_EXCEPTIONS 时不能复用：PCH 与使用方的异常模式必须一致，
+    # 否则 clang 报 "exception handling was disabled in precompiled file ... but is currently
+    # enabled"。测试 target 故意保留异常（gtest 的 EXPECT_THROW 等依赖它），因此改为自带 PCH，
+    # 用同样的头文件、按测试自己的选项重新编译一份。
+    if(MC_ENABLE_NO_EXCEPTIONS)
+        target_precompile_headers(${targetName} PRIVATE
+            "${CMAKE_SOURCE_DIR}/src/common/pch/pch_common.hpp")
+    else()
+        target_precompile_headers(${targetName} REUSE_FROM mc_common)
+    endif()
     mc_disable_all_warnings_for_tests(${targetName})
     mc_copy_runtime_dlls(${targetName})
     set_target_properties(${targetName} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

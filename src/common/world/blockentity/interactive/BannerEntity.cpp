@@ -25,6 +25,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -139,12 +140,13 @@ bool BannerEntity::load(const nlohmann::json& data)
     if (data.contains("custom_name")) {
         const auto& nameJson = data["custom_name"];
         if (nameJson.is_string()) {
-            try {
-                auto parsed = nlohmann::json::parse(nameJson.get<std::string>());
-                m_customName = text::ITextComponent::fromJson(parsed);
-            }
-            catch (const nlohmann::json::exception&) {
-                m_customName = std::make_unique<text::StringTextComponent>(nameJson.get<std::string>());
+            // 名称以 JSON 文本形式内嵌：解析失败回退为纯文本（存档/网络数据属外部输入）
+            const std::string rawName = nameJson.get<std::string>();
+            auto parsedName = util::json::parse(rawName);
+            if (parsedName.failed()) {
+                m_customName = std::make_unique<text::StringTextComponent>(rawName);
+            } else {
+                m_customName = text::ITextComponent::fromJson(parsedName.value());
             }
         } else if (nameJson.is_object()) {
             m_customName = text::ITextComponent::fromJson(nameJson);
@@ -403,13 +405,12 @@ bool BannerEntity::loadFromNBT(const nbt::tags::compound_tag& tag)
     // 加载自定义名称（JSON 文本组件字符串）
     auto nameStr = mc::entity::serialization::nbt_helper::tryGetString(tag, "CustomName");
     if (nameStr.has_value()) {
-        try {
-            auto json = nlohmann::json::parse(nameStr.value());
-            m_customName = text::ITextComponent::fromJson(json);
-        }
-        catch (const nlohmann::json::exception&) {
-            // JSON 解析失败，回退为纯文本组件
+        // JSON 解析失败时回退为纯文本组件（存档/网络数据属外部输入）
+        auto nameJson = util::json::parse(nameStr.value());
+        if (nameJson.failed()) {
             m_customName = std::make_unique<text::StringTextComponent>(nameStr.value());
+        } else {
+            m_customName = text::ITextComponent::fromJson(nameJson.value());
         }
     } else {
         m_customName.reset();

@@ -21,6 +21,7 @@
  */
 
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "common/util/json/JsonRead.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
@@ -270,15 +271,15 @@ std::vector<u8> plainTextToNbtBytes(const std::string& text)
 std::vector<u8> parseJsonComponentToNbtBytes(const std::string& jsonStr)
 {
     // 尝试解析 JSON 为 ITextComponent
-    try {
-        auto json = nlohmann::json::parse(jsonStr);
-        auto component = ITextComponent::fromJson(json);
+    auto parsedJson = util::json::parse(jsonStr);
+    if (parsedJson.failed()) {
+        spdlog::warn("parseJsonComponentToNbtBytes: JSON parse failed ({}), fallback to plain text",
+            parsedJson.error().message());
+    } else {
+        auto component = ITextComponent::fromJson(parsedJson.value());
         if (component != nullptr) {
             return componentToNbtBytes(component.get());
         }
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("parseJsonComponentToNbtBytes: JSON parse failed ({}), fallback to plain text", e.what());
     }
     // 解析失败降级为纯文本 StringTag
     return plainTextToNbtBytes(jsonStr);
@@ -338,7 +339,7 @@ std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
     }
     if (tagId == 0x0A) {
         // CompoundTag：用 NbtIo 解析后取 "text" 键
-        try {
+        {
             network::buffer::ByteBuf buf;
             buf.writeBytes(nbtBytes);
             auto result = network::buffer::nbt_io::readRootCompound(buf);
@@ -355,9 +356,6 @@ std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
                     return text;
                 }
             }
-        }
-        catch (const std::exception& e) {
-            spdlog::warn("componentNbtBytesToPlainText: CompoundTag parse failed ({})", e.what());
         }
         return {};
     }

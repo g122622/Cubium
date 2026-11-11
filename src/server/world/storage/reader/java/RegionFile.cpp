@@ -25,6 +25,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/CompressionUtils.hpp"
+#include "common/util/NumberParsing.hpp"
 #include <filesystem>
 #include <ios>
 #include <iosfwd>
@@ -47,12 +48,13 @@ RegionFile::RegionFile(const std::filesystem::path& path)
         std::string coords = filename.substr(2, filename.size() - 6);
         auto dotPos = coords.find('.');
         if (dotPos != std::string::npos) {
-            try {
-                m_regionX = std::stoi(coords.substr(0, dotPos));
-                m_regionZ = std::stoi(coords.substr(dotPos + 1));
-            }
-            catch (...) {
+            auto parsedX = util::parseInt32(std::string_view(coords).substr(0, dotPos));
+            auto parsedZ = util::parseInt32(std::string_view(coords).substr(dotPos + 1));
+            if (parsedX.failed() || parsedZ.failed()) {
                 spdlog::warn("RegionFile: Failed to parse region coords from {}", filename);
+            } else {
+                m_regionX = parsedX.value();
+                m_regionZ = parsedZ.value();
             }
         }
     }

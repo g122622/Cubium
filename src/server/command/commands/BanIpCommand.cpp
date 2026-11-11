@@ -41,8 +41,8 @@
 #include "common/util/DateTimeUtils.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
+#include "common/util/StringUtils.hpp"
 #include <memory>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -60,19 +60,6 @@ namespace {
 std::string getCurrentTimeString()
 {
     return util::DateTimeUtils::getCurrentDateTimeString();
-}
-
-/**
- * @brief 检查字符串是否为有效的 IPv4 地址
- * @param str 字符串
- * @return true 如果是有效的 IPv4 地址
- */
-bool isValidIpv4(const std::string& str)
-{
-    // IPv4 正则表达式
-    static const std::regex ipv4Regex(
-        R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
-    return std::regex_match(str, ipv4Regex);
 }
 
 } // anonymous namespace
@@ -126,7 +113,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
     }
 
     // 判断目标是否为 IP 地址
-    bool isIp = isValidIpv4(target);
+    bool isIp = util::isValidIpv4(target);
     std::string ipAddress;
     std::vector<PlayerId> playersToKick;
 

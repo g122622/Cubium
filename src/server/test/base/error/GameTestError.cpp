@@ -1,4 +1,5 @@
 #include "server/test/base/error/GameTestError.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "server/test/base/error/GameTestErrorType.hpp"
 
 #include <sstream>
@@ -72,7 +73,16 @@ std::string GameTestError::formattedMessage() const
             i = close + 1;
             continue;
         }
-        const auto idx = static_cast<std::size_t>(std::stoul(idxStr));
+        const auto parsedIndex = util::parseUint64(idxStr);
+        if (parsedIndex.failed()) {
+            // 位数为 u64 上限，按非法占位符处理
+            result.push_back('{');
+            result.append(idxStr);
+            result.push_back('}');
+            i = close + 1;
+            continue;
+        }
+        const auto idx = static_cast<std::size_t>(parsedIndex.value());
         if (idx < m_params.size()) {
             result.append(m_params[idx]);
         } else {

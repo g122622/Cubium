@@ -31,7 +31,7 @@
 #include "common/command/coordinates/LocalCoordinates.hpp"
 #include "common/command/coordinates/WorldCoordinate.hpp"
 #include "common/command/coordinates/WorldCoordinates.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 // _getAnchorPosition<S> 在模板体内调用 source.entity()->eyeHeight()，需要 Entity 完整定义。
 // 此前靠调用点的传递性 include 偶然成立，一旦某个调用点的包含链变化即编译失败，故显式引入。
@@ -73,7 +73,7 @@ public:
      * 大小写也不同：原版按名字精确匹配，不转小写。不可识别时游标停在已读到的位置
      * （读完了整个单词），与 brigadier 的报错位置一致。
      */
-    [[nodiscard]] GameMode parse(StringReader& reader) override
+    [[nodiscard]] Result<GameMode, CommandError> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
         std::string name = reader.readUnquotedString();
@@ -94,7 +94,7 @@ public:
         // 与 brigadier 一致：报错位置是「读完整个单词」处，游标本身停留在起点。
         const i32 end = start + static_cast<i32>(name.size());
         reader.setCursor(start);
-        throw CommandException(CommandErrorType::Unknown, "Unknown game mode: " + name, end);
+        return CommandError(CommandErrorType::Unknown, "Unknown game mode: " + name, end);
     }
 
     [[nodiscard]] std::string getTypeName() const override
@@ -172,20 +172,17 @@ private:
  * 所有数值参数（坐标、时间）都走这一个读取器。
  *
  * @param reader 读取器
- * @param out 读到的值
- * @return 是否读到；游标已读尽时返回 false（调用方此时应整体失败）
+ * @return 读到的值；游标已读尽时返回错误（调用方此时应整体失败）
  */
-inline bool readWorldCoordinateDouble(StringReader& reader, f64& out)
+inline Result<f64, CommandError> readWorldCoordinateDouble(StringReader& reader)
 {
     if (reader.atEnd()) {
-        return false;
+        return CommandError(CommandErrorType::FloatExpected, "Expected a coordinate", reader.getCursor());
     }
     if (reader.peek() == ' ') {
-        out = 0.0;
-        return true;
+        return 0.0;
     }
-    out = reader.readDouble();
-    return true;
+    return reader.readDouble();
 }
 
 /**
@@ -197,10 +194,9 @@ inline bool readWorldCoordinateDouble(StringReader& reader, f64& out)
  * 这类输入上分叉。
  *
  * @param reader 读取器
- * @return 解析出的 id（无命名空间时默认 minecraft）
- * @throws CommandException 遇到第二个 `:` 时
+ * @return 解析出的 id（无命名空间时默认 minecraft）；遇到第二个 `:` 时返回错误
  */
-inline ResourceLocation readResourceLocationId(StringReader& reader)
+inline Result<ResourceLocation, CommandError> readResourceLocationId(StringReader& reader)
 {
     const i32 start = reader.getCursor();
     std::string text;
@@ -213,7 +209,7 @@ inline ResourceLocation readResourceLocationId(StringReader& reader)
         } else if (c == ':') {
             // 第二个冒号：原版直接报错（SyntaxException in command argument parser）。
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Invalid resource location: " + text, start);
+            return CommandError(CommandErrorType::Unknown, "Invalid resource location: " + text, start);
         } else {
             break;
         }
@@ -233,7 +229,7 @@ public:
     ResourceLocationArgumentType() = default;
 
     /// 解析资源位置（见 {@link readResourceLocationId}）。
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
     {
         return readResourceLocationId(reader);
     }
@@ -280,7 +276,7 @@ public:
  */
 class ParticleResourceArgumentType : public ArgumentType<ResourceLocation> {
 public:
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
     {
         return readResourceLocationId(reader);
     }
@@ -317,11 +313,14 @@ using ComponentTextPtr = std::shared_ptr<ComponentText>;
 
 class ComponentArgumentType : public ArgumentType<ComponentTextPtr> {
 public:
-    [[nodiscard]] ComponentTextPtr parse(StringReader& reader) override
+    [[nodiscard]] Result<ComponentTextPtr, CommandError> parse(StringReader& reader) override
     {
         // 组件是命令链末端：原版 MessageArgument 用「剩余原文」构建组件，读走整段；
         // 但开头是引号时仍按引号串读取（`kick @a "some reason"` 的值不含引号）。
-        std::string text = reader.canRead() && reader.peek() == '"' ? reader.readQuotedString() : reader.getRemaining();
+        std::string text = reader.getRemaining();
+        if (reader.canRead() && reader.peek() == '"') {
+            MC_TRY_ASSIGN(text, reader.readQuotedString());
+        }
         reader.setCursor(reader.getTotalLength());
         return std::make_shared<ComponentText>(ComponentText{std::move(text)});
     }
@@ -352,7 +351,7 @@ public:
  */
 class GameProfileArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -380,7 +379,7 @@ public:
             reader.skip();
         }
         if (result.empty()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected player name at position " + std::to_string(start), start);
         }
         return result;
@@ -410,9 +409,12 @@ public:
  */
 class MessageComponentArgumentType : public ArgumentType<ComponentTextPtr> {
 public:
-    [[nodiscard]] ComponentTextPtr parse(StringReader& reader) override
+    [[nodiscard]] Result<ComponentTextPtr, CommandError> parse(StringReader& reader) override
     {
-        std::string text = reader.canRead() && reader.peek() == '"' ? reader.readQuotedString() : reader.getRemaining();
+        std::string text = reader.getRemaining();
+        if (reader.canRead() && reader.peek() == '"') {
+            MC_TRY_ASSIGN(text, reader.readQuotedString());
+        }
         reader.setCursor(reader.getTotalLength());
         return std::make_shared<ComponentText>(ComponentText{std::move(text)});
     }
@@ -438,7 +440,7 @@ public:
  */
 class TeamNameArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -452,7 +454,7 @@ public:
             reader.skip();
         }
         if (result.empty()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected team name at position " + std::to_string(start), start);
         }
         return result;
@@ -483,7 +485,7 @@ public:
  */
 class ScoreHolderArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -502,7 +504,7 @@ public:
             reader.skip();
         }
         if (result.empty()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected score holder at position " + std::to_string(start), start);
         }
         return result;
@@ -550,7 +552,7 @@ private:
  */
 class ObjectiveNameArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -559,7 +561,7 @@ public:
             reader.skip();
         }
         if (result.empty()) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected objective name at position " + std::to_string(start), start);
         }
         return result;
@@ -588,7 +590,7 @@ public:
  */
 class SwizzleArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -599,14 +601,14 @@ public:
             }
             if (result.find(c) != std::string::npos) {
                 reader.setCursor(start);
-                throw CommandException(CommandErrorType::Unknown, "Duplicate axis", start);
+                return CommandError(CommandErrorType::Unknown, "Duplicate axis", start);
             }
             result.push_back(c);
             reader.skip();
         }
         if (result.empty() || result.size() > 3) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected swizzle at position " + std::to_string(start), start);
         }
         return result;
@@ -635,7 +637,7 @@ public:
  */
 class EntityAnchorArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -649,7 +651,7 @@ public:
         }
         if (result != "eyes" && result != "feet") {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::Unknown, "Expected 'eyes' or 'feet' at position " + std::to_string(start), start);
         }
         return result;
@@ -676,7 +678,7 @@ public:
  */
 class DisplaySlotArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string current;
@@ -686,7 +688,7 @@ public:
         }
         if (current.empty() || !isKnownDisplaySlot(current)) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown display slot '" + current + "'", start);
+            return CommandError(CommandErrorType::Unknown, "Unknown display slot '" + current + "'", start);
         }
         return current;
     }
@@ -733,7 +735,7 @@ public:
  */
 class OperationArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         return readWord(reader);
     }
@@ -748,13 +750,13 @@ public:
         return {"dummy"};
     }
 
-    static std::string readWord(StringReader& reader)
+    static Result<std::string, CommandError> readWord(StringReader& reader)
     {
         const i32 start = reader.getCursor();
-        std::string word = reader.readUnquotedString();
+        const std::string word = reader.readUnquotedString();
         if (word.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::StringExpected, "Expected word", start);
+            return CommandError(CommandErrorType::StringExpected, "Expected word", start);
         }
         return word;
     }
@@ -765,7 +767,7 @@ public:
  */
 class ObjectiveCriteriaArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string result;
@@ -779,7 +781,7 @@ public:
         }
         if (result.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown criteria '" + result + "'", start);
+            return CommandError(CommandErrorType::Unknown, "Unknown criteria '" + result + "'", start);
         }
         return result;
     }
@@ -805,7 +807,7 @@ public:
  */
 class ScoreOperationArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         static const char* const kOperations[] = {"+=", "-=", "*=", "/=", "%=", "><", "<", ">", "="};
         const i32 start = reader.getCursor();
@@ -817,7 +819,7 @@ public:
                 return op;
             }
         }
-        throw CommandException(
+        return CommandError(
             CommandErrorType::Unknown, "Expected operation at position " + std::to_string(start), start);
     }
 
@@ -845,9 +847,9 @@ public:
  * 当在同一坐标中混合使用 ^ 和 ~ 或绝对坐标时抛出。
  * MC Java 不允许混合局部坐标与世界坐标。
  */
-inline CommandException createMixedCoordinateTypeError()
+inline CommandError createMixedCoordinateTypeError()
 {
-    return CommandException(
+    return CommandError(
         CommandErrorType::Unknown, "Mixed coordinate types: cannot mix ^ with ~ or absolute coordinates");
 }
 
@@ -864,7 +866,7 @@ inline CommandException createMixedCoordinateTypeError()
  */
 class BlockPosArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
 
@@ -923,27 +925,27 @@ private:
     /**
      * @brief 解析局部坐标 ^left ^up ^forwards
      */
-    [[nodiscard]] Coordinates::Ptr _parseLocalCoordinates(StringReader& reader, i32 start)
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> _parseLocalCoordinates(StringReader& reader, i32 start)
     {
-        f64 left = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(left, _parseLocalDouble(reader, start));
         reader.skipWhitespace();
-        f64 up = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(up, _parseLocalDouble(reader, start));
         reader.skipWhitespace();
-        f64 forwards = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(forwards, _parseLocalDouble(reader, start));
         return std::make_shared<LocalCoordinates>(left, up, forwards);
     }
 
     /**
      * @brief 解析局部坐标的单个分量，必须以 ^ 开头
      */
-    f64 _parseLocalDouble(StringReader& reader, i32 start)
+    Result<f64, CommandError> _parseLocalDouble(StringReader& reader, i32 start)
     {
         if (!reader.canRead()) {
-            throw CommandException(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
+            return CommandError(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
         }
         if (reader.peek() != LocalCoordinates::PREFIX) {
             reader.setCursor(start);
-            throw createMixedCoordinateTypeError();
+            return createMixedCoordinateTypeError();
         }
         reader.skip();
         // ^ 后无数字时默认为 0.0
@@ -956,20 +958,20 @@ private:
     /**
      * @brief 解析绝对/相对坐标（整数版本，用于方块坐标）
      */
-    [[nodiscard]] Coordinates::Ptr _parseWorldCoordinatesInt(StringReader& reader, i32 start)
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> _parseWorldCoordinatesInt(StringReader& reader, i32 start)
     {
-        WorldCoordinate x = _parseCoordinateInt(reader, start);
+        MC_TRY_DECLARE(x, _parseCoordinateInt(reader, start));
         reader.skipWhitespace();
-        WorldCoordinate y = _parseCoordinateInt(reader, start);
+        MC_TRY_DECLARE(y, _parseCoordinateInt(reader, start));
         reader.skipWhitespace();
-        WorldCoordinate z = _parseCoordinateInt(reader, start);
+        MC_TRY_DECLARE(z, _parseCoordinateInt(reader, start));
         return std::make_shared<WorldCoordinates>(x, y, z);
     }
 
     /**
      * @brief 解析单个整数坐标分量
      */
-    WorldCoordinate _parseCoordinateInt(StringReader& reader, i32 start)
+    [[nodiscard]] Result<WorldCoordinate, CommandError> _parseCoordinateInt(StringReader& reader, i32 start)
     {
         bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
@@ -978,7 +980,7 @@ private:
         } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
             // 在世界坐标中遇到 ^ 前缀，抛出混合类型错误
             reader.setCursor(start);
-            throw createMixedCoordinateTypeError();
+            return createMixedCoordinateTypeError();
         }
 
         // 如果后面没有数字，返回 0（~ 或单独出现时）
@@ -986,7 +988,7 @@ private:
             return WorldCoordinate(relative, 0.0);
         }
 
-        f64 value = reader.readDouble();
+        MC_TRY_DECLARE(value, reader.readDouble());
         return WorldCoordinate(relative, value);
     }
 
@@ -1014,7 +1016,7 @@ public:
         : m_centerCorrect(centerCorrect)
     {}
 
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
 
@@ -1081,27 +1083,27 @@ private:
     /**
      * @brief 解析局部坐标 ^left ^up ^forwards
      */
-    [[nodiscard]] Coordinates::Ptr _parseLocalCoordinates(StringReader& reader, i32 start)
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> _parseLocalCoordinates(StringReader& reader, i32 start)
     {
-        f64 left = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(left, _parseLocalDouble(reader, start));
         reader.skipWhitespace();
-        f64 up = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(up, _parseLocalDouble(reader, start));
         reader.skipWhitespace();
-        f64 forwards = _parseLocalDouble(reader, start);
+        MC_TRY_DECLARE(forwards, _parseLocalDouble(reader, start));
         return std::make_shared<LocalCoordinates>(left, up, forwards);
     }
 
     /**
      * @brief 解析局部坐标的单个分量，必须以 ^ 开头
      */
-    f64 _parseLocalDouble(StringReader& reader, i32 start)
+    Result<f64, CommandError> _parseLocalDouble(StringReader& reader, i32 start)
     {
         if (!reader.canRead()) {
-            throw CommandException(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
+            return CommandError(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
         }
         if (reader.peek() != LocalCoordinates::PREFIX) {
             reader.setCursor(start);
-            throw createMixedCoordinateTypeError();
+            return createMixedCoordinateTypeError();
         }
         reader.skip();
         // ^ 后无数字时默认为 0.0
@@ -1114,13 +1116,13 @@ private:
     /**
      * @brief 解析绝对/相对坐标（浮点版本）
      */
-    [[nodiscard]] Coordinates::Ptr _parseWorldCoordinatesDouble(StringReader& reader, i32 start)
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> _parseWorldCoordinatesDouble(StringReader& reader, i32 start)
     {
-        WorldCoordinate x = _parseCoordinateDouble(reader, start);
+        MC_TRY_DECLARE(x, _parseCoordinateDouble(reader, start));
         reader.skipWhitespace();
-        WorldCoordinate y = _parseCoordinateDouble(reader, start);
+        MC_TRY_DECLARE(y, _parseCoordinateDouble(reader, start));
         reader.skipWhitespace();
-        WorldCoordinate z = _parseCoordinateDouble(reader, start);
+        MC_TRY_DECLARE(z, _parseCoordinateDouble(reader, start));
         return std::make_shared<WorldCoordinates>(x, y, z);
     }
 
@@ -1130,7 +1132,7 @@ private:
      * 支持 ~ 前缀（相对坐标）和 centerCorrect 逻辑。
      * 遇到 ^ 前缀会抛出混合类型错误。
      */
-    WorldCoordinate _parseCoordinateDouble(StringReader& reader, i32 start)
+    Result<WorldCoordinate, CommandError> _parseCoordinateDouble(StringReader& reader, i32 start)
     {
         bool relative = false;
         i32 cursorBeforeNumber = reader.getCursor();
@@ -1141,7 +1143,7 @@ private:
         } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
             // 在世界坐标中遇到 ^ 前缀，抛出混合类型错误
             reader.setCursor(start);
-            throw createMixedCoordinateTypeError();
+            return createMixedCoordinateTypeError();
         }
 
         // 如果后面没有数字，返回 0（~ 或单独出现时）
@@ -1150,7 +1152,7 @@ private:
         }
 
         i32 cursorBeforeValue = reader.getCursor();
-        f64 value = reader.readDouble();
+        MC_TRY_DECLARE(value, reader.readDouble());
 
         // centerCorrect: 绝对整数坐标加 0.5（方块中心偏移）
         // 条件：centerCorrect=true 且 非相对坐标 且 原始输入不含小数点
@@ -1193,11 +1195,11 @@ private:
  */
 class Vec2ArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
-        WorldCoordinate x = _parseCoordinate(reader);
+        MC_TRY_DECLARE(x, _parseCoordinate(reader));
         reader.skipWhitespace();
-        WorldCoordinate z = _parseCoordinate(reader);
+        MC_TRY_DECLARE(z, _parseCoordinate(reader));
         // y 分量填充为相对 0（与 MC Java 一致）
         return std::make_shared<WorldCoordinates>(x, WorldCoordinate(true, 0.0), z);
     }
@@ -1234,7 +1236,7 @@ public:
     }
 
 private:
-    WorldCoordinate _parseCoordinate(StringReader& reader)
+    Result<WorldCoordinate, CommandError> _parseCoordinate(StringReader& reader)
     {
         bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
@@ -1250,7 +1252,8 @@ private:
             return WorldCoordinate(relative, 0.0);
         }
 
-        return WorldCoordinate(relative, reader.readDouble());
+        MC_TRY_DECLARE(value, reader.readDouble());
+        return WorldCoordinate(relative, value);
     }
 
     static bool _isWhitespace(char c)
@@ -1267,12 +1270,12 @@ private:
  */
 class ColumnPosArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
-        WorldCoordinate x = _parseCoordinate(reader, start);
+        MC_TRY_DECLARE(x, _parseCoordinate(reader, start));
         reader.skipWhitespace();
-        WorldCoordinate z = _parseCoordinate(reader, start);
+        MC_TRY_DECLARE(z, _parseCoordinate(reader, start));
         return std::make_shared<WorldCoordinates>(x, WorldCoordinate(true, 0.0), z);
     }
 
@@ -1299,7 +1302,7 @@ public:
     }
 
 private:
-    static WorldCoordinate _parseCoordinate(StringReader& reader, i32 start)
+    static Result<WorldCoordinate, CommandError> _parseCoordinate(StringReader& reader, i32 start)
     {
         bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
@@ -1307,12 +1310,13 @@ private:
             reader.skip();
         } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
             reader.setCursor(start);
-            throw createMixedCoordinateTypeError();
+            return createMixedCoordinateTypeError();
         }
         if (!reader.canRead() || _isWhitespace(reader.peek())) {
             return WorldCoordinate(relative, 0.0);
         }
-        return WorldCoordinate(relative, reader.readDouble());
+        MC_TRY_DECLARE(value, reader.readDouble());
+        return WorldCoordinate(relative, value);
     }
 
     static bool _isWhitespace(char c)
@@ -1331,11 +1335,11 @@ private:
  */
 class RotationArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
-        WorldCoordinate yawCoord = _parseAngle(reader);
+        MC_TRY_DECLARE(yawCoord, _parseAngle(reader));
         reader.skipWhitespace();
-        WorldCoordinate pitchCoord = _parseAngle(reader);
+        MC_TRY_DECLARE(pitchCoord, _parseAngle(reader));
         return std::make_shared<WorldCoordinates>(yawCoord, pitchCoord, WorldCoordinate(true, 0.0));
     }
 
@@ -1365,7 +1369,7 @@ public:
     }
 
 private:
-    WorldCoordinate _parseAngle(StringReader& reader)
+    Result<WorldCoordinate, CommandError> _parseAngle(StringReader& reader)
     {
         bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
@@ -1377,7 +1381,8 @@ private:
             return WorldCoordinate(relative, 0.0);
         }
 
-        return WorldCoordinate(relative, reader.readDouble());
+        MC_TRY_DECLARE(value, reader.readDouble());
+        return WorldCoordinate(relative, value);
     }
 
     static bool _isWhitespace(char c)
@@ -1424,7 +1429,7 @@ public:
         , m_syntax(syntax)
     {}
 
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         switch (m_syntax) {
             case Syntax::Word: {
@@ -1436,14 +1441,16 @@ public:
                 }
                 if (result.empty()) {
                     reader.setCursor(start);
-                    throw CommandException(CommandErrorType::StringExpected,
+                    return CommandError(CommandErrorType::StringExpected,
                         "Expected " + m_typeName + " at position " + std::to_string(start),
                         start);
                 }
                 return result;
             }
-            case Syntax::ResourceId:
-                return readResourceLocationId(reader).toString();
+            case Syntax::ResourceId: {
+                MC_TRY_DECLARE(id, readResourceLocationId(reader));
+                return id.toString();
+            }
             case Syntax::ResourceOrTag: {
                 // `#tag`（标签）或单个资源：与 ResourceOrTagArgument 同一套语法。
                 bool tag = false;
@@ -1451,11 +1458,12 @@ public:
                     tag = true;
                     reader.skip();
                 }
-                const std::string id = readResourceLocationId(reader).toString();
+                MC_TRY_DECLARE(location, readResourceLocationId(reader));
+                const std::string id = location.toString();
                 return tag ? "#" + id : id;
             }
         }
-        return {};
+        return std::string();
     }
 
     [[nodiscard]] std::string getTypeName() const override
@@ -1506,7 +1514,7 @@ public:
         : m_typeName(std::move(typeName))
     {}
 
-    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
+    [[nodiscard]] Result<Coordinates::Ptr, CommandError> parse(StringReader& reader) override
     {
         BlockPosArgumentType positions;
         return positions.parse(reader);
@@ -1538,13 +1546,13 @@ public:
         : m_typeName(std::move(typeName))
     {}
 
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         const std::string text = reader.readUnquotedString();
         if (text.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatExpected, "Expected range", start);
+            return CommandError(CommandErrorType::FloatExpected, "Expected range", start);
         }
         return text;
     }
@@ -1572,7 +1580,7 @@ private:
  */
 class NbtSelectorArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string text;
@@ -1582,7 +1590,7 @@ public:
         }
         if (text.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::InvalidNbtPath, "Expected nbt_selector", start);
+            return CommandError(CommandErrorType::InvalidNbtPath, "Expected nbt_selector", start);
         }
         return text;
     }
@@ -1606,16 +1614,18 @@ public:
  */
 class ItemSlotsArgumentType : public ArgumentType<std::string> {
 public:
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         std::string text;
         if (reader.canRead() && reader.peek() == '*') {
-            text.push_back(reader.read());
+            text.push_back(reader.peek());
+            reader.skip();
             if (reader.canRead() && reader.peek() == '[') {
                 i32 depth = 0;
                 while (reader.canRead()) {
-                    const char c = reader.read();
+                    const char c = reader.peek();
+                    reader.skip();
                     text.push_back(c);
                     if (c == '[') {
                         ++depth;
@@ -1639,14 +1649,14 @@ public:
         }
         if (text.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::StringExpected, "Expected item slots", start);
+            return CommandError(CommandErrorType::StringExpected, "Expected item slots", start);
         }
         // 槽位区间名必须在 SlotRanges 表内。原版 SlotsArgument 遇到未知名字直接报
         // slot.unknown；不校验会让 `/execute if items ... container.99` 这类笔误
         // 一路解析成功、在执行期静默变成"空槽位集合"。
         if (!SlotRanges::isKnownName(text)) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::DispatcherUnknownArgument, "Unknown slot '" + text + "'", start);
+            return CommandError(CommandErrorType::DispatcherUnknownArgument, "Unknown slot '" + text + "'", start);
         }
         return text;
     }

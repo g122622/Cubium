@@ -36,11 +36,11 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 using mc::ResourceLocation;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::EntityArgumentType;
 using mc::command::EntitySelector;
 using mc::command::EntitySelectorSort;
@@ -491,7 +491,9 @@ protected:
 TEST_F(EntityArgumentParseTest, ParseByUsername)
 {
     StringReader reader("Steve");
-    EntitySelector selector = playerArg->parse(reader);
+    auto selectorResult = playerArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasUsername());
     EXPECT_EQ(selector.username(), "Steve");
 }
@@ -499,7 +501,9 @@ TEST_F(EntityArgumentParseTest, ParseByUsername)
 TEST_F(EntityArgumentParseTest, ParseAtP)
 {
     StringReader reader("@p");
-    EntitySelector selector = playerArg->parse(reader);
+    auto selectorResult = playerArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::SinglePlayer);
     EXPECT_TRUE(selector.isSingle());
 }
@@ -507,14 +511,18 @@ TEST_F(EntityArgumentParseTest, ParseAtP)
 TEST_F(EntityArgumentParseTest, ParseAtA)
 {
     StringReader reader("@a");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::AllPlayers);
 }
 
 TEST_F(EntityArgumentParseTest, ParseAtE)
 {
     StringReader reader("@e");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::AllEntities);
     EXPECT_TRUE(selector.includesNonPlayers());
 }
@@ -522,14 +530,18 @@ TEST_F(EntityArgumentParseTest, ParseAtE)
 TEST_F(EntityArgumentParseTest, ParseAtR)
 {
     StringReader reader("@r");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::RandomPlayer);
 }
 
 TEST_F(EntityArgumentParseTest, ParseAtS)
 {
     StringReader reader("@s");
-    EntitySelector selector = playerArg->parse(reader);
+    auto selectorResult = playerArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::Self);
     EXPECT_TRUE(selector.isSelf());
 }
@@ -537,13 +549,15 @@ TEST_F(EntityArgumentParseTest, ParseAtS)
 TEST_F(EntityArgumentParseTest, ParseInvalidSelectorThrows)
 {
     StringReader reader("@x");
-    EXPECT_THROW(playerArg->parse(reader), CommandException);
+    EXPECT_TRUE((playerArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentParseTest, ParseDistanceRange)
 {
     StringReader reader("@a[distance=10..20]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.distance().isUnbounded());
     EXPECT_TRUE(selector.distance().hasMin());
     EXPECT_TRUE(selector.distance().hasMax());
@@ -554,7 +568,9 @@ TEST_F(EntityArgumentParseTest, ParseDistanceRange)
 TEST_F(EntityArgumentParseTest, ParseDistanceMinOnly)
 {
     StringReader reader("@a[distance=10..]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.distance().hasMin());
     EXPECT_FALSE(selector.distance().hasMax());
     EXPECT_FLOAT_EQ(selector.distance().getMin(), 10.0f);
@@ -563,7 +579,9 @@ TEST_F(EntityArgumentParseTest, ParseDistanceMinOnly)
 TEST_F(EntityArgumentParseTest, ParseDistanceMaxOnly)
 {
     StringReader reader("@a[distance=..20]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.distance().hasMin());
     EXPECT_TRUE(selector.distance().hasMax());
     EXPECT_FLOAT_EQ(selector.distance().getMax(), 20.0f);
@@ -572,7 +590,9 @@ TEST_F(EntityArgumentParseTest, ParseDistanceMaxOnly)
 TEST_F(EntityArgumentParseTest, ParseLevelRange)
 {
     StringReader reader("@a[level=10..30]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.level().isUnbounded());
     EXPECT_EQ(selector.level().getMin(), 10);
     EXPECT_EQ(selector.level().getMax(), 30);
@@ -581,21 +601,27 @@ TEST_F(EntityArgumentParseTest, ParseLevelRange)
 TEST_F(EntityArgumentParseTest, ParseLimit)
 {
     StringReader reader("@a[limit=5]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.limit(), 5);
 }
 
 TEST_F(EntityArgumentParseTest, ParseSort)
 {
     StringReader reader("@a[sort=nearest]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.sort(), EntitySelectorSort::Nearest);
 }
 
 TEST_F(EntityArgumentParseTest, ParseCoordinates)
 {
     StringReader reader("@a[x=100,y=64,z=-200]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasX());
     EXPECT_TRUE(selector.hasY());
     EXPECT_TRUE(selector.hasZ());
@@ -607,7 +633,9 @@ TEST_F(EntityArgumentParseTest, ParseCoordinates)
 TEST_F(EntityArgumentParseTest, ParseDimensions)
 {
     StringReader reader("@a[dx=10,dy=5,dz=10]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasDx());
     EXPECT_TRUE(selector.hasDy());
     EXPECT_TRUE(selector.hasDz());
@@ -616,7 +644,9 @@ TEST_F(EntityArgumentParseTest, ParseDimensions)
 TEST_F(EntityArgumentParseTest, ParseName)
 {
     StringReader reader("@a[name=Steve]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasUsername());
     EXPECT_EQ(selector.username(), "Steve");
 }
@@ -624,7 +654,9 @@ TEST_F(EntityArgumentParseTest, ParseName)
 TEST_F(EntityArgumentParseTest, ParseNameNegated)
 {
     StringReader reader("@a[name=!Steve]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasUsernameNegated());
     EXPECT_EQ(selector.usernameNegated(), "Steve");
 }
@@ -632,7 +664,9 @@ TEST_F(EntityArgumentParseTest, ParseNameNegated)
 TEST_F(EntityArgumentParseTest, ParseGameMode)
 {
     StringReader reader("@a[gamemode=survival]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasGameMode());
     EXPECT_EQ(selector.gameMode(), "survival");
 }
@@ -640,7 +674,9 @@ TEST_F(EntityArgumentParseTest, ParseGameMode)
 TEST_F(EntityArgumentParseTest, ParseGameModeNegated)
 {
     StringReader reader("@a[gamemode=!creative]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasGameMode());
     EXPECT_TRUE(selector.gameModeNegated());
 }
@@ -648,7 +684,9 @@ TEST_F(EntityArgumentParseTest, ParseGameModeNegated)
 TEST_F(EntityArgumentParseTest, ParseType)
 {
     StringReader reader("@e[type=minecraft:zombie]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasEntityType());
     EXPECT_EQ(selector.entityType(), "minecraft:zombie");
 }
@@ -656,7 +694,9 @@ TEST_F(EntityArgumentParseTest, ParseType)
 TEST_F(EntityArgumentParseTest, ParseTypeNegated)
 {
     StringReader reader("@e[type=!minecraft:player]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasEntityType());
     EXPECT_TRUE(selector.entityTypeNegated());
 }
@@ -664,7 +704,9 @@ TEST_F(EntityArgumentParseTest, ParseTypeNegated)
 TEST_F(EntityArgumentParseTest, ParseTag)
 {
     StringReader reader("@e[tag=foo]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     ASSERT_EQ(selector.tags().size(), 1);
     EXPECT_EQ(selector.tags()[0], "foo");
 }
@@ -672,7 +714,9 @@ TEST_F(EntityArgumentParseTest, ParseTag)
 TEST_F(EntityArgumentParseTest, ParseTagNegated)
 {
     StringReader reader("@e[tag=!bar]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     ASSERT_EQ(selector.tagsNegated().size(), 1);
     EXPECT_EQ(selector.tagsNegated()[0], "bar");
 }
@@ -680,7 +724,9 @@ TEST_F(EntityArgumentParseTest, ParseTagNegated)
 TEST_F(EntityArgumentParseTest, ParseTeam)
 {
     StringReader reader("@a[team=red]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasTeam());
     EXPECT_EQ(selector.team(), "red");
 }
@@ -697,7 +743,9 @@ protected:
 TEST_F(EntityArgumentRotationParseTest, ParseXRotationRange)
 {
     StringReader reader("@a[x_rotation=-45..45]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.xRotation().isUnbounded());
     EXPECT_TRUE(selector.xRotation().hasMin());
     EXPECT_TRUE(selector.xRotation().hasMax());
@@ -708,7 +756,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseXRotationRange)
 TEST_F(EntityArgumentRotationParseTest, ParseXRotationMinOnly)
 {
     StringReader reader("@a[x_rotation=-30..]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.xRotation().hasMin());
     EXPECT_FALSE(selector.xRotation().hasMax());
     EXPECT_FLOAT_EQ(selector.xRotation().getMin(), -30.0f);
@@ -717,7 +767,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseXRotationMinOnly)
 TEST_F(EntityArgumentRotationParseTest, ParseXRotationMaxOnly)
 {
     StringReader reader("@a[x_rotation=..30]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.xRotation().hasMin());
     EXPECT_TRUE(selector.xRotation().hasMax());
     EXPECT_FLOAT_EQ(selector.xRotation().getMax(), 30.0f);
@@ -726,7 +778,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseXRotationMaxOnly)
 TEST_F(EntityArgumentRotationParseTest, ParseXRotationExactValue)
 {
     StringReader reader("@a[x_rotation=0]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.xRotation().hasMin());
     EXPECT_TRUE(selector.xRotation().hasMax());
     EXPECT_FLOAT_EQ(selector.xRotation().getMin(), 0.0f);
@@ -736,7 +790,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseXRotationExactValue)
 TEST_F(EntityArgumentRotationParseTest, ParseYRotationRange)
 {
     StringReader reader("@a[y_rotation=170..-170]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.yRotation().isUnbounded());
     EXPECT_TRUE(selector.yRotation().hasMin());
     EXPECT_TRUE(selector.yRotation().hasMax());
@@ -748,7 +804,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseYRotationWraparound)
 {
     // 跨越正北方向的范围
     StringReader reader("@a[y_rotation=90..-90]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.yRotation().isUnbounded());
     EXPECT_FLOAT_EQ(selector.yRotation().getMin(), 90.0f);
     EXPECT_FLOAT_EQ(selector.yRotation().getMax(), -90.0f);
@@ -757,7 +815,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseYRotationWraparound)
 TEST_F(EntityArgumentRotationParseTest, ParseYRotationMinOnly)
 {
     StringReader reader("@a[y_rotation=180..]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.yRotation().hasMin());
     EXPECT_FALSE(selector.yRotation().hasMax());
     EXPECT_FLOAT_EQ(selector.yRotation().getMin(), 180.0f);
@@ -766,7 +826,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseYRotationMinOnly)
 TEST_F(EntityArgumentRotationParseTest, ParseYRotationMaxOnly)
 {
     StringReader reader("@a[y_rotation=..-90]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.yRotation().hasMin());
     EXPECT_TRUE(selector.yRotation().hasMax());
     EXPECT_FLOAT_EQ(selector.yRotation().getMax(), -90.0f);
@@ -775,7 +837,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseYRotationMaxOnly)
 TEST_F(EntityArgumentRotationParseTest, ParseBothRotations)
 {
     StringReader reader("@a[x_rotation=-30..30,y_rotation=-90..90]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.xRotation().isUnbounded());
     EXPECT_FALSE(selector.yRotation().isUnbounded());
     EXPECT_FLOAT_EQ(selector.xRotation().getMin(), -30.0f);
@@ -787,7 +851,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseBothRotations)
 TEST_F(EntityArgumentRotationParseTest, ParseRotationWithOtherParams)
 {
     StringReader reader("@a[distance=10..50,x_rotation=-20..20,y_rotation=-45..45,limit=3]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.distance().isUnbounded());
     EXPECT_FALSE(selector.xRotation().isUnbounded());
     EXPECT_FALSE(selector.yRotation().isUnbounded());
@@ -797,7 +863,9 @@ TEST_F(EntityArgumentRotationParseTest, ParseRotationWithOtherParams)
 TEST_F(EntityArgumentRotationParseTest, XRotationAngleTestMatchesParsed)
 {
     StringReader reader("@a[x_rotation=-30..30]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
 
     // 测试角度过滤
     EXPECT_TRUE(selector.xRotation().testAngle(0.0f));
@@ -819,7 +887,9 @@ TEST_F(EntityArgumentRotationParseTest, YRotationWraparoundAngleTest)
     // 规范化后：min=170, max=-170, min > max，使用 OR 逻辑
     // 匹配范围：[170, 180) ∪ [-180, -170]
     StringReader reader("@a[y_rotation=170..-170]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
 
     // 在范围内（接近正北）
     EXPECT_TRUE(selector.yRotation().testAngle(175.0f));
@@ -850,7 +920,9 @@ protected:
 TEST_F(EntityArgumentScoresParseTest, ParseSingleScore)
 {
     StringReader reader("@a[scores={deaths=5}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasScoreConditions());
     auto conditions = selector.scoreConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -864,7 +936,9 @@ TEST_F(EntityArgumentScoresParseTest, ParseSingleScore)
 TEST_F(EntityArgumentScoresParseTest, ParseScoreRange)
 {
     StringReader reader("@a[scores={deaths=1..10}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasScoreConditions());
     auto conditions = selector.scoreConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -878,7 +952,9 @@ TEST_F(EntityArgumentScoresParseTest, ParseScoreRange)
 TEST_F(EntityArgumentScoresParseTest, ParseMultipleScores)
 {
     StringReader reader("@a[scores={deaths=1..5,kills=10..}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasScoreConditions());
     auto conditions = selector.scoreConditions();
     ASSERT_EQ(conditions.size(), 2);
@@ -894,7 +970,9 @@ TEST_F(EntityArgumentScoresParseTest, ParseMultipleScores)
 TEST_F(EntityArgumentScoresParseTest, ScoresSetsIncludesNonPlayersToFalse)
 {
     StringReader reader("@e[scores={deaths=5}]");
-    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    auto selectorResult = EntityArgumentType::entities()->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.includesNonPlayers());
 }
 
@@ -908,7 +986,9 @@ protected:
 TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementComplete)
 {
     StringReader reader("@a[advancements={minecraft:story/root=true}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasAdvancementConditions());
     auto conditions = selector.advancementConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -922,7 +1002,9 @@ TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementComplete)
 TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementNotComplete)
 {
     StringReader reader("@a[advancements={minecraft:story/root=false}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasAdvancementConditions());
     auto conditions = selector.advancementConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -936,7 +1018,9 @@ TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementNotComplete)
 TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithCriteria)
 {
     StringReader reader("@a[advancements={minecraft:story/mine_stone={got_stone=true}}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasAdvancementConditions());
     auto conditions = selector.advancementConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -952,7 +1036,9 @@ TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithCriteria)
 TEST_F(EntityArgumentAdvancementsParseTest, ParseMultipleAdvancements)
 {
     StringReader reader("@a[advancements={minecraft:story/root=true,minecraft:story/mine_stone=false}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasAdvancementConditions());
     auto conditions = selector.advancementConditions();
     ASSERT_EQ(conditions.size(), 2);
@@ -969,14 +1055,18 @@ TEST_F(EntityArgumentAdvancementsParseTest, ParseMultipleAdvancements)
 TEST_F(EntityArgumentAdvancementsParseTest, AdvancementsSetsIncludesNonPlayersToFalse)
 {
     StringReader reader("@e[advancements={minecraft:story/root=true}]");
-    EntitySelector selector = EntityArgumentType::entities()->parse(reader);
+    auto selectorResult = EntityArgumentType::entities()->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.includesNonPlayers());
 }
 
 TEST_F(EntityArgumentAdvancementsParseTest, ParseAdvancementWithoutNamespace)
 {
     StringReader reader("@a[advancements={story/root=true}]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasAdvancementConditions());
     auto conditions = selector.advancementConditions();
     ASSERT_EQ(conditions.size(), 1);
@@ -995,7 +1085,9 @@ protected:
 TEST_F(EntityArgumentPredicateParseTest, ParsePredicate)
 {
     StringReader reader("@e[predicate=minecraft:example_predicate]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasPredicateCondition());
     EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
     EXPECT_FALSE(selector.predicateCondition().negated);
@@ -1004,7 +1096,9 @@ TEST_F(EntityArgumentPredicateParseTest, ParsePredicate)
 TEST_F(EntityArgumentPredicateParseTest, ParsePredicateNegated)
 {
     StringReader reader("@e[predicate=!minecraft:example_predicate]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasPredicateCondition());
     EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
     EXPECT_TRUE(selector.predicateCondition().negated);
@@ -1013,7 +1107,9 @@ TEST_F(EntityArgumentPredicateParseTest, ParsePredicateNegated)
 TEST_F(EntityArgumentPredicateParseTest, ParsePredicateWithoutNamespace)
 {
     StringReader reader("@e[predicate=example_predicate]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasPredicateCondition());
     EXPECT_EQ(selector.predicateCondition().predicate.toString(), "minecraft:example_predicate");
 }
@@ -1028,7 +1124,9 @@ protected:
 TEST_F(EntityArgumentNbtParseTest, ParseSimpleNbt)
 {
     StringReader reader("@e[nbt={CustomName:\"Test\"}]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasNbtCondition());
     EXPECT_FALSE(selector.nbtCondition().negated);
     EXPECT_NE(selector.nbtCondition().nbt, nullptr);
@@ -1037,7 +1135,9 @@ TEST_F(EntityArgumentNbtParseTest, ParseSimpleNbt)
 TEST_F(EntityArgumentNbtParseTest, ParseNbtWithNegation)
 {
     StringReader reader("@e[nbt=!{CustomName:\"Test\"}]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasNbtCondition());
     EXPECT_TRUE(selector.nbtCondition().negated);
     EXPECT_NE(selector.nbtCondition().nbt, nullptr);
@@ -1047,7 +1147,9 @@ TEST_F(EntityArgumentNbtParseTest, ParseEmptyNbt)
 {
     // 空 NBT 复合标签
     StringReader reader("@e[nbt={}]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasNbtCondition());
     EXPECT_NE(selector.nbtCondition().nbt, nullptr);
 }
@@ -1064,7 +1166,9 @@ TEST_F(EntityArgumentEdgeCaseTest, EmptySelectorArguments)
 {
     // 空选择器参数
     StringReader reader("@a[]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_EQ(selector.type(), EntitySelectorType::AllPlayers);
 }
 
@@ -1072,7 +1176,9 @@ TEST_F(EntityArgumentEdgeCaseTest, MultipleParameters)
 {
     // 多个参数组合
     StringReader reader("@a[distance=10..50,limit=5,sort=nearest,gamemode=survival]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.distance().isUnbounded());
     EXPECT_EQ(selector.limit(), 5);
     EXPECT_EQ(selector.sort(), EntitySelectorSort::Nearest);
@@ -1084,7 +1190,9 @@ TEST_F(EntityArgumentEdgeCaseTest, QuotedParameterValue)
 {
     // 引号包围的参数值
     StringReader reader("@a[name=\"Steve\"]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_TRUE(selector.hasUsername());
     EXPECT_EQ(selector.username(), "Steve");
 }
@@ -1093,7 +1201,9 @@ TEST_F(EntityArgumentEdgeCaseTest, WhitespaceInParameterName)
 {
     // 参数名前后的空白可以处理
     StringReader reader("@a[ distance=10..20,limit=3 ]");
-    EntitySelector selector = playersArg->parse(reader);
+    auto selectorResult = playersArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FALSE(selector.distance().isUnbounded());
     EXPECT_EQ(selector.limit(), 3);
 }
@@ -1102,7 +1212,9 @@ TEST_F(EntityArgumentEdgeCaseTest, NegativeCoordinates)
 {
     // 负坐标
     StringReader reader("@e[x=-100,y=-64,z=-200]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     EXPECT_FLOAT_EQ(selector.getX(), -100.0f);
     EXPECT_FLOAT_EQ(selector.getY(), -64.0f);
     EXPECT_FLOAT_EQ(selector.getZ(), -200.0f);
@@ -1112,63 +1224,63 @@ TEST_F(EntityArgumentEdgeCaseTest, ZeroLimitThrows)
 {
     // limit=0 应该抛出异常
     StringReader reader("@a[limit=0]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, NegativeLimitThrows)
 {
     // limit=-1 应该抛出异常
     StringReader reader("@a[limit=-1]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, InvalidSelectorTypeThrows)
 {
     // 无效的选择器类型
     StringReader reader("@x");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, MissingClosingBracketThrows)
 {
     // 缺少闭合括号
     StringReader reader("@a[distance=10");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, InvalidParameterNameThrows)
 {
     // 无效的参数名
     StringReader reader("@a[invalid_param=value]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateNameThrows)
 {
     // 重复的 name 参数
     StringReader reader("@a[name=Steve,name=Alex]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateTypeThrows)
 {
     // 重复的 type 参数
     StringReader reader("@e[type=zombie,type=skeleton]");
-    EXPECT_THROW(entitiesArg->parse(reader), CommandException);
+    EXPECT_TRUE((entitiesArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateGamemodeThrows)
 {
     // 重复的 gamemode 参数
     StringReader reader("@a[gamemode=survival,gamemode=creative]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateTeamThrows)
 {
     // 重复的 team 参数
     StringReader reader("@a[team=red,team=blue]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_TRUE((playersArg->parse(reader)).failed());
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, PlayerSelectorWithNonPlayerType)
@@ -1178,7 +1290,9 @@ TEST_F(EntityArgumentEdgeCaseTest, PlayerSelectorWithNonPlayerType)
     StringReader reader("@p[type=zombie]");
     // 解析成功，但在实际选择时会返回空结果
     EXPECT_NO_THROW({
-        EntitySelector selector = EntityArgumentType::player()->parse(reader);
+        auto selectorResult = EntityArgumentType::player()->parse(reader);
+        ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+        EntitySelector selector = std::move(selectorResult).value();
         EXPECT_TRUE(selector.hasEntityType());
         EXPECT_EQ(selector.entityType(), "zombie");
     });
@@ -1188,7 +1302,9 @@ TEST_F(EntityArgumentEdgeCaseTest, MultipleTags)
 {
     // 多个 tag 参数（允许重复）
     StringReader reader("@e[tag=foo,tag=bar,tag=!baz]");
-    EntitySelector selector = entitiesArg->parse(reader);
+    auto selectorResult = entitiesArg->parse(reader);
+    ASSERT_TRUE(selectorResult.success()) << selectorResult.error().toString();
+    EntitySelector selector = std::move(selectorResult).value();
     ASSERT_EQ(selector.tags().size(), 2);
     ASSERT_EQ(selector.tagsNegated().size(), 1);
     EXPECT_EQ(selector.tags()[0], "foo");

@@ -27,6 +27,7 @@
 #include "BlockStateParser.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/state/DualNoiseBlockStateProvider.hpp"
 #include "server/world/gen/feature/state/NoiseBlockStateProvider.hpp"
@@ -65,7 +66,7 @@ std::string stripNamespace(const std::string& s)
 
 f32 getFloat(const nlohmann::json& obj, const char* key, f32 fallback)
 {
-    return (obj.contains(key) && obj[key].is_number()) ? obj[key].get<f32>() : fallback;
+    return util::json::getFloat32Or(obj, key, fallback);
 }
 
 /**
@@ -118,12 +119,14 @@ Result<world::gen::noise::NormalNoise::NoiseParameters> parseNoiseParameters(con
         return Error(ErrorCode::InvalidData, "noise parameters missing 'firstOctave'/'amplitudes'");
     }
     world::gen::noise::NormalNoise::NoiseParameters params;
-    params.firstOctave = json["firstOctave"].get<i32>();
+    MC_TRY_ASSIGN(params.firstOctave, util::json::getInt32(json["firstOctave"]));
     for (const auto& amp : json["amplitudes"]) {
         if (!amp.is_number()) {
             return Error(ErrorCode::InvalidData, "noise parameters amplitudes must be numbers");
         }
-        params.amplitudes.push_back(amp.get<f64>());
+        f64 amplitude = 0.0;
+        MC_TRY_ASSIGN(amplitude, util::json::getFloat64(amp));
+        params.amplitudes.push_back(amplitude);
     }
     if (params.amplitudes.empty()) {
         return Error(ErrorCode::InvalidData, "noise parameters amplitudes must be non-empty");
@@ -155,16 +158,15 @@ Result<u64> readSeed(const nlohmann::json& obj)
     if (!obj.contains("seed") || !obj["seed"].is_number_integer()) {
         return Error(ErrorCode::InvalidData, "noise state provider missing 'seed' integer");
     }
-    return static_cast<u64>(obj["seed"].get<i64>());
+    i64 seed = 0;
+    MC_TRY_ASSIGN(seed, util::json::getInt64(obj["seed"]));
+    return static_cast<u64>(seed);
 }
 
 f32 readPositiveFloat(const nlohmann::json& obj, const char* key, f32 fallback)
 {
-    if (obj.contains(key) && obj[key].is_number()) {
-        const f32 v = obj[key].get<f32>();
-        return v > 0.0f ? v : fallback;
-    }
-    return fallback;
+    const f32 value = util::json::getFloat32Or(obj, key, fallback);
+    return value > 0.0f ? value : fallback;
 }
 
 /// 由 seed + NoiseParameters 构造 NormalNoise。
@@ -180,7 +182,8 @@ std::unique_ptr<world::gen::noise::NormalNoise> createNoise(
 Result<state::InclusiveRange> parseInclusiveRange(const nlohmann::json& json, i32 minBound, i32 maxBound)
 {
     if (json.is_number_integer()) {
-        const i32 v = json.get<i32>();
+        i32 v = 0;
+        MC_TRY_ASSIGN(v, util::json::getInt32(json));
         if (v < minBound || v > maxBound) {
             return Error(ErrorCode::InvalidData,
                 "InclusiveRange value " + std::to_string(v) + " out of range [" + std::to_string(minBound) + "," +
@@ -192,8 +195,10 @@ Result<state::InclusiveRange> parseInclusiveRange(const nlohmann::json& json, i3
         if (json.size() != 2 || !json[0].is_number_integer() || !json[1].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "InclusiveRange array must be [min,max] integers");
         }
-        const i32 lo = json[0].get<i32>();
-        const i32 hi = json[1].get<i32>();
+        i32 lo = 0;
+        i32 hi = 0;
+        MC_TRY_ASSIGN(lo, util::json::getInt32At(json, 0));
+        MC_TRY_ASSIGN(hi, util::json::getInt32At(json, 1));
         if (lo > hi || lo < minBound || hi > maxBound) {
             return Error(ErrorCode::InvalidData,
                 "InclusiveRange [" + std::to_string(lo) + "," + std::to_string(hi) +
@@ -206,8 +211,10 @@ Result<state::InclusiveRange> parseInclusiveRange(const nlohmann::json& json, i3
             !json["min_inclusive"].is_number_integer() || !json["max_inclusive"].is_number_integer()) {
             return Error(ErrorCode::InvalidData, "InclusiveRange object missing 'min_inclusive'/'max_inclusive'");
         }
-        const i32 lo = json["min_inclusive"].get<i32>();
-        const i32 hi = json["max_inclusive"].get<i32>();
+        i32 lo = 0;
+        i32 hi = 0;
+        MC_TRY_ASSIGN(lo, util::json::getInt32(json, "min_inclusive"));
+        MC_TRY_ASSIGN(hi, util::json::getInt32(json, "max_inclusive"));
         if (lo > hi || lo < minBound || hi > maxBound) {
             return Error(ErrorCode::InvalidData,
                 "InclusiveRange {min=" + std::to_string(lo) + ",max=" + std::to_string(hi) +
@@ -260,7 +267,9 @@ Result<std::unique_ptr<state::BlockStateProvider>> parse(const nlohmann::json& p
                 return Error(ErrorCode::InvalidData,
                     "weighted_state_provider entry[" + std::to_string(i) + "] missing 'weight'");
             }
-            weighted->add(entryState.value(), entry["weight"].get<i32>());
+            i32 weight = 0;
+            MC_TRY_ASSIGN(weight, util::json::getInt32(entry["weight"]));
+            weighted->add(entryState.value(), weight);
         }
         return Result<std::unique_ptr<state::BlockStateProvider>>(std::move(weighted));
     }

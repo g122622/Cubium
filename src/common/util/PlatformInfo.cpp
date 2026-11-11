@@ -23,6 +23,7 @@
 
 #include "PlatformInfo.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include <spdlog/spdlog.h>
 
 // 平台特定头文件
@@ -353,7 +354,11 @@ CpuInfo PlatformInfo::getCpuInfoLinux()
             } else if (line.find("cpu MHz") == 0) {
                 size_t pos = line.find(':');
                 if (pos != std::string::npos) {
-                    info.clockSpeedMHz = static_cast<u32>(std::stoul(line.substr(pos + 2)));
+                    // /proc/cpuinfo 属于外部文本，解析失败保留默认值
+                    auto parsed = util::parseUint32(line.substr(pos + 2));
+                    if (parsed.success()) {
+                        info.clockSpeedMHz = parsed.value();
+                    }
                 }
             } else if (line.find("processor") == 0) {
                 processorCount++;
@@ -391,8 +396,11 @@ u64 PlatformInfo::getProcessMemoryMBLinux()
                     size_t numStart = value.find_first_not_of(" \t");
                     size_t numEnd = value.find_first_of(" \tk", numStart);
                     if (numStart != std::string::npos) {
-                        u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
-                        return kb / 1024;
+                        const auto numLength = (numEnd == std::string::npos) ? std::string::npos : numEnd - numStart;
+                        auto parsed = util::parseUint64(value.substr(numStart, numLength));
+                        if (parsed.success()) {
+                            return parsed.value() / 1024;
+                        }
                     }
                 }
             }
@@ -415,8 +423,11 @@ u64 PlatformInfo::getProcessPeakMemoryMBLinux()
                     size_t numStart = value.find_first_not_of(" \t");
                     size_t numEnd = value.find_first_of(" \tk", numStart);
                     if (numStart != std::string::npos) {
-                        u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
-                        return kb / 1024;
+                        const auto numLength = (numEnd == std::string::npos) ? std::string::npos : numEnd - numStart;
+                        auto parsed = util::parseUint64(value.substr(numStart, numLength));
+                        if (parsed.success()) {
+                            return parsed.value() / 1024;
+                        }
                     }
                 }
             }
@@ -440,8 +451,11 @@ u64 PlatformInfo::getProcessCommitMBLinux()
                     size_t numStart = value.find_first_not_of(" \t");
                     size_t numEnd = value.find_first_of(" \tk", numStart);
                     if (numStart != std::string::npos) {
-                        u64 kb = std::stoull(value.substr(numStart, numEnd - numStart));
-                        return kb / 1024;
+                        const auto numLength = (numEnd == std::string::npos) ? std::string::npos : numEnd - numStart;
+                        auto parsed = util::parseUint64(value.substr(numStart, numLength));
+                        if (parsed.success()) {
+                            return parsed.value() / 1024;
+                        }
                     }
                 }
             }

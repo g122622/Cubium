@@ -77,11 +77,11 @@ std::optional<std::string> optString(simdjson::ondemand::object& obj, std::strin
     if (fieldResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
-    auto strResult = fieldResult.value().get_string();
+    auto strResult = fieldResult.value_unsafe().get_string();
     if (strResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
-    return std::string(strResult.value());
+    return std::string(strResult.value_unsafe());
 }
 
 /**
@@ -95,11 +95,11 @@ std::string reqString(simdjson::ondemand::object& obj, std::string_view key)
     if (fieldResult.error() != simdjson::SUCCESS) {
         return {};
     }
-    auto strResult = fieldResult.value().get_string();
+    auto strResult = fieldResult.value_unsafe().get_string();
     if (strResult.error() != simdjson::SUCCESS) {
         return {};
     }
-    return std::string(strResult.value());
+    return std::string(strResult.value_unsafe());
 }
 
 } // namespace
@@ -226,15 +226,7 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
             ErrorCode::InvalidData, std::string("JSON parse error: ") + simdjson::error_message(docResult.error()));
     }
 
-    try {
-        return loadFromJson(docResult.value(), location);
-    }
-    catch (const simdjson::simdjson_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
-    }
+    return loadFromJson(docResult.value_unsafe(), location);
 }
 
 Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
@@ -244,7 +236,7 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
     if (rootResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Template pool JSON is not an object");
     }
-    auto root = rootResult.value();
+    auto root = rootResult.value_unsafe();
 
     // 解析名称（可选，如果没有则使用 location）
     ResourceLocation name = location;
@@ -266,18 +258,18 @@ Result<std::unique_ptr<TemplatePool>> TemplatePoolLoader::loadFromJson(
     if (elementsResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Template pool missing 'elements' array");
     }
-    auto elementsArrResult = elementsResult.value().get_array();
+    auto elementsArrResult = elementsResult.value_unsafe().get_array();
     if (elementsArrResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Template pool 'elements' is not an array");
     }
-    auto elementsArr = elementsArrResult.value();
+    auto elementsArr = elementsArrResult.value_unsafe();
 
     for (auto elementVal : elementsArr) {
         auto elementObjResult = elementVal.get_object();
         if (elementObjResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        auto elementObj = elementObjResult.value();
+        auto elementObj = elementObjResult.value_unsafe();
 
         std::unique_ptr<JigsawPiece> piece;
         i32 weight = 1;
@@ -296,9 +288,9 @@ bool TemplatePoolLoader::_parseElement(
     outWeight = 1;
     auto weightResult = elementObj["weight"];
     if (weightResult.error() == simdjson::SUCCESS) {
-        auto intResult = weightResult.value().get_int64();
+        auto intResult = weightResult.value_unsafe().get_int64();
         if (intResult.error() == simdjson::SUCCESS) {
-            outWeight = static_cast<i32>(intResult.value());
+            outWeight = static_cast<i32>(intResult.value_unsafe());
             if (outWeight <= 0) {
                 outWeight = 1;
             }
@@ -311,12 +303,12 @@ bool TemplatePoolLoader::_parseElement(
         spdlog::warn("Element missing 'element' object");
         return false;
     }
-    auto elementInnerResult = elementResult.value().get_object();
+    auto elementInnerResult = elementResult.value_unsafe().get_object();
     if (elementInnerResult.error() != simdjson::SUCCESS) {
         spdlog::warn("Element 'element' is not an object");
         return false;
     }
-    auto elementInner = elementInnerResult.value();
+    auto elementInner = elementInnerResult.value_unsafe();
 
     outPiece = _parseElementType(elementInner);
     return outPiece != nullptr;
@@ -403,12 +395,12 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(simdjson:
         spdlog::warn("list_pool_element missing 'elements' array");
         return nullptr;
     }
-    auto elementsArrResult = elementsResult.value().get_array();
+    auto elementsArrResult = elementsResult.value_unsafe().get_array();
     if (elementsArrResult.error() != simdjson::SUCCESS) {
         spdlog::warn("list_pool_element 'elements' is not an array");
         return nullptr;
     }
-    auto elementsArr = elementsArrResult.value();
+    auto elementsArr = elementsArrResult.value_unsafe();
 
     auto listPiece = std::make_unique<ListJigsawPiece>();
 
@@ -417,7 +409,7 @@ std::unique_ptr<JigsawPiece> TemplatePoolLoader::_parseListPoolElement(simdjson:
         if (subElementObjResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        auto subElementObj = subElementObjResult.value();
+        auto subElementObj = subElementObjResult.value_unsafe();
         std::unique_ptr<JigsawPiece> subPiece = _parseElementType(subElementObj);
         if (subPiece) {
             listPiece->addPiece(std::move(subPiece));
@@ -483,30 +475,30 @@ std::optional<ResourceLocation> TemplatePoolLoader::_parseProcessors(simdjson::o
     if (procsResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
-    auto procsValue = procsResult.value();
+    auto procsValue = procsResult.value_unsafe();
 
     auto typeResult = procsValue.type();
     if (typeResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
 
-    switch (typeResult.value()) {
+    switch (typeResult.value_unsafe()) {
         case simdjson::ondemand::json_type::string: {
             auto strResult = procsValue.get_string();
             if (strResult.error() != simdjson::SUCCESS) {
                 return std::nullopt;
             }
-            return ResourceLocation(std::string(strResult.value()));
+            return ResourceLocation(std::string(strResult.value_unsafe()));
         }
         case simdjson::ondemand::json_type::object: {
             auto objResult = procsValue.get_object();
             if (objResult.error() != simdjson::SUCCESS) {
                 return ResourceLocation("minecraft", "empty");
             }
-            auto innerObj = objResult.value();
+            auto innerObj = objResult.value_unsafe();
             auto innerProcsResult = innerObj["processors"];
             if (innerProcsResult.error() == simdjson::SUCCESS) {
-                auto innerProcsValue = innerProcsResult.value();
+                auto innerProcsValue = innerProcsResult.value_unsafe();
                 return _registerInlineProcessors(innerProcsValue);
             }
             return ResourceLocation("minecraft", "empty");

@@ -24,7 +24,7 @@
 #include "ServerCommandSource.hpp"
 #include "common/command/CommandSource.hpp"
 #include "common/command/ICommandSource.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -161,22 +161,6 @@ bool ServerCommandSource::shouldReceiveErrors() const noexcept
 bool ServerCommandSource::allowLogging() const noexcept
 {
     return true;
-}
-
-ServerPlayer& ServerCommandSource::assertPlayer() const
-{
-    if (!m_player) {
-        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.player");
-    }
-    return *m_player;
-}
-
-Entity& ServerCommandSource::entityOrException() const
-{
-    if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.entity");
-    }
-    return *m_entity;
 }
 
 ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const

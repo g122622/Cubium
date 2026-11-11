@@ -1006,7 +1006,9 @@ Result<std::unique_ptr<list_tag>> list_tag::read(std::istream& input)
 
 std::unique_ptr<tag> tag_list_tag::operator[](size_t i) const
 {
-    return value.at(i)->copy();
+    // 越界取元素属于调用方违约（NbtPath 等使用方自行判界），断言暴露而不是抛 out_of_range
+    MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: list index out of range");
+    return value[i]->copy();
 }
 
 tag_list_tag::tag_list_tag()
@@ -1110,7 +1112,8 @@ tag_list_tag end_list_tag::as_tags()
 
 std::unique_ptr<tag> string_list_tag::operator[](size_t i) const
 {
-    return std::make_unique<string_tag>(value.at(i));
+    MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: string list index out of range");
+    return std::make_unique<string_tag>(value[i]);
 }
 
 string_list_tag::string_list_tag(const value_type& list)
@@ -1155,7 +1158,8 @@ tag_list_tag string_list_tag::as_tags()
 
 std::unique_ptr<tag> list_list_tag::operator[](size_t i) const
 {
-    return value.at(i)->copy();
+    MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: nested list index out of range");
+    return value[i]->copy();
 }
 
 list_list_tag::list_list_tag(const list_list_tag& other)
@@ -1321,7 +1325,8 @@ void compound_tag::make_heavy()
 
 std::unique_ptr<tag> compound_list_tag::operator[](size_t i) const
 {
-    return value.at(i).copy();
+    MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: compound list index out of range");
+    return value[i].copy();
 }
 
 compound_list_tag::compound_list_tag(const value_type& list)

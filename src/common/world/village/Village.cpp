@@ -22,6 +22,7 @@
  */
 
 #include "Village.hpp"
+#include "VillageNbtRead.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
@@ -43,6 +44,8 @@
 #include <optional>
 #include <utility>
 #include <vector>
+
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -411,27 +414,30 @@ void Village::serialize(nbt::tags::compound_tag& tag) const
 Village Village::deserialize(const nbt::tags::compound_tag& tag)
 {
     BlockPos center;
-    center.x = tag.get<nbt::tags::int_tag>("CenterX");
-    center.y = tag.get<nbt::tags::int_tag>("CenterY");
-    center.z = tag.get<nbt::tags::int_tag>("CenterZ");
+    center.x = detail::readFieldOr<nbt::tags::int_tag>(tag, "CenterX", 0, "Village::deserialize");
+    center.y = detail::readFieldOr<nbt::tags::int_tag>(tag, "CenterY", 0, "Village::deserialize");
+    center.z = detail::readFieldOr<nbt::tags::int_tag>(tag, "CenterZ", 0, "Village::deserialize");
 
     Village village(center);
 
     // 反序列化 ID（向后兼容）
-    if (tag.value.find("Id") != tag.value.end()) {
-        village.m_id = static_cast<VillageId>(tag.get<nbt::tags::long_tag>("Id"));
+    if (const auto* idTag = tag.findAs<nbt::tags::long_tag>("Id"); idTag != nullptr) {
+        village.m_id = static_cast<VillageId>(idTag->value);
     }
 
-    village.m_radius = tag.get<nbt::tags::float_tag>("Radius");
-    village.m_bedCount = tag.get<nbt::tags::int_tag>("BedCount");
-    village.m_workstationCount = tag.get<nbt::tags::int_tag>("WorkstationCount");
-    village.m_underRaid = tag.get<nbt::tags::byte_tag>("UnderRaid") != 0;
-    village.m_lastRaidTime = tag.get<nbt::tags::long_tag>("LastRaidTime");
-    village.m_createdTime = tag.get<nbt::tags::long_tag>("CreatedTime");
+    village.m_radius =
+        detail::readFieldOr<nbt::tags::float_tag>(tag, "Radius", VillageConfig::BASE_RADIUS, "Village::deserialize");
+    village.m_bedCount = detail::readFieldOr<nbt::tags::int_tag>(tag, "BedCount", 0, "Village::deserialize");
+    village.m_workstationCount =
+        detail::readFieldOr<nbt::tags::int_tag>(tag, "WorkstationCount", 0, "Village::deserialize");
+    village.m_underRaid =
+        detail::readFieldOr<nbt::tags::byte_tag>(tag, "UnderRaid", static_cast<i8>(0), "Village::deserialize") != 0;
+    village.m_lastRaidTime = detail::readFieldOr<nbt::tags::long_tag>(tag, "LastRaidTime", 0, "Village::deserialize");
+    village.m_createdTime = detail::readFieldOr<nbt::tags::long_tag>(tag, "CreatedTime", 0, "Village::deserialize");
 
     // 可选字段：POI 统计更新时间（向后兼容）
-    if (tag.value.find("LastPOIStatUpdateTime") != tag.value.end()) {
-        village.m_lastPOIStatUpdateTime = tag.get<nbt::tags::long_tag>("LastPOIStatUpdateTime");
+    if (const auto* statTag = tag.findAs<nbt::tags::long_tag>("LastPOIStatUpdateTime"); statTag != nullptr) {
+        village.m_lastPOIStatUpdateTime = statTag->value;
     }
 
     // 反序列化村民列表
@@ -451,9 +457,15 @@ Village Village::deserialize(const nbt::tags::compound_tag& tag)
         auto* villagerTimesList = dynamic_cast<const nbt::tags::compound_list_tag*>(villagerTimesIt->second.get());
         if (villagerTimesList) {
             for (const auto& entry : villagerTimesList->value) {
-                u64 villagerId = static_cast<u64>(entry.get<nbt::tags::long_tag>("VillagerId"));
-                i64 lastSeenTime = entry.get<nbt::tags::long_tag>("LastSeenTime");
-                village.m_villagerLastSeenTime[villagerId] = lastSeenTime;
+                const auto* villagerIdTag = entry.findAs<nbt::tags::long_tag>("VillagerId");
+                const auto* lastSeenTag = entry.findAs<nbt::tags::long_tag>("LastSeenTime");
+                if (villagerIdTag == nullptr || lastSeenTag == nullptr) {
+                    // 单条记录损坏不影响其余村民记录
+                    spdlog::warn("Village::deserialize: malformed villager last-seen entry, skipped");
+                    continue;
+                }
+
+                village.m_villagerLastSeenTime[static_cast<u64>(villagerIdTag->value)] = lastSeenTag->value;
             }
         }
     }
@@ -463,11 +475,15 @@ Village Village::deserialize(const nbt::tags::compound_tag& tag)
     if (meetingIt != tag.value.end()) {
         auto* meetingTag = dynamic_cast<const nbt::tags::compound_tag*>(meetingIt->second.get());
         if (meetingTag) {
-            BlockPos pos;
-            pos.x = meetingTag->get<nbt::tags::int_tag>("X");
-            pos.y = meetingTag->get<nbt::tags::int_tag>("Y");
-            pos.z = meetingTag->get<nbt::tags::int_tag>("Z");
-            village.m_meetingPoint = pos;
+            const auto* xTag = meetingTag->findAs<nbt::tags::int_tag>("X");
+            const auto* yTag = meetingTag->findAs<nbt::tags::int_tag>("Y");
+            const auto* zTag = meetingTag->findAs<nbt::tags::int_tag>("Z");
+            if (xTag == nullptr || yTag == nullptr || zTag == nullptr) {
+                // 坐标不全的聚集点无意义，直接丢弃而不是落到 (0,0,0)
+                spdlog::warn("Village::deserialize: incomplete meeting point, ignored");
+            } else {
+                village.m_meetingPoint = BlockPos{xTag->value, yTag->value, zTag->value};
+            }
         }
     }
 

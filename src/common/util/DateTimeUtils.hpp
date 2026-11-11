@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -225,16 +226,14 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
     if (ss >> remaining) {
         // remaining 应为 "+HHMM" 或 "-HHMM"
         if (remaining.size() >= 5 && (remaining[0] == '+' || remaining[0] == '-')) {
-            try {
-                i32 tzHours = std::stoi(remaining.substr(1, 2));
-                i32 tzMinutes = std::stoi(remaining.substr(3, 2));
-                tzOffsetSeconds = static_cast<i64>(tzHours) * 3600 + static_cast<i64>(tzMinutes) * 60;
+            // 时区解析失败时忽略偏移（按本地时间处理），不抛异常
+            const auto tzHours = util::parseInt32(std::string_view(remaining).substr(1, 2));
+            const auto tzMinutes = util::parseInt32(std::string_view(remaining).substr(3, 2));
+            if (tzHours.success() && tzMinutes.success()) {
+                tzOffsetSeconds = static_cast<i64>(tzHours.value()) * 3600 + static_cast<i64>(tzMinutes.value()) * 60;
                 if (remaining[0] == '-') {
                     tzOffsetSeconds = -tzOffsetSeconds;
                 }
-            }
-            catch (...) {
-                // 时区解析失败，忽略时区偏移（使用本地时间）
             }
         }
         // 如果没有时区部分或格式不正确，tzOffsetSeconds 保持为 0

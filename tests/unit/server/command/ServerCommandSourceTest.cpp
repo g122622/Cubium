@@ -25,7 +25,7 @@
  * @file ServerCommandSourceTest.cpp
  * @brief ServerCommandSource 单元测试
  *
- * 测试 entity()/entityOrException()/withEntity() 等实体相关方法，
+ * 测试 entity()/withEntity() 等实体相关方法，
  * 覆盖控制台源、玩家源、非玩家实体源等场景。
  */
 
@@ -33,7 +33,7 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -221,62 +221,6 @@ TEST_F(ServerCommandSourceTest, EntityReturnsExplicitEntityWhenProvided)
 
     EXPECT_EQ(source.entity(), pigPtr);
     EXPECT_EQ(source.player(), nullptr);
-}
-
-// ============================================================================
-// 2. entityOrException() 测试
-// ============================================================================
-
-TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsWhenEntityIsNullptr)
-{
-    // 控制台命令源调用 entityOrException() 应抛出 CommandException
-    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
-
-    EXPECT_THROW({ source.entityOrException(); }, CommandException);
-}
-
-TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsCorrectErrorType)
-{
-    // 验证抛出的异常类型和消息
-    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
-
-    try {
-        source.entityOrException();
-        FAIL() << "Expected CommandException";
-    }
-    catch (const CommandException& e) {
-        EXPECT_EQ(e.type(), CommandErrorType::PermissionDenied);
-        EXPECT_EQ(e.message(), "commands.requires.entity");
-    }
-}
-
-TEST_F(ServerCommandSourceTest, EntityOrExceptionReturnsReferenceWhenEntityIsSet)
-{
-    // 玩家命令源调用 entityOrException() 应返回实体引用
-    auto serverPlayer =
-        std::make_unique<mc::ServerPlayer>(EntityInstanceId(1), "TestPlayer", mc::test::testEcsRegistry());
-    serverPlayer->setPlayerId(42);
-    auto* playerPtr = serverPlayer.get();
-    m_server.spawnEntity(std::move(serverPlayer));
-
-    ServerCommandSource source(&m_server, playerPtr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 42, "TestPlayer");
-
-    Entity& entity = source.entityOrException();
-    EXPECT_EQ(&entity, static_cast<Entity*>(playerPtr));
-}
-
-TEST_F(ServerCommandSourceTest, EntityOrExceptionReturnsNonPlayerEntityReference)
-{
-    // 非玩家实体命令源调用 entityOrException() 应返回该实体引用
-    auto pig = createEntityByType(EntityTypeKeys::PIG);
-    ASSERT_NE(pig, nullptr);
-    Entity* pigPtr = pig.get();
-    m_server.spawnEntity(std::move(pig));
-
-    ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "", pigPtr);
-
-    Entity& entity = source.entityOrException();
-    EXPECT_EQ(&entity, pigPtr);
 }
 
 // ============================================================================

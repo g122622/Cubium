@@ -30,9 +30,12 @@
 
 #include "GameRules.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/gamerule/GameRule.hpp"
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <charconv>
 #include <memory>
@@ -716,12 +719,16 @@ i32 GameRules::_getIntFromNbt(const nbt::tags::compound_tag& nbt, const std::str
     if (it != nbt.value.end()) {
         if (it->second->id() == nbt::TagId::String) {
             const auto& strTag = dynamic_cast<const nbt::tags::string_tag&>(*it->second);
-            try {
-                return std::stoi(strTag.value);
-            }
-            catch (...) {
+            // 坏存档里的规则值：解析失败回退默认值（并记录 warn），不抛异常
+            auto parsed = util::parseInt32(strTag.value);
+            if (parsed.failed()) {
+                spdlog::warn("GameRules: invalid integer rule value '{}' for '{}'; using default {}",
+                    strTag.value,
+                    key,
+                    defaultValue);
                 return defaultValue;
             }
+            return parsed.value();
         }
     }
     return defaultValue;

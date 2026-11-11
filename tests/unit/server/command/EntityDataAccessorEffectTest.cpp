@@ -76,7 +76,9 @@ TEST_F(EntityDataAccessorEffectTest, GetData_NoEffects_NoActiveEffectsKey)
 {
     // 无效果时，NBT 数据中不应包含 ActiveEffects 键
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     auto it = data->value.find(ACTIVE_EFFECTS);
@@ -89,7 +91,9 @@ TEST_F(EntityDataAccessorEffectTest, GetData_SingleEffect_SerializedCorrectly)
     m_entity->addEffect(EffectInstance(EffectType::Speed, 200, 2, false, true, true));
 
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     auto it = data->value.find(ACTIVE_EFFECTS);
@@ -145,7 +149,9 @@ TEST_F(EntityDataAccessorEffectTest, GetData_MultipleEffects_AllSerialized)
     m_entity->addEffect(EffectInstance(EffectType::FireResistance, -1, 0, true, false, false)); // Permanent, ambient
 
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     auto it = data->value.find(ACTIVE_EFFECTS);
@@ -207,7 +213,9 @@ TEST_F(EntityDataAccessorEffectTest, GetData_NonLivingEntity_NoEffects)
     entity.registerData();
 
     EntityDataAccessor accessor(&entity);
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     auto it = data->value.find(ACTIVE_EFFECTS);
@@ -254,7 +262,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AddEffectsFromNbt)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证效果已添加
     const auto& effects = m_entity->effectManager().getAllEffects();
@@ -298,7 +307,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_ReplacesExistingEffects)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 原有效果应被替换
     const auto& effects = m_entity->effectManager().getAllEffects();
@@ -326,7 +336,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EmptyEffectsList_ClearsEffects)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 所有效果应被清除
     EXPECT_EQ(m_entity->effectManager().getEffectCount(), 0u);
@@ -395,7 +406,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersApplied)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证效果已在效果列表中
     auto* strength = m_entity->effectManager().getEffect(EffectType::Strength);
@@ -437,7 +449,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_ReplaceEffectWithWeaker_Attribute
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 效果列表应已替换为 Speed I
     EXPECT_TRUE(m_entity->hasEffect(EffectType::Speed));
@@ -461,7 +474,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_PlayerEntity_ThrowsException)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(&player);
-    EXPECT_THROW(accessor.mergeData(data), CommandException);
+    EXPECT_TRUE((accessor.mergeData(data)).failed());
 }
 
 // ============================================================================
@@ -476,7 +489,9 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_SerializeDeserialize_PreservesEff
 
     // 序列化
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 创建新实体并反序列化
@@ -490,7 +505,8 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_SerializeDeserialize_PreservesEff
     entity2->setHealth(entity2->maxHealth());
 
     EntityDataAccessor accessor2(entity2.get());
-    accessor2.mergeData(*data);
+    auto mergeResult = accessor2.mergeData(*data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证反序列化后的效果
     EXPECT_TRUE(entity2->hasEffect(EffectType::Speed));
@@ -517,7 +533,9 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_EmptyEffects_RoundTrip)
 {
     // 无效果实体序列化后再反序列化应保持无效果
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 确认序列化数据中没有 ActiveEffects 键
@@ -533,7 +551,8 @@ TEST_F(EntityDataAccessorEffectTest, RoundTrip_EmptyEffects_RoundTrip)
 
     EntityDataAccessor accessor2(entity2.get());
     // 合并不含 ActiveEffects 的数据不应影响现有效果
-    accessor2.mergeData(*data);
+    auto mergeResult = accessor2.mergeData(*data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 原有效果保持不变（因为没有 ActiveEffects 键被合并）
     EXPECT_TRUE(entity2->hasEffect(EffectType::Speed));
@@ -563,7 +582,9 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersInNbt)
 
     // 序列化
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 验证 Attributes NBT 中包含 Strength 修改器
@@ -579,7 +600,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectAttributeModifiersInNbt)
     entity2->setHealth(entity2->maxHealth());
 
     EntityDataAccessor accessor2(entity2.get());
-    accessor2.mergeData(*data);
+    auto mergeResult = accessor2.mergeData(*data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证效果存在
     auto* strength = entity2->effectManager().getEffect(EffectType::Strength);
@@ -608,7 +630,9 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
 
     // 序列化实体
     EntityDataAccessor accessor(m_entity.get());
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 创建新实体，先手动添加一个不同的修改器（模拟已有修改器）
@@ -626,7 +650,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_AttributeModifiersClearedBeforeNb
 
     // 反序列化：readAttributeMap 应先清除旧修改器（+5.0），再从 NBT 加载新修改器（+6.0）
     EntityDataAccessor accessor2(entity2.get());
-    accessor2.mergeData(*data);
+    auto mergeResult = accessor2.mergeData(*data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 旧修改器（+5.0）应被清除，NBT 中的修改器（+6.0 Strength）应被加载
     const f64 attackAfterMerge = entity2->attributes().getValue("minecraft:attack_damage", 0.0);
@@ -667,7 +692,8 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_EffectRemovedViaNbt_AttributeModi
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(m_entity.get());
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // Strength 效果应被替换为 Speed
     EXPECT_FALSE(m_entity->hasEffect(EffectType::Strength));

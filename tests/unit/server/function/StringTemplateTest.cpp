@@ -22,7 +22,6 @@
  */
 
 #include "server/function/StringTemplate.hpp"
-#include <stdexcept>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -35,86 +34,116 @@ using namespace mc::function;
  */
 class StringTemplateTest : public ::testing::Test {};
 
+namespace {
+
+/// 测试辅助：解析成功返回模板，失败返回 nullopt（失败原因由生产代码承担）
+std::optional<StringTemplate> _parseTemplate(const std::string& text)
+{
+    auto result = StringTemplate::fromString(text);
+    if (result.failed()) {
+        return std::nullopt;
+    }
+    return std::move(result).value();
+}
+
+/// 测试辅助：替换成功返回字符串，失败返回 nullopt
+std::optional<std::string> _substitute(const StringTemplate& tmpl, const std::vector<std::string>& values)
+{
+    auto result = tmpl.substitute(values);
+    if (result.failed()) {
+        return std::nullopt;
+    }
+    return std::move(result).value();
+}
+
+} // namespace
+
 TEST_F(StringTemplateTest, FromString_SingleVariable)
 {
-    auto tmpl = StringTemplate::fromString("say $(name)");
-    ASSERT_EQ(tmpl.variables().size(), 1u);
-    EXPECT_EQ(tmpl.variables()[0], "name");
+    auto tmpl = _parseTemplate("say $(name)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 1u);
+    EXPECT_EQ(tmpl->variables()[0], "name");
     // segments 数量 = variables + 1
-    ASSERT_EQ(tmpl.segments().size(), 2u);
-    EXPECT_EQ(tmpl.segments()[0], "say ");
-    EXPECT_EQ(tmpl.segments()[1], "");
+    ASSERT_EQ(tmpl->segments().size(), 2u);
+    EXPECT_EQ(tmpl->segments()[0], "say ");
+    EXPECT_EQ(tmpl->segments()[1], "");
 }
 
 TEST_F(StringTemplateTest, FromString_MultipleVariables)
 {
-    auto tmpl = StringTemplate::fromString("say $(a) and $(b)");
-    ASSERT_EQ(tmpl.variables().size(), 2u);
-    EXPECT_EQ(tmpl.variables()[0], "a");
-    EXPECT_EQ(tmpl.variables()[1], "b");
-    ASSERT_EQ(tmpl.segments().size(), 3u);
-    EXPECT_EQ(tmpl.segments()[0], "say ");
-    EXPECT_EQ(tmpl.segments()[1], " and ");
-    EXPECT_EQ(tmpl.segments()[2], "");
+    auto tmpl = _parseTemplate("say $(a) and $(b)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 2u);
+    EXPECT_EQ(tmpl->variables()[0], "a");
+    EXPECT_EQ(tmpl->variables()[1], "b");
+    ASSERT_EQ(tmpl->segments().size(), 3u);
+    EXPECT_EQ(tmpl->segments()[0], "say ");
+    EXPECT_EQ(tmpl->segments()[1], " and ");
+    EXPECT_EQ(tmpl->segments()[2], "");
 }
 
 TEST_F(StringTemplateTest, FromString_VariableAtStart)
 {
-    auto tmpl = StringTemplate::fromString("$(greeting) world");
-    ASSERT_EQ(tmpl.variables().size(), 1u);
-    EXPECT_EQ(tmpl.variables()[0], "greeting");
-    ASSERT_EQ(tmpl.segments().size(), 2u);
-    EXPECT_EQ(tmpl.segments()[0], "");
-    EXPECT_EQ(tmpl.segments()[1], " world");
+    auto tmpl = _parseTemplate("$(greeting) world");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 1u);
+    EXPECT_EQ(tmpl->variables()[0], "greeting");
+    ASSERT_EQ(tmpl->segments().size(), 2u);
+    EXPECT_EQ(tmpl->segments()[0], "");
+    EXPECT_EQ(tmpl->segments()[1], " world");
 }
 
 TEST_F(StringTemplateTest, FromString_VariableAtEnd)
 {
-    auto tmpl = StringTemplate::fromString("hello $(name)");
-    ASSERT_EQ(tmpl.variables().size(), 1u);
-    EXPECT_EQ(tmpl.variables()[0], "name");
-    ASSERT_EQ(tmpl.segments().size(), 2u);
-    EXPECT_EQ(tmpl.segments()[0], "hello ");
+    auto tmpl = _parseTemplate("hello $(name)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 1u);
+    EXPECT_EQ(tmpl->variables()[0], "name");
+    ASSERT_EQ(tmpl->segments().size(), 2u);
+    EXPECT_EQ(tmpl->segments()[0], "hello ");
     // 末尾的空 segment 也保留
-    EXPECT_EQ(tmpl.segments()[1], "");
+    EXPECT_EQ(tmpl->segments()[1], "");
 }
 
-TEST_F(StringTemplateTest, FromString_NoVariables_Throws)
+TEST_F(StringTemplateTest, FromString_NoVariables_ReturnsError)
 {
-    // 无变量应抛异常
-    EXPECT_THROW(StringTemplate::fromString("say hello"), std::invalid_argument);
+    // 无变量属于数据包内容错误，返回错误而不是抛异常
+    EXPECT_FALSE(StringTemplate::fromString("say hello").success());
 }
 
-TEST_F(StringTemplateTest, FromString_UnterminatedVariable_Throws)
+TEST_F(StringTemplateTest, FromString_UnterminatedVariable_ReturnsError)
 {
-    EXPECT_THROW(StringTemplate::fromString("say $(name"), std::invalid_argument);
+    EXPECT_FALSE(StringTemplate::fromString("say $(name").success());
 }
 
-TEST_F(StringTemplateTest, FromString_InvalidVariableName_Throws)
+TEST_F(StringTemplateTest, FromString_InvalidVariableName_ReturnsError)
 {
     // 含非法字符（-）
-    EXPECT_THROW(StringTemplate::fromString("say $(na-me)"), std::invalid_argument);
+    EXPECT_FALSE(StringTemplate::fromString("say $(na-me)").success());
 }
 
 TEST_F(StringTemplateTest, FromString_DollarNotFollowedByParen)
 {
-    // '$' 不跟 '('，不视为变量起始，但若无其他变量则抛 "No variables"
-    EXPECT_THROW(StringTemplate::fromString("say $5"), std::invalid_argument);
+    // '$' 不跟 '('，不视为变量起始；若整行没有变量则返回错误
+    EXPECT_FALSE(StringTemplate::fromString("say $5").success());
     // 混合：先有 $5（普通字符）后有 $(var)
-    auto tmpl = StringTemplate::fromString("say $5 and $(var)");
-    ASSERT_EQ(tmpl.variables().size(), 1u);
-    EXPECT_EQ(tmpl.variables()[0], "var");
-    ASSERT_EQ(tmpl.segments().size(), 2u);
-    EXPECT_EQ(tmpl.segments()[0], "say $5 and ");
-    EXPECT_EQ(tmpl.segments()[1], "");
+    auto tmpl = _parseTemplate("say $5 and $(var)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 1u);
+    EXPECT_EQ(tmpl->variables()[0], "var");
+    ASSERT_EQ(tmpl->segments().size(), 2u);
+    EXPECT_EQ(tmpl->segments()[0], "say $5 and ");
+    EXPECT_EQ(tmpl->segments()[1], "");
 }
 
 TEST_F(StringTemplateTest, FromString_VariableNameWithUnderscoreAndDigits)
 {
-    auto tmpl = StringTemplate::fromString("$(var_1)_$(var_2)");
-    ASSERT_EQ(tmpl.variables().size(), 2u);
-    EXPECT_EQ(tmpl.variables()[0], "var_1");
-    EXPECT_EQ(tmpl.variables()[1], "var_2");
+    auto tmpl = _parseTemplate("$(var_1)_$(var_2)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 2u);
+    EXPECT_EQ(tmpl->variables()[0], "var_1");
+    EXPECT_EQ(tmpl->variables()[1], "var_2");
 }
 
 TEST_F(StringTemplateTest, IsValidVariableName)
@@ -132,38 +161,40 @@ TEST_F(StringTemplateTest, IsValidVariableName)
 
 TEST_F(StringTemplateTest, Substitute_SingleVariable)
 {
-    auto tmpl = StringTemplate::fromString("say $(name)");
-    auto result = tmpl.substitute({"Steve"});
-    EXPECT_EQ(result, "say Steve");
+    auto tmpl = _parseTemplate("say $(name)");
+    ASSERT_TRUE(tmpl.has_value());
+    EXPECT_EQ(_substitute(*tmpl, {"Steve"}), "say Steve");
 }
 
 TEST_F(StringTemplateTest, Substitute_MultipleVariables)
 {
-    auto tmpl = StringTemplate::fromString("say $(a) and $(b)");
-    auto result = tmpl.substitute({"Alex", "Bob"});
-    EXPECT_EQ(result, "say Alex and Bob");
+    auto tmpl = _parseTemplate("say $(a) and $(b)");
+    ASSERT_TRUE(tmpl.has_value());
+    EXPECT_EQ(_substitute(*tmpl, {"Alex", "Bob"}), "say Alex and Bob");
 }
 
 TEST_F(StringTemplateTest, Substitute_VariableInMiddle)
 {
-    auto tmpl = StringTemplate::fromString("tellraw @a {\"text\":\"$(msg)\"}");
-    auto result = tmpl.substitute({"hello world"});
-    EXPECT_EQ(result, "tellraw @a {\"text\":\"hello world\"}");
+    auto tmpl = _parseTemplate("tellraw @a {\"text\":\"$(msg)\"}");
+    ASSERT_TRUE(tmpl.has_value());
+    EXPECT_EQ(_substitute(*tmpl, {"hello world"}), "tellraw @a {\"text\":\"hello world\"}");
 }
 
-TEST_F(StringTemplateTest, Substitute_CountMismatch_Throws)
+TEST_F(StringTemplateTest, Substitute_CountMismatch_Asserts)
 {
-    auto tmpl = StringTemplate::fromString("say $(a) and $(b)");
-    // values 数量与 variables 不匹配
-    EXPECT_THROW(tmpl.substitute({"only_one"}), std::invalid_argument);
-    EXPECT_THROW(tmpl.substitute({"a", "b", "c"}), std::invalid_argument);
+    auto tmpl = _parseTemplate("say $(a) and $(b)");
+    ASSERT_TRUE(tmpl.has_value());
+
+    // 实参个数与形参不一致属于调用方违约，默认断言终止进程；用 EXPECT_DEATH 验证子进程终止。
+    EXPECT_DEATH(MC_UNUSED(tmpl->substitute({"only_one"})), "");
+    EXPECT_DEATH(MC_UNUSED(tmpl->substitute({"a", "b", "c"})), "");
 }
 
 TEST_F(StringTemplateTest, Substitute_RepeatedVariable)
 {
     // 同一变量多次出现：StringTemplate.variables() 会重复，substitute 期望 values 与之一一对应
-    auto tmpl = StringTemplate::fromString("$(a) $(a) $(a)");
-    ASSERT_EQ(tmpl.variables().size(), 3u);
-    auto result = tmpl.substitute({"X", "X", "X"});
-    EXPECT_EQ(result, "X X X");
+    auto tmpl = _parseTemplate("$(a) $(a) $(a)");
+    ASSERT_TRUE(tmpl.has_value());
+    ASSERT_EQ(tmpl->variables().size(), 3u);
+    EXPECT_EQ(_substitute(*tmpl, {"X", "X", "X"}), "X X X");
 }

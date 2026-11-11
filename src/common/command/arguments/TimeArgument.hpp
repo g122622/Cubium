@@ -27,7 +27,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include <cmath>
 #include <memory>
@@ -74,19 +74,20 @@ public:
      * 数字部分与整数参数共用一套语法（可选 '-'、小数点，不认 '+'/前导空白/指数），
      * 单位区分大小写（`1D` 非法），负值交给 {@code minimum} 检查。
      */
-    [[nodiscard]] i32 parse(StringReader& reader) override
+    [[nodiscard]] Result<i32, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
+        const i32 start = reader.getCursor();
 
         // 原版 TimeArgument 调用的是 `WorldCoordinate.parseDouble(reader, false)`：
         // 数字只读数字与小数点（`1e3` 读成 1，`e3` 留给单位而报错）；游标已读尽时整体
         // 失败、游标停在起点；前导空格则读成 0 且游标不动（` 5s` → 0 tick）。
-        f64 value = 0.0;
-        if (!readWorldCoordinateDouble(reader, value)) {
+        auto valueResult = readWorldCoordinateDouble(reader);
+        if (valueResult.failed()) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
+        const f64 value = valueResult.value();
 
         // 读取后缀单位字符串（`-1` 的 '-' 已被消费；`1.5d` 的 d 是单位）。
         std::string unit = reader.readUnquotedString();
@@ -96,7 +97,7 @@ public:
         if (it == s_units.end()) {
             const i32 end = reader.getCursor();
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown,
+            return CommandError(CommandErrorType::Unknown,
                 "Invalid time unit: '" + unit + "'. Expected 's', 'd', 't', or no unit",
                 end);
         }
@@ -112,7 +113,7 @@ public:
         if (ticks < m_minimum) {
             const i32 end = reader.getCursor();
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooLow,
+            return CommandError(CommandErrorType::IntegerTooLow,
                 "Time value must be at least " + std::to_string(m_minimum) + " ticks (got " + std::to_string(ticks) +
                     ")",
                 end);

@@ -78,7 +78,7 @@ private:
 /**
  * @brief 共用解析：可选的 `#` 前缀 + 资源位置。
  */
-[[nodiscard]] inline ParsedResourceOrTag readResourceOrTag(StringReader& reader)
+[[nodiscard]] inline Result<ParsedResourceOrTag, CommandError> readResourceOrTag(StringReader& reader)
 {
     bool tag = false;
     const i32 start = reader.getCursor();
@@ -86,19 +86,19 @@ private:
         tag = true;
         reader.skip();
     }
-    try {
-        return ParsedResourceOrTag(readResourceLocationId(reader), tag);
-    }
-    catch (const CommandException&) {
+
+    auto location = readResourceLocationId(reader);
+    if (location.failed()) {
         reader.setCursor(start);
-        throw;
+        return location.error();
     }
+    return ParsedResourceOrTag(std::move(location).value(), tag);
 }
 
 /// /locate biome、/execute if biome 等：resource_or_tag（值侧）。
 class ResourceOrTagArgumentType : public ArgumentType<ParsedResourceOrTag> {
 public:
-    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override
+    [[nodiscard]] Result<ParsedResourceOrTag, CommandError> parse(StringReader& reader) override
     {
         return readResourceOrTag(reader);
     }
@@ -140,7 +140,7 @@ private:
 /// /locate structure 等：resource_or_tag_key（键侧）。
 class ResourceOrTagKeyArgumentType : public ArgumentType<ParsedResourceOrTag> {
 public:
-    [[nodiscard]] ParsedResourceOrTag parse(StringReader& reader) override
+    [[nodiscard]] Result<ParsedResourceOrTag, CommandError> parse(StringReader& reader) override
     {
         return readResourceOrTag(reader);
     }

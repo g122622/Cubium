@@ -25,9 +25,11 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "pack/IResourcePack.hpp"
 #include "repository/PackRepository.hpp"
 
+#include "common/util/json/JsonRead.hpp"
 #include <cctype>
 #include <cstddef>
 #include <exception>
@@ -37,6 +39,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::resource {
@@ -137,31 +140,29 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
 
 Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
 {
-    try {
-        auto json = nlohmann::json::parse(jsonContent);
+    auto parsedJson = util::json::parse(jsonContent);
+    if (parsedJson.failed()) {
+        return Error(
+            ErrorCode::InvalidData, std::string("Error parsing language JSON: ") + parsedJson.error().message());
+    }
+    const auto& json = parsedJson.value();
 
-        if (!json.is_object()) {
-            return Error(ErrorCode::InvalidData, "Language file must be a JSON object");
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Language file must be a JSON object");
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    size_t count = 0;
+    for (auto& [key, value] : json.items()) {
+        const auto text = util::json::getString(value);
+        if (text.success()) {
+            m_translations[key] = text.value();
+            ++count;
         }
-
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        size_t count = 0;
-        for (auto& [key, value] : json.items()) {
-            if (value.is_string()) {
-                m_translations[key] = value.get<std::string>();
-                ++count;
-            }
-        }
-
-        return count;
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Error parsing language JSON: ") + e.what());
-    }
+
+    return count;
 }
 
 void LanguageManager::clear()
@@ -299,17 +300,15 @@ std::string LanguageManager::_replacePlaceholders(const std::string& text, const
 
                 // 检查是否是 $s 格式
                 if (digitEnd + 1 < text.size() && text[digitEnd] == '$' && text[digitEnd + 1] == 's') {
-                    // 解析位置索引
-                    i32 position = 0;
-                    try {
-                        position = std::stoi(text.substr(digitStart, digitEnd - digitStart));
-                    }
-                    catch (...) {
-                        // 解析失败，保留原样
+                    // 解析位置索引；解析失败（如位数超出 i32）时保留原样
+                    const auto positionResult =
+                        util::parseInt32(std::string_view(text).substr(digitStart, digitEnd - digitStart));
+                    if (positionResult.failed()) {
                         result += text.substr(i, digitEnd + 2 - i);
                         i = digitEnd + 2;
                         continue;
                     }
+                    const i32 position = positionResult.value();
 
                     // 替换参数（位置从1开始）
                     if (position >= 1 && position <= static_cast<i32>(params.size())) {

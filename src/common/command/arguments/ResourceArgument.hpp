@@ -46,7 +46,7 @@ public:
         , m_typeName(std::move(typeName))
     {}
 
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
     {
         return readResourceLocationId(reader);
     }
@@ -91,7 +91,7 @@ public:
         : m_registryKey(std::move(registryKey))
     {}
 
-    [[nodiscard]] ResourceLocation parse(StringReader& reader) override
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
     {
         return readResourceLocationId(reader);
     }

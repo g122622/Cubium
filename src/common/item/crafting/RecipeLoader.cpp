@@ -28,6 +28,7 @@
 #include "common/item/crafting/RecipeSerializers.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "resource/repository/DataPackRepository.hpp"
 #include <cstddef>
 #include <filesystem>
@@ -176,13 +177,12 @@ Result<ResourceLocation> RecipeLoader::loadRecipeFile(const std::string& filePat
 Result<ResourceLocation> RecipeLoader::loadRecipeJson(const ResourceLocation& id, const std::string& jsonString)
 {
     // 解析JSON
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(jsonString);
+    auto jsonResult = util::json::parse(jsonString);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::ResourceParseError,
+            "JSON parse error in recipe " + id.toString() + ": " + jsonResult.error().message());
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::ResourceParseError, "JSON parse error in recipe " + id.toString() + ": " + e.what());
-    }
+    auto json = std::move(jsonResult).value();
 
     // 获取配方类型
     if (!json.contains("type") || !json["type"].is_string()) {

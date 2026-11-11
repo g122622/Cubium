@@ -28,10 +28,13 @@
 #include "common/mod/bedrock/addon/pack/AddonModule.hpp"
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
+#include "common/util/NumberParsing.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <exception>
 #include <fstream>
 #include <iterator>
+
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -96,8 +99,12 @@ AddonModule parseModule(const nlohmann::json& j)
 
 Result<AddonManifest> AddonManifest::parse(const std::string& json)
 {
-    try {
-        auto j = nlohmann::json::parse(json);
+    {
+        auto parsedJson = util::json::parse(json);
+        if (parsedJson.failed()) {
+            return Error(ErrorCode::InvalidData, std::string("Parse error: ") + parsedJson.error().message());
+        }
+        auto j = std::move(parsedJson).value();
         AddonManifest manifest;
 
         // 解析格式版本
@@ -105,8 +112,13 @@ Result<AddonManifest> AddonManifest::parse(const std::string& json)
             if (j["format_version"].is_number_integer()) {
                 manifest.formatVersion = j["format_version"].get<i32>();
             } else if (j["format_version"].is_string()) {
-                // 尝试解析字符串格式的版本号
-                manifest.formatVersion = std::stoi(j["format_version"].get<std::string>());
+                // 尝试解析字符串格式的版本号；非法值保持默认，后续版本校验会拒绝该清单
+                auto parsed = util::parseInt32(j["format_version"].get<std::string>());
+                if (parsed.failed()) {
+                    return Error(ErrorCode::InvalidData,
+                        "Invalid manifest format version: '" + j["format_version"].get<std::string>() + "'");
+                }
+                manifest.formatVersion = parsed.value();
             }
         }
 
@@ -163,12 +175,6 @@ Result<AddonManifest> AddonManifest::parse(const std::string& json)
 
         return manifest;
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Parse error: ") + e.what());
-    }
 }
 
 Result<AddonManifest> AddonManifest::loadFromFile(const std::string& path)
@@ -178,20 +184,14 @@ Result<AddonManifest> AddonManifest::loadFromFile(const std::string& path)
         return Error(ErrorCode::FileNotFound, "Cannot open manifest file: " + path);
     }
 
-    try {
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
 
-        auto result = parse(content);
-        if (result.failed()) {
-            return Error(
-                result.error().code(), "Failed to parse manifest from " + path + ": " + result.error().message());
-        }
-        return result;
+    auto result = parse(content);
+    if (result.failed()) {
+        return Error(result.error().code(), "Failed to parse manifest from " + path + ": " + result.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, std::string("Failed to read manifest file: ") + e.what());
-    }
+    return result;
 }
 
 bool AddonManifest::hasScriptModule() const noexcept

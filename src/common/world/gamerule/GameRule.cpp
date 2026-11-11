@@ -28,7 +28,7 @@
 
 #include "GameRule.hpp"
 #include "common/core/Types.hpp"
-#include <exception>
+#include "common/util/NumberParsing.hpp"
 #include <string>
 
 namespace mc::world::gamerule {
@@ -76,14 +76,13 @@ bool GameRuleValue<i32>::fromString(const std::string& value)
         return false;
     }
 
-    try {
-        m_value = std::stoi(value);
-        return true;
-    }
-    catch (const std::exception&) {
+    auto parsed = util::parseInt32(value);
+    if (parsed.failed()) {
         // 解析失败，保持原值不变
         return false;
     }
+    m_value = parsed.value();
+    return true;
 }
 
 } // namespace mc::world::gamerule

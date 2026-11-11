@@ -23,6 +23,7 @@
 
 #include "TranslationTextComponent.hpp"
 #include "common/resource/LanguageManager.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include <cctype>
 #include <cstddef>
@@ -123,17 +124,15 @@ std::string TranslationTextComponent::replacePlaceholdersLocal(
 
                 // 检查是否是 $s 格式
                 if (digitEnd + 1 < text.size() && text[digitEnd] == '$' && text[digitEnd + 1] == 's') {
-                    // 解析位置索引
-                    i32 position = 0;
-                    try {
-                        position = std::stoi(text.substr(digitStart, digitEnd - digitStart));
-                    }
-                    catch (...) {
-                        // 解析失败，保留原样
+                    // 解析位置索引；解析失败（如位数超出 i32）时保留原样
+                    const auto positionResult =
+                        util::parseInt32(std::string_view(text).substr(digitStart, digitEnd - digitStart));
+                    if (positionResult.failed()) {
                         result += text.substr(i, digitEnd + 2 - i);
                         i = digitEnd + 2;
                         continue;
                     }
+                    const i32 position = positionResult.value();
 
                     // 替换参数（位置从1开始）
                     if (position >= 1 && position <= static_cast<i32>(params.size())) {

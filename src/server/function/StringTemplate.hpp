@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include "common/core/Result.hpp"
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -42,7 +44,7 @@ namespace function {
  * 解析规则：
  * - 扫描 $ 字符，必须紧跟 ( 才视为变量起始
  * - 找匹配的 ) 提取变量名，变量名只允许 [A-Za-z0-9_]
- * - 至少包含一个变量，否则抛异常
+ * - 至少包含一个变量，否则返回错误
  *
  * substitute(values) 用实参字符串列表填充模板，生成最终命令字符串。
  */
@@ -54,10 +56,9 @@ public:
      * 解析 $(var) 语法，提取变量名和文本片段。
      *
      * @param input 宏文本（去掉首字符 $ 后的内容）
-     * @return 解析后的 StringTemplate
-     * @throws std::invalid_argument 如果变量名非法、变量未闭合或无变量
+     * @return 成功返回解析后的 StringTemplate；变量名非法、变量未闭合或无变量时返回错误
      */
-    [[nodiscard]] static StringTemplate fromString(const std::string& input);
+    [[nodiscard]] static Result<StringTemplate> fromString(const std::string& input);
 
     /**
      * @brief 检查变量名是否合法（仅允许字母、数字、下划线）
@@ -94,10 +95,9 @@ public:
      * 实参顺序必须与 variables() 一致。每次追加都检查命令长度上限（2,000,000 字符）。
      *
      * @param values 实参字符串列表
-     * @return 替换后的完整字符串
-     * @throws std::runtime_error 如果替换后超过命令长度上限
+     * @return 成功返回替换后的完整字符串；实参个数不符或超过命令长度上限时返回错误
      */
-    [[nodiscard]] std::string substitute(const std::vector<std::string>& values) const;
+    [[nodiscard]] Result<std::string> substitute(const std::vector<std::string>& values) const;
 
 private:
     std::vector<std::string> m_segments;

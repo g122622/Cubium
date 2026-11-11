@@ -24,6 +24,7 @@
 #include "common/resource/pack/PackMetadata.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <exception>
 #include <fstream>
 #include <ios>
@@ -43,28 +44,28 @@ PackMetadata::PackMetadata(i32 packFormat, std::string description)
 
 Result<PackMetadata> PackMetadata::parse(std::string_view jsonContent)
 {
-    try {
-        auto json = nlohmann::json::parse(jsonContent);
+    auto parsedJson = util::json::parse(jsonContent);
+    if (parsedJson.failed()) {
+        return Error(
+            ErrorCode::ResourceParseError, std::string("Failed to parse pack.mcmeta: ") + parsedJson.error().message());
+    }
+    const auto& json = parsedJson.value();
 
-        PackMetadata metadata;
+    PackMetadata metadata;
 
-        if (json.contains("pack")) {
-            const auto& pack = json["pack"];
+    if (json.contains("pack") && json["pack"].is_object()) {
+        const auto& pack = json["pack"];
 
-            if (pack.contains("pack_format")) {
-                metadata.m_packFormat = pack["pack_format"].get<i32>();
-            }
-
-            if (pack.contains("description")) {
-                metadata.m_description = pack["description"].get<std::string>();
-            }
+        if (pack.contains("pack_format")) {
+            MC_TRY_ASSIGN(metadata.m_packFormat, util::json::getInt32(pack, "pack_format"));
         }
 
-        return metadata;
+        if (pack.contains("description")) {
+            MC_TRY_ASSIGN(metadata.m_description, util::json::getString(pack, "description"));
+        }
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::ResourceParseError, std::string("Failed to parse pack.mcmeta: ") + e.what());
-    }
+
+    return metadata;
 }
 
 Result<PackMetadata> PackMetadata::parseFile(std::string_view filePath)

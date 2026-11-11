@@ -24,6 +24,7 @@
 #include "common/network/backend/java/mappings/JavaBannerPatternIds.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <array>
 
@@ -239,14 +240,12 @@ std::optional<std::vector<u8>> buildRegistryEntryData(
         return std::nullopt;
     }
 
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(std::move(readResult).value());
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("RegistryDataBuilder: failed to parse {}: {}", resourcePath, e.what());
+    auto parsedRegistryJson = util::json::parse(std::move(readResult).value());
+    if (parsedRegistryJson.failed()) {
+        spdlog::warn("RegistryDataBuilder: failed to parse {}: {}", resourcePath, parsedRegistryJson.error().message());
         return std::nullopt;
     }
+    nlohmann::json j = std::move(parsedRegistryJson).value();
     if (!j.is_object()) {
         spdlog::warn("RegistryDataBuilder: {} is not a JSON object at top level", resourcePath);
         return std::nullopt;

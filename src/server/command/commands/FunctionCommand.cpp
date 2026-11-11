@@ -179,12 +179,13 @@ i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context
     Entity* entity = entities.front();
     EntityDataAccessor accessor(entity);
 
-    try {
-        auto data = accessor.getData();
-        if (data == nullptr) {
-            source.sendError("Failed to get entity data");
+    {
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            source.sendError("Failed to read entity data: " + dataResult.error().message());
             return 0;
         }
+        auto data = std::move(dataResult).value();
 
         // 检查是否有路径参数
         if (context.hasArgument("path")) {
@@ -209,10 +210,6 @@ i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context
 
         return _executeFunctions(context, data.get());
     }
-    catch (const std::exception& e) {
-        source.sendError(std::string("Failed to read entity data: ") + e.what());
-        return 0;
-    }
 }
 
 i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
@@ -232,12 +229,13 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-        if (data == nullptr) {
-            source.sendError("Failed to get block data");
+    {
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            source.sendError("Failed to read data: " + dataResult.error().message());
             return 0;
         }
+        auto data = std::move(dataResult).value();
 
         if (context.hasArgument("path")) {
             NbtPath path = context.getArgument<NbtPath>("path");
@@ -261,10 +259,6 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
 
         return _executeFunctions(context, data.get());
     }
-    catch (const std::exception& e) {
-        source.sendError(std::string("Failed to read block data: ") + e.what());
-        return 0;
-    }
 }
 
 i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& context)
@@ -280,12 +274,13 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
-    try {
-        auto data = accessor.getData();
-        if (data == nullptr) {
-            source.sendError("Failed to get storage data");
+    {
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            source.sendError("Failed to read data: " + dataResult.error().message());
             return 0;
         }
+        auto data = std::move(dataResult).value();
 
         if (context.hasArgument("path")) {
             NbtPath path = context.getArgument<NbtPath>("path");
@@ -308,10 +303,6 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
         }
 
         return _executeFunctions(context, data.get());
-    }
-    catch (const std::exception& e) {
-        source.sendError(std::string("Failed to read storage data: ") + e.what());
-        return 0;
     }
 }
 

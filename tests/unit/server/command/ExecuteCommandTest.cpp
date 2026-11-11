@@ -540,7 +540,7 @@ TEST_F(ExecuteCommandTest, ExecuteInOverworld)
 {
     // /execute in overworld run list - 维度参数 "overworld" 解析为 DimensionId=0
     // BaseTestServer 的 dimensionManager() 未实现（抛异常），因此执行阶段会失败
-    // 但解析阶段应成功（不会因无效维度名而抛出 CommandException）
+    // 但解析阶段应成功（不会因无效维度名而抛出 CommandError）
     const auto result = m_server.commandRegistry().execute("execute in overworld run list", m_console);
 
     // 解析成功但维度验证失败（BaseTestServer 未注册维度）→ failed() 或 value()==0
@@ -582,7 +582,7 @@ TEST_F(ExecuteCommandTest, ExecuteInNumericFormat)
 TEST_F(ExecuteCommandTest, ExecuteInInvalidDimension)
 {
     // /execute in invalid_dimension run list - 无效维度名称应导致解析错误
-    // _isValidDimensionName 不认识 "invalid_dimension"，抛出 CommandException
+    // _isValidDimensionName 不认识 "invalid_dimension"，抛出 CommandError
     const auto result = m_server.commandRegistry().execute("execute in invalid_dimension run list", m_console);
 
     // 解析失败 → result.failed() 为 true
@@ -618,21 +618,27 @@ protected:
 TEST_F(DimensionArgumentTypeTest, ParseOverworldShort)
 {
     mc::command::StringReader reader("overworld");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 0);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseNetherShort)
 {
     mc::command::StringReader reader("the_nether");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, -1);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseTheEndShort)
 {
     mc::command::StringReader reader("the_end");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 1);
 }
 
@@ -640,28 +646,36 @@ TEST_F(DimensionArgumentTypeTest, ParseOverworldNamespace)
 {
     // 关键测试：验证 readUnquotedString() 能正确读取包含冒号的命名空间格式
     mc::command::StringReader reader("minecraft:overworld");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 0);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseNetherNamespace)
 {
     mc::command::StringReader reader("minecraft:the_nether");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, -1);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseTheEndNamespace)
 {
     mc::command::StringReader reader("minecraft:the_end");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 1);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseNumericZero)
 {
     mc::command::StringReader reader("0");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 0);
 }
 
@@ -670,36 +684,40 @@ TEST_F(DimensionArgumentTypeTest, ParseNumericMinusOne)
     // 测试 "-1" 数字格式（下界）
     // readUnquotedString 将 "-1" 作为完整 token 读取（'-' 不是停止字符）
     mc::command::StringReader reader("-1");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, -1);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseNumericOne)
 {
     mc::command::StringReader reader("1");
-    auto dimId = m_parser.parse(reader);
+    auto dimIdResult = m_parser.parse(reader);
+    ASSERT_TRUE(dimIdResult.success()) << dimIdResult.error().toString();
+    auto dimId = std::move(dimIdResult).value();
     EXPECT_EQ(dimId, 1);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidThrows)
 {
-    // 无效的维度名称应抛出 CommandException
+    // 无效的维度名称应抛出 CommandError
     mc::command::StringReader reader("invalid_dimension");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_TRUE(m_parser.parse(reader).failed());
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidNamespaceThrows)
 {
-    // 无效的命名空间格式应抛出 CommandException
+    // 无效的命名空间格式应抛出 CommandError
     mc::command::StringReader reader("minecraft:invalid");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_TRUE(m_parser.parse(reader).failed());
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidNumericThrows)
 {
-    // 无效的数字 ID 应抛出 CommandException
+    // 无效的数字 ID 应抛出 CommandError
     mc::command::StringReader reader("42");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_TRUE(m_parser.parse(reader).failed());
 }
 
 TEST_F(DimensionArgumentTypeTest, GetTypeName)

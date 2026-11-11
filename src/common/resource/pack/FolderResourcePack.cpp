@@ -35,6 +35,7 @@
 #include <ios>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -85,49 +86,52 @@ Result<void> FolderResourcePack::initialize()
     // 一次性扫描包根，构建资源路径索引（assets/ 与 data/ 下的所有常规文件）。
     // 此后 listResources/hasResource/getResourceNamespaces 全部基于该内存索引查询，
     // 避免每次调用都重新递归遍历磁盘目录树。扫描失败视为致命错误（无法提供资源列举能力）。
-    try {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "FolderResourcePack::initialize::IndexResources");
+    MC_TRACE_SCOPED_EVENT(TraceEvents.IO.Resource, "FolderResourcePack::initialize::IndexResources");
 
-        m_entries.clear();
-        const fs::path root(m_rootPath);
-        const std::string rootStr = root.string();
-        MC_ASSERT_RELEASE(!rootStr.empty());
+    m_entries.clear();
+    const fs::path root(m_rootPath);
+    const std::string rootStr = root.string();
+    MC_ASSERT_RELEASE(!rootStr.empty());
 
-        // 方向1：用字符串前缀裁剪替代 fs::relative。recursive_directory_iterator 产出的
-        // entry.path() 必然以“rootStr + 一个分隔符”为字面前缀（迭代器只遍历 root 子树，
-        // 不解析符号链接、不含 .. /.），故裁掉该前缀即得相对路径，与 fs::relative 结果等价，
-        // 但避免了每个文件一次 fs::relative 内部的路径绝对化/规范化系统调用——后者会构造大量
-        // 临时 fs::path 对象，是本阶段内存峰值（实测 IndexResources 期间工作集 +125MB）的主因。
-        //
-        // 前缀长度取 rootStr.size() + 1（多裁一个分隔符），保证裁到分隔符边界，
-        // 不会把 rootX 误当作 root 的同级前缀（如 "packs/foo" vs "packs/foobar"）。
-        const size_t prefixLen = rootStr.size() + 1;
+    // 方向1：用字符串前缀裁剪替代 fs::relative。recursive_directory_iterator 产出的
+    // entry.path() 必然以“rootStr + 一个分隔符”为字面前缀（迭代器只遍历 root 子树，
+    // 不解析符号链接、不含 .. /.），故裁掉该前缀即得相对路径，与 fs::relative 结果等价，
+    // 但避免了每个文件一次 fs::relative 内部的路径绝对化/规范化系统调用——后者会构造大量
+    // 临时 fs::path 对象，是本阶段内存峰值（实测 IndexResources 期间工作集 +125MB）的主因。
+    //
+    // 前缀长度取 rootStr.size() + 1（多裁一个分隔符），保证裁到分隔符边界，
+    // 不会把 rootX 误当作 root 的同级前缀（如 "packs/foo" vs "packs/foobar"）。
+    const size_t prefixLen = rootStr.size() + 1;
 
-        // 方向3：遍历逻辑放入独立作用域，使 recursive_directory_iterator 及其内部缓存的
-        // 目录句柄/WIN32_FIND_DATA/递归栈在 m_entries 构建完成后立即析构，把遍历期间驻留的
-        // 堆归还给 CRT，降低本阶段结束后的常驻内存。
-        {
-            for (const auto& entry : fs::recursive_directory_iterator(root)) {
-                if (!entry.is_regular_file()) {
-                    continue;
-                }
-
-                const std::string fullStr = entry.path().string();
-                MC_ASSERT_RELEASE(fullStr.size() > prefixLen && fullStr.compare(0, rootStr.size(), rootStr) == 0);
-
-                // 相对于包根的路径，统一为正斜杠
-                std::string relativePath = fullStr.substr(prefixLen);
-                for (char& c : relativePath) {
-                    if (c == '\\') {
-                        c = '/';
-                    }
-                }
-                m_entries.insert(std::move(relativePath));
+    // 方向3：遍历逻辑放入独立作用域，使 recursive_directory_iterator 及其内部缓存的
+    // 目录句柄/WIN32_FIND_DATA/递归栈在 m_entries 构建完成后立即析构，把遍历期间驻留的
+    // 堆归还给 CRT，降低本阶段结束后的常驻内存。
+    {
+        // 用 error_code 重载遍历：目录不可读时以错误返回，不抛 filesystem_error。
+        std::error_code iterateEc;
+        fs::recursive_directory_iterator it(root, fs::directory_options::none, iterateEc);
+        const fs::recursive_directory_iterator end;
+        for (; !iterateEc && it != end; it.increment(iterateEc)) {
+            const auto& entry = *it;
+            if (!entry.is_regular_file()) {
+                continue;
             }
+
+            const std::string fullStr = entry.path().string();
+            MC_ASSERT_RELEASE(fullStr.size() > prefixLen && fullStr.compare(0, rootStr.size(), rootStr) == 0);
+
+            // 相对于包根的路径，统一为正斜杠
+            std::string relativePath = fullStr.substr(prefixLen);
+            for (char& c : relativePath) {
+                if (c == '\\') {
+                    c = '/';
+                }
+            }
+            m_entries.insert(std::move(relativePath));
         }
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::OperationFailed, std::string("Failed to index resource pack: ") + e.what());
+        if (iterateEc) {
+            return Error(ErrorCode::OperationFailed, "Failed to index resource pack: " + iterateEc.message());
+        }
     }
 
     // 记录索引规模，便于核查内存占用与扫描覆盖范围

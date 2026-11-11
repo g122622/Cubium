@@ -26,7 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -56,7 +56,7 @@ namespace mc::command {
  */
 class DimensionArgumentType : public ArgumentType<DimensionId> {
 public:
-    [[nodiscard]] DimensionId parse(StringReader& reader) override
+    [[nodiscard]] Result<DimensionId, CommandError> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
 
@@ -70,7 +70,7 @@ public:
         // 这里需要验证输入确实是有效的维度名称
         if (!_isValidDimensionName(name, dimId)) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown dimension: '" + name + "'", start);
+            return CommandError(CommandErrorType::Unknown, "Unknown dimension: '" + name + "'", start);
         }
 
         return dimId;

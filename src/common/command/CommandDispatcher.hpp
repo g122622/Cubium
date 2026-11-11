@@ -27,7 +27,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -424,8 +424,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
             }
             return ParseResults<S>(
-                CommandException(
-                    CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
+                CommandError(CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
                     .withInput(currentContext->getInput()),
                 currentReader.getCursor());
         }
@@ -493,7 +492,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                         const i32 deniedCursor = probe.getCursor();
                         if (!permissionDenied) {
                             permissionDenied = true;
-                            consider(ParseResults<S>(CommandException(CommandErrorType::PermissionDenied,
+                            consider(ParseResults<S>(CommandError(CommandErrorType::PermissionDenied,
                                                          "commands.permission.denied",
                                                          deniedCursor)
                                                          .withInput(currentContext->getInput()),
@@ -509,8 +508,14 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             auto childContext =
                 std::make_unique<CommandContext<S>>(currentContext->copyFor(currentContext->getRootNode()));
 
-            try {
-                child->parse(childReader, *childContext);
+            {
+                auto childParse = child->parse(childReader, *childContext);
+                if (childParse.failed()) {
+                    consider(ParseResults<S>(
+                                 childParse.error().withInput(currentContext->getInput()), childParse.error().cursor()),
+                        nullptr);
+                    return;
+                }
                 childContext->setCurrentNode(child);
 
                 // 解析时执行的参数（不可默认构造的值类型，见 CommandNode::Order::OnParse）：
@@ -518,7 +523,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 // brigadier 一致记为失败（剩余文本没有解析者）。
                 if (child->isOrderAhead()) {
                     if (childReader.canRead()) {
-                        consider(ParseResults<S>(CommandException(CommandErrorType::DispatcherUnknownArgument,
+                        consider(ParseResults<S>(CommandError(CommandErrorType::DispatcherUnknownArgument,
                                                      "Incorrect argument for command",
                                                      childReader.getCursor())
                                                      .withInput(currentContext->getInput()),
@@ -528,20 +533,13 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                     }
                     // 执行结果暂存在局部变量里：这一层只有在「读完、可重定向或本身是命令节点」
                     // 时才算成功候选，被丢弃的候选不应该带出副作用。
-                    i32 executionResult = 0;
-                    try {
-                        executionResult = child->getCommand()(*childContext);
-                    }
-                    catch (const CommandException& e) {
-                        consider(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()), nullptr);
-                        return;
-                    }
+                    const i32 executionResult = child->getCommand()(*childContext);
                     if (isExecutableNode(child) || currentNode->hasRedirect() || childReader.atEnd()) {
                         childContext->setExecutionResult(executionResult);
                         consider(ParseResults<S>(std::move(childContext), std::string()), child);
                         return;
                     }
-                    consider(ParseResults<S>(CommandException(CommandErrorType::DispatcherUnknownArgument,
+                    consider(ParseResults<S>(CommandError(CommandErrorType::DispatcherUnknownArgument,
                                                  "Incorrect argument for command",
                                                  childReader.getCursor())
                                                  .withInput(currentContext->getInput()),
@@ -561,7 +559,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                             if (!permissionDenied) {
                                 permissionDenied = true;
                                 const i32 deniedCursor = childReader.getCursor();
-                                consider(ParseResults<S>(CommandException(CommandErrorType::PermissionDenied,
+                                consider(ParseResults<S>(CommandError(CommandErrorType::PermissionDenied,
                                                              "commands.permission.denied",
                                                              deniedCursor)
                                                              .withInput(currentContext->getInput()),
@@ -578,9 +576,6 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 } else {
                     consider(parseRecursive(childReader, child, std::move(childContext)), child);
                 }
-            }
-            catch (const CommandException& e) {
-                consider(ParseResults<S>(e.withInput(currentContext->getInput()), e.cursor()), nullptr);
             }
         };
 
@@ -611,8 +606,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
         }
 
         return ParseResults<S>(
-            CommandException(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
-                                                                      : CommandErrorType::DispatcherUnknownArgument,
+            CommandError(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
+                                                                  : CommandErrorType::DispatcherUnknownArgument,
                 currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
                 currentReader.getCursor())
                 .withInput(currentContext->getInput()),
@@ -643,13 +638,7 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
             command = command->getForwardParent();
         }
         if (command && command->hasCommand()) {
-            try {
-                i32 result = command->getCommand()(*context);
-                return CommandResult::success(result);
-            }
-            catch (const CommandException& e) {
-                return Error(ErrorCode::Unknown, e.translatedMessage());
-            }
+            return CommandResult::success(command->getCommand()(*context));
         }
     }
 
@@ -663,16 +652,7 @@ Result<CommandResult> CommandDispatcher<S>::execute(ParseResults<S>& parse)
         return Error(ErrorCode::Unknown, "No command to execute");
     }
 
-    try {
-        i32 result = node->getCommand()(*context);
-        return CommandResult::success(result);
-    }
-    catch (const CommandException& e) {
-        return Error(ErrorCode::Unknown, e.translatedMessage());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::Unknown, e.what());
-    }
+    return CommandResult::success(node->getCommand()(*context));
 }
 
 template <typename S>
@@ -794,17 +774,15 @@ std::future<Suggestions> CommandDispatcher<S>::getSuggestions(std::string_view i
                 StringReader childReader = reader;
                 auto childContext = std::make_unique<CommandContext<S>>(context->copyFor(context->getRootNode()));
 
-                try {
-                    child->parse(childReader, *childContext);
-                    childContext->setCurrentNode(child);
-                    matchedReader = childReader;
-                    matchedContext = std::move(childContext);
-                    matchedNode = child->hasRedirect() ? child->getRedirect() : child;
-                    matched = true;
-                    break;
+                if (child->parse(childReader, *childContext).failed()) {
+                    continue;
                 }
-                catch (const CommandException&) {
-                }
+                childContext->setCurrentNode(child);
+                matchedReader = childReader;
+                matchedContext = std::move(childContext);
+                matchedNode = child->hasRedirect() ? child->getRedirect() : child;
+                matched = true;
+                break;
             }
         }
 

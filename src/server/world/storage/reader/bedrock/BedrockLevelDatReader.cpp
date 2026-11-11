@@ -107,43 +107,43 @@ Result<LevelSummaryData> BedrockLevelDatReader::_parseSummary(const compound_tag
 {
     // 基岩版 level.dat 字段
     std::string displayName;
-    if (root.value.count("LevelName") != 0) {
-        displayName = root.get<string_tag>("LevelName");
+    if (const auto* tag = root.findAs<string_tag>("LevelName")) {
+        displayName = tag->value;
     }
 
     i64 lastPlayedMs = 0;
-    if (root.value.count("LastPlayed") != 0) {
-        lastPlayedMs = root.get<long_tag>("LastPlayed");
+    if (const auto* tag = root.findAs<long_tag>("LastPlayed")) {
+        lastPlayedMs = tag->value;
     }
 
     u64 seed = 0;
-    if (root.value.count("RandomSeed") != 0) {
-        seed = static_cast<u64>(root.get<long_tag>("RandomSeed"));
+    if (const auto* tag = root.findAs<long_tag>("RandomSeed")) {
+        seed = static_cast<u64>(tag->value);
     }
 
     i32 gameType = 0;
-    if (root.value.count("GameType") != 0) {
-        gameType = static_cast<i32>(root.get<int_tag>("GameType"));
+    if (const auto* tag = root.findAs<int_tag>("GameType")) {
+        gameType = static_cast<i32>(tag->value);
     }
 
     i32 difficulty = 2; // 默认 Normal
-    if (root.value.count("Difficulty") != 0) {
-        difficulty = static_cast<i32>(root.get<int_tag>("Difficulty"));
+    if (const auto* tag = root.findAs<int_tag>("Difficulty")) {
+        difficulty = static_cast<i32>(tag->value);
     }
 
     bool hardcore = false;
-    if (root.value.count("hardcore") != 0) {
-        hardcore = static_cast<bool>(root.get<byte_tag>("hardcore"));
+    if (const auto* tag = root.findAs<byte_tag>("hardcore")) {
+        hardcore = static_cast<bool>(tag->value);
     }
 
     bool allowCommands = false;
-    if (root.value.count("commandsEnabled") != 0) {
-        allowCommands = static_cast<bool>(root.get<byte_tag>("commandsEnabled"));
+    if (const auto* tag = root.findAs<byte_tag>("commandsEnabled")) {
+        allowCommands = static_cast<bool>(tag->value);
     }
 
     std::string generatorName;
-    if (root.value.count("Generator") != 0) {
-        generatorName = root.get<string_tag>("Generator");
+    if (const auto* tag = root.findAs<string_tag>("Generator")) {
+        generatorName = tag->value;
     }
 
     // 版本信息
@@ -188,58 +188,57 @@ Result<LevelRuntimeData> BedrockLevelDatReader::_parseRuntimeData(const compound
 
     // 基岩版 level.dat 用 SpawnX/SpawnY/SpawnZ 记录主世界出生方块。
     i32 spawnX = 0, spawnY = 64, spawnZ = 0;
-    if (root.value.count("SpawnX") != 0) {
-        spawnX = static_cast<i32>(root.get<int_tag>("SpawnX"));
+    if (const auto* tag = root.findAs<int_tag>("SpawnX")) {
+        spawnX = static_cast<i32>(tag->value);
     }
-    if (root.value.count("SpawnY") != 0) {
-        spawnY = static_cast<i32>(root.get<int_tag>("SpawnY"));
+    if (const auto* tag = root.findAs<int_tag>("SpawnY")) {
+        spawnY = static_cast<i32>(tag->value);
     }
-    if (root.value.count("SpawnZ") != 0) {
-        spawnZ = static_cast<i32>(root.get<int_tag>("SpawnZ"));
+    if (const auto* tag = root.findAs<int_tag>("SpawnZ")) {
+        spawnZ = static_cast<i32>(tag->value);
     }
     const RespawnData spawnData =
         RespawnData::of(DimensionManager::OVERWORLD, BlockPos(spawnX, spawnY, spawnZ), 0.0f, 0.0f);
 
     i64 gameTime = 0;
-    if (root.value.count("Time") != 0) {
-        gameTime = root.get<long_tag>("Time");
+    if (const auto* tag = root.findAs<long_tag>("Time")) {
+        gameTime = tag->value;
     }
 
     i64 dayTime = 0;
-    if (root.value.count("DayTime") != 0) {
-        dayTime = root.get<long_tag>("DayTime");
+    if (const auto* tag = root.findAs<long_tag>("DayTime")) {
+        dayTime = tag->value;
     }
 
     i32 rainTime = 0;
-    if (root.value.count("rainTime") != 0) {
-        rainTime = static_cast<i32>(root.get<int_tag>("rainTime"));
+    if (const auto* tag = root.findAs<int_tag>("rainTime")) {
+        rainTime = static_cast<i32>(tag->value);
     }
 
     bool raining = false;
-    if (root.value.count("raining") != 0) {
-        raining = static_cast<bool>(root.get<byte_tag>("raining"));
+    if (const auto* tag = root.findAs<byte_tag>("raining")) {
+        raining = static_cast<bool>(tag->value);
     }
 
     i32 thunderTime = 0;
-    if (root.value.count("lightningTime") != 0) {
-        thunderTime = static_cast<i32>(root.get<int_tag>("lightningTime"));
+    if (const auto* tag = root.findAs<int_tag>("lightningTime")) {
+        thunderTime = static_cast<i32>(tag->value);
     }
 
     bool thundering = false;
-    if (root.value.count("lightningLevel") != 0) {
+    if (const auto* levelTag = root.findAs<float_tag>("lightningLevel")) {
         // 基岩版用 lightningLevel > 0 判断是否雷暴
-        auto level = root.get<float_tag>("lightningLevel");
-        thundering = level > 0.0f;
+        thundering = levelTag->value > 0.0f;
     }
 
     bool initialized = true;
-    if (root.value.count("hasBeenLoadedInCreative") != 0) {
-        initialized = static_cast<bool>(root.get<byte_tag>("hasBeenLoadedInCreative"));
+    if (const auto* tag = root.findAs<byte_tag>("hasBeenLoadedInCreative")) {
+        initialized = static_cast<bool>(tag->value);
     }
 
     bool difficultyLocked = false;
-    if (root.value.count("DifficultyLocked") != 0) {
-        difficultyLocked = static_cast<bool>(root.get<byte_tag>("DifficultyLocked"));
+    if (const auto* tag = root.findAs<byte_tag>("DifficultyLocked")) {
+        difficultyLocked = static_cast<bool>(tag->value);
     }
 
     return LevelRuntimeData(std::move(summary),

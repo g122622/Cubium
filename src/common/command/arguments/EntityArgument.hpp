@@ -831,7 +831,7 @@ public:
         : m_mode(mode)
     {}
 
-    [[nodiscard]] EntitySelector parse(StringReader& reader) override;
+    [[nodiscard]] Result<EntitySelector, CommandError> parse(StringReader& reader) override;
 
     /**
      * @brief 参数类型名（对齐原版命令树）：单/多目标、NBT 变体都叫 `entity`
@@ -869,19 +869,27 @@ public:
     }
 
 protected:
-    [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);
-    void _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
-    void _applySelectorArgument(
-        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
-    void _validateSelector(const EntitySelector& selector, i32 start);
+    [[nodiscard]] Result<EntitySelector, CommandError> _parseSelector(StringReader& reader, i32 start);
+    [[nodiscard]] Result<void, CommandError> _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    /**
+     * @brief 解析坐标类选择器参数（x/y/z/dx/dy/dz）
+     *
+     * 非法输入抛 CommandError（命令错误），不使用 std::stof（会抛不可控异常）。
+     */
+    [[nodiscard]] static Result<f32, CommandError> _parseCoordinate(
+        const std::string& value, const std::string& argumentName, i32 cursor);
 
-    [[nodiscard]] static std::string _readSelectorArgumentToken(StringReader& reader);
+    [[nodiscard]] Result<void, CommandError> _applySelectorArgument(
+        EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
+    [[nodiscard]] Result<void, CommandError> _validateSelector(const EntitySelector& selector, i32 start);
+
+    [[nodiscard]] static Result<std::string, CommandError> _readSelectorArgumentToken(StringReader& reader);
     [[nodiscard]] static std::string _readScoresKey(StringReader& reader);
     [[nodiscard]] static std::string _readAdvancementKey(StringReader& reader);
     [[nodiscard]] static std::string _readCriteriaKey(StringReader& reader);
     [[nodiscard]] static bool _shouldInvertValue(StringReader& reader);
-    [[nodiscard]] FloatRange _parseFloatRange(StringReader& reader);
-    [[nodiscard]] IntRange _parseIntRange(StringReader& reader);
+    [[nodiscard]] Result<FloatRange, CommandError> _parseFloatRange(StringReader& reader);
+    [[nodiscard]] Result<IntRange, CommandError> _parseIntRange(StringReader& reader);
 
     Mode m_mode;
 };
@@ -951,7 +959,7 @@ public:
                                                    : EntityArgumentTypeBase::Mode::MultiplePlayers)
     {}
 
-    [[nodiscard]] EntitySelectorWithNbt parse(StringReader& reader) override;
+    [[nodiscard]] Result<EntitySelectorWithNbt, CommandError> parse(StringReader& reader) override;
 
     [[nodiscard]] std::string getTypeName() const override
     {
@@ -996,7 +1004,7 @@ public:
         : m_typeName(std::move(typeName))
     {}
 
-    [[nodiscard]] EntitySelector parse(StringReader& reader) override
+    [[nodiscard]] Result<EntitySelector, CommandError> parse(StringReader& reader) override
     {
         EntityArgumentType entities(EntityArgumentType::Mode::MultipleEntities);
         return entities.parse(reader);

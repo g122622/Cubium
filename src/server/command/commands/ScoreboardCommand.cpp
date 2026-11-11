@@ -35,6 +35,7 @@
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/numbers/NumberFormat.hpp"
@@ -69,16 +70,14 @@ void attachScoreHolderSuggestions(const std::shared_ptr<CommandNode<ServerComman
 /// 与原版 `ComponentArgument` 对裸字符串的处理一致（`"text"` 与 `text` 都合法）。
 std::unique_ptr<text::ITextComponent> _parseCommandComponent(const std::string& text)
 {
-    try {
-        const auto json = nlohmann::json::parse(text);
-        auto component = text::ITextComponent::fromJson(json);
+    auto json = mc::util::json::parse(text);
+    if (json.success()) {
+        auto component = text::ITextComponent::fromJson(json.value());
         if (component != nullptr) {
             return component;
         }
     }
-    catch (const nlohmann::json::exception&) {
-        // 不是 JSON：按纯文本处理（/scoreboard ... fixed <contents> 允许直接写普通文字）
-    }
+    // 不是 JSON：按纯文本处理（/scoreboard ... fixed <contents> 允许直接写普通文字）
     return std::make_unique<text::StringTextComponent>(text);
 }
 

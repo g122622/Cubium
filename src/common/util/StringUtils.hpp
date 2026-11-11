@@ -133,6 +133,73 @@ namespace mc::util {
 }
 
 /**
+ * @brief 判定非空字符串的每个字符都满足给定谓词
+ *
+ * 供「只允许某类字符」的校验使用（如属性名 `[a-z0-9_]+`、记分板名 `[A-Za-z0-9_-]+`）。
+ * 相比 `std::regex_match` 不构造正则、不抛 `std::regex_error`，也不依赖 locale。
+ *
+ * @param text 待检查字符串
+ * @param predicate 接收 `char` 返回 `bool` 的谓词
+ * @return 字符串非空且所有字符都满足谓词时返回 true
+ */
+template <typename Predicate>
+[[nodiscard]] inline bool allOfCharacters(std::string_view text, Predicate predicate) noexcept
+{
+    if (text.empty()) {
+        return false;
+    }
+    for (const char character : text) {
+        if (!predicate(character)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @brief 检查字符串是否为点分十进制 IPv4 地址（如 `"192.168.0.1"`）
+ *
+ * 要求恰好 4 段、每段 1~3 位十进制数字且数值不超过 255。允许前导零（与旧正则行为一致）。
+ * 不做 DNS/端口解析，也不接受 IPv6。
+ *
+ * @param text 待检查字符串
+ * @return 合法 IPv4 返回 true
+ */
+[[nodiscard]] inline bool isValidIpv4(std::string_view text) noexcept
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    i32 partCount = 0;
+    size_t index = 0;
+    while (index < text.size()) {
+        i32 partValue = 0;
+        i32 digitCount = 0;
+        while (index < text.size() && text[index] >= '0' && text[index] <= '9') {
+            partValue = partValue * 10 + (text[index] - '0');
+            ++digitCount;
+            ++index;
+            if (digitCount > 3 || partValue > 255) {
+                return false;
+            }
+        }
+        if (digitCount == 0) {
+            return false;
+        }
+        ++partCount;
+        if (index == text.size()) {
+            break;
+        }
+        if (text[index] != '.' || partCount >= 4) {
+            return false;
+        }
+        ++index;
+    }
+    return partCount == 4;
+}
+
+/**
  * @brief 该字符能否出现在聊天文本中，对应原版 `StringUtil.isAllowedChatCharacter`
  *
  * 规则：**不是 `§`(167)、且不小于 32、且不是 127**。也就是排除控制字符、

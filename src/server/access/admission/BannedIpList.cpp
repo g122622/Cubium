@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/util/DateTimeUtils.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <chrono>
 #include <cstddef>
 #include <exception>
@@ -37,6 +38,7 @@
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -189,104 +191,94 @@ Result<void> BannedIpList::load(const std::filesystem::path& path)
     if (!std::filesystem::exists(path)) {
         spdlog::info("Banned IPs file not found, creating empty list: {}", path.string());
         // 创建空文件
-        try {
-            std::ofstream file(path);
-            file << "[]";
-        }
-        catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create banned IPs file: {}", e.what()));
-        }
+        std::ofstream file(path);
+        file << "[]";
         return {};
     }
 
     // 读取文件
-    try {
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open banned IPs file: {}", path.string()));
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open banned IPs file: {}", path.string()));
+    }
+
+    auto jsonResult = util::json::parse(file);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse banned IPs file: " + jsonResult.error().message());
+    }
+    const nlohmann::json& json = jsonResult.value();
+
+    if (!json.is_array()) {
+        return Error(ErrorCode::FileCorrupted, "Banned IPs file must be a JSON array");
+    }
+
+    for (const auto& item : json) {
+        if (!item.is_object()) {
+            spdlog::warn("Skipping invalid IP ban entry: not an object");
+            continue;
         }
 
-        nlohmann::json json;
-        file >> json;
+        BannedIpEntry entry;
 
-        if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted, "Banned IPs file must be a JSON array");
+        // 解析 IP
+        if (item.contains("ip")) {
+            entry.ip = item["ip"].get<std::string>();
+        } else {
+            spdlog::warn("Skipping IP ban entry: missing ip");
+            continue;
         }
 
-        for (const auto& item : json) {
-            if (!item.is_object()) {
-                spdlog::warn("Skipping invalid IP ban entry: not an object");
-                continue;
-            }
-
-            BannedIpEntry entry;
-
-            // 解析 IP
-            if (item.contains("ip")) {
-                entry.ip = item["ip"].get<std::string>();
-            } else {
-                spdlog::warn("Skipping IP ban entry: missing ip");
-                continue;
-            }
-
-            // 解析创建时间
-            if (item.contains("created")) {
-                entry.created = item["created"].get<std::string>();
-            } else {
-                entry.created = _getCurrentTimeString();
-            }
-
-            // 解析封禁来源
-            if (item.contains("source")) {
-                entry.source = item["source"].get<std::string>();
-            } else {
-                entry.source = "(Unknown)";
-            }
-
-            // 解析过期时间
-            if (item.contains("expires")) {
-                entry.expires = item["expires"].get<std::string>();
-            } else {
-                entry.expires = "forever";
-            }
-
-            // 解析封禁原因
-            if (item.contains("reason")) {
-                entry.reason = item["reason"].get<std::string>();
-            } else {
-                entry.reason = "Banned by an operator.";
-            }
-
-            // 验证条目
-            if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid IP ban entry: ip={}", entry.ip);
-                continue;
-            }
-
-            // 检查重复 IP
-            if (m_entries.contains(entry.ip)) {
-                spdlog::warn("Skipping duplicate IP ban entry with ip: {}", entry.ip);
-                continue;
-            }
-
-            // 跳过已过期的条目
-            if (entry.hasExpired()) {
-                continue;
-            }
-
-            // 添加条目
-            m_entries[entry.ip] = entry;
+        // 解析创建时间
+        if (item.contains("created")) {
+            entry.created = item["created"].get<std::string>();
+        } else {
+            entry.created = _getCurrentTimeString();
         }
 
-        spdlog::info("Loaded {} banned IP entries from {}", m_entries.size(), path.string());
-        return {};
+        // 解析封禁来源
+        if (item.contains("source")) {
+            entry.source = item["source"].get<std::string>();
+        } else {
+            entry.source = "(Unknown)";
+        }
+
+        // 解析过期时间
+        if (item.contains("expires")) {
+            entry.expires = item["expires"].get<std::string>();
+        } else {
+            entry.expires = "forever";
+        }
+
+        // 解析封禁原因
+        if (item.contains("reason")) {
+            entry.reason = item["reason"].get<std::string>();
+        } else {
+            entry.reason = "Banned by an operator.";
+        }
+
+        // 验证条目
+        if (!entry.isValid()) {
+            spdlog::warn("Skipping invalid IP ban entry: ip={}", entry.ip);
+            continue;
+        }
+
+        // 检查重复 IP
+        if (m_entries.contains(entry.ip)) {
+            spdlog::warn("Skipping duplicate IP ban entry with ip: {}", entry.ip);
+            continue;
+        }
+
+        // 跳过已过期的条目
+        if (entry.hasExpired()) {
+            continue;
+        }
+
+        // 添加条目
+        m_entries[entry.ip] = entry;
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse banned IPs JSON: {}", e.what()));
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read banned IPs file: {}", e.what()));
-    }
+
+    spdlog::info("Loaded {} banned IP entries from {}", m_entries.size(), path.string());
+    return {};
 }
 
 Result<void> BannedIpList::save(const std::filesystem::path& path)
@@ -300,49 +292,46 @@ Result<void> BannedIpList::save(const std::filesystem::path& path)
 
     m_filePath = savePath;
 
-    try {
-        // 确保目录存在
-        std::filesystem::path parentDir = savePath.parent_path();
-        if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
-            std::filesystem::create_directories(parentDir);
-        }
-
-        // 构建 JSON 数组
-        nlohmann::json json = nlohmann::json::array();
-
-        for (const auto& [ip, entry] : m_entries) {
-            // 跳过已过期的条目
-            if (entry.hasExpired()) {
-                continue;
-            }
-
-            nlohmann::json item;
-            item["ip"] = entry.ip;
-            item["created"] = entry.created;
-            item["source"] = entry.source;
-            item["expires"] = entry.expires;
-            item["reason"] = entry.reason;
-            json.push_back(item);
-        }
-
-        // 写入文件
-        std::ofstream file(savePath);
-        if (!file.is_open()) {
+    // 确保目录存在
+    std::filesystem::path parentDir = savePath.parent_path();
+    if (!parentDir.empty()) {
+        std::error_code dirEc;
+        std::filesystem::create_directories(parentDir, dirEc);
+        if (dirEc) {
             return Error(ErrorCode::FileWriteFailed,
-                fmt::format("Failed to open banned IPs file for writing: {}", savePath.string()));
+                fmt::format("Failed to create directory {}: {}", parentDir.string(), dirEc.message()));
+        }
+    }
+
+    // 构建 JSON 数组
+    nlohmann::json json = nlohmann::json::array();
+
+    for (const auto& [ip, entry] : m_entries) {
+        // 跳过已过期的条目
+        if (entry.hasExpired()) {
+            continue;
         }
 
-        file << json.dump(2);
+        nlohmann::json item;
+        item["ip"] = entry.ip;
+        item["created"] = entry.created;
+        item["source"] = entry.source;
+        item["expires"] = entry.expires;
+        item["reason"] = entry.reason;
+        json.push_back(item);
+    }
 
-        spdlog::info("Saved {} banned IP entries to {}", json.size(), savePath.string());
-        return {};
+    // 写入文件
+    std::ofstream file(savePath);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileWriteFailed,
+            fmt::format("Failed to open banned IPs file for writing: {}", savePath.string()));
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize banned IPs JSON: {}", e.what()));
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save banned IPs file: {}", e.what()));
-    }
+
+    file << json.dump(2);
+
+    spdlog::info("Saved {} banned IP entries to {}", json.size(), savePath.string());
+    return {};
 }
 
 Result<void> BannedIpList::reload()

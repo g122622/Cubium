@@ -425,6 +425,72 @@ if(MC_BUILD_DIFF_PROBES)
     add_subdirectory(tests/diff)
 endif()
 
+# ============================================================================
+# 去异常化开关（MC_ENABLE_NO_EXCEPTIONS）
+# ============================================================================
+#
+# 只作用于**生产 target**：test target 必须保留异常（gtest 的 EXPECT_THROW、
+# tests/unit/common/AssertExceptionSupport.cpp 提供的断言异常机制都依赖它）。
+# 不能放进顶层 add_compile_options：那会连测试一起禁用异常，导致测试目标编译失败。
+if(MC_ENABLE_NO_EXCEPTIONS)
+    # 注意：真正编译 src/ 代码的是这些库 target，而不是可执行文件。
+    # 可执行文件只含各自的 main/入口。只给可执行文件加 -fno-exceptions 是**无效**的。
+    set(_mc_no_exception_targets mc_common)
+    if(TARGET mc_gen)
+        list(APPEND _mc_no_exception_targets mc_gen)
+    endif()
+    if(TARGET mc_server_shared)
+        list(APPEND _mc_no_exception_targets mc_server_shared)
+    endif()
+    if(TARGET mc_server_storage)
+        list(APPEND _mc_no_exception_targets mc_server_storage)
+    endif()
+    if(TARGET mc_bedrock_addon)
+        list(APPEND _mc_no_exception_targets mc_bedrock_addon)
+    endif()
+    if(MC_BUILD_SERVER)
+        list(APPEND _mc_no_exception_targets minecraft-server)
+    endif()
+    # 注意：mc_benchmark **故意不纳入**去异常范围。它含 benchmark/MemoryProfiler.cpp 里的
+    # 全局 operator new 替换（统计分配量、失败时 throw std::bad_alloc，并实现 nothrow 重载），
+    # 这套脚手架本质上依赖异常语义；它是压测工具而非交付产物，保留异常不影响可发布二进制。
+    if(MC_BUILD_BENCHMARKS)
+        message(STATUS "  No exceptions: mc_benchmark excluded (custom operator new needs exceptions)")
+    endif()
+
+    # 灰度子集：显式指定时只对列出的 target 生效（仍会与上面求交集，避免写错 target 名静默生效）。
+    if(MC_NO_EXCEPTIONS_TARGETS)
+        set(_mc_requested_targets ${MC_NO_EXCEPTIONS_TARGETS})
+        set(_mc_filtered_targets "")
+        foreach(_mc_target IN LISTS _mc_no_exception_targets)
+            if(_mc_target IN_LIST _mc_requested_targets)
+                list(APPEND _mc_filtered_targets ${_mc_target})
+            endif()
+        endforeach()
+        foreach(_mc_requested IN LISTS _mc_requested_targets)
+            if(NOT _mc_requested IN_LIST _mc_filtered_targets)
+                message(WARNING "MC_NO_EXCEPTIONS_TARGETS 里的 '${_mc_requested}' 不是生产 target，已忽略")
+            endif()
+        endforeach()
+        set(_mc_no_exception_targets ${_mc_filtered_targets})
+    endif()
+    message(STATUS "  No exceptions targets: ${_mc_no_exception_targets}")
+
+    foreach(_mc_target IN LISTS _mc_no_exception_targets)
+        if(TARGET ${_mc_target})
+            target_compile_options(${_mc_target} PRIVATE -fno-exceptions)
+            if(MSVC)
+                # MSVC 的 STL 用 _HAS_EXCEPTIONS 控制内部 throw；-fno-exceptions 不会自动置位，
+                # 不定义时 STL 头文件自身会编译失败（见 docs/iterations/exception禁用指南.md）。
+                target_compile_definitions(${_mc_target} PRIVATE _HAS_EXCEPTIONS=0)
+            endif()
+        endif()
+    endforeach()
+    message(STATUS "  No exceptions:  ON (production targets only)")
+else()
+    message(STATUS "  No exceptions:  OFF")
+endif()
+
 # 安装配置
 include(GNUInstallDirs)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

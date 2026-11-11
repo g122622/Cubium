@@ -80,7 +80,9 @@ protected:
 TEST_F(TeleportPermissionParseTest, ParseSucceedsWithPermissionLevel2)
 {
     ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "Host");
-    const auto parse = m_server.commandRegistry().dispatcher().parse("/tp 100 1000 1000", source);
+    auto parseResult = m_server.commandRegistry().dispatcher().parse("/tp 100 1000 1000", source);
+
+    auto& parse = parseResult;
     EXPECT_TRUE(parse.isSuccess()) << "权限 2 应能解析 /tp";
     EXPECT_TRUE(parse.getRemaining().empty()) << "权限 2 应完整消费 /tp 100 1000 1000";
 }
@@ -89,7 +91,9 @@ TEST_F(TeleportPermissionParseTest, ParseSucceedsWithPermissionLevel2)
 TEST_F(TeleportPermissionParseTest, ParseFailsWithPermissionLevel0)
 {
     ServerCommandSource source(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "Guest");
-    const auto parse = m_server.commandRegistry().dispatcher().parse("/tp 100 1000 1000", source);
+    auto parseResult = m_server.commandRegistry().dispatcher().parse("/tp 100 1000 1000", source);
+
+    auto& parse = parseResult;
     EXPECT_FALSE(parse.isSuccess()) << "权限 0 不应能解析 /tp";
 }
 

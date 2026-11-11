@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include <cfloat>
 #include <cstdint>
@@ -92,10 +92,9 @@ public:
     /**
      * @brief 解析参数值
      * @param reader 字符串读取器
-     * @return 解析后的值
-     * @throws CommandException 如果解析失败
+     * @return 解析成功时返回值；失败时返回 `CommandError`（携带错误类型与游标）
      */
-    [[nodiscard]] virtual T parse(StringReader& reader) = 0;
+    [[nodiscard]] virtual Result<T, CommandError> parse(StringReader& reader) = 0;
 
     /**
      * @brief 获取参数类型名称（用于帮助信息）
@@ -148,14 +147,14 @@ public:
         : m_allowed(std::move(allowedCharacters))
     {}
 
-    [[nodiscard]] char parse(StringReader& reader) override
+    [[nodiscard]] Result<char, CommandError> parse(StringReader& reader) override
     {
         if (!reader.canRead()) {
-            throw CommandException(CommandErrorType::StringExpected, "Invalid character", reader.getCursor());
+            return CommandError(CommandErrorType::StringExpected, "Invalid character", reader.getCursor());
         }
-        const char c = reader.read();
+        MC_TRY_DECLARE(c, reader.read());
         if (m_allowed.find(c) == std::string::npos) {
-            throw CommandException(CommandErrorType::StringExpected,
+            return CommandError(CommandErrorType::StringExpected,
                 "Invalid character '" + std::string(1, c) + "'",
                 reader.getCursor() - 1);
         }
@@ -198,7 +197,7 @@ public:
         : m_type(type)
     {}
 
-    [[nodiscard]] std::string parse(StringReader& reader) override
+    [[nodiscard]] Result<std::string, CommandError> parse(StringReader& reader) override
     {
         switch (m_type) {
             case StringType::SingleWord:
@@ -211,7 +210,7 @@ public:
                 return remaining;
             }
         }
-        return "";
+        return std::string();
     }
 
     /**
@@ -264,7 +263,7 @@ public:
 
     // ========== 静态获取方法 ==========
 
-    static std::string getString(StringReader& reader)
+    static Result<std::string, CommandError> getString(StringReader& reader)
     {
         return reader.readString();
     }
@@ -282,11 +281,15 @@ private:
 static std::string readNumberWord(StringReader& reader)
 {
     std::string result;
+    // 这里已确认 canRead()，直接用 peek() + skip() 推进，避免每个字符都走一次
+    // Result 化的 read()。
     if (reader.canRead() && reader.peek() == '-') {
-        result += reader.read();
+        result += reader.peek();
+        reader.skip();
     }
     while (reader.canRead() && StringReader::isAllowedNumber(reader.peek())) {
-        result += reader.read();
+        result += reader.peek();
+        reader.skip();
     }
     return result;
 }
@@ -312,7 +315,7 @@ public:
      * 再要求「后面不能再有非空白字符」——`1a`、`1.0` 都因此整体失败，且报错位置是
      * 读到的位置，不是起点。因此这里先「读完 → 校验 → 失败则回退」，成功时不回退。
      */
-    [[nodiscard]] i32 parse(StringReader& reader) override
+    [[nodiscard]] Result<i32, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         // 与 brigadier 逐行对应：readInt 读数字（读不到时自己回退到起点并抛错），
@@ -322,7 +325,7 @@ public:
         i64 number = 0;
         if (!parseJavaInt(text, number)) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::IntegerExpected, "Expected integer at position " + std::to_string(start), start);
         }
 
@@ -330,11 +333,11 @@ public:
         const i32 end = reader.getCursor();
         if (number < m_min) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooLow, "Integer too low", end);
+            return CommandError(CommandErrorType::IntegerTooLow, "Integer too low", end);
         }
         if (number > m_max) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooHigh, "Integer too high", end);
+            return CommandError(CommandErrorType::IntegerTooHigh, "Integer too high", end);
         }
         return static_cast<i32>(number);
     }
@@ -373,7 +376,7 @@ public:
 
     // ========== 静态获取方法 ==========
 
-    static i32 getInteger(StringReader& reader)
+    static Result<i32, CommandError> getInteger(StringReader& reader)
     {
         return reader.readInt();
     }
@@ -443,26 +446,26 @@ public:
      * 它只读数字部分，后面的 `e3`、`d` 之类留给调用方（时间单位、坐标后缀），
      * 所以 `1e3` 读出 1.0 而游标停在 1。失败时游标一律回退到起点。
      */
-    [[nodiscard]] f32 parse(StringReader& reader) override
+    [[nodiscard]] Result<f32, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         const std::string number = readNumberWord(reader);
         if (number.empty() || number.find('.') != number.rfind('.')) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
         reader.setCursor(start);
 
-        const f64 value = reader.readDouble();
+        MC_TRY_DECLARE(value, reader.readDouble());
         const i32 end = reader.getCursor();
         if (value < m_min) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatTooLow, "Float too low", start);
+            return CommandError(CommandErrorType::FloatTooLow, "Float too low", start);
         }
         if (value > m_max) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatTooHigh, "Float too high", start);
+            return CommandError(CommandErrorType::FloatTooHigh, "Float too high", start);
         }
         return static_cast<f32>(value);
     }
@@ -499,9 +502,10 @@ public:
         return std::make_shared<FloatArgumentType>(min, max);
     }
 
-    static f32 getFloat(StringReader& reader)
+    static Result<f32, CommandError> getFloat(StringReader& reader)
     {
-        return static_cast<f32>(reader.readDouble());
+        MC_TRY_DECLARE(value, reader.readDouble());
+        return static_cast<f32>(value);
     }
 
 private:
@@ -524,25 +528,25 @@ public:
         , m_max(max)
     {}
 
-    [[nodiscard]] f64 parse(StringReader& reader) override
+    [[nodiscard]] Result<f64, CommandError> parse(StringReader& reader) override
     {
         const i32 start = reader.getCursor();
         const std::string number = readNumberWord(reader);
         if (number.empty() || number.find('.') != number.rfind('.')) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::FloatExpected, "Expected double at position " + std::to_string(start), start);
         }
         reader.setCursor(start);
 
-        const f64 value = reader.readDouble();
+        MC_TRY_DECLARE(value, reader.readDouble());
         if (value < m_min) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatTooLow, "Double too low", start);
+            return CommandError(CommandErrorType::FloatTooLow, "Double too low", start);
         }
         if (value > m_max) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::FloatTooHigh, "Double too high", start);
+            return CommandError(CommandErrorType::FloatTooHigh, "Double too high", start);
         }
         return value;
     }
@@ -577,7 +581,7 @@ public:
         return std::make_shared<DoubleArgumentType>(min, max);
     }
 
-    static f64 getDouble(StringReader& reader)
+    static Result<f64, CommandError> getDouble(StringReader& reader)
     {
         return reader.readDouble();
     }
@@ -594,7 +598,7 @@ private:
  */
 class BoolArgumentType : public ArgumentType<bool> {
 public:
-    [[nodiscard]] bool parse(StringReader& reader) override
+    [[nodiscard]] Result<bool, CommandError> parse(StringReader& reader) override
     {
         return reader.readBool();
     }
@@ -619,7 +623,7 @@ public:
         return std::make_shared<BoolArgumentType>();
     }
 
-    static bool getBool(StringReader& reader)
+    static Result<bool, CommandError> getBool(StringReader& reader)
     {
         return reader.readBool();
     }
@@ -655,15 +659,15 @@ public:
         return *this;
     }
 
-    [[nodiscard]] T parse(StringReader& reader) override
+    [[nodiscard]] Result<T, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
-        std::string name = reader.readUnquotedString();
+        const i32 start = reader.getCursor();
+        const std::string name = reader.readUnquotedString();
 
-        auto it = m_values.find(name);
+        const auto it = m_values.find(name);
         if (it == m_values.end()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown, "Unknown value: " + name, start);
+            return CommandError(CommandErrorType::Unknown, "Unknown value: " + name, start);
         }
 
         return it->second;

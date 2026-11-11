@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
 #include <limits>
@@ -100,10 +100,10 @@ public:
         return canRead(offset + 1) ? m_input[static_cast<size_t>(m_cursor + offset)] : '\0';
     }
 
-    [[nodiscard]] char read()
+    [[nodiscard]] Result<char, CommandError> read()
     {
         if (!canRead()) {
-            throw CommandException(CommandErrorType::StringExpected, "Expected more input", m_cursor);
+            return CommandError(CommandErrorType::StringExpected, "Expected more input", m_cursor);
         }
         return m_input[static_cast<size_t>(m_cursor++)];
     }
@@ -157,18 +157,17 @@ public:
 
     /**
      * @brief 读取引号字符串
-     * @throws CommandException 如果字符串未正确闭合
+     * @return 成功时返回字符串内容；引号未闭合/转义非法时返回错误
      */
-    [[nodiscard]] std::string readQuotedString()
+    [[nodiscard]] Result<std::string, CommandError> readQuotedString()
     {
         if (!canRead()) {
-            return "";
+            return std::string();
         }
 
-        char next = peek();
+        const char next = peek();
         if (next != SYNTAX_QUOTE) {
-            throw CommandException(
-                CommandErrorType::StringQuotedExpected, "Expected quote at start of string", m_cursor);
+            return CommandError(CommandErrorType::StringQuotedExpected, "Expected quote at start of string", m_cursor);
         }
 
         skip(); // 跳过开始引号
@@ -177,15 +176,17 @@ public:
         bool escaped = false;
 
         while (canRead()) {
-            char c = read();
+            // 这里直接推进游标而不复用 read()：read() 已改为返回 Result，
+            // 而在已确认 canRead() 的循环内再判一次失败没有意义。
+            const char c = m_input[static_cast<size_t>(m_cursor++)];
 
             if (escaped) {
                 if (c == SYNTAX_QUOTE || c == SYNTAX_ESCAPE) {
                     result += c;
                 } else {
-                    // 无效的转义，回退并抛出异常
+                    // 无效的转义，回退游标后报错
                     setCursor(getCursor() - 1);
-                    throw CommandException(CommandErrorType::StringQuotedExpected, "Invalid escape sequence", m_cursor);
+                    return CommandError(CommandErrorType::StringQuotedExpected, "Invalid escape sequence", m_cursor);
                 }
                 escaped = false;
             } else if (c == SYNTAX_ESCAPE) {
@@ -197,20 +198,19 @@ public:
             }
         }
 
-        throw CommandException(CommandErrorType::StringQuotedExpected, "Unclosed quoted string", m_cursor);
+        return CommandError(CommandErrorType::StringQuotedExpected, "Unclosed quoted string", m_cursor);
     }
 
     /**
      * @brief 读取字符串（自动检测是否带引号）
      */
-    [[nodiscard]] std::string readString()
+    [[nodiscard]] Result<std::string, CommandError> readString()
     {
         if (!canRead()) {
-            return "";
+            return std::string();
         }
 
-        char next = peek();
-        if (next == SYNTAX_QUOTE) {
+        if (peek() == SYNTAX_QUOTE) {
             return readQuotedString();
         }
         return readUnquotedString();
@@ -224,10 +224,10 @@ public:
      * 或空白」。message / component 这类词参数需要原版语义：`say {"text":"hi"}` 只取到
      * `{"text"` 为止。
      */
-    [[nodiscard]] std::string readWord()
+    [[nodiscard]] Result<std::string, CommandError> readWord()
     {
         if (!canRead()) {
-            return "";
+            return std::string();
         }
 
         if (peek() == SYNTAX_QUOTE) {
@@ -248,19 +248,20 @@ public:
     /**
      * @brief 读取布尔值
      */
-    [[nodiscard]] bool readBool()
+    [[nodiscard]] Result<bool, CommandError> readBool()
     {
-        i32 start = m_cursor;
-        std::string value = readUnquotedString();
+        const i32 start = m_cursor;
+        const std::string value = readUnquotedString();
 
         if (value == "true") {
             return true;
-        } else if (value == "false") {
+        }
+        if (value == "false") {
             return false;
         }
 
         setCursor(start);
-        throw CommandException(CommandErrorType::BoolExpected, "Expected boolean (true/false)", start);
+        return CommandError(CommandErrorType::BoolExpected, "Expected boolean (true/false)", start);
     }
 
     /**
@@ -270,7 +271,7 @@ public:
      * 数字部分按 i32 相乘自然回绕（`2147483648` 读成 -2147483648），不报溢出；
      * 读不到数字时游标回到起点再报错。
      */
-    [[nodiscard]] i32 readInt()
+    [[nodiscard]] Result<i32, CommandError> readInt()
     {
         i32 start = m_cursor;
         // i32 乘法本身会回绕，直接按位运算与 Java 的 `result * 10 + c` 一致。
@@ -279,7 +280,7 @@ public:
             skip();
             if (!canRead()) {
                 setCursor(start);
-                throw CommandException(CommandErrorType::IntegerExpected, "Expected integer", start);
+                return CommandError(CommandErrorType::IntegerExpected, "Expected integer", start);
             }
             negative = true;
         }
@@ -297,24 +298,25 @@ public:
             return negative ? -result : result;
         }
         setCursor(start);
-        throw CommandException(
+        return CommandError(
             CommandErrorType::IntegerExpected, "Expected integer at position " + std::to_string(start), start);
     }
 
     /**
      * @brief 读取带范围检查的整数
      */
-    [[nodiscard]] i32 readInt(i32 min, i32 max)
+    [[nodiscard]] Result<i32, CommandError> readInt(i32 min, i32 max)
     {
-        i32 start = m_cursor;
-        i32 result = readInt();
+        const i32 start = m_cursor;
+        i32 result = 0;
+        MC_TRY_ASSIGN(result, readInt());
 
         if (result < min) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::IntegerTooLow, "Integer must be at least " + std::to_string(min), start);
         }
         if (result > max) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::IntegerTooHigh, "Integer must be at most " + std::to_string(max), start);
         }
 
@@ -328,7 +330,7 @@ public:
      * 前导空白或指数（`1e3` 只读成 1，`e3` 留给调用方当单位/后缀）。
      * 读不到数字时游标回到起点再报错。
      */
-    [[nodiscard]] f64 readDouble()
+    [[nodiscard]] Result<f64, CommandError> readDouble()
     {
         i32 start = m_cursor;
         bool negative = false;
@@ -336,7 +338,7 @@ public:
             skip();
             if (!canRead()) {
                 setCursor(start);
-                throw CommandException(
+                return CommandError(
                     CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
             }
             negative = true;
@@ -369,7 +371,7 @@ public:
         }
         if (!hasDigits) {
             setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
         return negative ? -result : result;
@@ -378,26 +380,27 @@ public:
     /**
      * @brief 读取浮点数（单精度）
      */
-    [[nodiscard]] f32 readFloat()
+    [[nodiscard]] Result<f32, CommandError> readFloat()
     {
-        return static_cast<f32>(readDouble());
+        f64 value = 0.0;
+        MC_TRY_ASSIGN(value, readDouble());
+        return static_cast<f32>(value);
     }
 
     /**
      * @brief 读取带范围检查的浮点数
      */
-    [[nodiscard]] f64 readDouble(f64 min, f64 max)
+    [[nodiscard]] Result<f64, CommandError> readDouble(f64 min, f64 max)
     {
-        i32 start = m_cursor;
-        f64 result = readDouble();
+        const i32 start = m_cursor;
+        f64 result = 0.0;
+        MC_TRY_ASSIGN(result, readDouble());
 
         if (result < min) {
-            throw CommandException(
-                CommandErrorType::FloatTooLow, "Float must be at least " + std::to_string(min), start);
+            return CommandError(CommandErrorType::FloatTooLow, "Float must be at least " + std::to_string(min), start);
         }
         if (result > max) {
-            throw CommandException(
-                CommandErrorType::FloatTooHigh, "Float must be at most " + std::to_string(max), start);
+            return CommandError(CommandErrorType::FloatTooHigh, "Float must be at most " + std::to_string(max), start);
         }
 
         return result;
@@ -472,13 +475,14 @@ public:
     /**
      * @brief 期望读取指定字符
      */
-    void expect(char c)
+    [[nodiscard]] Result<void, CommandError> expect(char c)
     {
         if (!canRead() || peek() != c) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::DispatcherExpectedLiteral, "Expected '" + std::string(1, c) + "'", m_cursor);
         }
         skip();
+        return Result<void, CommandError>::ok();
     }
 
 private:

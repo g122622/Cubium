@@ -27,6 +27,7 @@
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
@@ -108,15 +109,12 @@ void _writeDisplay(nbt::tags::compound_tag& tag, const std::optional<std::string
     if (!display.has_value()) {
         return;
     }
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(*display);
-    }
-    catch (const nlohmann::json::exception&) {
+    auto parsedDisplay = util::json::parse(*display);
+    if (parsedDisplay.failed()) {
         spdlog::warn("Scoreboard save: score display name is not valid JSON, ignoring");
         return;
     }
-    auto component = text::ITextComponent::fromJson(json);
+    auto component = text::ITextComponent::fromJson(parsedDisplay.value());
     if (component == nullptr) {
         spdlog::warn("Scoreboard save: score display name is not a valid component, ignoring");
         return;
@@ -577,13 +575,12 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         // 从 JSON 字符串创建显示名称，或使用名称作为纯文本
         std::unique_ptr<text::ITextComponent> displayName;
         if (!objData.displayName.empty()) {
-            try {
-                nlohmann::json json = nlohmann::json::parse(objData.displayName);
-                displayName = text::ITextComponent::fromJson(json);
-            }
-            catch (const nlohmann::json::exception&) {
+            auto parsedObjectiveDisplay = util::json::parse(objData.displayName);
+            if (parsedObjectiveDisplay.failed()) {
                 // JSON 解析失败，使用纯文本
                 displayName = std::make_unique<text::StringTextComponent>(objData.displayName);
+            } else {
+                displayName = text::ITextComponent::fromJson(parsedObjectiveDisplay.value());
             }
         }
         if (!displayName) {
@@ -613,12 +610,11 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
             score->setNumberFormatOverride(scoreData.numberFormat);
             // 显示名是可选字段：缺失时必须保持未设置，不能凭空造一个覆盖。
             if (scoreData.display.has_value()) {
-                try {
-                    const auto json = nlohmann::json::parse(*scoreData.display);
-                    score->setDisplay(text::ITextComponent::fromJson(json));
-                }
-                catch (const nlohmann::json::exception&) {
+                auto parsedDisplay = util::json::parse(*scoreData.display);
+                if (parsedDisplay.failed()) {
                     spdlog::warn("Scoreboard load: score display name is not valid JSON, ignoring");
+                } else {
+                    score->setDisplay(text::ITextComponent::fromJson(parsedDisplay.value()));
                 }
             }
         }
@@ -633,46 +629,43 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
 
         // 从 JSON 字符串创建显示名称
         if (!teamData.displayName.empty()) {
-            try {
-                nlohmann::json json = nlohmann::json::parse(teamData.displayName);
-                auto displayName = text::ITextComponent::fromJson(json);
+            auto parsedDisplayName = util::json::parse(teamData.displayName);
+            if (parsedDisplayName.failed()) {
+                // JSON 解析失败，使用纯文本
+                team->setDisplayName(std::make_unique<text::StringTextComponent>(teamData.displayName));
+            } else {
+                auto displayName = text::ITextComponent::fromJson(parsedDisplayName.value());
                 if (displayName) {
                     team->setDisplayName(std::move(displayName));
                 }
-            }
-            catch (const nlohmann::json::exception&) {
-                // JSON 解析失败，使用纯文本
-                team->setDisplayName(std::make_unique<text::StringTextComponent>(teamData.displayName));
             }
         }
 
         // 从 JSON 字符串创建前缀
         if (!teamData.prefix.empty()) {
-            try {
-                nlohmann::json json = nlohmann::json::parse(teamData.prefix);
-                auto prefix = text::ITextComponent::fromJson(json);
+            auto parsedPrefix = util::json::parse(teamData.prefix);
+            if (parsedPrefix.failed()) {
+                // JSON 解析失败，使用纯文本
+                team->setPrefix(std::make_unique<text::StringTextComponent>(teamData.prefix));
+            } else {
+                auto prefix = text::ITextComponent::fromJson(parsedPrefix.value());
                 if (prefix) {
                     team->setPrefix(std::move(prefix));
                 }
-            }
-            catch (const nlohmann::json::exception&) {
-                // JSON 解析失败，使用纯文本
-                team->setPrefix(std::make_unique<text::StringTextComponent>(teamData.prefix));
             }
         }
 
         // 从 JSON 字符串创建后缀
         if (!teamData.suffix.empty()) {
-            try {
-                nlohmann::json json = nlohmann::json::parse(teamData.suffix);
-                auto suffix = text::ITextComponent::fromJson(json);
+            auto parsedSuffix = util::json::parse(teamData.suffix);
+            if (parsedSuffix.failed()) {
+                // JSON 解析失败，使用纯文本
+                team->setSuffix(std::make_unique<text::StringTextComponent>(teamData.suffix));
+            } else {
+                auto suffix = text::ITextComponent::fromJson(parsedSuffix.value());
                 if (suffix) {
                     team->setSuffix(std::move(suffix));
                 }
-            }
-            catch (const nlohmann::json::exception&) {
-                // JSON 解析失败，使用纯文本
-                team->setSuffix(std::make_unique<text::StringTextComponent>(teamData.suffix));
             }
         }
 

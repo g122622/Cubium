@@ -22,7 +22,7 @@
  */
 
 #include "NbtPath.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -331,11 +331,12 @@ i32 tagExtraDepth(const nbt::tags::tag& tag, i32 depth)
  * @param value 待写入的值
  * @param pathDepth 路径深度
  */
-void checkNotTooDeep(const nbt::tags::tag& value, i32 pathDepth)
+Result<void, CommandError> checkNotTooDeep(const nbt::tags::tag& value, i32 pathDepth)
 {
     if (tagExtraDepth(value, pathDepth) >= MAX_NBT_DEPTH) {
-        throw CommandException(CommandErrorType::NbtPathDataTooDeep, "NBT data is too deep", 0);
+        return CommandError(CommandErrorType::NbtPathDataTooDeep, "NBT data is too deep", 0);
     }
+    return Result<void, CommandError>::ok();
 }
 
 } // namespace
@@ -397,14 +398,14 @@ std::vector<const nbt::tags::tag*> NbtPath::get(const nbt::tags::compound_tag& t
     return result;
 }
 
-const nbt::tags::tag* NbtPath::getSingle(const nbt::tags::compound_tag& tag) const
+Result<const nbt::tags::tag*, CommandError> NbtPath::getSingle(const nbt::tags::compound_tag& tag) const
 {
     auto results = get(tag);
     if (results.empty()) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "NBT path '" + m_rawText + "' not found", 0);
+        return CommandError(CommandErrorType::NbtPathNotFound, "NBT path '" + m_rawText + "' not found", 0);
     }
     if (results.size() > 1) {
-        throw CommandException(
+        return CommandError(
             CommandErrorType::NbtPathMultipleResults, "NBT path '" + m_rawText + "' returned multiple results", 0);
     }
     return results[0];
@@ -424,7 +425,8 @@ bool NbtPath::exists(const nbt::tags::compound_tag& tag) const
 // 传 const 引用不会产生拷贝但也无法保证调用方给出的值可重复使用
 //
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
+Result<i32, CommandError> NbtPath::set(
+    nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const
 {
     if (m_nodes.empty()) {
         return 0;
@@ -433,7 +435,7 @@ i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt
     // 写入后的嵌套层级等于路径深度加上值自身在复合/列表内的层级，超过上限则整体拒绝
     if (auto value = valueSupplier()) {
         if (value != nullptr) {
-            checkNotTooDeep(*value, estimatePathDepth());
+            MC_TRY(checkNotTooDeep(*value, estimatePathDepth()));
         }
     }
 
@@ -518,7 +520,7 @@ i32 NbtPath::set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt
     return count;
 }
 
-i32 NbtPath::remove(nbt::tags::compound_tag& tag) const
+Result<i32, CommandError> NbtPath::remove(nbt::tags::compound_tag& tag) const
 {
     if (m_nodes.empty()) {
         return 0;
@@ -575,7 +577,7 @@ i32 NbtPath::remove(nbt::tags::compound_tag& tag) const
     return count;
 }
 
-i32 NbtPath::insert(
+Result<i32, CommandError> NbtPath::insert(
     nbt::tags::compound_tag& tag, i32 index, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     if (m_nodes.empty() || values.empty()) {
@@ -584,7 +586,7 @@ i32 NbtPath::insert(
 
     // 插入的值会多出一层列表嵌套，同样需要做深度检查
     for (const auto& value : values) {
-        checkNotTooDeep(*value, estimatePathDepth());
+        MC_TRY(checkNotTooDeep(*value, estimatePathDepth()));
     }
 
     _resetElementCaches();
@@ -655,8 +657,7 @@ i32 NbtPath::insert(
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::List) {
-            throw CommandException(
-                CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
+            return CommandError(CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
         }
 
         auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(target);
@@ -664,7 +665,7 @@ i32 NbtPath::insert(
 
         i32 insertIndex = index < 0 ? static_cast<i32>(tagList->value.size()) + index + 1 : index;
         if (insertIndex < 0 || insertIndex > static_cast<i32>(tagList->value.size())) {
-            throw CommandException(CommandErrorType::NbtPathIndexOutOfBounds,
+            return CommandError(CommandErrorType::NbtPathIndexOutOfBounds,
                 "Index " + std::to_string(index) + " out of bounds for list of size " +
                     std::to_string(tagList->value.size()),
                 0);
@@ -681,19 +682,21 @@ i32 NbtPath::insert(
     return count;
 }
 
-i32 NbtPath::append(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
+Result<i32, CommandError> NbtPath::append(
+    nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     // append 等同于 insert 在末尾
     return insert(tag, -1, values);
 }
 
-i32 NbtPath::prepend(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
+Result<i32, CommandError> NbtPath::prepend(
+    nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const
 {
     // prepend 等同于 insert 在开头
     return insert(tag, 0, values);
 }
 
-i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const
+Result<i32, CommandError> NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const
 {
     if (m_nodes.empty()) {
         return 0;
@@ -722,7 +725,7 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::Compound) {
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::NbtPathInvalidType, "Expected compound tag at path '" + m_rawText + "'", 0);
         }
 

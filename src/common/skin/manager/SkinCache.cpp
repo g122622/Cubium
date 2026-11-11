@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -41,6 +42,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+
 #include <spdlog/spdlog.h>
 
 namespace mc::skin {
@@ -171,144 +173,132 @@ void SkinCache::_loadMetadata()
         return;
     }
 
-    try {
-        std::ifstream file(m_metadataPath);
-        if (!file.is_open()) {
-            spdlog::warn("SkinCache: Failed to open metadata file for reading: {}", m_metadataPath.string());
+    std::ifstream file(m_metadataPath);
+    if (!file.is_open()) {
+        spdlog::warn("SkinCache: Failed to open metadata file for reading: {}", m_metadataPath.string());
+        return;
+    }
+
+    auto jsonResult = util::json::parse(file);
+    if (jsonResult.failed()) {
+        spdlog::warn("SkinCache: failed to parse metadata file: {}", jsonResult.error().message());
+        return;
+    }
+    const nlohmann::json& json = jsonResult.value();
+
+    if (!json.is_object()) {
+        spdlog::warn("SkinCache: Metadata file is not a JSON object, ignoring");
+        return;
+    }
+
+    auto loadEntries = [this](const nlohmann::json& array,
+                           const std::string& type,
+                           std::unordered_map<std::string, CacheEntry>& entries) {
+        if (!array.is_array()) {
             return;
         }
 
-        nlohmann::json json;
-        file >> json;
-
-        if (!json.is_object()) {
-            spdlog::warn("SkinCache: Metadata file is not a JSON object, ignoring");
-            return;
-        }
-
-        auto loadEntries = [this](const nlohmann::json& array,
-                               const std::string& type,
-                               std::unordered_map<std::string, CacheEntry>& entries) {
-            if (!array.is_array()) {
-                return;
+        for (const auto& item : array) {
+            if (!item.is_object()) {
+                continue;
             }
 
-            for (const auto& item : array) {
-                if (!item.is_object()) {
-                    continue;
-                }
-
-                CacheEntry entry;
-                if (item.contains("hash") && item["hash"].is_string()) {
-                    entry.hash = item["hash"].get<std::string>();
-                } else {
-                    continue; // hash 是必需字段
-                }
-
-                if (item.contains("location") && item["location"].is_string()) {
-                    entry.location = ResourceLocation(item["location"].get<std::string>());
-                } else {
-                    // 从 hash 自动生成 location
-                    if (type == "skins") {
-                        entry.location = generateSkinLocation(entry.hash);
-                    } else {
-                        entry.location = generateCapeLocation(entry.hash);
-                    }
-                }
-
-                if (item.contains("fileSize") && item["fileSize"].is_number()) {
-                    entry.fileSize = item["fileSize"].get<size_t>();
-                }
-
-                // 时间戳：从 Unix 纪元秒恢复为 file_time_type（跨平台兼容）
-                if (item.contains("lastAccess") && item["lastAccess"].is_number()) {
-                    entry.lastAccess = util::TimeUtils::unixSecondsToFileTime(item["lastAccess"].get<int64_t>());
-                }
-
-                if (item.contains("lastModified") && item["lastModified"].is_number()) {
-                    entry.lastModified = util::TimeUtils::unixSecondsToFileTime(item["lastModified"].get<int64_t>());
-                }
-
-                entries[entry.hash] = entry;
+            CacheEntry entry;
+            if (item.contains("hash") && item["hash"].is_string()) {
+                entry.hash = item["hash"].get<std::string>();
+            } else {
+                continue; // hash 是必需字段
             }
-        };
 
-        std::lock_guard<std::mutex> lock(m_entriesMutex);
+            if (item.contains("location") && item["location"].is_string()) {
+                entry.location = ResourceLocation(item["location"].get<std::string>());
+            } else {
+                // 从 hash 自动生成 location
+                if (type == "skins") {
+                    entry.location = generateSkinLocation(entry.hash);
+                } else {
+                    entry.location = generateCapeLocation(entry.hash);
+                }
+            }
 
-        if (json.contains("skins") && json["skins"].is_array()) {
-            loadEntries(json["skins"], "skins", m_skinEntries);
+            if (item.contains("fileSize") && item["fileSize"].is_number()) {
+                entry.fileSize = item["fileSize"].get<size_t>();
+            }
+
+            // 时间戳：从 Unix 纪元秒恢复为 file_time_type（跨平台兼容）
+            if (item.contains("lastAccess") && item["lastAccess"].is_number()) {
+                entry.lastAccess = util::TimeUtils::unixSecondsToFileTime(item["lastAccess"].get<int64_t>());
+            }
+
+            if (item.contains("lastModified") && item["lastModified"].is_number()) {
+                entry.lastModified = util::TimeUtils::unixSecondsToFileTime(item["lastModified"].get<int64_t>());
+            }
+
+            entries[entry.hash] = entry;
         }
+    };
 
-        if (json.contains("capes") && json["capes"].is_array()) {
-            loadEntries(json["capes"], "capes", m_capeEntries);
-        }
+    std::lock_guard<std::mutex> lock(m_entriesMutex);
 
-        spdlog::info("SkinCache: Loaded metadata: {} skins, {} capes", m_skinEntries.size(), m_capeEntries.size());
+    if (json.contains("skins") && json["skins"].is_array()) {
+        loadEntries(json["skins"], "skins", m_skinEntries);
     }
-    catch (const nlohmann::json::exception& e) {
-        spdlog::warn("SkinCache: Failed to parse metadata JSON: {}", e.what());
+
+    if (json.contains("capes") && json["capes"].is_array()) {
+        loadEntries(json["capes"], "capes", m_capeEntries);
     }
-    catch (const std::exception& e) {
-        spdlog::warn("SkinCache: Failed to load metadata: {}", e.what());
-    }
+
+    spdlog::info("SkinCache: Loaded metadata: {} skins, {} capes", m_skinEntries.size(), m_capeEntries.size());
 }
 
 void SkinCache::_saveMetadata()
 {
-    try {
-        auto toUnixEpochSeconds = [](const std::filesystem::file_time_type& ft) -> int64_t {
-            return util::TimeUtils::fileTimeToUnixSeconds(ft);
-        };
+    auto toUnixEpochSeconds = [](const std::filesystem::file_time_type& ft) -> int64_t {
+        return util::TimeUtils::fileTimeToUnixSeconds(ft);
+    };
 
-        nlohmann::json json;
+    nlohmann::json json;
 
-        {
-            std::lock_guard<std::mutex> lock(m_entriesMutex);
+    {
+        std::lock_guard<std::mutex> lock(m_entriesMutex);
 
-            // 序列化皮肤条目
-            nlohmann::json skinsArray = nlohmann::json::array();
-            for (const auto& [hash, entry] : m_skinEntries) {
-                nlohmann::json item;
-                item["hash"] = entry.hash;
-                item["location"] = entry.location.toString();
-                item["fileSize"] = entry.fileSize;
-                item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
-                item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
-                skinsArray.push_back(item);
-            }
-            json["skins"] = skinsArray;
-
-            // 序列化披风条目
-            nlohmann::json capesArray = nlohmann::json::array();
-            for (const auto& [hash, entry] : m_capeEntries) {
-                nlohmann::json item;
-                item["hash"] = entry.hash;
-                item["location"] = entry.location.toString();
-                item["fileSize"] = entry.fileSize;
-                item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
-                item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
-                capesArray.push_back(item);
-            }
-            json["capes"] = capesArray;
+        // 序列化皮肤条目
+        nlohmann::json skinsArray = nlohmann::json::array();
+        for (const auto& [hash, entry] : m_skinEntries) {
+            nlohmann::json item;
+            item["hash"] = entry.hash;
+            item["location"] = entry.location.toString();
+            item["fileSize"] = entry.fileSize;
+            item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
+            item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
+            skinsArray.push_back(item);
         }
+        json["skins"] = skinsArray;
 
-        // 写入文件
-        std::ofstream file(m_metadataPath);
-        if (!file.is_open()) {
-            spdlog::warn("SkinCache: Failed to open metadata file for writing: {}", m_metadataPath.string());
-            return;
+        // 序列化披风条目
+        nlohmann::json capesArray = nlohmann::json::array();
+        for (const auto& [hash, entry] : m_capeEntries) {
+            nlohmann::json item;
+            item["hash"] = entry.hash;
+            item["location"] = entry.location.toString();
+            item["fileSize"] = entry.fileSize;
+            item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
+            item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
+            capesArray.push_back(item);
         }
+        json["capes"] = capesArray;
+    }
 
-        file << json.dump(2);
+    // 写入文件
+    std::ofstream file(m_metadataPath);
+    if (!file.is_open()) {
+        spdlog::warn("SkinCache: Failed to open metadata file for writing: {}", m_metadataPath.string());
+        return;
+    }
 
-        spdlog::info("SkinCache: Saved metadata to {}", m_metadataPath.string());
-    }
-    catch (const nlohmann::json::exception& e) {
-        spdlog::warn("SkinCache: Failed to serialize metadata JSON: {}", e.what());
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("SkinCache: Failed to save metadata: {}", e.what());
-    }
+    file << json.dump(2);
+
+    spdlog::info("SkinCache: Saved metadata to {}", m_metadataPath.string());
 }
 
 std::filesystem::path SkinCache::_getCacheFilePath(const std::string& type, const std::string& hash) const

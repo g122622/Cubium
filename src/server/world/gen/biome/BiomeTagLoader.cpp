@@ -30,6 +30,7 @@
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/biome/BiomeTag.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 
@@ -300,77 +301,70 @@ Result<size_t> BiomeTagLoader::loadFromResourcePack(const IResourcePack& pack)
 Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
     const std::string& json, const ResourceLocation& location)
 {
-    try {
-        nlohmann::json jsonObj = nlohmann::json::parse(json);
+    auto parsedJson = util::json::parse(json);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
+    }
+    auto jsonObj = std::move(parsedJson).value();
+    // 解析 replace 字段（可选，默认 false）
+    bool replace = false;
+    if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+        replace = jsonObj["replace"].get<bool>();
+    }
 
-        // 解析 replace 字段（可选，默认 false）
-        bool replace = false;
-        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
-            replace = jsonObj["replace"].get<bool>();
-        }
+    // 创建标签，传入 replace 标志
+    auto tag = std::make_unique<BiomeTag>(location, replace);
 
-        // 创建标签，传入 replace 标志
-        auto tag = std::make_unique<BiomeTag>(location, replace);
+    // 解析 values 数组
+    if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "biome tag missing 'values' array");
+    }
 
-        // 解析 values 数组
-        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "biome tag missing 'values' array");
-        }
+    std::vector<BiomeId> biomeIds;
+    std::unordered_set<ResourceLocation> visitedTags;
+    visitedTags.insert(location); // 防止自引用
 
-        std::vector<BiomeId> biomeIds;
-        std::unordered_set<ResourceLocation> visitedTags;
-        visitedTags.insert(location); // 防止自引用
-
-        for (const auto& value : jsonObj["values"]) {
-            if (value.is_string()) {
-                // 字符串格式: "minecraft:desert" 或 "#minecraft:is_jungle"
-                // 字符串格式默认 required=true
-                std::string entry = value.get<std::string>();
-                resolveTagEntry(entry, true, biomeIds, visitedTags);
-            } else if (value.is_object()) {
-                // 对象格式: {"id":"minecraft:desert","required":false}
-                // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
-                if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn(
-                        "BiomeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
-                    continue;
-                }
-
-                std::string id = value["id"].get<std::string>();
-                if (id.empty()) {
-                    spdlog::warn(
-                        "BiomeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
-                    continue;
-                }
-
-                // 解析 required 字段（可选，默认 true）
-                bool required = true;
-                if (value.contains("required") && value["required"].is_boolean()) {
-                    required = value["required"].get<bool>();
-                }
-
-                resolveTagEntry(id, required, biomeIds, visitedTags);
-            } else {
+    for (const auto& value : jsonObj["values"]) {
+        if (value.is_string()) {
+            // 字符串格式: "minecraft:desert" 或 "#minecraft:is_jungle"
+            // 字符串格式默认 required=true
+            std::string entry = value.get<std::string>();
+            resolveTagEntry(entry, true, biomeIds, visitedTags);
+        } else if (value.is_object()) {
+            // 对象格式: {"id":"minecraft:desert","required":false}
+            // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
+            if (!value.contains("id") || !value["id"].is_string()) {
                 spdlog::warn(
-                    "BiomeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                    "BiomeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                continue;
             }
+
+            std::string id = value["id"].get<std::string>();
+            if (id.empty()) {
+                spdlog::warn("BiomeTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
+                continue;
+            }
+
+            // 解析 required 字段（可选，默认 true）
+            bool required = true;
+            if (value.contains("required") && value["required"].is_boolean()) {
+                required = value["required"].get<bool>();
+            }
+
+            resolveTagEntry(id, required, biomeIds, visitedTags);
+        } else {
+            spdlog::warn("BiomeTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
         }
-
-        // 将解析到的生物群系 ID 添加到标签中
-        tag->addAll(biomeIds);
-
-        if (biomeIds.empty()) {
-            spdlog::info("BiomeTagLoader: tag '{}' resolved no valid biome IDs", location.toString());
-        }
-
-        return tag;
     }
-    catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
+
+    // 将解析到的生物群系 ID 添加到标签中
+    tag->addAll(biomeIds);
+
+    if (biomeIds.empty()) {
+        spdlog::info("BiomeTagLoader: tag '{}' resolved no valid biome IDs", location.toString());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
-    }
+
+    return tag;
 }
 
 } // namespace mc::world::biome

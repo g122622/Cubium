@@ -24,7 +24,7 @@
 #pragma once
 
 #include "common/command/ICommandSource.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -134,15 +134,9 @@ public:
 
     /**
      * @brief 断言执行者是实体
-     * @throws CommandException 如果不是实体
+     * @throws CommandError 如果不是实体
      */
     [[nodiscard]] Entity& assertEntity() const;
-
-    /**
-     * @brief 断言执行者是玩家
-     * @throws CommandException 如果不是玩家
-     */
-    [[nodiscard]] ServerPlayer& assertPlayer() const;
 
     // ========== 权限 ==========
 
@@ -249,21 +243,21 @@ private:
 
 // ========== 静态异常定义 ==========
 
-class CommandExceptions {
+class CommandErrors {
 public:
-    static CommandException requiresPlayer()
+    static CommandError requiresPlayer()
     {
-        return CommandException(CommandErrorType::PermissionDenied, "commands.requires.player");
+        return CommandError(CommandErrorType::PermissionDenied, "commands.requires.player");
     }
 
-    static CommandException requiresEntity()
+    static CommandError requiresEntity()
     {
-        return CommandException(CommandErrorType::PermissionDenied, "commands.requires.entity");
+        return CommandError(CommandErrorType::PermissionDenied, "commands.requires.entity");
     }
 
-    static CommandException permissionDenied([[maybe_unused]] i32 required)
+    static CommandError permissionDenied([[maybe_unused]] i32 required)
     {
-        return CommandException(CommandErrorType::PermissionDenied, "commands.permission.denied");
+        return CommandError(CommandErrorType::PermissionDenied, "commands.permission.denied");
     }
 };
 

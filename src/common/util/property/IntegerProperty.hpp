@@ -25,6 +25,7 @@
 
 #include "Property.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/IProperty.hpp"
 #include <cstddef>
@@ -114,21 +115,17 @@ public:
      */
     [[nodiscard]] std::optional<i32> parse(std::string_view str) const override
     {
-        try {
-            size_t pos = 0;
-            i32 value = std::stoi(std::string(str), &pos);
-            if (pos != str.length()) {
-                return std::nullopt;
-            }
-            // 检查值是否在允许范围内
-            if (value < m_min || value > m_max) {
-                return std::nullopt;
-            }
-            return value;
-        }
-        catch (const std::exception&) {
+        // 属性值来自数据包/命令文本：非法输入用 nullopt 表示失败，不抛异常
+        auto parsed = util::parseInt32(str);
+        if (parsed.failed()) {
             return std::nullopt;
         }
+        const i32 value = parsed.value();
+        // 检查值是否在允许范围内
+        if (value < m_min || value > m_max) {
+            return std::nullopt;
+        }
+        return value;
     }
 
     /**

@@ -190,22 +190,18 @@ void CopyCustomDataFunction::_ensurePathsParsed(const NbtOperation& op) const
         return;
     }
 
-    try {
+    {
         command::StringReader sourceReader(op.sourcePath);
         command::NbtPathArgumentType parser;
-        op.parsedSourcePath = parser.parse(sourceReader);
-    }
-    catch (const std::exception&) {
-        op.parsedSourcePath = command::NbtPath();
+        auto parsed = parser.parse(sourceReader);
+        op.parsedSourcePath = parsed.success() ? std::move(parsed).value() : command::NbtPath();
     }
 
-    try {
+    {
         command::StringReader targetReader(op.targetPath);
         command::NbtPathArgumentType parser;
-        op.parsedTargetPath = parser.parse(targetReader);
-    }
-    catch (const std::exception&) {
-        op.parsedTargetPath = command::NbtPath();
+        auto parsed = parser.parse(targetReader);
+        op.parsedTargetPath = parsed.success() ? std::move(parsed).value() : command::NbtPath();
     }
 
     op.pathsParsed = true;
@@ -224,7 +220,8 @@ void CopyCustomDataFunction::_applyOperation(
         case Operation::Replace: {
             // 替换：将目标路径设置为源路径的最后一个匹配值
             const nbt::tags::tag* lastValue = sourceValues.back();
-            op.parsedTargetPath.set(targetTag, [lastValue]() {
+            // 路径写入失败（类型不符/越界）时该操作不生效，不算致命错误
+            (void)op.parsedTargetPath.set(targetTag, [lastValue]() {
                 return lastValue->copy();
             });
             break;
@@ -251,7 +248,7 @@ void CopyCustomDataFunction::_applyOperation(
                 for (const auto* srcVal : sourceValues) {
                     copies.push_back(srcVal->copy());
                 }
-                op.parsedTargetPath.append(targetTag, copies);
+                (void)op.parsedTargetPath.append(targetTag, copies);
             }
             break;
         }
@@ -261,7 +258,7 @@ void CopyCustomDataFunction::_applyOperation(
                 if (srcVal->id() == nbt::TagId::Compound) {
                     const auto* compoundSrc = dynamic_cast<const nbt::tags::compound_tag*>(srcVal);
                     if (compoundSrc != nullptr) {
-                        op.parsedTargetPath.merge(targetTag, *compoundSrc);
+                        (void)op.parsedTargetPath.merge(targetTag, *compoundSrc);
                     }
                 }
             }
@@ -388,8 +385,16 @@ std::unique_ptr<nbt::tags::tag> jsonToNbtTag(const nlohmann::json& json)
         }
 
         case nlohmann::json::value_t::number_integer: {
-            auto tag = std::make_unique<int_tag>();
-            tag->value = json.get<i32>();
+            // number_integer 是 64 位，直接 get<i32>() 在超出 i32 范围时会抛 out_of_range
+            const i64 val = json.get<i64>();
+            if (val >= static_cast<i64>(std::numeric_limits<i32>::min()) &&
+                val <= static_cast<i64>(std::numeric_limits<i32>::max())) {
+                auto tag = std::make_unique<int_tag>();
+                tag->value = static_cast<i32>(val);
+                return tag;
+            }
+            auto tag = std::make_unique<long_tag>();
+            tag->value = val;
             return tag;
         }
 

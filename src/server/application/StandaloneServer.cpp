@@ -476,14 +476,10 @@ Result<void> StandaloneServer::run()
     m_running = true;
 
     // 在内部线程中运行主循环，stop() 会先 join 再清理，避免与 tick() 产生数据竞争
+    // 去异常化后 _mainLoop 不会抛异常（内部失败由它自己记录日志并清理 m_running），
+    // 因此不再需要线程级 catch 兜底。
     m_serverThread = std::make_unique<std::thread>([this]() {
-        try {
-            _mainLoop();
-        }
-        catch (const std::exception& e) {
-            spdlog::critical("Server crashed: {}", e.what());
-            m_running = false;
-        }
+        _mainLoop();
     });
 
     return Result<void>::ok();

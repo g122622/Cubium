@@ -29,6 +29,7 @@
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/world/storage/db/ColumnFamilies.hpp"
@@ -75,14 +76,14 @@ Result<EntityKey> EntityKey::parse(const std::string& str)
     }
 
     EntityKey key;
-    try {
-        key.chunkX = static_cast<ChunkCoord>(std::stoi(str.substr(0, firstColon)));
-        key.chunkZ = static_cast<ChunkCoord>(std::stoi(str.substr(firstColon + 1, secondColon - firstColon - 1)));
-        key.uuid = str.substr(secondColon + 1);
+    auto parsedX = util::parseInt32(std::string_view(str).substr(0, firstColon));
+    auto parsedZ = util::parseInt32(std::string_view(str).substr(firstColon + 1, secondColon - firstColon - 1));
+    if (parsedX.failed() || parsedZ.failed()) {
+        return Error(ErrorCode::InvalidData, "Invalid entity key format: chunk coordinates are not integers");
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, fmt::format("Invalid entity key format: {}", e.what()));
-    }
+    key.chunkX = static_cast<ChunkCoord>(parsedX.value());
+    key.chunkZ = static_cast<ChunkCoord>(parsedZ.value());
+    key.uuid = str.substr(secondColon + 1);
 
     if (key.uuid.empty()) {
         return Error(ErrorCode::InvalidData, "Invalid entity key format: empty UUID");

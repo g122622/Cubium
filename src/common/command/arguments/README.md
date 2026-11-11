@@ -60,7 +60,7 @@ EntityArgument.hpp
 **本模块依赖：**
 - `common/command/StringReader` - 游标式字符串读取
 - `common/command/CommandContext` - 存储解析后的参数
-- `common/command/exceptions/CommandExceptions` - 定义错误类型和异常
+- `common/command/errors/CommandErrors` - 定义错误类型和异常
 - `common/core/Types` - 基础类型定义（GameMode 等）
 - `common/resource/ResourceLocation` - 资源位置解析
 - `common/item/core/ItemRegistry` - 物品查找

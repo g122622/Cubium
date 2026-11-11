@@ -258,6 +258,15 @@ vcpkg 的 `tests`、`benchmarks`、`client`、`server` 功能由 CMake 根据目
 测试预设均指定 `RelWithDebInfo`，可使用 `ctest --preset <同名开发预设> -R '<测试名>'`。
 `configure.sh test` 也接受后续的 CTest 筛选参数。
 
+### 异常开关
+
+`MC_ENABLE_NO_EXCEPTIONS` 默认 ON：`mc_common` / `mc_gen` / `mc_server_shared` /
+`mc_server_storage` / `mc_bedrock_addon` / `minecraft-server` 以 `-fno-exceptions` 编译，
+`src/` 下出现 `throw` / `try` / `catch` 会直接编译失败。`mc_tests` 与 `mc_benchmark`
+故意保留异常。`-DMC_ENABLE_NO_EXCEPTIONS=OFF` 可临时回到带异常构建；
+`-DMC_NO_EXCEPTIONS_TARGETS=mc_common` 可只对子集生效。PCH 的异常模式必须与使用方一致，
+所以测试目标在开关开启时不再 `REUSE_FROM mc_common`，由 `mc_configure_unit_target()` 统一处理。
+
 ### Linux preset 一览
 
 CMakePresets.json 中预置的 Linux preset（均设 `MC_BUILD_CLIENT=OFF`，服务端为主）：

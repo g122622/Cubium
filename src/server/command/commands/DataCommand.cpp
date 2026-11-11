@@ -31,10 +31,11 @@
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
@@ -504,54 +505,47 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-
-        // 检查是否有路径参数
-        if (context.hasArgument("path")) {
-            NbtPath path = context.getArgument<NbtPath>("path");
-
-            try {
-                auto results = path.get(*data);
-
-                if (results.empty()) {
-                    _sendError(source, "commands.data.get.pathNotFound");
-                    return 0;
-                }
-
-                if (results.size() == 1) {
-                    const nbt::tags::tag* result = results[0];
-
-                    // 检查是否有缩放参数
-                    if (context.hasArgument("scale")) {
-                        const f64 scale = context.getArgument<f64>("scale");
-                        i32 scaledValue = _scaleValue(*result, scale);
-                        source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
-                        return scaledValue;
-                    }
-
-                    i32 resultValue = _getSingleResult(*result);
-                    source.sendMessage(accessor.getQueryMessage(*result));
-                    return resultValue;
-                } else {
-                    // 多个结果
-                    source.sendMessage("Found " + std::to_string(results.size()) + " matches");
-                    return static_cast<i32>(results.size());
-                }
-            }
-            catch (const CommandException& e) {
-                _sendError(source, e.message());
-                return 0;
-            }
-        } else {
-            // 没有路径，返回整个 NBT
-            source.sendMessage(accessor.getQueryMessage(*data));
-            return 1;
-        }
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
+    }
+    auto data = std::move(dataResult).value();
+
+    // 检查是否有路径参数
+    if (context.hasArgument("path")) {
+        NbtPath path = context.getArgument<NbtPath>("path");
+
+        auto results = path.get(*data);
+
+        if (results.empty()) {
+            _sendError(source, "commands.data.get.pathNotFound");
+            return 0;
+        }
+
+        if (results.size() == 1) {
+            const nbt::tags::tag* result = results[0];
+
+            // 检查是否有缩放参数
+            if (context.hasArgument("scale")) {
+                const f64 scale = context.getArgument<f64>("scale");
+                i32 scaledValue = _scaleValue(*result, scale);
+                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                return scaledValue;
+            }
+
+            i32 resultValue = _getSingleResult(*result);
+            source.sendMessage(accessor.getQueryMessage(*result));
+            return resultValue;
+        } else {
+            // 多个结果
+            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            return static_cast<i32>(results.size());
+        }
+    } else {
+        // 没有路径，返回整个 NBT
+        source.sendMessage(accessor.getQueryMessage(*data));
+        return 1;
     }
 }
 
@@ -578,52 +572,45 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
 
     EntityDataAccessor accessor(entity);
 
-    try {
-        auto data = accessor.getData();
-
-        // 检查是否有路径参数
-        if (context.hasArgument("path")) {
-            NbtPath path = context.getArgument<NbtPath>("path");
-
-            try {
-                auto results = path.get(*data);
-
-                if (results.empty()) {
-                    _sendError(source, "commands.data.get.pathNotFound");
-                    return 0;
-                }
-
-                if (results.size() == 1) {
-                    const nbt::tags::tag* result = results[0];
-
-                    // 检查是否有缩放参数
-                    if (context.hasArgument("scale")) {
-                        const f64 scale = context.getArgument<f64>("scale");
-                        i32 scaledValue = _scaleValue(*result, scale);
-                        source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
-                        return scaledValue;
-                    }
-
-                    i32 resultValue = _getSingleResult(*result);
-                    source.sendMessage(accessor.getQueryMessage(*result));
-                    return resultValue;
-                } else {
-                    source.sendMessage("Found " + std::to_string(results.size()) + " matches");
-                    return static_cast<i32>(results.size());
-                }
-            }
-            catch (const CommandException& e) {
-                _sendError(source, e.message());
-                return 0;
-            }
-        } else {
-            source.sendMessage(accessor.getQueryMessage(*data));
-            return 1;
-        }
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
+    }
+    auto data = std::move(dataResult).value();
+
+    // 检查是否有路径参数
+    if (context.hasArgument("path")) {
+        NbtPath path = context.getArgument<NbtPath>("path");
+
+        auto results = path.get(*data);
+
+        if (results.empty()) {
+            _sendError(source, "commands.data.get.pathNotFound");
+            return 0;
+        }
+
+        if (results.size() == 1) {
+            const nbt::tags::tag* result = results[0];
+
+            // 检查是否有缩放参数
+            if (context.hasArgument("scale")) {
+                const f64 scale = context.getArgument<f64>("scale");
+                i32 scaledValue = _scaleValue(*result, scale);
+                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                return scaledValue;
+            }
+
+            i32 resultValue = _getSingleResult(*result);
+            source.sendMessage(accessor.getQueryMessage(*result));
+            return resultValue;
+        } else {
+            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            return static_cast<i32>(results.size());
+        }
+    } else {
+        source.sendMessage(accessor.getQueryMessage(*data));
+        return 1;
     }
 }
 
@@ -642,51 +629,44 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
-    try {
-        auto data = accessor.getData();
-
-        // 检查是否有路径参数
-        if (context.hasArgument("path")) {
-            NbtPath path = context.getArgument<NbtPath>("path");
-
-            try {
-                auto results = path.get(*data);
-
-                if (results.empty()) {
-                    _sendError(source, "commands.data.get.pathNotFound");
-                    return 0;
-                }
-
-                if (results.size() == 1) {
-                    const nbt::tags::tag* result = results[0];
-
-                    if (context.hasArgument("scale")) {
-                        const f64 scale = context.getArgument<f64>("scale");
-                        i32 scaledValue = _scaleValue(*result, scale);
-                        source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
-                        return scaledValue;
-                    }
-
-                    i32 resultValue = _getSingleResult(*result);
-                    source.sendMessage(accessor.getQueryMessage(*result));
-                    return resultValue;
-                } else {
-                    source.sendMessage("Found " + std::to_string(results.size()) + " matches");
-                    return static_cast<i32>(results.size());
-                }
-            }
-            catch (const CommandException& e) {
-                _sendError(source, e.message());
-                return 0;
-            }
-        } else {
-            source.sendMessage(accessor.getQueryMessage(*data));
-            return 1;
-        }
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
+    }
+    auto data = std::move(dataResult).value();
+
+    // 检查是否有路径参数
+    if (context.hasArgument("path")) {
+        NbtPath path = context.getArgument<NbtPath>("path");
+
+        auto results = path.get(*data);
+
+        if (results.empty()) {
+            _sendError(source, "commands.data.get.pathNotFound");
+            return 0;
+        }
+
+        if (results.size() == 1) {
+            const nbt::tags::tag* result = results[0];
+
+            if (context.hasArgument("scale")) {
+                const f64 scale = context.getArgument<f64>("scale");
+                i32 scaledValue = _scaleValue(*result, scale);
+                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                return scaledValue;
+            }
+
+            i32 resultValue = _getSingleResult(*result);
+            source.sendMessage(accessor.getQueryMessage(*result));
+            return resultValue;
+        } else {
+            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            return static_cast<i32>(results.size());
+        }
+    } else {
+        source.sendMessage(accessor.getQueryMessage(*data));
+        return 1;
     }
 }
 
@@ -707,9 +687,14 @@ std::string stringifyNbtValue(const nbt::tags::tag& value)
 ///
 /// 每次调用都重新读取底层数据（原版也是每次都重新 resolve/读存储），因此来源与目标
 /// 是同一个存储时也能拿到写入前的最新状态。
-std::vector<std::unique_ptr<nbt::tags::tag>> readSourcePath(IDataAccessor& accessor, const NbtPath& path)
+Result<std::vector<std::unique_ptr<nbt::tags::tag>>, CommandError> readSourcePath(
+    IDataAccessor& accessor, const NbtPath& path)
 {
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        return dataResult.error();
+    }
+    auto data = std::move(dataResult).value();
     std::vector<std::unique_ptr<nbt::tags::tag>> values;
     for (const auto* tag : path.get(*data)) {
         values.push_back(tag->copy());
@@ -730,10 +715,10 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
     const bool stringify = context.hasParsed("stringValueArg");
     if (context.hasArgument("source")) {
         const std::any raw = context.getArgumentAny("source");
-        if (raw.type() == typeid(std::shared_ptr<nbt::tags::tag>)) {
+        // 一律用 any_cast 的指针形式：类型不符返回 nullptr，不会抛 std::bad_any_cast
+        if (const auto* tagValue = std::any_cast<std::shared_ptr<nbt::tags::tag>>(&raw)) {
             // `value` / `from` / `string` 直接跟 NBT 值：单值。
-            const auto value = std::any_cast<std::shared_ptr<nbt::tags::tag>>(raw);
-            sourceValues.push_back(value->copy());
+            sourceValues.push_back((*tagValue)->copy());
         } else {
             const NbtPath sourcePath = context.getArgument<NbtPath>("sourcePath");
 
@@ -750,28 +735,49 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                     _sendError(source, "commands.data.block.failed.noBlockEntity");
                     return 0;
                 }
-                sourceValues = readSourcePath(accessor, sourcePath);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             }
             // `from entity <source> <path>`
-            else if (raw.type() == typeid(EntitySelector)) {
-                auto entities = support::EntityResolver::resolve(source, std::any_cast<EntitySelector>(raw));
+            else if (const auto* selectorValue = std::any_cast<EntitySelector>(&raw)) {
+                auto entities = support::EntityResolver::resolve(source, *selectorValue);
                 if (entities.empty()) {
                     _sendError(source, "argument.entity.notfound.entity");
                     return 0;
                 }
                 Entity* sourceEntity = entities.front();
                 EntityDataAccessor accessor(sourceEntity);
-                sourceValues = readSourcePath(accessor, sourcePath);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             }
             // `from storage <source> <path>`
-            else if (raw.type() == typeid(ResourceLocation)) {
+            else if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
                 auto* server = source.server();
                 if (server == nullptr) {
                     _sendError(source, "commands.data.storage.failed.noServer");
                     return 0;
                 }
-                StorageDataAccessor accessor(&server->commandStorage(), std::any_cast<ResourceLocation>(raw));
-                sourceValues = readSourcePath(accessor, sourcePath);
+                StorageDataAccessor accessor(&server->commandStorage(), *storageId);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             } else {
                 _sendError(source, "commands.data.modify.invalidSource");
                 return 0;
@@ -809,16 +815,18 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         targetAccessor = std::move(accessor);
     } else if (context.hasArgument("target")) {
         const std::any raw = context.getArgumentAny("target");
-        if (raw.type() == typeid(ResourceLocation)) {
+        // 指针形式避免 std::bad_any_cast
+        if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
             auto* server = source.server();
             if (server == nullptr) {
                 _sendError(source, "commands.data.storage.failed.noServer");
                 return 0;
             }
-            targetAccessor =
-                std::make_unique<StorageDataAccessor>(&server->commandStorage(), std::any_cast<ResourceLocation>(raw));
+            targetAccessor = std::make_unique<StorageDataAccessor>(&server->commandStorage(), *storageId);
         } else {
-            auto entities = support::EntityResolver::resolve(source, std::any_cast<EntitySelector>(raw));
+            const auto* selectorValue = std::any_cast<EntitySelector>(&raw);
+            MC_ASSERT_RELEASE_MSG(selectorValue != nullptr, "DataCommand: target argument has an unexpected type");
+            auto entities = support::EntityResolver::resolve(source, *selectorValue);
             if (entities.empty()) {
                 _sendError(source, "commands.data.entity.failed.noEntity");
                 return 0;
@@ -837,60 +845,94 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         return 0;
     }
 
-    try {
-        auto data = targetAccessor->getData();
-        i32 count = 0;
-        switch (operation) {
-            case 0: // set
-            {
-                const nbt::tags::tag* value = sourceValues.empty() ? nullptr : sourceValues.front().get();
-                if (value == nullptr) {
-                    _sendError(source, "commands.data.modify.missingValue");
-                    return 0;
-                }
-                count = targetPath.set(*data, [value]() -> std::unique_ptr<nbt::tags::tag> {
-                    return value->copy();
-                });
-                break;
-            }
-            case 1: // append
-                count = targetPath.append(*data, sourceValues);
-                break;
-            case 2: // prepend
-                count = targetPath.prepend(*data, sourceValues);
-                break;
-            case 3: // merge
-                if (sourceValues.empty() || sourceValues.front()->id() != nbt::TagId::Compound) {
-                    _sendError(source, "commands.data.modify.merge.expectedCompound");
-                    return 0;
-                }
-                count =
-                    targetPath.merge(*data, *static_cast<const nbt::tags::compound_tag*>(sourceValues.front().get()));
-                break;
-            case 4: // insert
-            {
-                const i32 index = context.getArgument<i32>("index");
-                count = targetPath.insert(*data, index, sourceValues);
-                break;
-            }
-            default:
-                _sendError(source, "commands.data.modify.invalidOperation");
-                return 0;
-        }
-
-        if (count == 0) {
-            _sendError(source, "commands.data.modify.invalidPath");
-            return 0;
-        }
-
-        targetAccessor->mergeData(*data);
-        source.sendMessage(targetAccessor->getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendCommandError(source, e);
+    auto dataResult = targetAccessor->getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+    i32 count = 0;
+    switch (operation) {
+        case 0: // set
+        {
+            const nbt::tags::tag* value = sourceValues.empty() ? nullptr : sourceValues.front().get();
+            if (value == nullptr) {
+                _sendError(source, "commands.data.modify.missingValue");
+                return 0;
+            }
+            auto setResult = targetPath.set(*data, [value]() -> std::unique_ptr<nbt::tags::tag> {
+                return value->copy();
+            });
+            if (setResult.failed()) {
+                _sendCommandError(source, setResult.error());
+                return 0;
+            }
+            count = setResult.value();
+            break;
+        }
+        case 1: // append
+        {
+            auto appendResult = targetPath.append(*data, sourceValues);
+            if (appendResult.failed()) {
+                _sendCommandError(source, appendResult.error());
+                return 0;
+            }
+            count = appendResult.value();
+            break;
+        }
+        case 2: // prepend
+        {
+            auto prependResult = targetPath.prepend(*data, sourceValues);
+            if (prependResult.failed()) {
+                _sendCommandError(source, prependResult.error());
+                return 0;
+            }
+            count = prependResult.value();
+            break;
+        }
+        case 3: // merge
+            if (sourceValues.empty() || sourceValues.front()->id() != nbt::TagId::Compound) {
+                _sendError(source, "commands.data.modify.merge.expectedCompound");
+                return 0;
+            }
+            {
+                auto mergeResult =
+                    targetPath.merge(*data, *static_cast<const nbt::tags::compound_tag*>(sourceValues.front().get()));
+                if (mergeResult.failed()) {
+                    _sendCommandError(source, mergeResult.error());
+                    return 0;
+                }
+                count = mergeResult.value();
+                break;
+            }
+        case 4: // insert
+        {
+            const i32 index = context.getArgument<i32>("index");
+            auto insertResult = targetPath.insert(*data, index, sourceValues);
+            if (insertResult.failed()) {
+                _sendCommandError(source, insertResult.error());
+                return 0;
+            }
+            count = insertResult.value();
+            break;
+        }
+        default:
+            _sendError(source, "commands.data.modify.invalidOperation");
+            return 0;
+    }
+
+    if (count == 0) {
+        _sendError(source, "commands.data.modify.invalidPath");
+        return 0;
+    }
+
+    auto mergeResult = targetAccessor->mergeData(*data);
+    if (mergeResult.failed()) {
+        _sendCommandError(source, mergeResult.error());
+        return 0;
+    }
+    source.sendMessage(targetAccessor->getModifiedMessage());
+    return count;
 }
 
 i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
@@ -914,29 +956,37 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-
-        // 设置值
-        i32 count = path.set(*data, [&value]() {
-            return value->copy();
-        });
-
-        if (count == 0) {
-            _sendError(source, "commands.data.set.pathNotFound");
-            return 0;
-        }
-
-        // 写回数据
-        accessor.mergeData(*data);
-
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendCommandError(source, e);
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    // 设置值
+    auto setResult = path.set(*data, [&value]() {
+        return value->copy();
+    });
+    if (setResult.failed()) {
+        _sendCommandError(source, setResult.error());
+        return 0;
+    }
+    const i32 count = setResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.set.pathNotFound");
+        return 0;
+    }
+
+    // 写回数据
+    auto mergeResult = accessor.mergeData(*data);
+    if (mergeResult.failed()) {
+        _sendCommandError(source, mergeResult.error());
+        return 0;
+    }
+
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
@@ -968,27 +1018,38 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-
-        i32 count = path.set(*data, [&value]() {
-            return value->copy();
-        });
-
-        if (count == 0) {
-            _sendError(source, "commands.data.set.pathNotFound");
-            return 0;
-        }
-
-        accessor.mergeData(*data);
-
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendCommandError(source, e);
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    auto setResult = path.set(*data, [&value]() {
+        return value->copy();
+    });
+    if (setResult.failed()) {
+        _sendCommandError(source, setResult.error());
+        return 0;
+    }
+    const i32 count = setResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.set.pathNotFound");
+        return 0;
+    }
+
+    auto mergeResult = accessor.mergeData(*data);
+
+    if (mergeResult.failed()) {
+
+        _sendCommandError(source, mergeResult.error());
+
+        return 0;
+    }
+
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
@@ -1008,27 +1069,38 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
-    try {
-        auto data = accessor.getData();
-
-        i32 count = path.set(*data, [&value]() {
-            return value->copy();
-        });
-
-        if (count == 0) {
-            _sendError(source, "commands.data.set.pathNotFound");
-            return 0;
-        }
-
-        accessor.mergeData(*data);
-
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendCommandError(source, e);
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    auto setResult = path.set(*data, [&value]() {
+        return value->copy();
+    });
+    if (setResult.failed()) {
+        _sendCommandError(source, setResult.error());
+        return 0;
+    }
+    const i32 count = setResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.set.pathNotFound");
+        return 0;
+    }
+
+    auto mergeResult = accessor.mergeData(*data);
+
+    if (mergeResult.failed()) {
+
+        _sendCommandError(source, mergeResult.error());
+
+        return 0;
+    }
+
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 // ========== merge 子命令实现 ==========
@@ -1053,15 +1125,13 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        accessor.mergeData(*nbt);
-        source.sendMessage(accessor.getModifiedMessage());
-        return 1;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto mergeResult = accessor.mergeData(*nbt);
+    if (mergeResult.failed()) {
+        _sendCommandError(source, mergeResult.error());
         return 0;
     }
+    source.sendMessage(accessor.getModifiedMessage());
+    return 1;
 }
 
 i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
@@ -1092,15 +1162,13 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        accessor.mergeData(*nbt);
-        source.sendMessage(accessor.getModifiedMessage());
-        return 1;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto mergeResult = accessor.mergeData(*nbt);
+    if (mergeResult.failed()) {
+        _sendCommandError(source, mergeResult.error());
         return 0;
     }
+    source.sendMessage(accessor.getModifiedMessage());
+    return 1;
 }
 
 i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
@@ -1119,15 +1187,13 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
-    try {
-        accessor.mergeData(*nbt);
-        source.sendMessage(accessor.getModifiedMessage());
-        return 1;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto mergeResult = accessor.mergeData(*nbt);
+    if (mergeResult.failed()) {
+        _sendCommandError(source, mergeResult.error());
         return 0;
     }
+    source.sendMessage(accessor.getModifiedMessage());
+    return 1;
 }
 
 // ========== remove 子命令实现 ==========
@@ -1152,24 +1218,35 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-
-        i32 count = path.remove(*data);
-
-        if (count == 0) {
-            _sendError(source, "commands.data.remove.pathNotFound");
-            return 0;
-        }
-
-        accessor.mergeData(*data);
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    auto removeResult = path.remove(*data);
+    if (removeResult.failed()) {
+        _sendCommandError(source, removeResult.error());
+        return 0;
+    }
+    const i32 count = removeResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.remove.pathNotFound");
+        return 0;
+    }
+
+    auto mergeResult = accessor.mergeData(*data);
+
+    if (mergeResult.failed()) {
+
+        _sendCommandError(source, mergeResult.error());
+
+        return 0;
+    }
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
@@ -1200,24 +1277,35 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    try {
-        auto data = accessor.getData();
-
-        i32 count = path.remove(*data);
-
-        if (count == 0) {
-            _sendError(source, "commands.data.remove.pathNotFound");
-            return 0;
-        }
-
-        accessor.mergeData(*data);
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    auto removeResult = path.remove(*data);
+    if (removeResult.failed()) {
+        _sendCommandError(source, removeResult.error());
+        return 0;
+    }
+    const i32 count = removeResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.remove.pathNotFound");
+        return 0;
+    }
+
+    auto mergeResult = accessor.mergeData(*data);
+
+    if (mergeResult.failed()) {
+
+        _sendCommandError(source, mergeResult.error());
+
+        return 0;
+    }
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
@@ -1236,24 +1324,35 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
     CommandStorage& storage = server->commandStorage();
     StorageDataAccessor accessor(&storage, id);
 
-    try {
-        auto data = accessor.getData();
-
-        i32 count = path.remove(*data);
-
-        if (count == 0) {
-            _sendError(source, "commands.data.remove.pathNotFound");
-            return 0;
-        }
-
-        accessor.mergeData(*data);
-        source.sendMessage(accessor.getModifiedMessage());
-        return count;
-    }
-    catch (const CommandException& e) {
-        _sendError(source, e.message());
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        _sendCommandError(source, dataResult.error());
         return 0;
     }
+    auto data = std::move(dataResult).value();
+
+    auto removeResult = path.remove(*data);
+    if (removeResult.failed()) {
+        _sendCommandError(source, removeResult.error());
+        return 0;
+    }
+    const i32 count = removeResult.value();
+
+    if (count == 0) {
+        _sendError(source, "commands.data.remove.pathNotFound");
+        return 0;
+    }
+
+    auto mergeResult = accessor.mergeData(*data);
+
+    if (mergeResult.failed()) {
+
+        _sendCommandError(source, mergeResult.error());
+
+        return 0;
+    }
+    source.sendMessage(accessor.getModifiedMessage());
+    return count;
 }
 
 // ========== 辅助函数实现 ==========
@@ -1325,7 +1424,7 @@ void DataCommand::_sendError(ServerCommandSource& source, const std::string& mes
     source.sendMessage("§c" + message);
 }
 
-void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandException& error)
+void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandError& error)
 {
     // 数据过深是写入前的整体拒绝，与"路径不存在"不同，需要给出明确的错误提示
     if (error.type() == CommandErrorType::NbtPathDataTooDeep) {

@@ -266,7 +266,7 @@ TEST_F(SpreadPlayersCommandTest, CenterArgumentParsesTwoCoordinates)
         try {
             m_server.commandRegistry().execute("spreadplayers 10 20 5 100 false @a", permSource);
         }
-        catch (const mc::command::CommandException&) {
+        catch (const mc::command::CommandError&) {
             // 命令执行期间可能因无玩家匹配而抛出异常，这是正常的
         }
     });

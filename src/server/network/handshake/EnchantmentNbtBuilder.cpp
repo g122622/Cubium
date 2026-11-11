@@ -33,6 +33,7 @@
 #include "common/network/ir/packets/configuration/ConfigurationPackets.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
@@ -198,8 +199,15 @@ std::vector<std::string> _flattenHolderSet(
             tagPath);
         return result;
     }
-    try {
-        const auto j = nlohmann::json::parse(text);
+    {
+        auto parsedTagJson = util::json::parse(text);
+        if (parsedTagJson.failed()) {
+            spdlog::error("EnchantmentNbtBuilder: parse {} failed: {}; keeping empty set",
+                tagPath,
+                parsedTagJson.error().message());
+            return result;
+        }
+        const auto& j = parsedTagJson.value();
         if (!j.contains("values") || !j["values"].is_array()) {
             spdlog::error("EnchantmentNbtBuilder: tag json {} missing 'values' array", tagPath);
             return result;
@@ -220,9 +228,6 @@ std::vector<std::string> _flattenHolderSet(
                 spdlog::error("EnchantmentNbtBuilder: non-string value in tag json {} values array", tagPath);
             }
         }
-    }
-    catch (const std::exception& e) {
-        spdlog::error("EnchantmentNbtBuilder: parse tag json {} failed: {}", tagPath, e.what());
     }
     return result;
 }
@@ -515,14 +520,15 @@ std::optional<std::vector<u8>> _buildEnchantmentEntryData(
             "EnchantmentNbtBuilder: enchantment '{}' resource missing ({}); sending nullopt", id, resourcePath);
         return std::nullopt;
     }
-    nlohmann::json j;
-    try {
-        j = nlohmann::json::parse(text);
-    }
-    catch (const std::exception& e) {
-        spdlog::error("EnchantmentNbtBuilder: parse {} failed: {}; sending nullopt", resourcePath, e.what());
+    auto parsedEnchantmentJson = util::json::parse(text);
+    if (parsedEnchantmentJson.failed()) {
+        spdlog::error("EnchantmentNbtBuilder: parse {} failed: {}; sending nullopt",
+            resourcePath,
+            parsedEnchantmentJson.error().message());
         return std::nullopt;
     }
+    // 取可变副本：effects 树需要原地展平 HolderSet 的 #tag 引用
+    nlohmann::json j = std::move(parsedEnchantmentJson).value();
 
     auto root = std::make_unique<mc::nbt::tags::compound_tag>();
 

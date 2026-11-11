@@ -107,10 +107,11 @@ public:
         : ExecuteModifierNode(name, index)
     {}
 
-    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
-        ExecuteModifierNode::parse(reader, context);
+        MC_TRY(ExecuteModifierNode::parse(reader, context));
         context.markParsed("executeCondition");
+        return Result<void, CommandError>::ok();
     }
 };
 
@@ -196,8 +197,10 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
 {
     auto node = std::make_shared<ArgumentCommandNode<ServerCommandSource, typename Type::Value>>(name, std::move(type));
     if (executable) {
-        node->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-            throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+        node->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+            // 条件节点的占位命令：走到这里说明条件未满足（或没有 run 子命令）。
+            ctx.getSource().sendError("commands.execute.conditional");
+            return 0;
         });
     }
     return node;
@@ -261,8 +264,10 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
             // 执行期从 kBlocksConditionModeKey 读出走了哪个模式。
             auto modeNode =
                 std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(mode, kBlocksConditionModeKey);
-            modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-                throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+            modeNode->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+                // 走到这里说明条件未满足（或没有 run 子命令）：报错并返回失败。
+                ctx.getSource().sendError("commands.execute.conditional");
+                return 0;
             });
             destination->addChild(modeNode);
         }
@@ -1271,13 +1276,17 @@ bool ExecuteCommand::_evaluateDataCondition(
         }
         const Vector3i pos = BlockPosArgumentType::getBlockPos(context, "sourcePos", target);
         const BlockPos blockPos(pos.x, pos.y, pos.z);
-        // 该位置没有方块实体时 BlockDataAccessor::getData() 会抛 CommandException，
-        // 而条件语义应当是“不成立”而非报错。这里先判一次。
+        // 该位置没有方块实体时条件语义应当是“不成立”而非报错，这里先判一次。
         if (world->getBlockEntity(blockPos) == nullptr) {
             return false;
         }
         BlockDataAccessor accessor(world, blockPos);
-        data = accessor.getData();
+        // getData 返回 Result：取不到数据（含方块实体已消失）一律按条件不成立处理。
+        auto blockData = accessor.getData();
+        if (blockData.failed()) {
+            return false;
+        }
+        data = std::move(blockData).value();
     } else if (dataType == "entity") {
         const auto selector = context.getArgumentOr<EntitySelector>("source", EntitySelector{});
         Entity* entity = support::EntityResolver::resolveSingle(target, selector);
@@ -1285,14 +1294,22 @@ bool ExecuteCommand::_evaluateDataCondition(
             return false;
         }
         EntityDataAccessor accessor(entity);
-        data = accessor.getData();
+        auto entityData = accessor.getData();
+        if (entityData.failed()) {
+            return false;
+        }
+        data = std::move(entityData).value();
     } else if (dataType == "storage") {
         const auto storageId = context.getArgumentOr<ResourceLocation>("source", ResourceLocation());
         if (storageId.toString().empty()) {
             return false;
         }
         StorageDataAccessor accessor(&server->commandStorage(), storageId);
-        data = accessor.getData();
+        auto storageData = accessor.getData();
+        if (storageData.failed()) {
+            return false;
+        }
+        data = std::move(storageData).value();
     } else {
         // 未识别的数据源类型：不猜，按条件不成立处理。
         return false;

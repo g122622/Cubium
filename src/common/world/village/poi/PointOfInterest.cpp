@@ -29,8 +29,11 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
+
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace world {
@@ -120,15 +123,29 @@ void PointOfInterest::serialize(nbt::tags::compound_tag& tag) const
     tag.value["Tickets"] = std::move(ticketsList);
 }
 
-PointOfInterest PointOfInterest::deserialize(const nbt::tags::compound_tag& tag)
+std::optional<PointOfInterest> PointOfInterest::deserialize(const nbt::tags::compound_tag& tag)
 {
-    BlockPos pos;
-    pos.x = tag.get<nbt::tags::int_tag>("X");
-    pos.y = tag.get<nbt::tags::int_tag>("Y");
-    pos.z = tag.get<nbt::tags::int_tag>("Z");
+    const auto* xTag = tag.findAs<nbt::tags::int_tag>("X");
+    const auto* yTag = tag.findAs<nbt::tags::int_tag>("Y");
+    const auto* zTag = tag.findAs<nbt::tags::int_tag>("Z");
+    const auto* typeTag = tag.findAs<nbt::tags::int_tag>("Type");
+    if (xTag == nullptr || yTag == nullptr || zTag == nullptr || typeTag == nullptr) {
+        spdlog::warn("PointOfInterest::deserialize: missing position or type field, POI skipped");
+        return std::nullopt;
+    }
 
-    PointOfInterest poi(pos, static_cast<PointOfInterestType>(tag.get<nbt::tags::int_tag>("Type")));
-    poi.m_maxTickets = tag.get<nbt::tags::int_tag>("MaxTickets");
+    const i32 rawType = typeTag->value;
+    if (rawType < 0 || rawType > static_cast<i32>(PointOfInterestType::LightningRod)) {
+        spdlog::warn("PointOfInterest::deserialize: out-of-range POI type {}, POI skipped", rawType);
+        return std::nullopt;
+    }
+
+    PointOfInterest poi(BlockPos{xTag->value, yTag->value, zTag->value}, static_cast<PointOfInterestType>(rawType));
+
+    // MaxTickets 缺失时沿用构造函数按类型推导出的上限
+    if (const auto* maxTicketsTag = tag.findAs<nbt::tags::int_tag>("MaxTickets"); maxTicketsTag != nullptr) {
+        poi.m_maxTickets = maxTicketsTag->value;
+    }
 
     // 反序列化票据
     auto it = tag.value.find("Tickets");
@@ -136,10 +153,20 @@ PointOfInterest PointOfInterest::deserialize(const nbt::tags::compound_tag& tag)
         auto* ticketsList = dynamic_cast<const nbt::tags::compound_list_tag*>(it->second.get());
         if (ticketsList) {
             for (const auto& ticketTag : ticketsList->value) {
+                const auto* ownerTag = ticketTag.findAs<nbt::tags::long_tag>("OwnerId");
+                const auto* createdTag = ticketTag.findAs<nbt::tags::long_tag>("CreatedAt");
+                if (ownerTag == nullptr || createdTag == nullptr) {
+                    spdlog::warn("PointOfInterest::deserialize: malformed ticket entry, entry skipped");
+                    continue;
+                }
+
                 POITicket ticket;
-                ticket.ownerId = static_cast<u64>(ticketTag.get<nbt::tags::long_tag>("OwnerId"));
-                ticket.createdAt = ticketTag.get<nbt::tags::long_tag>("CreatedAt");
-                ticket.released = ticketTag.get<nbt::tags::byte_tag>("Released") != 0;
+                ticket.ownerId = static_cast<u64>(ownerTag->value);
+                ticket.createdAt = createdTag->value;
+
+                const auto* releasedTag = ticketTag.findAs<nbt::tags::byte_tag>("Released");
+                ticket.released = releasedTag != nullptr && releasedTag->value != 0;
+
                 if (!ticket.released) {
                     poi.m_tickets.push_back(ticket);
                 }

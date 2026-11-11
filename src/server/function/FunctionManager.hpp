@@ -158,8 +158,8 @@ public:
     /**
      * @brief 执行函数（无参数）
      *
-     * 普通函数直接逐行执行；宏函数将抛 FunctionInstantiationException（缺参数），
-     * 失败计入 failureCount 而非抛出异常。
+     * 普通函数直接逐行执行；宏函数缺少实参时整体实例化失败（warn 日志 + 逐条计入
+     * failureCount），不执行任何一行。
      *
      * @param id 函数 ID
      * @param source 命令源

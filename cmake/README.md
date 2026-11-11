@@ -36,3 +36,7 @@ cmake/
 - ccache 的必要 PCH 参数随 launcher 传入；目录、容量和远端前缀继续使用 ccache 的正常配置。
 - 行为包输入清单排除生成的 `src/utils/` 和共享结构副本；JS 与副本均声明为产物，缺失会重建。
 - 修改共享实现时只登记到共享库，不要在 benchmark、服务端和测试中再次登记同一源文件。
+- `MC_ENABLE_NO_EXCEPTIONS` 默认 ON，只有根 `CMakeLists.txt` 末尾的「target 拓扑」段落消费它；
+  开关本身必须在 `BuildOptions.cmake` 定义，否则 `project()` 前的逻辑与 CI 传参拿不到默认值。
+  该开关改变 PCH 的异常模式，测试目标因此不能 `REUSE_FROM mc_common`，见 `tests/unit/CMakeLists.txt`
+  的 `mc_configure_unit_target()`。

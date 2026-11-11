@@ -23,6 +23,7 @@
 
 #include "AnimalVariants.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <optional>
 #include <utility>
 #include <nlohmann/json.hpp>
@@ -183,14 +184,13 @@ Result<std::size_t> AnimalVariants::loadFromDataPackRepository(
             }
             const auto& content = versions.back();
 
-            json value;
-            try {
-                value = json::parse(content.content);
+            // 外部数据：坏文件以 Error 返回，解析异常不逃逸
+            auto valueResult = util::json::parse(content.content);
+            if (valueResult.failed()) {
+                return Error(ErrorCode::InvalidData,
+                    kind + ": failed to parse " + resourcePath + ": " + valueResult.error().message());
             }
-            catch (const std::exception& e) {
-                return Error(
-                    ErrorCode::InvalidData, kind + ": 解析失败 " + resourcePath + "：" + std::string(e.what()));
-            }
+            const json& value = valueResult.value();
 
             const auto id = _variantIdFromPath(resourcePath);
             if (!id.has_value()) {

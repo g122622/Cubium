@@ -457,11 +457,14 @@ void PointOfInterestStorage::deserialize(const nbt::tags::compound_tag& tag)
         auto* poisList = dynamic_cast<const nbt::tags::compound_list_tag*>(poisIt->second.get());
         if (poisList) {
             for (const auto& poiTag : poisList->value) {
-                PointOfInterest poi = PointOfInterest::deserialize(poiTag);
+                auto poi = PointOfInterest::deserialize(poiTag);
+                if (!poi.has_value()) {
+                    continue;
+                }
 
-                u64 chunkKey = _getChunkKey(poi.getPosition());
+                u64 chunkKey = _getChunkKey(poi->getPosition());
                 auto& chunkPOIs = m_chunkPOIs[chunkKey];
-                chunkPOIs.push_back(std::move(poi));
+                chunkPOIs.push_back(std::move(*poi));
 
                 // 更新索引
                 PointOfInterest* poiPtr = &chunkPOIs.back();

@@ -136,7 +136,102 @@
 
 ---
 
-## 七、建议路线图
+## 七、执行进度（滚动更新）
+
+| 阶段 | 状态 | 落地内容 |
+| --- | --- | --- |
+| 0. 低风险断言化 | ✅ 完成 | property/ServerWorld/维度/storage/registry/噪声/杂项共约 40 处改断言；删除 `RateLimiter`、`loot::registryOf`、storage 的 const `_sectionManager`/`_hasSectionManager` 等死代码 |
+| 1. Result 契约 | ✅ 完成 | `Result.hpp` 6 处 `value()` 改断言（消息带原始错误）；审计全库 try 块内 `.value()`，确认无调用点依赖异常 |
+| 2 + 3. NBT | ✅ 完成（合并实施） | 直接对 NBT 库 Result 化，未采用"薄封装"过渡：`NbtInternal`/`Nbt.hpp`/`Nbt.cpp` 内 `throw` 归零，`operator>>(compound_tag&)` 改为 `readCompoundInto`，`parseMojangson` 返回 `Result`；22 处读取调用点全部改为检查 `failed()` |
+| 4. 函数/宏 | ✅ 完成 | `StringTemplate`/`MacroFunction` 改 `Result`，删除 `FunctionInstantiationException` |
+| 5. 隐式异常源 | 🟡 部分完成 | `std::sto*`（18 文件）全部换为 `util::parseXxx`（from_chars）；`std::regex` 全部移除（改逐字符判定 + `util::isValidIpv4`）；`std::any_cast` 全部改指针形式。**未做**：`.at()`（libc++ 在 `-fno-exceptions` 下已退化为 abort，不阻塞编译）、`filesystem` 抛异常重载、`dynamic_cast<T&>`、`std::future` |
+| 6. 第三方隔离 | 🟡 进行中 | **已完成**：新增 `util::json` 非抛出访问层（`parse` / `getXxx` / `getXxxOr` / `getInt32FromNumber` / `getXxxAt` / `findField`），39 处 `catch(json::parse_error)` 全部消除，8 处 `catch(json::exception)` 改为解析失败回退；NBT 库 Result 化 + `compound_tag::findAs`；全库 `json::value(key, default)` 归零。**读取点已改造**：Java/Bedrock `level.dat`、`Village`/`POI`/`VillageGossip`、`TreeDecorator`、`FeatureTypeRegistry`、`PlacedFeatureLoader`、`LootSerializers`（53 处）、`ItemStack`、`IntProviderParser`、`StructureSetLoader`、`BlockStateProviderParser`、`AdvancementDisplay`、`EndDragonFight`、`AnimationMetadata`、三个方块实体的 `Slot` 读取。**剩余（实测，已修正口径）**：
+- **「数值越界」不是异常风险**。实测当前 nlohmann 版本对数值越界**不抛异常**，而是无检查 `static_cast` 静默回绕：`get<i32>()` 于 `3000000000` 得 `-1294967296`、`get<i64>()` 于 u64 max 得 `-1`、`get<f32>()` 于 `1e300` 得 `inf`。所以此前「约 309 处窄化会抛 `out_of_range`」的说法**是错的**，已作废；这 272 处属于**静默数据错误（数据校验问题）**，不是 `-fno-exceptions` 的阻塞项，可作为独立的数据健壮性任务另行处理。
+- **真正剩余的异常风险**是「无类型守卫的 `.get<T>()`」与 `.at()`：类型不符抛 `type_error`、键缺失抛 `out_of_range`。实测 92 处 / 23 文件，其中已核实三类误报（`EntityMetadataSerializer` 24 处的接收者是 `EntityMetadataValue`、`EntityFilter` 16 处已被 `_validate()` 校验、`context.get<...>` 是 `noexcept` 的 `LootContext::get` 共 9 处），客户端文件（`VehicleRenderers` 6、`BlockModelLoader` 6）暂不处理；**服务端与 common 真实待办约 35 处**，集中在 `EntityAddonState`(4)、`NbtJsonUtils`(3)、`SetCustomModelDataFunction`(3)、`EntityTimerState`(3)、`FeatureTypeRegistry`/`RuleTestParser`/`FluidStateParser`(各 2) 等。spdlog/asio/simdjson 配置未动 |
+
+> 阶段 6 剩余工作**必须逐文件改造**，禁止批量脚本替换：每个 `.get<T>()` 都要先确定「字段缺失/类型错」的语义——必填字段返回 `Error`；可选字段用 `util::json::getXxxOr` 取默认值，或用 `util::json::findField` 判空。**不要用 `json::value(key, default)`**（本库已归零）：键缺失时安全，但类型不符时仍会抛 `type_error`。用法与易踩点见 `common/util/json/README.md`。
+
+**已核实为「误报」的文件**（读取点有类型校验或运行在已校验数据上，不需要改动）：
+- `EntityMetadataSerializer`：`value.get<T>()` 的接收者是 `EntityMetadataValue`，不是 JSON
+- `EntityFilter`：`compile()` 先跑 `_validate()` 做类型校验与字段归一化，`matches()` 只在已校验的 `m_filter` 上取值
+- `TreeDecorator` / `FeatureTypeRegistry` / `PlacedFeatureLoader` 的 `get<std::string>`：紧邻 `is_string()` 守卫
+- `CopyCustomDataFunction` 的 `context.get<Entity>()`：`LootContext::get` 是 `noexcept` 且返回 `nullptr`
+
+| 7. 开关就绪 | ✅ 完成 | `MC_ENABLE_NO_EXCEPTIONS` **默认 ON**（定义在 `cmake/BuildOptions.cmake`），全量构建通过；`MC_NO_EXCEPTIONS_TARGETS` 支持按 target 灰度（先 mc_common，再 server 各库，最后可执行文件）。**修正了 target 拓扑**：真正编译 src/ 的是 OBJECT 库（mc_gen / mc_server_shared / mc_server_storage / mc_bedrock_addon），只给可执行文件加选项对 99% 代码无效。PCH 须与使用方异常模式一致，故 mc_tests 在开关开启时改为自带 PCH |
+| 8. 命令子系统 | ✅ 完成 | `src/common/command` 与 `src/server/command` 下 **零 throw、零 catch**：CommandError 改为纯值类型、StringReader/ArgumentType/参数类型/CommandNode/CommandDispatcher 全部 Result 化、163 个命令文件解析链路无异常，测试改为断言 Result 失败 |
+
+### 阶段 8 已定的设计（✅ 方案已选）
+
+**错误载体**：`mc::Result<T, E = Error>` 泛化（已完成，见提交 `Result` 泛化）。命令子系统
+统一用 `Result<T, CommandError>`，`CommandError` 是**纯值类型**（不再继承
+`std::runtime_error`、不再被 throw），携带 `CommandErrorType` + `message`(翻译键) +
+`cursor` + `input`。跨子系统传播靠 `CommandError(const Error&)` 隐式转换——但注意
+`return e;` 涉及两次用户自定义转换时不合法，所以 `Result` 额外提供了「可转换为 E 的错误
+类型」构造函数，使 `MC_TRY` / `return someError;` 都能用。
+
+**StringReader**：`read()` / `readQuotedString()` / `readString()` / `readWord()` /
+`readBool()` / `readInt()` / `readInt(min,max)` / `readDouble()` / `readFloat()` /
+`readDouble(min,max)` / `expect()` 全部返回 `Result<T, CommandError>`。
+
+**实测规模（比原估算小得多，重要）**：
+- 命令子系统共 **126 处 `throw CommandError`**，集中在 **18 个文件**，而**不在** 163 个
+  `server/command/commands/*.cpp` 里——那些命令早已是「`source.sendError(...) + return 0`」
+  的非异常风格，命令函数签名 `std::function<i32(CommandContext<S>&)>` **不需要改**。
+- 只有 5 处例外：`ExecuteCommand`（2 处条件占位节点）、`ReturnCommand`（1 处）、
+  `ScheduleCommand`（2 处 `ERROR_SAME_TICK`/`ERROR_CANT_REMOVE`）。它们应改成
+  `source.sendError(...) + return 0`，与其余命令一致。
+- `StringReader` 的读方法在命令子系统里只有 **47 处调用点**（此前的 338 是全库 `.read*`
+  匹配，含大量文件读取）。
+
+**改造配方（逐文件，按依赖顺序）**：
+1. `errors/CommandErrors.hpp`：`CommandException`→`CommandError`（去 `runtime_error` 化）、
+   `Simple/DynamicCommandException`→`Simple/DynamicCommandError`、补 `toString()`（因为
+   `Result::value()` 断言要用它）与默认构造。
+2. `StringReader.hpp`：11 个方法返回 `Result<T, CommandError>`；循环内部已确认 `canRead()`
+   的地方改用 `peek()` + `skip()`，避免每个字符走一次 Result。
+3. `arguments/ArgumentType.hpp`：`virtual Result<T, CommandError> parse(StringReader&)`；
+   7 个内置实现 + `getString/getInteger/getFloat/getDouble/getBool` 静态取值方法同步改。
+4. `arguments/*.hpp` 的各参数类型 `parse` 覆盖（`GameModeArgument.hpp` 最大，1658 行 /
+   20+ 个 parse 覆盖；另有 `EntityArgument` / `NbtPathArgumentType` / `FunctionArgument` /
+   `ItemArgument` / `BlockStateArgument` / `DimensionArgument` / `ItemSlotArgument` /
+   `StyleArgument` / `TimeArgument` / `ResourceOrTagArgumentType`）。
+   高效流程：先 `perl -pi -e 's/\bthrow (CommandError\()/return $1/g'`，再让编译器逐个报
+   「返回类型不符」，按报错行改签名与 `reader.readX()` 调用点（用 `MC_TRY_DECLARE`）。
+5. `CommandNode.hpp`：`Parser` 改为 `std::function<Result<T, CommandError>(std::string_view, i32&)>`
+   （去掉原来的 `CommandError&` 出参）；`parse(StringReader&, context)` 改为返回
+   `Result<void, CommandError>`（Root/Literal/LiteralRecording/Argument 四处覆盖）。
+6. `CommandDispatcher.hpp`：解析循环里的 `try/catch` 改为检查返回值；`execute()` 里两处
+   `try/catch` 可直接去掉（命令函数不再抛）。
+7. 5 处命令内 throw 改为 `sendError + return 0`。
+8. 测试（42 个文件）改为断言 `Result` 失败而不是 `EXPECT_THROW`；测试 target 保留异常，
+   但调用点必须改，否则编译不过。
+
+**语法校验手段（本轮新增，强烈建议沿用）**：`./scripts/diag/syntax-check/syntax_check.sh <file.cpp>`
+会从 `build/compile_commands.json` 取该文件的真实编译参数、去掉 `-o/-c/-Xclang -include-pch`
+等（注意 `-Xclang -include` 要跳 4 个 token，跳 3 个会把 pch 路径当成输入文件）后加
+`-fsyntax-only` 编译单文件。**不需要整项目构建**就能拿到真实类型错误，非常适合这种
+「不能构建但要保证正确性」的迁移。
+
+**WIP 位置**：已把完成到第 6 步的半成品（`errors/CommandErrors.*`、`StringReader`、
+`ArgumentType`、`CommandNode`、`CommandDispatcher` 以及全局重命名）存入
+`git stash`（条目：`wip(command): 命令子系统去异常化…`）。继续时先 `git stash pop`，
+再从第 4 步（`arguments/*.hpp` 的 parse 覆盖）往下做。
+
+### 阶段 8 待决的设计问题（已解决，保留备查）
+
+命令子系统不能用现有 `Error` 直接替代 `CommandException`：解析错误需要携带
+`CommandErrorType`（决定翻译键/客户端提示）与**游标位置**（客户端高亮出错处），
+而 `Error` 目前只有 `code`/`message`/`source` 三个字符串字段。三种候选：
+
+1. 给 `mc::Error` 增加可选的 `i32 offset` 与错误类别字段（全局影响 `Result`，但保持单一错误类型）；
+2. 为命令子系统引入专用错误类型并配 `Result` 特化（与"统一 Result/Error 体系"冲突）；
+3. 保持 `CommandException` 作为**值类型**（不再 throw），用 `Result<T>` + 该类型做 payload。
+
+需先定方案，再动约 180 处调用点与 42 个测试文件。
+
+---
+
+## 八、建议路线图（原始估算）
 
 | 阶段                        | 内容                                                                                                                                | 规模                   | 预估       |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------- |
@@ -158,7 +253,32 @@
 
 ---
 
-## 八、结论
+## 八点五、去异常化落地结果（最终状态）
+
+**生产 target 已在 `-fno-exceptions` 下全量构建通过**（`minecraft-server` / `mc_tests` / `mc_benchmark` 均链接成功）。
+
+| target | 异常 | 说明 |
+| --- | --- | --- |
+| `mc_common`（STATIC） | 关闭 | 主体代码，6140 个 TU |
+| `mc_gen` / `mc_server_shared` / `mc_server_storage` / `mc_bedrock_addon`（OBJECT） | 关闭 | **真正编译 src/ 的就是这些库**，不是可执行文件 |
+| `minecraft-server`（可执行） | 关闭 | 仅含入口与少量 application 文件 |
+| `mc_tests` | **保留** | gtest 与死亡测试依赖；为兼容 PCH 改为自带 PCH |
+| `mc_benchmark` | **保留** | `benchmark/MemoryProfiler.cpp` 用全局 `operator new` 统计分配并 `throw std::bad_alloc`，本质依赖异常；属压测工具非交付产物 |
+
+**做法要点**：
+- `MC_ENABLE_NO_EXCEPTIONS` **默认 ON**，定义在 `cmake/BuildOptions.cmake`（与其余 `MC_*` 开关同处；顶层 `CMakeLists.txt` 只负责消费它并打印作用范围）。要临时回到带异常构建，`-DMC_ENABLE_NO_EXCEPTIONS=OFF`。
+- 分 target 灰度：`MC_NO_EXCEPTIONS_TARGETS` 可只对子集生效，先 `mc_common` 再 server 各库。
+- `Result<T, E = Error>` 泛化 + `CommandError` 值类型，命令子系统零 throw/catch。
+- JSON 边界统一 `util::json`（含 `getXxxOr` / `getInt32FromNumber` / `*At`），全库 `json::value(key, default)` 归零。
+- 文件系统用 `error_code` 重载；simdjson 用 `value_unsafe()`（已判 `error()` 后）。
+- 断言异常机制下沉为测试专用（`tests/unit/common/AssertExceptionSupport.cpp`），断言失败类测试改 `EXPECT_DEATH` / `EXPECT_EXIT`。
+
+**已知遗留（不阻塞构建）**：
+- 数值窄化静默回绕 272 处——属数据校验问题，非异常风险，另行处理。
+- 无类型守卫的 `.get<T>()` 约 35 处（服务端+common）——按用户决定本轮不加守卫。
+- `EnderDragonEntityTest.CheckCrystals_*` 三例为概率性 flaky；`BlockMapColorTableTest` 在与其他套件同跑时受注册表状态污染，隔离运行通过。
+
+## 九、结论
 
 - **技术上完全可行**，但 `-fno-exceptions` 的难点不在 219 处 `throw`，而在 **113 处头文件 throw + 208 个 try 块 + 4 个第三方库 + 约 900 处隐式抛异常的标准库 API**。
 - **性价比最高的第一批**是阶段 0+1+2（约 50 处改动，2–4 天），能立刻消除"编程错误静默/异常逃逸"问题，并为后续铺路。

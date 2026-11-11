@@ -35,7 +35,7 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -45,8 +45,8 @@ using mc::ItemId;
 using mc::Items;
 using mc::ItemStack;
 using mc::ResourceLocation;
+using mc::command::CommandError;
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
 using mc::command::ItemArgumentType;
 using mc::command::ItemInput;
 using mc::command::ItemPredicateArgumentType;
@@ -116,7 +116,9 @@ TEST_F(ItemArgumentTest, ParseSimpleItemName)
     // "diamond" — 简单物品名，默认命名空间为 minecraft
     ItemArgumentType parser;
     StringReader reader("diamond");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isValid());
     EXPECT_NE(result.getItem(), nullptr);
     EXPECT_EQ(result.getItem()->itemLocation().path(), "diamond");
@@ -127,7 +129,9 @@ TEST_F(ItemArgumentTest, ParseNamespacedItemName)
     // "minecraft:diamond" — 带命名空间
     ItemArgumentType parser;
     StringReader reader("minecraft:diamond");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isValid());
     EXPECT_NE(result.getItem(), nullptr);
     EXPECT_EQ(result.getItem()->itemLocation().namespace_(), "minecraft");
@@ -139,14 +143,14 @@ TEST_F(ItemArgumentTest, ParseUnknownItemThrows)
     // 不存在的物品应抛出异常
     ItemArgumentType parser;
     StringReader reader("minecraft:nonexistent_item_xyz");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(ItemArgumentTest, ParseEmptyInputThrows)
 {
     ItemArgumentType parser;
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 // ========== ItemPredicateInput 测试 ==========
@@ -314,7 +318,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseWildcard)
 {
     // "*" — 通配符，匹配任意物品
     StringReader reader("*");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result.mode(), ItemPredicateInput::Mode::Any);
     EXPECT_TRUE(result.isAny());
     EXPECT_EQ(reader.getCursor(), 1); // 消费了 "*"
@@ -324,7 +330,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagReference)
 {
     // "#minecraft:flowers" — 标签引用
     StringReader reader("#minecraft:flowers");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result.mode(), ItemPredicateInput::Mode::Tag);
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().namespace_(), "minecraft");
@@ -335,7 +343,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagReferenceNoNamespace)
 {
     // "#flowers" — 无命名空间的标签，默认为 minecraft
     StringReader reader("#flowers");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().namespace_(), "minecraft");
     EXPECT_EQ(result.tagId().path(), "flowers");
@@ -345,7 +355,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagReferenceCustomNamespace)
 {
     // "#mymod:custom_tag" — 自定义命名空间的标签
     StringReader reader("#mymod:custom_tag");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().namespace_(), "mymod");
     EXPECT_EQ(result.tagId().path(), "custom_tag");
@@ -355,7 +367,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseSpecificItem)
 {
     // "diamond" — 特定物品ID
     StringReader reader("diamond");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result.mode(), ItemPredicateInput::Mode::Item);
     EXPECT_TRUE(result.isItem());
     EXPECT_NE(result.getItem(), nullptr);
@@ -366,7 +380,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseNamespacedItem)
 {
     // "minecraft:diamond" — 带命名空间的物品ID
     StringReader reader("minecraft:diamond");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isItem());
     EXPECT_NE(result.getItem(), nullptr);
     EXPECT_EQ(result.getItem()->itemLocation().namespace_(), "minecraft");
@@ -377,7 +393,9 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagWithTrailingSpace)
 {
     // "#minecraft:flowers extra" — 标签引用后有空格
     StringReader reader("#minecraft:flowers extra");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().path(), "flowers");
     // 应该只消费 "#minecraft:flowers"（18 字符）
@@ -388,27 +406,27 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagHashOnlyThrows)
 {
     // "#" 后面没有标识符应抛出异常
     StringReader reader("#");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseTagHashSpaceThrows)
 {
     // "# " 后面只有空格应抛出异常
     StringReader reader("# ");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseUnknownItemThrows)
 {
     // 不存在的物品应抛出异常
     StringReader reader("minecraft:nonexistent_item_xyz");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseEmptyInputThrows)
 {
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 // ========== ItemPredicateArgumentType 类型信息测试 ==========
@@ -442,7 +460,9 @@ TEST_F(ItemPredicateArgumentTypeTest, TagStopsAtInvalidCharacters)
     // "#minecraft:flow!ers" — '!' 不是合法标识符字符
     // "#minecraft:flow" = 15 字符
     StringReader reader("#minecraft:flow!ers");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().path(), "flow");
     EXPECT_EQ(reader.getCursor(), 15);
@@ -452,7 +472,9 @@ TEST_F(ItemPredicateArgumentTypeTest, TagWithDigitsAndUnderscores)
 {
     // "#minecraft:tag_01" — 下划线和数字是合法的
     StringReader reader("#minecraft:tag_01");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isTag());
     EXPECT_EQ(result.tagId().path(), "tag_01");
 }
@@ -461,7 +483,9 @@ TEST_F(ItemPredicateArgumentTypeTest, WildcardOnlyMatchesSingleAsterisk)
 {
     // "*" 只消费一个字符
     StringReader reader("* extra");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_TRUE(result.isAny());
     EXPECT_EQ(reader.getCursor(), 1);
 }

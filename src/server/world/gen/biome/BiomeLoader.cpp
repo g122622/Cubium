@@ -30,6 +30,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/attribute/EnvironmentAttributeMap.hpp"
 #include "common/world/attribute/EnvironmentAttributes.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -46,6 +47,7 @@
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 
+#include "common/util/NumberParsing.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -197,12 +199,15 @@ Result<u32> parseColor(const std::string& colorStr)
     if (hex.size() != 6) {
         return Error(ErrorCode::InvalidData, "invalid color string: " + colorStr);
     }
-    try {
-        return static_cast<u32>(std::stoul(hex, nullptr, 16));
-    }
-    catch (...) {
+    auto parsed = util::parseUint64Base(hex, 16);
+    if (parsed.failed()) {
         return Error(ErrorCode::InvalidData, "invalid color string: " + colorStr);
     }
+    const u64 value = parsed.value();
+    if (value > 0xFFFFFFULL) {
+        return Error(ErrorCode::InvalidData, "color value out of range: " + colorStr);
+    }
+    return static_cast<u32>(value);
 }
 
 /**
@@ -561,14 +566,12 @@ Result<size_t> BiomeLoader::loadFromDataPackRepository(const resource::DataPackR
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse biome {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse biome {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {
@@ -612,14 +615,12 @@ Result<size_t> BiomeLoader::loadFromResourcePack(const resource::IResourcePack& 
                 continue;
             }
 
-            nlohmann::json jsonObj;
-            try {
-                jsonObj = nlohmann::json::parse(readResult.value());
-            }
-            catch (const nlohmann::json::parse_error& e) {
-                spdlog::warn("Failed to parse biome {}: {}", id.toString(), e.what());
+            auto jsonResult = util::json::parse(readResult.value());
+            if (jsonResult.failed()) {
+                spdlog::warn("Failed to parse biome {}: {}", id.toString(), jsonResult.error().message());
                 continue;
             }
+            auto jsonObj = std::move(jsonResult).value();
 
             auto parseResult = loadFromJson(jsonObj, id);
             if (parseResult.success()) {

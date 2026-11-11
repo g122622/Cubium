@@ -29,6 +29,7 @@
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/util/Base64.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -101,24 +102,24 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData)
 {
     SkinTextures textures;
 
-    try {
-        auto json = nlohmann::json::parse(jsonData);
-
-        // 检查是否有 textures 对象
-        if (!json.contains("textures") || !json["textures"].is_object()) {
-            return Error(ErrorCode::InvalidData, "Missing or invalid 'textures' object");
-        }
-
-        const auto& texturesObj = json["textures"];
-
-        // 解析 SKIN、CAPE、ELYTRA 三种纹理类型
-        _parseTexture(&texturesObj, "SKIN", textures);
-        _parseTexture(&texturesObj, "CAPE", textures);
-        _parseTexture(&texturesObj, "ELYTRA", textures);
+    auto parsedJson = util::json::parse(jsonData);
+    if (parsedJson.failed()) {
+        return Error(
+            ErrorCode::InvalidData, std::string("Failed to parse textures JSON: ") + parsedJson.error().message());
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse textures JSON: ") + e.what());
+    const auto& json = parsedJson.value();
+
+    // 检查是否有 textures 对象
+    if (!json.contains("textures") || !json["textures"].is_object()) {
+        return Error(ErrorCode::InvalidData, "Missing or invalid 'textures' object");
     }
+
+    const auto& texturesObj = json["textures"];
+
+    // 解析 SKIN、CAPE、ELYTRA 三种纹理类型
+    _parseTexture(&texturesObj, "SKIN", textures);
+    _parseTexture(&texturesObj, "CAPE", textures);
+    _parseTexture(&texturesObj, "ELYTRA", textures);
 
     return textures;
 }

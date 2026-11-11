@@ -25,6 +25,7 @@
 #include "SkinTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -172,14 +173,12 @@ std::array<u8, 16> GameProfile::parseUUID(const std::string& str)
     for (size_t i = 0; i < 16; ++i) {
         std::string byteStr = cleanStr.substr(i * 2, 2);
 
-        try {
-            u32 byte = std::stoul(byteStr, nullptr, 16);
-            uuid[i] = static_cast<u8>(byte);
-        }
-        catch (const std::exception& e) {
+        auto parsedByte = util::parseUint64Base(byteStr, 16);
+        if (parsedByte.failed()) {
             spdlog::warn("GameProfile::parseUUID: Failed to parse byte at position {}: {}", i, byteStr);
             return std::array<u8, 16>{}; // 返回全零
         }
+        uuid[i] = static_cast<u8>(parsedByte.value());
     }
 
     return uuid;

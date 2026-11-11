@@ -3,7 +3,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/SlotRanges.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 
 #include <string>
 
@@ -15,7 +15,7 @@ TEST(ItemSlotsArgumentTypeTest, ParsesKnownSlotNames)
     for (const char* name : {"container.*", "container.5", "weapon", "weapon.mainhand", "armor.head", "hotbar.3"}) {
         mc::command::StringReader reader(name);
         ItemSlotsArgumentType type;
-        EXPECT_EQ(type.parse(reader), std::string(name)) << "failed for '" << name << "'";
+        EXPECT_EQ(type.parse(reader).value(), std::string(name)) << "failed for '" << name << "'";
     }
 }
 
@@ -26,7 +26,7 @@ TEST(ItemSlotsArgumentTypeTest, RejectsUnknownSlotNames)
     for (const char* name : {"container.99", "not_a_slot", "Container.0", "armor.wings"}) {
         mc::command::StringReader reader(name);
         ItemSlotsArgumentType type;
-        EXPECT_THROW(type.parse(reader), mc::command::CommandException) << "should reject '" << name << "'";
+        EXPECT_TRUE(type.parse(reader).failed()) << "should reject '" << name << "'";
     }
 }
 
@@ -36,6 +36,6 @@ TEST(ItemSlotsArgumentTypeTest, CursorResetsOnUnknownSlot)
     mc::command::StringReader reader("container.99");
     ItemSlotsArgumentType type;
     const int start = reader.getCursor();
-    EXPECT_THROW(type.parse(reader), mc::command::CommandException);
+    EXPECT_TRUE(type.parse(reader).failed());
     EXPECT_EQ(reader.getCursor(), start);
 }

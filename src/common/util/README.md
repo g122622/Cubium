@@ -14,6 +14,7 @@ util/
 │   ├── CrashHandler.hpp           # 崩溃处理器（SEH/信号捕获+调用栈+局部变量输出）
 │   ├── CrashHandler.cpp           # 崩溃处理器实现
 │   └── README.md                  # 详细文档
+├── json/                          # 外部输入的 JSON 读取边界（详见 README.md）
 ├── cache/                         # LRU 缓存实现
 │   ├── Long2IntLRUCache.hpp/cpp   # 链表+哈希表实现
 │   ├── OpenAddressingLRUCache.hpp/cpp  # 开放寻址实现（推荐）
