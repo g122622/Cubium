@@ -206,13 +206,11 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
 
 Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJsonString(std::string_view jsonText)
 {
-    try {
-        auto json = nlohmann::json::parse(jsonText.begin(), jsonText.end());
-        return fromJson(json);
+    auto json = util::json::parse(jsonText);
+    if (json.failed()) {
+        return json.error();
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::InvalidData, e.what());
-    }
+    return fromJson(json.value());
 }
 
 } // namespace mc::command

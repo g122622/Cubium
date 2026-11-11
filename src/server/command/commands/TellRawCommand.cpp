@@ -33,6 +33,7 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -98,12 +99,10 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
     // 合法 JSON（含纯文本字符串）→ 复杂/折叠 Component NBT；解析失败回退为纯文本 StringTag。
     std::vector<u8> contentNbt;
     bool jsonValid = false;
-    try {
-        nlohmann::json json = nlohmann::json::parse(jsonMessage);
+    if (mc::util::json::parse(jsonMessage).success()) {
         jsonValid = true;
         contentNbt = ::mc::text::parseJsonComponentToNbtBytes(jsonMessage);
-    }
-    catch (const nlohmann::json::exception&) {
+    } else {
         // 非合法 JSON：按纯文本发送（对齐 vanilla tellraw 对非 JSON 输入的宽容处理）
         contentNbt = ::mc::text::plainTextToNbtBytes(jsonMessage);
     }
