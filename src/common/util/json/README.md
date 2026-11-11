@@ -21,8 +21,8 @@ src/common/util/json/
 **必须**（外部不可信输入：数据包 JSON、存档文件、网络载荷里的 JSON 文本、命令里的 SNBT 转 JSON）：
 
 - 解析：`util::json::parse(text)` / `util::json::parse(stream)` —— 不要用 `json::parse` / `operator>>` / `file >> json`
-- 取值：`getInt32` / `getInt64` / `getFloat32` / `getFloat64` / `getBool` / `getString` /
-  `getObject` / `getArray` —— 不要用 `.get<T>()` / `.at()`
+- 取值：`getInt32` / `getInt64` / `getFloat32` / `getFloat64` / `getBool` / `getString` ——
+  不要用 `.get<T>()` / `.at()`
 - 可选字段带默认值：`getInt32Or` / `getInt64Or` / `getFloat32Or` / `getFloat64Or` /
   `getBoolOr` / `getStringOr` / `getObjectOrEmpty` —— 不要用 `json::value(key, default)`
 - 可选字段无默认值：`findField`（返回 `const json*`）/ `hasField`，判空后使用
@@ -57,10 +57,16 @@ src/common/util/json/
 `nlohmann::json::parse("")` 在 `allow_exceptions=false` 下返回 discarded，本层据此返回
 `InvalidData`。不要指望"空文本解析成 null"——需要可选语义时由调用方先判空。
 
-### 2. `getObject` / `getArray` 返回引用
+### 2. 嵌套对象/数组不走 `Result`
 
-它们返回 `Result<const nlohmann::json&>`，引用指向**传入的 json**，不是副本。不要把它
-存进比源 json 活得更久的变量里。
+本层只负责「不可信文本 → JSON 值」和「JSON 值 → C++ 标量」两步。**不要**为嵌套对象/数组
+再包一层 `Result<const json&>`：`Result<T>` 内部用 `std::optional<T>` 存值，而
+`std::optional<T&>` 在标准里是 ill-formed，绕过去只能退化成裸指针，把「可空」和「引用」
+两层语义混在一起。
+
+嵌套访问按需二选一：
+- 可选字段：`getObjectOrEmpty`（返回 `const json&`，缺失/类型不符时返回空对象）
+- 必填字段：`findField` + `is_object()` / `is_array()` 判定后给出明确错误
 
 ### 3. 浮点 getter 接受整数
 

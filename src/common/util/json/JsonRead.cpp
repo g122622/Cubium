@@ -368,36 +368,4 @@ Result<std::string> getStringAt(const nlohmann::json& value, std::size_t index)
     return getString(*element);
 }
 
-Result<const nlohmann::json&> getObjectAt(const nlohmann::json& value, std::size_t index)
-{
-    const auto* element = _arrayElement(value, index);
-    if (element == nullptr) {
-        return _indexOutOfRange(index);
-    }
-    if (!element->is_object()) {
-        return Error(ErrorCode::InvalidData, "JSON: array element must be an object");
-    }
-    return *element;
-}
-
-Result<const nlohmann::json&> getObject(const nlohmann::json& value, std::string_view field)
-{
-    Error error{ErrorCode::Success};
-    const auto* field_value = _requireType(value, field, nlohmann::json::value_t::object, "an object", error);
-    if (field_value == nullptr) {
-        return error;
-    }
-    return *field_value;
-}
-
-Result<const nlohmann::json&> getArray(const nlohmann::json& value, std::string_view field)
-{
-    Error error{ErrorCode::Success};
-    const auto* field_value = _requireType(value, field, nlohmann::json::value_t::array, "an array", error);
-    if (field_value == nullptr) {
-        return error;
-    }
-    return *field_value;
-}
-
 } // namespace mc::util::json

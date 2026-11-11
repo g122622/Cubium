@@ -123,14 +123,6 @@ namespace mc::util::json {
 [[nodiscard]] Result<f64> getFloat64At(const nlohmann::json& value, std::size_t index);
 [[nodiscard]] Result<bool> getBoolAt(const nlohmann::json& value, std::size_t index);
 [[nodiscard]] Result<std::string> getStringAt(const nlohmann::json& value, std::size_t index);
-[[nodiscard]] Result<const nlohmann::json&> getObjectAt(const nlohmann::json& value, std::size_t index);
-
-/**
- * @brief 取对象 / 数组的常量引用（必须类型匹配）
- */
-[[nodiscard]] Result<const nlohmann::json&> getObject(const nlohmann::json& value, std::string_view field);
-[[nodiscard]] Result<const nlohmann::json&> getArray(const nlohmann::json& value, std::string_view field);
-
 /**
  * @brief 检查字段是否存在（键存在即真，不校验类型）
  */

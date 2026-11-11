@@ -1,21 +1,35 @@
 #!/usr/bin/env bash
 #
-# 单文件语法检查：复用 build/compile_commands.json 里该文件的真实编译参数，
+# 单文件语法检查：复用 build/compile_commands.json 里的真实编译参数，
 # 去掉 -o/-c 与 PCH 参数后加 -fsyntax-only 编译。
 #
-# 用途：不触发整项目构建（不产出 .o、不链接）就能拿到真实的类型错误，
-# 适合「重构数量大、但不希望每次都跑全量构建」的场景。
+# 用途：不触发整项目构建（不产出 .o、不链接）就能拿到真实的类型错误。
 #
 # 用法：
 #   ./scripts/diag/syntax-check/syntax_check.sh src/common/command/CommandNode.cpp
 #
-# 前提：已经用任意 preset 配置过 build/（compile_commands.json 存在）。
+# 退出码：
+#   0  编译通过
+#   1  编译失败（有 error）
+#   3  compile_commands.json 里没有该文件，且找不到同目录可借用的参数
+#      —— 这通常意味着「文件是新加的，但 CMake 还没重新 configure」，
+#         此时本脚本**不能**给出「通过」的结论，必须显式失败。
+#
+# 【重要】本脚本曾经在「找不到编译条目」时只打印一行提示就退出，
+# 被批量扫描用 `grep -c "error:"` 判 0 当成通过，导致一个根本编译不过的
+# 新文件（Result<const json&> 在 std::optional<T&> 上非法）一路提交。
+# 现在找不到条目会明确失败并给出可操作提示，杜绝这种静默放过。
 set -u
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 target="${1:?用法: syntax_check.sh <源文件相对仓库根的路径>}"
 
 cd "$repo_root" || exit 1
+
+if [[ ! -f build/compile_commands.json ]]; then
+    echo "错误: build/compile_commands.json 不存在，请先执行 cmake --preset <preset> 配置。" >&2
+    exit 3
+fi
 
 python3 - "$target" <<'PY' > /tmp/dsh_syntax_check_cmd.sh
 import json
@@ -26,18 +40,26 @@ import sys
 target = os.path.abspath(sys.argv[1])
 database = json.load(open('build/compile_commands.json'))
 
-command = None
-for entry in database:
-    if os.path.abspath(entry['file']) == target:
-        command = entry['command']
-        break
+entry = next((item for item in database if os.path.abspath(item['file']) == target), None)
 
-if command is None:
-    sys.stderr.write('compile_commands.json 中没有该文件的编译条目: %s\n' % target)
-    print('exit 9')
-    raise SystemExit
+borrowed_from = None
+if entry is None:
+    # 新文件可能还没进 compile_commands.json（CMake 未重新 configure）。
+    # 退而求其次：借用同目录下任一 .cpp 的参数，只替换输入文件路径。
+    target_dir = os.path.dirname(target)
+    candidates = [item for item in database
+                  if os.path.dirname(os.path.abspath(item['file'])) == target_dir]
+    if not candidates:
+        sys.stderr.write(
+            '错误: compile_commands.json 中没有 %s，且同目录无可借用参数。\n'
+            '      请先重新 configure（cmake --preset macos-relwithdebinfo-server），'
+            '并确认该文件已加入 CMakeLists。\n' % target)
+        print('exit 3')
+        raise SystemExit
+    entry = candidates[0]
+    borrowed_from = os.path.abspath(entry['file'])
 
-parts = shlex.split(command)
+parts = shlex.split(entry['command'])
 result = []
 index = 0
 while index < len(parts):
@@ -56,11 +78,18 @@ while index < len(parts):
     result.append(part)
     index += 1
 
+# 借用参数时，把原条目里的源文件路径替换成目标文件
+if borrowed_from is not None:
+    result = [target if os.path.abspath(token) == borrowed_from else token for token in result]
+
 result.append('-fsyntax-only')
 # 不限制错误条数：迁移类任务需要一次看到全部不匹配点
 result.append('-ferror-limit=0')
 result.append(target)
 print(' '.join(shlex.quote(token) for token in result))
+if borrowed_from is not None:
+    sys.stderr.write('提示: %s 不在 compile_commands.json 中，借用 %s 的编译参数。\n'
+                     % (target, borrowed_from))
 PY
 
 bash /tmp/dsh_syntax_check_cmd.sh

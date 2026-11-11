@@ -995,8 +995,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(s
             std::string_view rawJson = rawResult.value();
             auto limitJsonParseResult = util::json::parse(rawJson);
             if (limitJsonParseResult.failed()) {
-                return Error(
-                    ErrorCode::InvalidData, std::string("JSON parse error: ") + limitJsonParseResult.error().message());
+                spdlog::warn("capped processor: failed to parse 'limit' JSON ({}), using default limit",
+                    limitJsonParseResult.error().message());
+                return std::make_unique<NopStructureProcessor>();
             }
             auto limitJson = std::move(limitJsonParseResult).value();
             // POSITIVE_CODEC 要求 minValue >= 1

@@ -120,8 +120,6 @@ TEST(JsonReadTest, TypedGettersMissingField)
     EXPECT_TRUE(util::json::getFloat64(document, "missing").failed());
     EXPECT_TRUE(util::json::getBool(document, "missing").failed());
     EXPECT_TRUE(util::json::getString(document, "missing").failed());
-    EXPECT_TRUE(util::json::getObject(document, "missing").failed());
-    EXPECT_TRUE(util::json::getArray(document, "missing").failed());
 }
 
 TEST(JsonReadTest, TypedGettersTypeMismatch)
@@ -135,8 +133,6 @@ TEST(JsonReadTest, TypedGettersTypeMismatch)
     EXPECT_TRUE(util::json::getFloat32(document, "s").failed());
     EXPECT_TRUE(util::json::getBool(document, "i").failed());
     EXPECT_TRUE(util::json::getString(document, "i").failed());
-    EXPECT_TRUE(util::json::getObject(document, "i").failed());
-    EXPECT_TRUE(util::json::getArray(document, "i").failed());
 }
 
 TEST(JsonReadTest, FloatGetterAcceptsIntegers)
@@ -145,21 +141,6 @@ TEST(JsonReadTest, FloatGetterAcceptsIntegers)
     auto parsed = util::json::parse(R"({"f":2})");
     ASSERT_TRUE(parsed.success());
     EXPECT_FLOAT_EQ(util::json::getFloat32(parsed.value(), "f").value(), 2.0f);
-}
-
-TEST(JsonReadTest, GetObjectAndArray)
-{
-    auto parsed = util::json::parse(R"({"o":{"k":1},"a":[1,2,3]})");
-    ASSERT_TRUE(parsed.success());
-    const auto& document = parsed.value();
-
-    auto object = util::json::getObject(document, "o");
-    ASSERT_TRUE(object.success());
-    EXPECT_EQ(object.value().at("k").get<i32>(), 1);
-
-    auto array = util::json::getArray(document, "a");
-    ASSERT_TRUE(array.success());
-    EXPECT_EQ(array.value().size(), 3u);
 }
 
 TEST(JsonReadTest, ValueOnlyOverloads)
