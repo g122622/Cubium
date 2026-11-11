@@ -253,6 +253,30 @@
 
 ---
 
+## 八点五、去异常化落地结果（最终状态）
+
+**生产 target 已在 `-fno-exceptions` 下全量构建通过**（`minecraft-server` / `mc_tests` / `mc_benchmark` 均链接成功）。
+
+| target | 异常 | 说明 |
+| --- | --- | --- |
+| `mc_common`（STATIC） | 关闭 | 主体代码，6140 个 TU |
+| `mc_gen` / `mc_server_shared` / `mc_server_storage` / `mc_bedrock_addon`（OBJECT） | 关闭 | **真正编译 src/ 的就是这些库**，不是可执行文件 |
+| `minecraft-server`（可执行） | 关闭 | 仅含入口与少量 application 文件 |
+| `mc_tests` | **保留** | gtest 与死亡测试依赖；为兼容 PCH 改为自带 PCH |
+| `mc_benchmark` | **保留** | `benchmark/MemoryProfiler.cpp` 用全局 `operator new` 统计分配并 `throw std::bad_alloc`，本质依赖异常；属压测工具非交付产物 |
+
+**做法要点**：
+- 分 target 灰度：`MC_NO_EXCEPTIONS_TARGETS` 可只对子集生效，先 `mc_common` 再 server 各库。
+- `Result<T, E = Error>` 泛化 + `CommandError` 值类型，命令子系统零 throw/catch。
+- JSON 边界统一 `util::json`（含 `getXxxOr` / `getInt32FromNumber` / `*At`），全库 `json::value(key, default)` 归零。
+- 文件系统用 `error_code` 重载；simdjson 用 `value_unsafe()`（已判 `error()` 后）。
+- 断言异常机制下沉为测试专用（`tests/unit/common/AssertExceptionSupport.cpp`），断言失败类测试改 `EXPECT_DEATH` / `EXPECT_EXIT`。
+
+**已知遗留（不阻塞构建）**：
+- 数值窄化静默回绕 272 处——属数据校验问题，非异常风险，另行处理。
+- 无类型守卫的 `.get<T>()` 约 35 处（服务端+common）——按用户决定本轮不加守卫。
+- `EnderDragonEntityTest.CheckCrystals_*` 三例为概率性 flaky；`BlockMapColorTableTest` 在与其他套件同跑时受注册表状态污染，隔离运行通过。
+
 ## 九、结论
 
 - **技术上完全可行**，但 `-fno-exceptions` 的难点不在 219 处 `throw`，而在 **113 处头文件 throw + 208 个 try 块 + 4 个第三方库 + 约 900 处隐式抛异常的标准库 API**。
