@@ -43,6 +43,7 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
@@ -1093,13 +1094,15 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
     // 数量：与 toJson 的写出键对应
     i32 count = 1;
     if (json.contains("Count") && json["Count"].is_number()) {
-        count = json["Count"].get<i32>();
+        MC_TRY_ASSIGN(count, util::json::getInt32FromNumber(json["Count"]));
     }
 
     ItemStack stack(item, count);
 
     if (json.contains("Damage") && json["Damage"].is_number()) {
-        stack.setDamage(json["Damage"].get<i32>());
+        i32 damage = 0;
+        MC_TRY_ASSIGN(damage, util::json::getInt32FromNumber(json["Damage"]));
+        stack.setDamage(damage);
     }
 
     if (json.contains("Enchantments")) {
@@ -1131,10 +1134,11 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
 
     // 数据组件覆盖（与 toJson 的写出键对应）
     if (json.contains("minecraft:max_stack_size") && json["minecraft:max_stack_size"].is_number()) {
-        stack._ensureExtras().maxStackSizeOverride = json["minecraft:max_stack_size"].get<i32>();
+        MC_TRY_ASSIGN(
+            stack._ensureExtras().maxStackSizeOverride, util::json::getInt32(json["minecraft:max_stack_size"]));
     }
     if (json.contains("minecraft:max_damage") && json["minecraft:max_damage"].is_number()) {
-        stack._ensureExtras().maxDamageOverride = json["minecraft:max_damage"].get<i32>();
+        MC_TRY_ASSIGN(stack._ensureExtras().maxDamageOverride, util::json::getInt32(json["minecraft:max_damage"]));
     }
     if (json.contains("minecraft:unbreakable") && json["minecraft:unbreakable"].is_boolean()) {
         stack.setUnbreakable(json["minecraft:unbreakable"].get<bool>());
@@ -1154,28 +1158,30 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         }
     }
     if (json.contains("minecraft:enchantable") && json["minecraft:enchantable"].is_number()) {
-        stack.setEnchantableOverride(json["minecraft:enchantable"].get<i32>());
+        i32 enchantable = 0;
+        MC_TRY_ASSIGN(enchantable, util::json::getInt32(json["minecraft:enchantable"]));
+        stack.setEnchantableOverride(enchantable);
     }
     if (json.contains("minecraft:attack_range") && json["minecraft:attack_range"].is_object()) {
         const auto& ar = json["minecraft:attack_range"];
         item::component::AttackRange range{};
-        if (ar.contains("min_reach")) {
-            range.minRange = ar["min_reach"].get<f32>();
+        if (ar.contains("min_reach") && ar["min_reach"].is_number()) {
+            MC_TRY_ASSIGN(range.minRange, util::json::getFloat32(ar["min_reach"]));
         }
-        if (ar.contains("max_reach")) {
-            range.maxRange = ar["max_reach"].get<f32>();
+        if (ar.contains("max_reach") && ar["max_reach"].is_number()) {
+            MC_TRY_ASSIGN(range.maxRange, util::json::getFloat32(ar["max_reach"]));
         }
-        if (ar.contains("min_creative_reach")) {
-            range.minCreativeRange = ar["min_creative_reach"].get<f32>();
+        if (ar.contains("min_creative_reach") && ar["min_creative_reach"].is_number()) {
+            MC_TRY_ASSIGN(range.minCreativeRange, util::json::getFloat32(ar["min_creative_reach"]));
         }
-        if (ar.contains("max_creative_reach")) {
-            range.maxCreativeRange = ar["max_creative_reach"].get<f32>();
+        if (ar.contains("max_creative_reach") && ar["max_creative_reach"].is_number()) {
+            MC_TRY_ASSIGN(range.maxCreativeRange, util::json::getFloat32(ar["max_creative_reach"]));
         }
-        if (ar.contains("hitbox_margin")) {
-            range.hitboxMargin = ar["hitbox_margin"].get<f32>();
+        if (ar.contains("hitbox_margin") && ar["hitbox_margin"].is_number()) {
+            MC_TRY_ASSIGN(range.hitboxMargin, util::json::getFloat32(ar["hitbox_margin"]));
         }
-        if (ar.contains("mob_factor")) {
-            range.mobFactor = ar["mob_factor"].get<f32>();
+        if (ar.contains("mob_factor") && ar["mob_factor"].is_number()) {
+            MC_TRY_ASSIGN(range.mobFactor, util::json::getFloat32(ar["mob_factor"]));
         }
         stack.setAttackRange(range);
     }
@@ -1223,7 +1229,7 @@ Result<ItemStack> ItemStack::fromJson(const nlohmann::json& json)
         const auto& fireworksJson = json["minecraft:fireworks"];
         item::component::Fireworks fireworks{};
         if (fireworksJson.contains("flight_duration") && fireworksJson["flight_duration"].is_number()) {
-            fireworks.flightDuration = fireworksJson["flight_duration"].get<i32>();
+            MC_TRY_ASSIGN(fireworks.flightDuration, util::json::getInt32(fireworksJson["flight_duration"]));
         }
         if (fireworksJson.contains("explosions") && fireworksJson["explosions"].is_array()) {
             for (const auto& explosionJson : fireworksJson["explosions"]) {
@@ -1255,10 +1261,11 @@ item::component::FireworkExplosion ItemStack::_fireworkExplosionFromJson(const n
         }
         colors.reserve(it->size());
         for (const auto& element : *it) {
-            if (element.is_number_integer()) {
-                colors.push_back(element.get<i32>());
+            const auto color = util::json::getInt32(element);
+            if (color.success()) {
+                colors.push_back(color.value());
             } else {
-                spdlog::warn("Ignoring non-integer firework color entry in '{}'", key);
+                spdlog::warn("Ignoring invalid firework color entry in '{}'", key);
             }
         }
         return colors;
@@ -1360,7 +1367,13 @@ item::component::DataComponentPatch ItemStack::toComponentPatch() const
         if (custom.contains("StoredEnchantments")) {
             item::enchant::EnchantmentContainer stored;
             for (const auto& entry : custom["StoredEnchantments"]) {
-                stored.set(entry.at("id").get<std::string>(), entry.at("lvl").get<i32>());
+                const auto id = util::json::getString(entry, "id");
+                const auto level = util::json::getInt32(entry, "lvl");
+                if (id.failed() || level.failed()) {
+                    spdlog::warn("Ignoring malformed StoredEnchantments entry");
+                    continue;
+                }
+                stored.set(id.value(), level.value());
             }
             patch.add(DataComponentType::StoredEnchantments,
                 DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Enchantments>, std::move(stored)});

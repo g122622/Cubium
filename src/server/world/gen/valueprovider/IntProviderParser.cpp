@@ -24,6 +24,7 @@
 #include "IntProviderParser.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "server/world/gen/valueprovider/IntProvider.hpp"
 
 #include <cstddef>
@@ -65,7 +66,8 @@ Result<std::unique_ptr<IntProvider>> _parseConstant(const nlohmann::json& valueO
     if (!valueObj.contains("value") || !valueObj["value"].is_number_integer()) {
         return Error(ErrorCode::InvalidData, "IntProvider constant: missing or invalid 'value' field");
     }
-    i32 value = valueObj["value"].get<i32>();
+    i32 value = 0;
+    MC_TRY_ASSIGN(value, util::json::getInt32(valueObj, "value"));
     return Result<std::unique_ptr<IntProvider>>(std::make_unique<ConstantInt>(value));
 }
 
@@ -82,8 +84,10 @@ Result<std::unique_ptr<IntProvider>> _parseUniform(const nlohmann::json& valueOb
     if (!valueObj.contains("max_inclusive") || !valueObj["max_inclusive"].is_number_integer()) {
         return Error(ErrorCode::InvalidData, "IntProvider uniform: missing or invalid 'max_inclusive' field");
     }
-    i32 minInclusive = valueObj["min_inclusive"].get<i32>();
-    i32 maxInclusive = valueObj["max_inclusive"].get<i32>();
+    i32 minInclusive = 0;
+    MC_TRY_ASSIGN(minInclusive, util::json::getInt32(valueObj, "min_inclusive"));
+    i32 maxInclusive = 0;
+    MC_TRY_ASSIGN(maxInclusive, util::json::getInt32(valueObj, "max_inclusive"));
     if (minInclusive > maxInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format("IntProvider uniform: min_inclusive({}) > max_inclusive({})", minInclusive, maxInclusive));
@@ -104,8 +108,10 @@ Result<std::unique_ptr<IntProvider>> _parseBiasedToBottom(const nlohmann::json& 
     if (!valueObj.contains("max_inclusive") || !valueObj["max_inclusive"].is_number_integer()) {
         return Error(ErrorCode::InvalidData, "IntProvider biased_to_bottom: missing or invalid 'max_inclusive' field");
     }
-    i32 minInclusive = valueObj["min_inclusive"].get<i32>();
-    i32 maxInclusive = valueObj["max_inclusive"].get<i32>();
+    i32 minInclusive = 0;
+    MC_TRY_ASSIGN(minInclusive, util::json::getInt32(valueObj, "min_inclusive"));
+    i32 maxInclusive = 0;
+    MC_TRY_ASSIGN(maxInclusive, util::json::getInt32(valueObj, "max_inclusive"));
     if (minInclusive > maxInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format(
@@ -136,8 +142,10 @@ Result<std::unique_ptr<IntProvider>> _parseClamped(const nlohmann::json& valueOb
         return sourceResult.error();
     }
 
-    i32 minInclusive = valueObj["min_inclusive"].get<i32>();
-    i32 maxInclusive = valueObj["max_inclusive"].get<i32>();
+    i32 minInclusive = 0;
+    MC_TRY_ASSIGN(minInclusive, util::json::getInt32(valueObj, "min_inclusive"));
+    i32 maxInclusive = 0;
+    MC_TRY_ASSIGN(maxInclusive, util::json::getInt32(valueObj, "max_inclusive"));
     if (minInclusive > maxInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format("IntProvider clamped: min_inclusive({}) > max_inclusive({})", minInclusive, maxInclusive));
@@ -167,10 +175,14 @@ Result<std::unique_ptr<IntProvider>> _parseClampedNormal(const nlohmann::json& v
         return Error(ErrorCode::InvalidData, "IntProvider clamped_normal: missing or invalid 'max_inclusive' field");
     }
 
-    f64 mean = valueObj["mean"].get<f64>();
-    f64 deviation = valueObj["deviation"].get<f64>();
-    i32 minInclusive = valueObj["min_inclusive"].get<i32>();
-    i32 maxInclusive = valueObj["max_inclusive"].get<i32>();
+    f64 mean = 0;
+    MC_TRY_ASSIGN(mean, util::json::getFloat64(valueObj, "mean"));
+    f64 deviation = 0;
+    MC_TRY_ASSIGN(deviation, util::json::getFloat64(valueObj, "deviation"));
+    i32 minInclusive = 0;
+    MC_TRY_ASSIGN(minInclusive, util::json::getInt32(valueObj, "min_inclusive"));
+    i32 maxInclusive = 0;
+    MC_TRY_ASSIGN(maxInclusive, util::json::getInt32(valueObj, "max_inclusive"));
     if (minInclusive > maxInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format(
@@ -217,7 +229,8 @@ Result<std::unique_ptr<IntProvider>> _parseWeightedList(const nlohmann::json& va
             return dataResult.error();
         }
 
-        i32 weight = entry["weight"].get<i32>();
+        i32 weight = 0;
+        MC_TRY_ASSIGN(weight, util::json::getInt32(entry, "weight"));
         if (weight < 0) {
             return Error(ErrorCode::InvalidData,
                 fmt::format("IntProvider weighted_list: entry[{}] has negative weight {}", i, weight));
@@ -241,7 +254,8 @@ Result<std::unique_ptr<IntProvider>> parse(
 {
     // 裸整数简写: 5 -> ConstantInt(5)
     if (json.is_number_integer()) {
-        i32 value = json.get<i32>();
+        i32 value = 0;
+        MC_TRY_ASSIGN(value, util::json::getInt32(json));
         auto provider = std::make_unique<ConstantInt>(value);
         // 校验范围
         if (minInclusive && provider->getMinValue() < *minInclusive) {
