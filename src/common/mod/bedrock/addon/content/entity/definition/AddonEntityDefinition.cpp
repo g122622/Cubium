@@ -34,6 +34,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -518,6 +519,37 @@ public:
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
         return components != nullptr && components->has("minecraft:rideable");
+    }
+
+    /**
+     * @brief 判定某个实体能否作为本实体的乘客
+     *
+     * 在基类"座位未满"的基础上，额外执行
+     * `minecraft:rideable.family_types` 白名单：声明了非空列表时，
+     * 只有属于其中某个家族的实体才能上去。
+     */
+    [[nodiscard]] bool canAddPassenger(const Entity& passenger) const override
+    {
+        if (!mc::AgeableEntity::canAddPassenger(passenger)) {
+            return false;
+        }
+
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* rideable = components != nullptr ? components->component("minecraft:rideable") : nullptr;
+        if (rideable == nullptr) {
+            return true;
+        }
+        const auto types = rideable->find("family_types");
+        if (types == rideable->end() || !types->is_array() || types->empty()) {
+            return true;
+        }
+
+        for (const auto& entry : *types) {
+            if (entry.is_string() && entityHasFamily(passenger, entry.get_ref<const std::string&>())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     [[nodiscard]] bool tryHealFromItem(ItemStack& stack, Player& player) override
@@ -1264,10 +1296,14 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData, "minecraft:rideable interact_text must be a nonempty string");
             }
             // TODO: seats 的每座位坐标（position）与旋转（rotate_rider_by 等 Molang）、
-            //   family_types 的白名单过滤、pull_in_entities 的吸附、dismount_mode 的下马落点、
+            //   pull_in_entities 的吸附、dismount_mode 的下马落点、
             //   on_rider_enter/exit_event 的事件派发均未接入。这些都需要骑乘座位点的运行时表达，
-            //   而项目当前只有"乘客挂在载具上"这一个整体关系、没有多座位概念。
-            //   目前已生效的只有 seat_count（见 _AddonMob::getMaxPassengers）。
+            //   而项目当前只有"乘客挂在载具上"这一个整体关系、没有多座位概念
+            //   （检索 seatIndex / getSeat / passengerIndex / seat_position 均无结果）。
+            //   目前已生效：seat_count（_AddonMob::getMaxPassengers）与
+            //   family_types 白名单（_AddonMob::canAddPassenger 经 entityHasFamily 判定）。
+            //   controlling_seat 仍只校验未消费——它要选中"由哪个座位控制移动"，
+            //   同样依赖多座位模型。
         } else if (name == "minecraft:healable") {
             // 三个字段：filters（交互前置条件）、force_use（满血也能用）、items（物品 → 治疗量）。
             // items 每项含 item（必填资源位置）、heal_amount（默认 1）、effects（可选效果列表）。
