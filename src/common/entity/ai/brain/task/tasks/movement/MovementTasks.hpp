@@ -529,31 +529,35 @@ private:
  * 当需要隐蔽时，搜索附近的床或安全区域，设置 HIDING_PLACE 和 WALK_TARGET 记忆。
  * 实际移动由 MoveToTargetTask 执行。
  *
- * TODO(hiding-place-selflock): 本任务存在自锁缺陷。门槛要求 HIDING_PLACE 为
- * VALUE_ABSENT，而本任务执行时**自己写入** HIDING_PLACE（见下方 setMemory）。
- * 全仓没有任何代码 getMemory 或 removeMemory 这个记忆——所以首次执行成功后，
- * 门槛永久为 false，该任务此后再也不会运行。
+ * 曾经存在一个自锁缺陷（已修复，记录在此以免回归）：门槛原本还要求 HIDING_PLACE 为
+ * VALUE_ABSENT，而本任务执行时**自己写入** HIDING_PLACE；全仓又没有代码清除它，
+ * 于是首次执行成功后门槛永久为 false，任务此后再也不会运行。
  * 门槛的强制点在 Task.hpp 的 `_hasRequiredMemories(owner) && shouldExecute(...)`
- * ——声明的要求先于 shouldExecute 检查，因此本类 shouldExecute 里那套
- * "被伤害/听到铃声"的判断在 HIDING_PLACE 写入后再也不会被调用。
- * 下方"不清除 HIDING_PLACE 记忆，让其他逻辑决定何时清除"的注释描述的逻辑
- * **并不存在**。
- * 两处需要补齐：(1) 某个消费方读取 HIDING_PLACE 并在抵达/危险解除后清除它；
- * 或 (2) 若这个记忆本就不需要跨 tick 保留，改成用完即 removeMemory。
+ * ——声明的要求先于 shouldExecute 检查，因此当时的症状是：本类 shouldExecute 里那套
+ * "被伤害/听到铃声"的判断只在第一次生效，之后成了永不执行的死代码。
+ *
+ * 修复方式：把 HIDING_PLACE 从门槛中移除，只保留 WALK_TARGET 缺席作为门槛。
+ * HIDING_PLACE 仍然照写（供将来真正需要它的消费方使用）。
+ *
+ * TODO(hiding-place-consumer): HIDING_PLACE 目前**仍然没有消费方**——写入后没有任何
+ * 代码读取或清除它。补齐时应由消费方在抵达隐蔽点或危险解除后 removeMemory，
+ * 否则该记忆会一直残留着上一次的隐蔽坐标。
  *
  * 已做过一次全目录系统扫描（条件：任务自己 setMemory 的某个记忆同时出现在它自己的
  * VALUE_ABSENT 门槛里）：命中的只有 HIDING_PLACE、WALK_TARGET、BREED_TARGET 三项。
  * 后两者各有 removeMemory（WALK_TARGET 8 处、BREED_TARGET 1 处）会正常清除，
- * **只有 HIDING_PLACE 全仓 0 处清除**，因此是本目录内唯一的真自锁。
+ * HIDING_PLACE 是其中唯一 0 处清除的，也是唯一需要修复的。
  */
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
 public:
     FindHiddenBlockTask(f32 speed = 1.0f)
-        : Task<E>({{MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::VALUE_ABSENT},
-                      {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}},
-              60,
-              120)
+        // 注意门槛里**不能**再放 HIDING_PLACE：本任务自己会写它，而全仓没有
+        // 任何地方清除它，一旦放进门槛就会自锁（首次执行后永久不可再触发）。
+        // 现在只以 WALK_TARGET 缺席为门槛——本任务设置 WALK_TARGET 后自然被挡住，
+        // 等 MoveToTargetTask 抵达并清除 WALK_TARGET，下次遇险可再次触发。
+        // HIDING_PLACE 仍然照写，供将来真正需要它的消费方使用。
+        : Task<E>({{MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}}, 60, 120)
         , m_speed(speed)
     {}
 

@@ -329,6 +329,27 @@ TEST_F(MovementTaskTest, FindHiddenBlockTaskShouldNotExecuteWithoutHurtOrBell)
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
 }
 
+// 回归用例：在 HIDING_PLACE 已经被写入的情况下，本任务仍应能启动。
+// 修复前它把 HIDING_PLACE 写进了自己的 VALUE_ABSENT 门槛，而全仓无人清除该记忆，
+// 导致首次执行后永久不再触发。
+TEST_F(MovementTaskTest, FindHiddenBlockTaskRunsEvenWhenHidingPlaceAlreadySet)
+{
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    auto& brain = villager.brain();
+    // 满足 shouldExecute 的前提：听到铃声（HEARD_BELL_TIME 为 i64）。
+    brain.setMemory<i64>(MemoryModuleTypes::HEARD_BELL_TIME, 100);
+    // 模拟"上一次已经找过隐蔽点"。
+    brain.setMemory<BlockPos>(MemoryModuleTypes::HIDING_PLACE, BlockPos(3, 64, 3));
+
+    movement::FindHiddenBlockTask<VillagerEntity> task;
+    mc::math::Random rng(42);
+    EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng))
+        << "HIDING_PLACE 已存在不应阻止本任务再次触发（否则会自锁）";
+}
+
 TEST_F(MovementTaskTest, LookAtEntityTaskShouldNotExecuteWhenLookTargetPresent)
 {
     VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
