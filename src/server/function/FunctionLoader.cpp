@@ -566,14 +566,13 @@ Result<FunctionLoader::ParseResult> FunctionLoader::parseFunctionContent(
     /// 对应 MC 1.21.11 FunctionBuilder#addMacro
     auto addMacroLine = [&](const std::string& macroBody, Size lineNumber) -> Result<void> {
         // 解析 $(var) 语法
-        StringTemplate tmpl;
-        try {
-            tmpl = StringTemplate::fromString(macroBody);
-        }
-        catch (const std::exception& e) {
+        auto templateResult = StringTemplate::fromString(macroBody);
+        if (templateResult.failed()) {
             return Error(ErrorCode::ResourceParseError,
-                "Can't parse function line " + std::to_string(lineNumber) + ": '" + macroBody + "' (" + e.what() + ")");
+                "Can't parse function line " + std::to_string(lineNumber) + ": '" + macroBody + "' (" +
+                    templateResult.error().message() + ")");
         }
+        StringTemplate tmpl = std::move(templateResult).value();
 
         // 首次遇到 $ 宏行时切换到 macro 模式：把已累积的 commands 转为 PlainTextEntry
         if (!result.isMacro()) {

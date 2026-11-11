@@ -52,6 +52,7 @@
 #pragma once
 
 #include "common/core/Result.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "core/Types.hpp"
 
 #include <algorithm>
@@ -1312,7 +1313,8 @@ struct number_list_tag final : public list_tag {
 
     virtual std::unique_ptr<tag> operator[](size_t i) const override
     {
-        return std::make_unique<tag_type>(value.at(i));
+        MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: numeric list index out of range");
+        return std::make_unique<tag_type>(value[i]);
     }
 
     number_list_tag() = default;
@@ -1420,7 +1422,8 @@ struct array_list_tag final : public list_tag {
 
     virtual std::unique_ptr<tag> operator[](size_t i) const override
     {
-        return std::make_unique<tag_type>(value.at(i));
+        MC_ASSERT_RELEASE_MSG(i < value.size(), "NBT: array list index out of range");
+        return std::make_unique<tag_type>(value[i]);
     }
 
     array_list_tag() = default;
@@ -1684,17 +1687,28 @@ struct compound_tag final : public tag {
 
     /**
      * @brief 获取值（标签类型版本）
+     *
+     * 键必须存在且类型必须是 `TagT`：两者不满足都属于调用方违约（应先 `find` / `contains`），
+     * 断言崩溃并给出键名，而不是抛 `std::out_of_range` / `std::bad_cast`。
      */
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
     typename TagT::value_type& get(const std::string& name)
     {
-        return dynamic_cast<TagT&>(*value.at(name)).value;
+        auto iter = value.find(name);
+        MC_ASSERT_RELEASE_MSG(iter != value.end(), "NBT: compound key not found");
+        auto* typed = dynamic_cast<TagT*>(iter->second.get());
+        MC_ASSERT_RELEASE_MSG(typed != nullptr, "NBT: compound value has an unexpected tag type");
+        return typed->value;
     }
 
     template <typename TagT, typename = std::enable_if_t<std::is_base_of<::mc::nbt::tags::tag, TagT>::value>>
     const typename TagT::value_type& get(const std::string& name) const
     {
-        return dynamic_cast<const TagT&>(*value.at(name)).value;
+        auto iter = value.find(name);
+        MC_ASSERT_RELEASE_MSG(iter != value.end(), "NBT: compound key not found");
+        const auto* typed = dynamic_cast<const TagT*>(iter->second.get());
+        MC_ASSERT_RELEASE_MSG(typed != nullptr, "NBT: compound value has an unexpected tag type");
+        return typed->value;
     }
 
     /**

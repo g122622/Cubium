@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -76,13 +77,12 @@ bool matchesDimension(DimensionId dimensionId, const ResourceLocation& expected)
 
     // 支持数字格式的维度名称（如 "minecraft:0"）
     if (expected.namespace_() == "minecraft") {
-        try {
-            DimensionId id = static_cast<DimensionId>(std::stoi(expectedPath));
-            return dimensionId == id;
-        }
-        catch (...) {
+        // "minecraft:0" 这类数字维度名；非数字即不匹配（记录在 match 的调用方，不刷屏）
+        auto parsed = util::parseInt32(expectedPath);
+        if (parsed.failed()) {
             return false;
         }
+        return dimensionId == static_cast<DimensionId>(parsed.value());
     }
 
     return false;

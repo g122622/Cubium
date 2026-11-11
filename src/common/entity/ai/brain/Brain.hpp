@@ -282,18 +282,12 @@ public:
         if (it == m_memories.end() || !it->second.has_value()) {
             return std::nullopt;
         }
-        try {
-            // 尝试从 std::any 中提取 Memory<T>
-            const auto& anyValue = it->second.value();
-            if (anyValue.type() == typeid(memory::Memory<T>)) {
-                const auto& memory = std::any_cast<const memory::Memory<T>&>(anyValue);
-                return memory.getValue();
-            }
+        // 用 any_cast 的指针形式：类型不匹配返回 nullptr，不会抛 std::bad_any_cast
+        const auto* memory = std::any_cast<memory::Memory<T>>(&it->second.value());
+        if (memory == nullptr) {
+            return std::nullopt;
         }
-        catch (const std::bad_any_cast&) {
-            // 类型不匹配，返回 nullopt
-        }
-        return std::nullopt;
+        return memory->getValue();
     }
 
     /**

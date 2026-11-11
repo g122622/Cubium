@@ -28,6 +28,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include <any>
 #include <memory>
 #include <optional>
@@ -38,6 +39,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc::command {
 
@@ -107,7 +109,11 @@ public:
         if (it == m_arguments.end()) {
             throw std::out_of_range("Argument not found: " + name);
         }
-        return std::any_cast<T>(it->second.value);
+        // 指针形式：类型不匹配时返回 nullptr，不抛 std::bad_any_cast；
+        // 取到 nullptr 说明解析器与执行器对同一参数的类型约定不一致，属编程错误。
+        const auto* value = std::any_cast<T>(&it->second.value);
+        MC_ASSERT_RELEASE_MSG(value != nullptr, "CommandContext::getArgument: argument type mismatch");
+        return *value;
     }
 
     /**
@@ -164,12 +170,14 @@ public:
         if (it == m_arguments.end()) {
             return defaultValue;
         }
-        try {
-            return std::any_cast<T>(it->second.value);
-        }
-        catch (...) {
+        // 类型不匹配说明解析器与执行器的类型约定不一致：记录 warn 后返回默认值，
+        // 不再用 catch(...) 静默吞掉（原先连日志都没有）。
+        const auto* value = std::any_cast<T>(&it->second.value);
+        if (value == nullptr) {
+            spdlog::warn("CommandContext::getArgumentOr: argument '{}' has an unexpected type; using default", name);
             return defaultValue;
         }
+        return *value;
     }
 
     /**

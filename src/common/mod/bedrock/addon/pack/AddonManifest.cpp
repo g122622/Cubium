@@ -28,6 +28,7 @@
 #include "common/mod/bedrock/addon/pack/AddonModule.hpp"
 #include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 
+#include "common/util/NumberParsing.hpp"
 #include <algorithm>
 #include <exception>
 #include <fstream>
@@ -105,8 +106,13 @@ Result<AddonManifest> AddonManifest::parse(const std::string& json)
             if (j["format_version"].is_number_integer()) {
                 manifest.formatVersion = j["format_version"].get<i32>();
             } else if (j["format_version"].is_string()) {
-                // 尝试解析字符串格式的版本号
-                manifest.formatVersion = std::stoi(j["format_version"].get<std::string>());
+                // 尝试解析字符串格式的版本号；非法值保持默认，后续版本校验会拒绝该清单
+                auto parsed = util::parseInt32(j["format_version"].get<std::string>());
+                if (parsed.failed()) {
+                    return Error(ErrorCode::InvalidData,
+                        "Invalid manifest format version: '" + j["format_version"].get<std::string>() + "'");
+                }
+                manifest.formatVersion = parsed.value();
             }
         }
 

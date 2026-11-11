@@ -1383,6 +1383,9 @@ add_library(mc_common STATIC
     # NibbleArray (4-bit compact storage for lighting)
     util/NibbleArray.cpp
 
+    # 不抛异常的文本数值解析（from_chars 封装，取代 std::sto*）
+    util/NumberParsing.cpp
+
     # Property system
     util/property/EnumProperty.cpp
 

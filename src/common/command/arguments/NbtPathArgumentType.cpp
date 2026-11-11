@@ -26,6 +26,7 @@
 #include "common/command/arguments/NbtPath.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <cctype>
 #include <exception>
@@ -300,42 +301,71 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::parseNbtValue(StringReader&
             if (c == 'b' || c == 'B' || c == 's' || c == 'S' || c == 'l' || c == 'L' || c == 'f' || c == 'F' ||
                 c == 'd' || c == 'D') {
                 reader.skip();
-                try {
-                    switch (c) {
-                        case 'b':
-                        case 'B':
-                            return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>(std::stoi(numStr)));
-                        case 's':
-                        case 'S':
-                            return std::make_unique<nbt::tags::short_tag>(static_cast<i16>(std::stoi(numStr)));
-                        case 'l':
-                        case 'L':
-                            return std::make_unique<nbt::tags::long_tag>(std::stoll(numStr));
-                        case 'f':
-                        case 'F':
-                            return std::make_unique<nbt::tags::float_tag>(std::stof(numStr));
-                        case 'd':
-                        case 'D':
-                            return std::make_unique<nbt::tags::double_tag>(std::stod(numStr));
+                switch (c) {
+                    case 'b':
+                    case 'B': {
+                        auto parsed = util::parseInt8(numStr);
+                        if (parsed.failed()) {
+                            throw CommandException(
+                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                        }
+                        return std::make_unique<nbt::tags::byte_tag>(parsed.value());
                     }
-                }
-                catch (const std::exception& e) {
-                    throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                    case 's':
+                    case 'S': {
+                        auto parsed = util::parseInt16(numStr);
+                        if (parsed.failed()) {
+                            throw CommandException(
+                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                        }
+                        return std::make_unique<nbt::tags::short_tag>(parsed.value());
+                    }
+                    case 'l':
+                    case 'L': {
+                        auto parsed = util::parseInt64(numStr);
+                        if (parsed.failed()) {
+                            throw CommandException(
+                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                        }
+                        return std::make_unique<nbt::tags::long_tag>(parsed.value());
+                    }
+                    case 'f':
+                    case 'F': {
+                        auto parsed = util::parseFloat32(numStr);
+                        if (parsed.failed()) {
+                            throw CommandException(
+                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                        }
+                        return std::make_unique<nbt::tags::float_tag>(parsed.value());
+                    }
+                    case 'd':
+                    case 'D': {
+                        auto parsed = util::parseFloat64(numStr);
+                        if (parsed.failed()) {
+                            throw CommandException(
+                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                        }
+                        return std::make_unique<nbt::tags::double_tag>(parsed.value());
+                    }
+                    default:
+                        break;
                 }
             }
         }
 
         // 没有后缀，根据是否有小数点决定类型
-        try {
-            if (hasDot) {
-                return std::make_unique<nbt::tags::double_tag>(std::stod(numStr));
-            } else {
-                return std::make_unique<nbt::tags::int_tag>(std::stoi(numStr));
+        if (hasDot) {
+            auto parsed = util::parseFloat64(numStr);
+            if (parsed.failed()) {
+                throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
             }
+            return std::make_unique<nbt::tags::double_tag>(parsed.value());
         }
-        catch (const std::exception& e) {
+        auto parsed = util::parseInt32(numStr);
+        if (parsed.failed()) {
             throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
         }
+        return std::make_unique<nbt::tags::int_tag>(parsed.value());
     }
 
     // 未引用字符串（如 foo:bar 中的 bar）
@@ -548,34 +578,63 @@ std::unique_ptr<nbt::tags::tag> NbtPathArgumentType::readNbtValue(StringReader& 
             CommandErrorType::InvalidNbtPath, "Invalid value at position " + std::to_string(start), start);
     }
 
-    try {
-        if (suffix == 'b') {
-            return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>(std::stoll(number)));
+    if (suffix == 'b') {
+        auto parsed = util::parseInt8(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
         }
-        if (suffix == 's') {
-            return std::make_unique<nbt::tags::short_tag>(static_cast<i16>(std::stoll(number)));
-        }
-        if (suffix == 'l') {
-            return std::make_unique<nbt::tags::long_tag>(std::stoll(number));
-        }
-        if (suffix == 'f') {
-            return std::make_unique<nbt::tags::float_tag>(static_cast<f32>(std::stod(number)));
-        }
-        if (suffix == 'd') {
-            return std::make_unique<nbt::tags::double_tag>(std::stod(number));
-        }
-        // 无后缀：原版 readInt → readDouble 的顺序——带小数点或指数时是 double，否则截断为 int。
-        const bool decimal = number.find('.') != std::string::npos || number.find('e') != std::string::npos ||
-            number.find('E') != std::string::npos;
-        if (decimal) {
-            return std::make_unique<nbt::tags::double_tag>(std::stod(number));
-        }
-        return std::make_unique<nbt::tags::int_tag>(static_cast<i32>(std::stoll(number)));
+        return std::make_unique<nbt::tags::byte_tag>(parsed.value());
     }
-    catch (const std::exception&) {
+    if (suffix == 's') {
+        auto parsed = util::parseInt16(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+        }
+        return std::make_unique<nbt::tags::short_tag>(parsed.value());
+    }
+    if (suffix == 'l') {
+        auto parsed = util::parseInt64(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+        }
+        return std::make_unique<nbt::tags::long_tag>(parsed.value());
+    }
+    if (suffix == 'f') {
+        auto parsed = util::parseFloat32(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+        }
+        return std::make_unique<nbt::tags::float_tag>(parsed.value());
+    }
+    if (suffix == 'd') {
+        auto parsed = util::parseFloat64(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+        }
+        return std::make_unique<nbt::tags::double_tag>(parsed.value());
+    }
+    // 无后缀：原版 readInt → readDouble 的顺序——带小数点或指数时是 double，否则截断为 int。
+    const bool decimal = number.find('.') != std::string::npos || number.find('e') != std::string::npos ||
+        number.find('E') != std::string::npos;
+    if (decimal) {
+        auto parsed = util::parseFloat64(number);
+        if (parsed.failed()) {
+            reader.setCursor(start);
+            throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
+        }
+        return std::make_unique<nbt::tags::double_tag>(parsed.value());
+    }
+    auto parsed = util::parseInt32(number);
+    if (parsed.failed()) {
         reader.setCursor(start);
         throw CommandException(CommandErrorType::InvalidNbtPath, "Invalid number: " + number, start);
     }
+    return std::make_unique<nbt::tags::int_tag>(parsed.value());
 }
 
 std::string NbtPathArgumentType::_readQuotedString(StringReader& reader)

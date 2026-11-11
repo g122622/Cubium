@@ -35,6 +35,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
@@ -730,10 +731,10 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
     const bool stringify = context.hasParsed("stringValueArg");
     if (context.hasArgument("source")) {
         const std::any raw = context.getArgumentAny("source");
-        if (raw.type() == typeid(std::shared_ptr<nbt::tags::tag>)) {
+        // 一律用 any_cast 的指针形式：类型不符返回 nullptr，不会抛 std::bad_any_cast
+        if (const auto* tagValue = std::any_cast<std::shared_ptr<nbt::tags::tag>>(&raw)) {
             // `value` / `from` / `string` 直接跟 NBT 值：单值。
-            const auto value = std::any_cast<std::shared_ptr<nbt::tags::tag>>(raw);
-            sourceValues.push_back(value->copy());
+            sourceValues.push_back((*tagValue)->copy());
         } else {
             const NbtPath sourcePath = context.getArgument<NbtPath>("sourcePath");
 
@@ -753,8 +754,8 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                 sourceValues = readSourcePath(accessor, sourcePath);
             }
             // `from entity <source> <path>`
-            else if (raw.type() == typeid(EntitySelector)) {
-                auto entities = support::EntityResolver::resolve(source, std::any_cast<EntitySelector>(raw));
+            else if (const auto* selectorValue = std::any_cast<EntitySelector>(&raw)) {
+                auto entities = support::EntityResolver::resolve(source, *selectorValue);
                 if (entities.empty()) {
                     _sendError(source, "argument.entity.notfound.entity");
                     return 0;
@@ -764,13 +765,13 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                 sourceValues = readSourcePath(accessor, sourcePath);
             }
             // `from storage <source> <path>`
-            else if (raw.type() == typeid(ResourceLocation)) {
+            else if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
                 auto* server = source.server();
                 if (server == nullptr) {
                     _sendError(source, "commands.data.storage.failed.noServer");
                     return 0;
                 }
-                StorageDataAccessor accessor(&server->commandStorage(), std::any_cast<ResourceLocation>(raw));
+                StorageDataAccessor accessor(&server->commandStorage(), *storageId);
                 sourceValues = readSourcePath(accessor, sourcePath);
             } else {
                 _sendError(source, "commands.data.modify.invalidSource");
@@ -809,16 +810,18 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         targetAccessor = std::move(accessor);
     } else if (context.hasArgument("target")) {
         const std::any raw = context.getArgumentAny("target");
-        if (raw.type() == typeid(ResourceLocation)) {
+        // 指针形式避免 std::bad_any_cast
+        if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
             auto* server = source.server();
             if (server == nullptr) {
                 _sendError(source, "commands.data.storage.failed.noServer");
                 return 0;
             }
-            targetAccessor =
-                std::make_unique<StorageDataAccessor>(&server->commandStorage(), std::any_cast<ResourceLocation>(raw));
+            targetAccessor = std::make_unique<StorageDataAccessor>(&server->commandStorage(), *storageId);
         } else {
-            auto entities = support::EntityResolver::resolve(source, std::any_cast<EntitySelector>(raw));
+            const auto* selectorValue = std::any_cast<EntitySelector>(&raw);
+            MC_ASSERT_RELEASE_MSG(selectorValue != nullptr, "DataCommand: target argument has an unexpected type");
+            auto entities = support::EntityResolver::resolve(source, *selectorValue);
             if (entities.empty()) {
                 _sendError(source, "commands.data.entity.failed.noEntity");
                 return 0;

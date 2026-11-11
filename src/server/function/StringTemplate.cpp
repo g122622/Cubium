@@ -23,8 +23,9 @@
 
 #include "StringTemplate.hpp"
 
+#include "common/util/assert/AssertAll.hpp"
+
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -53,7 +54,7 @@ bool StringTemplate::isValidVariableName(const std::string& name) noexcept
     return true;
 }
 
-StringTemplate StringTemplate::fromString(const std::string& input)
+Result<StringTemplate> StringTemplate::fromString(const std::string& input)
 {
     std::vector<std::string> segments;
     std::vector<std::string> variables;
@@ -72,13 +73,13 @@ StringTemplate StringTemplate::fromString(const std::string& input)
             // 找匹配的 ')' (ASCII 41)
             const size_t closePos = input.find(')', k + 1);
             if (closePos == std::string::npos) {
-                throw std::invalid_argument("Unterminated macro variable");
+                return Error(ErrorCode::InvalidData, "Function macro: unterminated macro variable in '" + input + "'");
             }
 
             // 提取变量名（位于 $( 之后、) 之前）
             const std::string varName = input.substr(k + 2, closePos - (k + 2));
             if (!isValidVariableName(varName)) {
-                throw std::invalid_argument("Invalid macro variable name '" + varName + "'");
+                return Error(ErrorCode::InvalidData, "Function macro: invalid macro variable name '" + varName + "'");
             }
             variables.push_back(varName);
 
@@ -91,7 +92,7 @@ StringTemplate StringTemplate::fromString(const std::string& input)
     }
 
     if (variables.empty()) {
-        throw std::invalid_argument("No variables in macro");
+        return Error(ErrorCode::InvalidData, "Function macro: no variables in macro line '" + input + "'");
     }
 
     // 加入尾部文本片段（即使为空也加入，保持 segments.size() == variables.size() + 1）
@@ -100,25 +101,27 @@ StringTemplate StringTemplate::fromString(const std::string& input)
     return StringTemplate(std::move(segments), std::move(variables));
 }
 
-std::string StringTemplate::substitute(const std::vector<std::string>& values) const
+Result<std::string> StringTemplate::substitute(const std::vector<std::string>& values) const
 {
-    if (values.size() != m_variables.size()) {
-        throw std::invalid_argument("StringTemplate::substitute: values count does not match variables count");
-    }
+    // 实参个数必须与形参一致：不一致属于调用方违约（缺参在 MacroFunction::instantiate 已拦下）
+    MC_ASSERT_RELEASE_MSG(
+        values.size() == m_variables.size(), "StringTemplate::substitute: values count does not match variables count");
 
     std::string result;
     for (size_t i = 0; i < m_variables.size(); ++i) {
         result += m_segments[i];
         result += values[i];
         if (result.size() > MAX_COMMAND_LINE_LENGTH) {
-            throw std::runtime_error("Command too long: " + std::to_string(result.size()) + " characters");
+            return Error(ErrorCode::CapacityExceeded,
+                "Function macro: command too long (" + std::to_string(result.size()) + " characters)");
         }
     }
     // 追加尾部片段（segments 比 variables 多一个）
     if (m_segments.size() > m_variables.size()) {
         result += m_segments.back();
         if (result.size() > MAX_COMMAND_LINE_LENGTH) {
-            throw std::runtime_error("Command too long: " + std::to_string(result.size()) + " characters");
+            return Error(ErrorCode::CapacityExceeded,
+                "Function macro: command too long (" + std::to_string(result.size()) + " characters)");
         }
     }
     return result;

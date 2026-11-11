@@ -31,6 +31,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
 
+#include "common/util/NumberParsing.hpp"
 #include <cctype>
 #include <cstddef>
 #include <exception>
@@ -169,12 +170,29 @@ void EntityArgumentTypeBase::_parseSelectorArguments(StringReader& reader, Entit
     reader.skip();
 }
 
+f32 EntityArgumentTypeBase::_parseCoordinate(const std::string& value, const std::string& argumentName, i32 cursor)
+{
+    // 坐标来自玩家输入：非法值必须报命令错误，而不是让 std::stof 抛异常逃逸
+    auto parsed = util::parseFloat32(value);
+    if (parsed.failed()) {
+        throw CommandException(CommandErrorType::EntitySelectorInvalid,
+            "Invalid coordinate for '" + argumentName + "': '" + value + "'",
+            cursor);
+    }
+    return parsed.value();
+}
+
 void EntityArgumentTypeBase::_applySelectorArgument(
     EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor)
 {
     // limit / c - 结果数量限制
     if (name == "limit" || name == "c") {
-        const i32 limit = std::stoi(value);
+        auto parsedLimit = util::parseInt32(value);
+        if (parsedLimit.failed()) {
+            throw CommandException(
+                CommandErrorType::EntitySelectorInvalid, "Invalid limit '" + value + "' (expected an integer)", cursor);
+        }
+        const i32 limit = parsedLimit.value();
         if (limit < 1) {
             throw CommandException(CommandErrorType::EntitySelectorInvalid, "Limit must be at least 1", cursor);
         }
@@ -217,34 +235,34 @@ void EntityArgumentTypeBase::_applySelectorArgument(
 
     // x, y, z - 坐标偏移
     if (name == "x") {
-        selector.setX(std::stof(value));
+        selector.setX(_parseCoordinate(value, "x", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }
     if (name == "y") {
-        selector.setY(std::stof(value));
+        selector.setY(_parseCoordinate(value, "y", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }
     if (name == "z") {
-        selector.setZ(std::stof(value));
+        selector.setZ(_parseCoordinate(value, "z", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }
 
     // dx, dy, dz - 体积尺寸
     if (name == "dx") {
-        selector.setDx(std::stof(value));
+        selector.setDx(_parseCoordinate(value, "dx", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }
     if (name == "dy") {
-        selector.setDy(std::stof(value));
+        selector.setDy(_parseCoordinate(value, "dy", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }
     if (name == "dz") {
-        selector.setDz(std::stof(value));
+        selector.setDz(_parseCoordinate(value, "dz", cursor));
         selector.setCurrentWorldOnly(true);
         return;
     }

@@ -90,10 +90,9 @@ struct MacroFunctionEntry {
      * 对纯文本行：直接返回预存命令
      *
      * @param values 实参值列表（按 MacroFunction::parameters() 顺序）
-     * @return 命令字符串
-     * @throws std::runtime_error 如果替换后超过命令长度上限
+     * @return 成功返回命令字符串；替换后超过命令长度上限时返回错误
      */
-    [[nodiscard]] std::string instantiate(const std::vector<std::string>& values) const;
+    [[nodiscard]] Result<std::string> instantiate(const std::vector<std::string>& values) const;
 };
 
 /**
@@ -180,7 +179,7 @@ public:
      *
      * @param manager 函数管理器
      * @param source 命令源
-     * @param arguments 实参 CompoundTag（为 nullptr 时抛 FunctionInstantiationException）
+     * @param arguments 实参 CompoundTag（为 nullptr 时按缺参处理，逐条计为失败）
      * @return 执行结果
      */
     [[nodiscard]] FunctionExecuteResult execute(FunctionManager& manager,
@@ -218,11 +217,10 @@ public:
      * 用 arguments 替换所有 $(var) 占位符，生成命令字符串列表。
      * 使用 LRU 缓存避免相同参数重复解析。
      *
-     * @param arguments 实参 CompoundTag（为 nullptr 时抛异常）
-     * @return 实例化后的命令字符串列表
-     * @throws FunctionInstantiationException 缺少参数或替换后超长
+     * @param arguments 实参 CompoundTag（为 nullptr 时返回「缺少参数」错误）
+     * @return 成功返回实例化后的命令字符串列表；缺少参数或替换后超长时返回错误
      */
-    [[nodiscard]] std::vector<std::string> instantiate(const nbt::tags::compound_tag* arguments) const;
+    [[nodiscard]] Result<std::vector<std::string>> instantiate(const nbt::tags::compound_tag* arguments) const;
 
 private:
     /// LRU 缓存上限（与 MC 1.21.11 一致）

@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 
+#include "common/util/NumberParsing.hpp"
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -140,12 +141,14 @@ u64 ServerSettings::parseSeed() const
         return 0;
     }
 
-    try {
-        return static_cast<u64>(std::stoll(seedStr));
-    }
-    catch (...) {
+    // 数值种子按有符号 64 位解析后按位转 u64（与原版 parseLong 语义一致）；
+    // 非数值种子退化为字符串哈希，并记录 warn 便于排查配置笔误。
+    auto parsed = util::parseInt64(seedStr);
+    if (parsed.failed()) {
+        spdlog::warn("ServerSettings: seed '{}' is not a 64-bit integer; falling back to string hash", seedStr);
         return std::hash<std::string>{}(seedStr);
     }
+    return static_cast<u64>(parsed.value());
 }
 
 Result<void> ServerSettings::generateDefaultConfig(const std::filesystem::path& path)

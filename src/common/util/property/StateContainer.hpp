@@ -30,12 +30,12 @@
 #include "Property.hpp"
 #include "StateHolder.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/StringUtils.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <limits>
 #include <memory>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -180,14 +180,18 @@ public:
         {
             // 属性名/值名格式与重复注册都属于注册期的编程错误，一旦出错必须当场崩溃，
             // 否则会生成错误的属性布局，后续 with() 会把方块切到不相干的状态。
-            static const std::regex NAME_PATTERN("^[a-z0-9_]+$");
-            MC_ASSERT_RELEASE_MSG(std::regex_match(prop.name(), NAME_PATTERN),
+            // 逐字符判定而非 std::regex：后者构造正则失败时会抛 std::regex_error。
+            const auto isLowerSnakeName = [](char character) {
+                return (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
+                    character == '_';
+            };
+            MC_ASSERT_RELEASE_MSG(util::allOfCharacters(prop.name(), isLowerSnakeName),
                 fmt::format("StateContainer::Builder: invalid property name '{}'", prop.name()).c_str());
             MC_ASSERT_RELEASE_MSG(prop.valueCount() > 1,
                 fmt::format("StateContainer::Builder: property '{}' must have more than 1 possible value", prop.name())
                     .c_str());
             for (size_t i = 0; i < prop.valueCount(); ++i) {
-                MC_ASSERT_RELEASE_MSG(std::regex_match(prop.valueToString(i), NAME_PATTERN),
+                MC_ASSERT_RELEASE_MSG(util::allOfCharacters(prop.valueToString(i), isLowerSnakeName),
                     fmt::format("StateContainer::Builder: property '{}' has invalid value name '{}'",
                         prop.name(),
                         prop.valueToString(i))

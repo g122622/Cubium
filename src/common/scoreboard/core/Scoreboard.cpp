@@ -26,13 +26,13 @@
 #include "common/scoreboard/core/ScoreCriteriaRenderType.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/util/StringUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <regex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -42,9 +42,6 @@ namespace mc::scoreboard {
 // ========== 静态常量 ==========
 
 namespace {
-
-// 目标名称正则表达式：仅允许字母、数字、下划线和连字符
-const std::regex s_validNameRegex("^[a-zA-Z0-9_\\-]+$");
 
 // 玩家名称最大长度
 constexpr size_t MAX_PLAYER_NAME_LENGTH = 40;
@@ -576,7 +573,11 @@ void Scoreboard::forAllObjectives(
 
 bool Scoreboard::_isValidObjectiveName(const std::string& name)
 {
-    return std::regex_match(name, s_validNameRegex);
+    // 仅允许字母、数字、下划线和连字符；不用 std::regex（构造失败会抛 regex_error）
+    return util::allOfCharacters(name, [](char character) {
+        return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
+            (character >= '0' && character <= '9') || character == '_' || character == '-';
+    });
 }
 
 bool Scoreboard::_isValidPlayerName(const std::string& name)

@@ -871,6 +871,13 @@ public:
 protected:
     [[nodiscard]] EntitySelector _parseSelector(StringReader& reader, i32 start);
     void _parseSelectorArguments(StringReader& reader, EntitySelector& selector);
+    /**
+     * @brief 解析坐标类选择器参数（x/y/z/dx/dy/dz）
+     *
+     * 非法输入抛 CommandException（命令错误），不使用 std::stof（会抛不可控异常）。
+     */
+    [[nodiscard]] static f32 _parseCoordinate(const std::string& value, const std::string& argumentName, i32 cursor);
+
     void _applySelectorArgument(
         EntitySelector& selector, const std::string& name, const std::string& value, i32 cursor);
     void _validateSelector(const EntitySelector& selector, i32 start);

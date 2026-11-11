@@ -35,31 +35,14 @@
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 
+#include "common/util/StringUtils.hpp"
 #include <memory>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
-
-namespace {
-
-/**
- * @brief 检查字符串是否为有效的 IPv4 地址
- * @param str 字符串
- * @return true 如果是有效的 IPv4 地址
- */
-bool isValidIpv4(const std::string& str)
-{
-    // IPv4 正则表达式
-    static const std::regex ipv4Regex(
-        R"(^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)");
-    return std::regex_match(str, ipv4Regex);
-}
-
-} // anonymous namespace
 
 void PardonIpCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -94,7 +77,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     }
 
     // 验证 IP 格式
-    if (!isValidIpv4(target)) {
+    if (!util::isValidIpv4(target)) {
         source.sendError("commands.pardonip.failed.invalidIp");
         return 0;
     }

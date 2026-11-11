@@ -24,6 +24,7 @@
 #include "JavaWorldReader.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/NumberParsing.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -141,23 +142,24 @@ Result<std::vector<ChunkPos>> JavaWorldReader::listChunks(DimensionId dimension)
             continue;
         }
 
-        try {
-            const i32 rX = std::stoi(coords.substr(0, dotPos));
-            const i32 rZ = std::stoi(coords.substr(dotPos + 1));
-
-            RegionFile region(entry.path());
-            auto openResult = region.open();
-            if (openResult.failed()) {
-                continue;
-            }
-
-            for (const auto& [lx, lz] : region.listChunks()) {
-                // 将区域本地坐标转换为全局区块坐标
-                chunks.emplace_back(rX * REGION_WIDTH + lx, rZ * REGION_WIDTH + lz);
-            }
-        }
-        catch (...) {
+        auto parsedX = util::parseInt32(std::string_view(coords).substr(0, dotPos));
+        auto parsedZ = util::parseInt32(std::string_view(coords).substr(dotPos + 1));
+        if (parsedX.failed() || parsedZ.failed()) {
+            spdlog::warn("JavaWorldReader: Failed to parse region coords from {}", filename);
             continue;
+        }
+        const i32 rX = parsedX.value();
+        const i32 rZ = parsedZ.value();
+
+        RegionFile region(entry.path());
+        auto openResult = region.open();
+        if (openResult.failed()) {
+            continue;
+        }
+
+        for (const auto& [lx, lz] : region.listChunks()) {
+            // 将区域本地坐标转换为全局区块坐标
+            chunks.emplace_back(rX * REGION_WIDTH + lx, rZ * REGION_WIDTH + lz);
         }
     }
 

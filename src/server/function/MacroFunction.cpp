@@ -43,15 +43,18 @@ namespace function {
 
 // ========== MacroFunctionEntry ==========
 
-std::string MacroFunctionEntry::instantiate(const std::vector<std::string>& values) const
+Result<std::string> MacroFunctionEntry::instantiate(const std::vector<std::string>& values) const
 {
     if (std::holds_alternative<Macro>(data)) {
         const auto& macro = std::get<Macro>(data);
-        // 按 parameterIndices 从 values 中取出实参值，构造与 template_.variables() 一一对应的局部 values
+        // 按 parameterIndices 从 values 中取出实参值，构造与 template_.variables() 一一对应的局部 values。
+        // parameterIndices 由 FunctionLoader 按形参表生成，越界属于构建期错误，断言暴露。
         std::vector<std::string> localValues;
         localValues.reserve(macro.parameterIndices.size());
         for (Size idx : macro.parameterIndices) {
-            localValues.push_back(values.at(idx));
+            MC_ASSERT_RELEASE_MSG(idx < values.size(),
+                "MacroFunctionEntry::instantiate: parameter index out of range for the supplied argument list");
+            localValues.push_back(values[idx]);
         }
         return macro.template_.substitute(localValues);
     }
@@ -110,10 +113,11 @@ std::string MacroFunction::stringify(const nbt::tags::tag& tag)
     }
 }
 
-std::vector<std::string> MacroFunction::instantiate(const nbt::tags::compound_tag* arguments) const
+Result<std::vector<std::string>> MacroFunction::instantiate(const nbt::tags::compound_tag* arguments) const
 {
     if (arguments == nullptr) {
-        throw FunctionInstantiationException("Missing arguments for function '" + m_id.toString() + "'");
+        return Error(
+            ErrorCode::InvalidArgument, "Function macro: missing arguments for function '" + m_id.toString() + "'");
     }
 
     // 按形参顺序从 arguments 中取出 NBT tag 并 stringify
@@ -122,8 +126,8 @@ std::vector<std::string> MacroFunction::instantiate(const nbt::tags::compound_ta
     for (const auto& paramName : m_parameters) {
         auto it = arguments->value.find(paramName);
         if (it == arguments->value.end()) {
-            throw FunctionInstantiationException(
-                "Missing argument '" + paramName + "' for function '" + m_id.toString() + "'");
+            return Error(ErrorCode::InvalidArgument,
+                "Function macro: missing argument '" + paramName + "' for function '" + m_id.toString() + "'");
         }
         values.push_back(stringify(*it->second));
     }
@@ -137,13 +141,13 @@ std::vector<std::string> MacroFunction::instantiate(const nbt::tags::compound_ta
     std::vector<std::string> commands;
     commands.reserve(m_entries.size());
     for (const auto& entry : m_entries) {
-        try {
-            commands.push_back(entry.instantiate(values));
+        auto commandResult = entry.instantiate(values);
+        if (commandResult.failed()) {
+            return Error(commandResult.error().code(),
+                "Function macro: failed to instantiate function '" + m_id.toString() +
+                    "': " + commandResult.error().message());
         }
-        catch (const std::exception& e) {
-            throw FunctionInstantiationException(
-                "Failed to instantiate function '" + m_id.toString() + "': " + e.what());
-        }
+        commands.push_back(std::move(commandResult).value());
     }
 
     _cacheInsert(std::move(values), commands);
@@ -159,16 +163,15 @@ FunctionExecuteResult MacroFunction::execute(
         return result;
     }
 
-    // 实例化（可能抛 FunctionInstantiationException）
-    std::vector<std::string> commands;
-    try {
-        commands = instantiate(arguments);
-    }
-    catch (const FunctionInstantiationException& e) {
-        spdlog::warn("MacroFunction: Failed to instantiate '{}': {}", m_id.toString(), e.message());
+    // 实例化：缺参或命令超长时整体失败，逐条计为失败（与原版一致：不执行任何一行）
+    auto instantiateResult = instantiate(arguments);
+    if (instantiateResult.failed()) {
+        spdlog::warn(
+            "MacroFunction: failed to instantiate '{}': {}", m_id.toString(), instantiateResult.error().message());
         result.failureCount = static_cast<i32>(m_entries.size());
         return result;
     }
+    const std::vector<std::string>& commands = instantiateResult.value();
 
     spdlog::info("MacroFunction: Executing '{}' with {} entries", m_id.toString(), m_entries.size());
 

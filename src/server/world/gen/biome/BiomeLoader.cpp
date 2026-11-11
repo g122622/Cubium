@@ -46,6 +46,7 @@
 #include "server/world/gen/placement/PlacedFeature.hpp"
 #include "server/world/gen/placement/PlacedFeatureRegistry.hpp"
 
+#include "common/util/NumberParsing.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
@@ -197,12 +198,15 @@ Result<u32> parseColor(const std::string& colorStr)
     if (hex.size() != 6) {
         return Error(ErrorCode::InvalidData, "invalid color string: " + colorStr);
     }
-    try {
-        return static_cast<u32>(std::stoul(hex, nullptr, 16));
-    }
-    catch (...) {
+    auto parsed = util::parseUint64Base(hex, 16);
+    if (parsed.failed()) {
         return Error(ErrorCode::InvalidData, "invalid color string: " + colorStr);
     }
+    const u64 value = parsed.value();
+    if (value > 0xFFFFFFULL) {
+        return Error(ErrorCode::InvalidData, "color value out of range: " + colorStr);
+    }
+    return static_cast<u32>(value);
 }
 
 /**
