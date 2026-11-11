@@ -250,13 +250,13 @@
 ### 11. 构造函数默认参数违反项目规范
 
 项目规范明确禁止给函数参数设默认值（“大量的默认值会导致数据流变得难以理解”）。
-本目录下仍有 15 处遗留，修改时请按子目录逐个处理：
+本目录下仍有 13 处遗留，修改时请按子目录逐个处理：
 
 | 子目录 | 处数 | 例如 |
 |---|---|---|
 | `brain/sensor` | 6 | `Sensor(i32 interval = 20)` |
 | `goal/goals/target` | 2 | ⚠ `NearestAttackableTargetGoal` 有约 100 处调用点，`HurtByTargetGoal` 约 60 处 |
-| `goal/goals/special` | 2 | `PandaLookAtPlayerGoal(f32 lookDistance = 6.0f)` |
+| `goal/goals/special` | 1 | `IronGolemNearestAttackableTargetGoal(IronGolemEntity*, i32 chance = 5)` |
 | `goal/goals` | 3 | `MeleeAttackGoal(..., bool useLongMemory = false)` |
 | `brain/memory` | 1 | `Memory(const T& value, i64 ttl = ...)` |
 | `brain/task` | 1 | `Task(MemoryStateMap requiredMemoryState = {}, ...)` |

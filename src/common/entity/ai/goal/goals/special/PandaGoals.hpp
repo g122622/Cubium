@@ -253,7 +253,7 @@ public:
      * @param panda 熊猫实例
      * @param lookDistance 最大看向距离（vanilla 传 6.0）
      */
-    explicit PandaLookAtPlayerGoal(PandaEntity* panda, f32 lookDistance = 6.0f);
+    explicit PandaLookAtPlayerGoal(PandaEntity* panda, f32 lookDistance);
 
     ~PandaLookAtPlayerGoal() override = default;
 

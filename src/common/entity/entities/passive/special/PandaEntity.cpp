@@ -448,7 +448,7 @@ void PandaEntity::registerGoals()
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::PandaSitGoal>(this));
 
     // 优先级 9: 看向玩家（对齐 vanilla Panda.registerGoals:271-272，只看玩家、2% 概率）
-    auto lookAtPlayer = std::make_unique<entity::ai::goal::PandaLookAtPlayerGoal>(this);
+    auto lookAtPlayer = std::make_unique<entity::ai::goal::PandaLookAtPlayerGoal>(this, 6.0f);
     m_lookAtPlayerGoal = lookAtPlayer.get();
     m_goalSelector.addGoal(9, std::move(lookAtPlayer));
 

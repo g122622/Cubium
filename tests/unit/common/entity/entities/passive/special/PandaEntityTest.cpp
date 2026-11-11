@@ -1363,7 +1363,7 @@ TEST(PandaLookAtPlayerGoalTest, LockedLookTargetOverridesNearestPlayerSearch)
     player->setWorld(&world);
     world.setNearbyPandas({player.get()});
 
-    entity::ai::goal::PandaLookAtPlayerGoal goal(&panda);
+    entity::ai::goal::PandaLookAtPlayerGoal goal(&panda, 6.0f);
     goal.setLookTarget(player.get());
 
     // 2% 概率：多试几十次必定命中，且命中时必定是不满/可行动状态下的"看到玩家"。
