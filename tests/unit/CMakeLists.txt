@@ -629,6 +629,7 @@ add_executable(mc_tests
     # ShulkerBoxBlock 16色潜影盒方块测试（注册、颜色、isShulkerBox、标签）
     common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
+    common/world/blockentity/BedrockCloneFilterDataTest.cpp
     common/world/blockentity/CommandBlockEntityTest.cpp
     common/world/blockentity/StructureBlockEntityTest.cpp
     common/world/blockentity/JigsawBlockEntityTest.cpp

@@ -33,11 +33,11 @@
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/redstone/BedrockCloneFilterData.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
 #include <algorithm>
-#include <charconv>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -48,60 +48,6 @@ namespace mc {
 namespace blockentity {
 
 namespace {
-
-// 基岩 clone filtered 的 data 值 → Java 方块状态属性字符串（如 "[facing=north,half=bottom]"）。
-// 基岩 data 是方块状态值的紧凑编码，不同方块语义不同；此处仅覆盖 stairs：
-//   data = weirdo_direction(0-3) + upside_down_bit*4
-//   weirdo_direction: 0=east,1=west,2=south,3=north（见 LeviLamina WeirdoDirection.h）
-//   upside_down_bit: 0=bottom,1=top
-// 映射到 Java stairs 的 facing(east/west/south/north) + half(bottom/top)。
-// 未识别的方块名或缺失 data 时返回空字符串（退化为按方块类型过滤）。
-// TODO: 仅覆盖 stairs。扩展需要基岩各方块的 data 位定义，而本项目与手头的逆向头文件
-//   （LeviLamina）里都没有这些定义（检索 weirdo_direction / upside_down_bit / open_bit /
-//   button_pressed_bit 均无结果），wiki 也没有逐方块的位表。已确认楼梯用的是
-//   "0-3 方向 + bit2 上下"，但活板门/按钮/原木的位布局无法从这里推断——活板门还要编码
-//   open_bit、按钮要编码 button_pressed_bit，位位置靠猜会静默产出错误的方块状态。
-//   因此保留"未识别即返回空串（退化为按方块类型过滤）"这一安全回退，等有权威 data 位表再补。
-std::string bedrockCloneFilterDataToJavaProps(const std::string& blockTok, const std::string& dataTok)
-{
-    if (dataTok.empty()) {
-        return "";
-    }
-    // 仅处理 stairs 类方块
-    if (blockTok.find("stairs") == std::string::npos) {
-        return "";
-    }
-    i32 data = 0;
-    // 用 from_chars 而非 stoi：stoi 靠抛异常报告非法输入，而本项目不允许用异常做控制流；
-    // 且 stoi 会接受尾随垃圾（"3abc" → 3），这里要求整串都是数字，解析失败即退化为空串。
-    const auto [parseEnd, parseError] = std::from_chars(dataTok.data(), dataTok.data() + dataTok.size(), data);
-    if (parseError != std::errc{} || parseEnd != dataTok.data() + dataTok.size()) {
-        return "";
-    }
-    if (data < 0 || data > 7) {
-        return "";
-    }
-    i32 weirdo = data % 4;
-    bool upsideDown = (data / 4) != 0;
-    const char* facing = nullptr;
-    switch (weirdo) {
-        case 0:
-            facing = "east";
-            break;
-        case 1:
-            facing = "west";
-            break;
-        case 2:
-            facing = "south";
-            break;
-        case 3:
-            facing = "north";
-            break;
-        default:
-            return "";
-    }
-    return std::string("[facing=") + facing + ",half=" + (upsideDown ? "top" : "bottom") + "]";
-}
 
 /**
  * @brief 把项目命令方块模式映射成基岩 LPCommandMode 的取值

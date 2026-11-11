@@ -1188,6 +1188,7 @@ add_library(mc_common STATIC
     world/blockentity/processing/BeaconEntity.cpp
     world/blockentity/processing/ConduitEntity.cpp
     world/blockentity/processing/CampfireBlockEntity.cpp
+    world/blockentity/redstone/BedrockCloneFilterData.cpp
     world/blockentity/redstone/ComparatorEntity.cpp
     world/blockentity/redstone/CommandBlockEntity.cpp
     world/blockentity/redstone/DaylightDetectorEntity.cpp
