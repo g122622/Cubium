@@ -50,7 +50,6 @@ namespace blocks {
  * - EYE: 是否有眼
  * - FACING: 朝向（水平）
  *
- * 参考: net.minecraft.block.EndPortalFrameBlock
  */
 class EndPortalFrameBlock : public Block {
 public:

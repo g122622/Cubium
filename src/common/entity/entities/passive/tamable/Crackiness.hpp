@@ -32,7 +32,6 @@ namespace entity {
  * @brief 裂纹程度追踪器
  *
  * 根据物品耐久度比例计算裂纹等级，用于狼铠和铁傀儡的裂纹渲染。
- * 参考: net.minecraft.world.entity.Crackiness
  */
 class Crackiness {
 public:

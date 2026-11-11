@@ -54,7 +54,6 @@ namespace blocks {
  * - 面向其他中继器时使用更高优先级
  * - updatePostPlacement 需要更新 LOCKED 状态
  *
- * 参考: net.minecraft.block.RepeaterBlock
  */
 class RedstoneRepeaterBlock : public RedstoneDiodeBlock {
 public:

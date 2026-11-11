@@ -44,7 +44,6 @@ namespace crafting {
  *
  * 结果：将旗帜的BlockEntityTag（含Patterns和Base）复制到盾牌
  *
- * 参考: net.minecraft.item.crafting.ShieldRecipes
  */
 class ShieldDecorationRecipe : public SpecialRecipe {
 public:

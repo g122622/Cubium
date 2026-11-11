@@ -120,7 +120,6 @@ public:
  * @brief 随机值范围
  *
  * 用于掉落表中的数量范围。
- * 参考: net.minecraft.loot.RandomValueRange
  */
 class RandomValueRange : public IRandomRange {
 public:
@@ -211,7 +210,6 @@ private:
  * @brief 二项分布范围
  *
  * 使用二项分布生成随机值。
- * 参考: net.minecraft.loot.BinomialRange
  */
 class BinomialRange : public IRandomRange {
 public:
@@ -297,7 +295,6 @@ class ConstantRange;
  * @brief 固定值范围
  *
  * 总是返回固定值。
- * 参考: net.minecraft.loot.ConstantRange
  */
 class ConstantRange : public IRandomRange {
 public:

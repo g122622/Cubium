@@ -1417,7 +1417,6 @@ void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSou
 void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害
-    // 参考: net.minecraft.world.entity.Entity.propagateFallToPassengers
     if (!hasPassengers() || m_world == nullptr) {
         return;
     }

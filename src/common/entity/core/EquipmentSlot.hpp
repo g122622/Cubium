@@ -13,7 +13,6 @@ namespace mc {
  * Saddle 为鞍槽，对应 MC 1.21.11 EquipmentSlot.SADDLE；铜傀儡的天线槽
  * (CopperGolemEntity::EQUIPMENT_SLOT_ANTENNA) 复用此槽位，存放铁傀儡
  * 赠予的罂粟花（ItemTags.SHEARABLE_FROM_COPPER_GOLEM），可被剪刀剪下。
- * 参考: net.minecraft.world.entity.EquipmentSlot
  *
  * 独立成头：原定义在 LivingEntity.hpp，但 EquipmentSlot 是被 95+ 文件引用的基础
  * 枚举，且 ECS 组件（EquipmentComponent）需依赖它，独立头避免循环依赖。

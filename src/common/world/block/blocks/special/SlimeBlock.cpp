@@ -80,7 +80,6 @@ void SlimeBlock::onFallenUpon(
     // 粘液块免疫摔落伤害：以 damageMultiplier=0.0 调用 causeFallDamage。
     // multiplier=0 使 LivingEntity::causeFallDamage 计算伤害 (distance-3)*0=0，不受伤；
     // 同时仍走 causeFallDamage 以传播摔落给乘客（对齐 Java fallOn 调 causeFallDamage(distance,0.0F,fall)）。
-    // 参考: net.minecraft.world.level.block.SlimeBlock#fallOn
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);

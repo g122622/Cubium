@@ -52,7 +52,6 @@ namespace world::tick {
  * 管理所有待执行的tick，按时间和优先级排序。
  * 支持序列化以保存到区块数据。
  *
- * 参考: net.minecraft.world.server.ServerTickList
  *
  * 设计要点：
  * 1. 使用std::set按(scheduledTick, priority, tickEntryId)排序

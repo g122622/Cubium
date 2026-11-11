@@ -39,7 +39,6 @@ namespace mc {
  * 管理方块与物品的映射关系。
  * 每个 BlockItem 在注册时会自动注册到 ItemRegistry。
  *
- * 参考: net.minecraft.item.ItemBLOCK_REGISTRY
  *
  * 用法示例:
  * @code

@@ -45,7 +45,6 @@ void JukeboxSongs::initialize()
     }
 
     // 注册所有原版唱片机歌曲
-    // 参考: net.minecraft.world.item.JukeboxSongs.bootstrap()
     // 参数: 歌曲ID, 声音事件ID, 描述翻译键, 歌曲长度(秒), 比较器输出(1-15)
 
     registerSong(ResourceLocation("minecraft:13"), SoundEvents::MUSIC_DISC_13, "jukebox_song.minecraft.13", 178.0f, 1);

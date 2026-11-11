@@ -41,7 +41,6 @@ namespace blockentity {
  * 管理所有方块实体类型的注册和创建。
  * 提供工厂方法注册和从JSON反序列化创建方块实体。
  *
- * 参考: net.minecraft.tileentity.TileEntityType
  *
  * 用法示例:
  * @code

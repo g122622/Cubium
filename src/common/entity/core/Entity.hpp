@@ -3442,7 +3442,6 @@ public:
      *
      * 基类默认返回 false。Player 类重写此方法返回实际的旁观者模式状态。
      * 旁观者模式下的实体不可被弹射物命中、不可冰冻、不可被推挤等。
-     * 参考: net.minecraft.world.entity.Entity.isSpectator()
      *
      * @return 如果实体处于旁观者模式返回 true
      */
@@ -3468,7 +3467,6 @@ public:
      *
      * 阻尼振动的实体不会触发振动信号。
      * 监守者始终阻尼振动，掉落的羊毛物品也阻尼振动。
-     * 参考: net.minecraft.world.entity.Entity.dampensVibrations()
      *
      * @return 如果实体阻尼振动返回true
      */

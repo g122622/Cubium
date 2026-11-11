@@ -221,7 +221,6 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
         playerName = selector.username();
         // 离线玩家无法获取真实 UUID，使用 MC 原版离线模式 UUID 算法
         // 算法：UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(UTF_8))
-        // 参考: net.minecraft.core.UUIDUtil.createOfflinePlayerUUID
         playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
     } else {
         std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);

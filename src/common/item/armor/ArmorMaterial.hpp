@@ -59,7 +59,6 @@ enum class ArmorSlot : u8 {
  * @brief 盔甲材质接口
  *
  * 定义盔甲材质的属性，如耐久度、防御值、附魔能力等。
- * 参考: net.minecraft.item.IArmorMaterial
  *
  * 原版材质：LEATHER, COPPER, CHAIN, IRON, GOLD, DIAMOND, TURTLE, NETHERITE
  */

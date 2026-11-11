@@ -60,7 +60,6 @@ namespace mc {
  * 提供所有原版方块的静态指针，便于快速访问。
  * 在游戏初始化时调用 VanillaBlocks::initialize() 进行注册。
  *
- * 参考: net.minecraft.block.Blocks
  */
 class VanillaBlocks : public block_registry::AgriculturalBlocks,
                       public block_registry::BambooBlocks,

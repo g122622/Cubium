@@ -258,7 +258,6 @@ void LightningRodBlock::handlePrecipitation(
     IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
 {
     // 避雷针仅在雷暴天气且朝上时响应降水
-    // 参考: net.minecraft.block.LightningRodBlock#handlePrecipitation
     if (precipitation != world::biome::BiomeClimate::Precipitation::Rain) {
         return;
     }

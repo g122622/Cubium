@@ -42,7 +42,6 @@ namespace potion {
  * 管理所有药水类型的注册和查找。
  * 单例模式，通过 instance() 访问。
  *
- * 参考: net.minecraft.util.registry.Registry.POTION
  */
 class PotionRegistry {
 public:

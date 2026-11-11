@@ -42,7 +42,6 @@ namespace blocks {
  * 点亮时发出光照等级9。
  * lit 状态通过 LIT 属性区分，redstone_ore 与 deepslate_redstone_ore 共用本类。
  *
- * 参考: net.minecraft.block.RedStoneOreBlock
  */
 class RedstoneOreBlock : public Block {
 public:

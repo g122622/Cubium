@@ -163,7 +163,6 @@ public:
      * @brief 设置物品上的所有附魔
      *
      * 清除物品上现有的所有附魔，然后添加新的附魔列表。
-     * 参考: net.minecraft.enchantment.EnchantmentHelper.setEnchantments
      *
      * @param enchantments 附魔列表（附魔指针和等级）
      * @param stack 物品堆（会被修改）

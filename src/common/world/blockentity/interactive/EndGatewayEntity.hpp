@@ -56,7 +56,6 @@ namespace blockentity {
  * - 如果没有出口位置，会自动在约 1024 格外生成新传送门
  * - 每 2400 tick 自动触发冷却（用于外岛返回的传送门刷新）
  *
- * 参考: net.minecraft.tileentity.EndGatewayTileEntity
  */
 class EndGatewayEntity : public BlockEntity {
 public:

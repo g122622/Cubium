@@ -37,7 +37,6 @@ namespace item::items {
  * @brief 可染色盔甲
  *
  * 皮革盔甲可以使用染料染色。
- * 参考: net.minecraft.item.DyeableArmorItem
  *
  * 颜色存储在物品的NBT标签中：
  * - tag: { display: { color: 0xFF0000 } }

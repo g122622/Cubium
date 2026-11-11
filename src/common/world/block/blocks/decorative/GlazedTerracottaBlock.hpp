@@ -41,7 +41,6 @@ namespace blocks {
  * - 16种颜色
  * - 被活塞沿与朝向平行的方向推动时顺时针旋转 90°，垂直推动保持朝向
  *
- * 参考: net.minecraft.block.GlazedTerracottaBlock
  */
 class GlazedTerracottaBlock : public Block {
 public:

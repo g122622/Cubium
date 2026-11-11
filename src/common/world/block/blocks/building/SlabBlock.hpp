@@ -52,7 +52,6 @@ namespace blocks {
  * - TYPE: 台阶类型 (BOTTOM, TOP, DOUBLE)
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.SlabBlock
  */
 class SlabBlock : public Block, public IWaterLoggable {
 public:
@@ -80,7 +79,6 @@ public:
      * 单层台阶可被同类型台阶替换以形成双层台阶。
      * 双层台阶不可被替换。
      *
-     * 参考: net.minecraft.block.SlabBlock#isReplaceable
      */
     [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
 

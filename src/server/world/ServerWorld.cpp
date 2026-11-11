@@ -1022,7 +1022,6 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i3
             Block& newBlock = newState->getBlockMutable();
 
             // 检查旧方块是否要求保留方块实体（如铜箱子在氧化/涂蜡/除蜡/刮削时）
-            // 参考: net.minecraft.world.level.block.state.BlockBehaviour#shouldChangedStateKeepBlockEntity
             std::unique_ptr<BlockEntity> migratedEntity;
             if (!oldIsAir && blockTypeChanged && oldState->getBlock().shouldChangedStateKeepBlockEntity(*oldState)) {
                 // 取出旧方块实体（不销毁），用于迁移到新方块

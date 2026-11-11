@@ -38,7 +38,6 @@ namespace blocks {
  * 随机刻下有1/5概率在相邻面生长紫水晶芽。
  * 生长链：小紫晶芽 → 中紫晶芽 → 大紫晶芽 → 紫水晶簇
  *
- * 参考: net.minecraft.block.BuddingAmethystBlock
  */
 class BuddingAmethystBlock : public AmethystBlock {
 public:

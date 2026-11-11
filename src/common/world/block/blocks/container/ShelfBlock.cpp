@@ -626,7 +626,6 @@ i32 ShelfBlock::getHitSlot(const BlockRaycastResult& hit, Direction facing)
     }
 
     // 根据面朝方向转换为面局部坐标
-    // 参考: net.minecraft.world.level.block.SelectableSlotContainer
     f32 x = 0.0f;
     f32 y = 0.0f;
 

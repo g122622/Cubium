@@ -38,7 +38,6 @@ namespace item::items {
  * @brief 鞘翅
  *
  * 允许玩家滑翔的特殊胸甲。
- * 参考: net.minecraft.item.ElytraItem
  *
  * 特性：
  * - 占用胸甲槽位

@@ -36,7 +36,6 @@ namespace blocks {
  * 骨粉会在3x3x7范围内将MOSS_REPLACEABLE标签中的方块替换为苔藓块，
  * 并在相邻空气位置放置苔藓地毯和杜鹃花丛。
  *
- * 参考: net.minecraft.block.MossBlock
  */
 class MossBlock : public Block, public IGrowable {
 public:

@@ -47,7 +47,6 @@ namespace mc {
  * - setDragonKilled() 中设置百分比为 0、隐藏
  * - 整个 EndDragonFight 生命周期内复用同一个 Boss 栏实例
  *
- * 参考: net.minecraft.server.level.ServerBossEvent (MC 1.21.11)
  */
 class IDragonBossBar {
 public:

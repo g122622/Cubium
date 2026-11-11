@@ -65,7 +65,6 @@ namespace blockentity {
  * - 锁定功能
  * - 战利品表填充（继承自 LootableContainerBlockEntity）
  *
- * 参考: net.minecraft.tileentity.ChestTileEntity
  *
  * 盖子动画:
  * - m_lidAngle 从0.0到1.0表示打开程度
@@ -283,7 +282,6 @@ public:
      * - type > 0 表示打开，设置 lidAngle 为打开状态
      * - type == 0 表示关闭，设置 lidAngle 为关闭状态
      *
-     * 参考: net.minecraft.tileentity.ChestTileEntity.triggerEvent
      *
      * @param id 事件ID（1=盖子动画）
      * @param type 事件参数（>0=打开, 0=关闭）

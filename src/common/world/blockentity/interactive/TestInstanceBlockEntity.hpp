@@ -44,7 +44,6 @@ namespace blockentity {
  * 由 GameTestCommand / MinecraftGameTestInstance 承担，此实体聚焦于数据承载与
  * 状态同步，结构操作相关接口留 TODO。
  *
- * 参考: net.minecraft.world.level.block.entity.TestInstanceBlockEntity
  */
 class TestInstanceBlockEntity : public BlockEntity {
 public:

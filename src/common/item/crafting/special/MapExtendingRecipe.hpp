@@ -38,7 +38,6 @@ namespace crafting {
  * 允许玩家使用已填充地图和纸张扩展地图（缩小比例）。
  * 扩展后的地图覆盖范围更大，但细节更少。
  *
- * 参考: net.minecraft.item.crafting.MapExtendingRecipe
  *
  * 合成台匹配条件：
  * - 1张已填充地图（FilledMapItem），且缩放级别 < 4

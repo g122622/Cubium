@@ -33,7 +33,6 @@ namespace mc::world::tick {
  * 当多个tick在同一游戏刻需要执行时，按优先级排序执行。
  * 数值越小优先级越高，越早执行。
  *
- * 参考: net.minecraft.world.TickPriority
  *
  * 用法示例:
  * @code

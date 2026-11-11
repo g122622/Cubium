@@ -36,7 +36,6 @@ namespace loot {
  * @brief 设置描述函数
  *
  * 设置物品的 Lore 描述。
- * 参考: net.minecraft.loot.functions.SetLore
  */
 class SetLoreFunction : public LootFunction {
 public:

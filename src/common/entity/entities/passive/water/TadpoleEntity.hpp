@@ -42,7 +42,6 @@ namespace mc {
  * 青蛙的幼体，可在水中游动；成年后（24000 tick）转化为青蛙。玩家可用水桶装取
  * 得到蝌蚪桶，或用黏液球（FROG_FOOD 标签）喂养加速成长。
  *
- * 参考: net.minecraft.world.entity.animal.frog.Tadpole
  */
 class TadpoleEntity : public AbstractFishEntity {
 public:

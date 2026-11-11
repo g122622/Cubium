@@ -41,7 +41,6 @@ namespace tool {
  * - TieredItem → ToolItem → PickaxeItem/AxeItem/ShovelItem/HoeItem
  * - TieredItem → SwordItem
  *
- * 参考: net.minecraft.item.TieredItem
  */
 class TieredItem : public Item {
 public:
@@ -84,7 +83,6 @@ public:
      * - 钻石工具：钻石
      * - 下界合金工具：下界合金锭
      *
-     * 参考: net.minecraft.item.TieredItem#getIsRepairable
      *
      * @param toRepair 待修复的物品堆
      * @param repair 修复材料物品堆

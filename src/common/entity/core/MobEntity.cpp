@@ -1222,7 +1222,6 @@ bool MobEntity::canShearEquipment(const Player& /*player*/) const
 bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears)
 {
     // 遍历所有装备槽位，找到第一个有装备的槽位
-    // 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
     // MC 1.21.11 中通过 Equippable.canBeSheared() 判断，本项目通过 Body 槽位有装备判断
     // （目前只有狼铠可被剪切，马铠等后续可扩展）
     const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);

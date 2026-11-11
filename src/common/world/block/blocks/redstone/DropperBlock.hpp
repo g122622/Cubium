@@ -50,7 +50,6 @@ namespace blocks {
  * - 发射器对特定物品有特殊行为（如箭矢发射、火焰球等）
  * - 投掷器会尝试向相邻容器输出物品
  *
- * 参考: net.minecraft.block.DropperBlock
  */
 class DropperBlock : public DispenserBlock {
 public:

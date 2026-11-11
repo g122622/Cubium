@@ -38,7 +38,6 @@ namespace blocks {
  * 继承DoorBlock的门行为，同时具有铜氧化特性。
  * 只有下半部分方块会触发氧化（避免双重氧化）。
  *
- * 参考: net.minecraft.block.OxidizableDoorBlock
  */
 class WeatheringCopperDoorBlock : public DoorBlock, public IOxidizableBlock {
 public:

@@ -48,7 +48,6 @@ namespace blocks {
  * 用于复制、扩展和锁定地图的功能方块。
  * 右键点击打开制图台容器界面。
  *
- * 参考: net.minecraft.block.CartographyTableBlock
  */
 class CartographyTableBlock : public Block {
 public:

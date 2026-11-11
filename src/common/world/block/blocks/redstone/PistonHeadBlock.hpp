@@ -93,7 +93,6 @@ public:
      * 在创造模式下，破坏活塞头时应同时销毁匹配的活塞基座且不产生掉落物。
      * 在生存模式下，掉落物由 onBlockRemoved 中的一般逻辑处理。
      *
-     * 参考: net.minecraft.block.piston.PistonHeadBlock#playerWillDestroy
      *
      * @param world 世界引用
      * @param pos 方块位置

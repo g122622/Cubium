@@ -37,7 +37,6 @@ namespace loot {
  * 检查实体是否被玩家击杀。
  * 通过检查 LootContext 中的 KILLER_PLAYER 参数是否存在来判断。
  *
- * 参考: net.minecraft.loot.conditions.KilledByPlayer
  */
 class KilledByPlayerCondition : public LootCondition {
 public:

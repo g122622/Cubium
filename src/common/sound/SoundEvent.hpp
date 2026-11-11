@@ -43,7 +43,6 @@ namespace mc::sound {
  * 声音事件本身不包含音频数据，它只是一个标识符。
  * 客户端通过 SoundHandler 解析声音事件获取实际的声音定义。
  *
- * 参考: net.minecraft.util.SoundEvent
  *
  * 使用示例:
  * @code

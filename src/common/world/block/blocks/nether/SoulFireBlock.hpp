@@ -40,7 +40,6 @@ namespace blocks {
  *
  * MC ID: minecraft:soul_fire
  *
- * 参考: net.minecraft.block.SoulFireBlock
  */
 class SoulFireBlock : public FireBlock {
 public:

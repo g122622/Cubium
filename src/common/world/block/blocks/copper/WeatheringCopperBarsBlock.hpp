@@ -96,7 +96,6 @@ public:
      * 铜栏杆与铁栏杆或其他铜栏杆变体相邻时，如果双方都有对应方向的连接属性，
      * 则跳过连接面渲染，避免出现多余的内侧面。
      *
-     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
      */
     [[nodiscard]] bool skipRendering(
         const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;
@@ -204,7 +203,6 @@ public:
      * 涂蜡铜栏杆与铁栏杆或其他铜栏杆变体相邻时，如果双方都有对应方向的连接属性，
      * 则跳过连接面渲染，避免出现多余的内侧面。
      *
-     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
      */
     [[nodiscard]] bool skipRendering(
         const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;

@@ -39,7 +39,6 @@ namespace item::items {
  * 每个方块的"当前选中属性"保存在物品的 NBT 中（键 `debug_stick_state`，
  * 形如 { "minecraft:oak_stairs": "facing" }），对齐 vanilla DebugStickState 组件。
  *
- * 参考: net.minecraft.world.item.DebugStickItem
  */
 class DebugStickItem : public Item {
 public:

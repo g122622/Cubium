@@ -46,7 +46,6 @@ namespace blockentity {
  * 存储头颅的所有者档案（玩家头颅的皮肤）、自定义名称，以及龙首/猪灵头的张嘴动画状态。
  * 龙首/猪灵头被红石激活时（POWERED=true）由动画 tick 驱动张嘴。
  *
- * 参考: net.minecraft.world.level.block.entity.SkullBlockEntity
  */
 class SkullBlockEntity : public BlockEntity {
 public:

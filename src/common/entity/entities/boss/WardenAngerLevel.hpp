@@ -48,7 +48,6 @@ namespace mc::entity {
  *       怒气管理在语义上有差异，但足以支持环境音效切换、心跳频率调整等
  *       客户端表现。后续实现 AngerManagement 后可平滑迁移。
  *
- * 参考: net.minecraft.world.entity.monster.warden.AngerLevel
  */
 enum class WardenAngerLevel : u8 {
     /// 平静：怒气 < 40

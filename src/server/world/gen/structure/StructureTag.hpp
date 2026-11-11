@@ -51,7 +51,6 @@ namespace mc::world::gen::structure {
  * }
  * @endcode
  *
- * 参考: net.minecraft.tags.StructureTags (MC 1.21.11)
  */
 class StructureTag {
 public:

@@ -45,7 +45,6 @@ namespace blocks {
  * 属性：AGE(0-4)、HANGING、WATERLOGGED
  * 悬挂时可通过随机刻增长AGE。
  *
- * 参考: net.minecraft.block.MangrovePropaguleBlock
  */
 class MangrovePropaguleBlock : public Block, public IWaterLoggable, public IPlantable {
 public:

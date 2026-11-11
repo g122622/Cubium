@@ -37,7 +37,6 @@ namespace mc::text {
  * @brief 纯文本组件
  *
  * 表示一段纯文本字符串。
- * 参考: net.minecraft.util.text.StringTextComponent
  *
  * ## 使用示例
  *

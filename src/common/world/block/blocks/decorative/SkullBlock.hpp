@@ -60,7 +60,6 @@ enum class SkullType : u8 {
  * 持有 POWERED 属性（被红石信号激活时龙首/猪灵头做张嘴动画，由方块实体 tick 驱动）。
  * 子类：SkullBlock（站立）、WallSkullBlock（贴墙）。
  *
- * 参考: net.minecraft.world.level.block.AbstractSkullBlock
  */
 class AbstractSkullBlock : public Block {
 public:
@@ -121,7 +120,6 @@ protected:
  *
  * 放置在地面上的头颅，拥有 16 向旋转属性（ROTATION_0_15）。
  *
- * 参考: net.minecraft.world.level.block.SkullBlock
  */
 class SkullBlock : public AbstractSkullBlock {
 public:
@@ -147,7 +145,6 @@ private:
  *
  * 附着在墙面的头颅，拥有水平朝向属性（HORIZONTAL_FACING）。
  *
- * 参考: net.minecraft.world.level.block.WallSkullBlock
  */
 class WallSkullBlock : public AbstractSkullBlock {
 public:
@@ -175,7 +172,6 @@ protected:
  *
  * 站立玩家头颅，放置时从物品的 SkullOwner 组件读取档案写入方块实体。
  *
- * 参考: net.minecraft.world.level.block.PlayerHeadBlock
  */
 class PlayerHeadBlock : public SkullBlock {
 public:
@@ -207,7 +203,6 @@ public:
  *
  * 放置时检测凋灵生成结构（4 个灵魂沙/灵魂土 T 形 + 3 个凋灵骷髅头颅）。
  *
- * 参考: net.minecraft.world.level.block.WitherSkullBlock
  */
 class WitherSkullBlock : public SkullBlock {
 public:
@@ -246,7 +241,6 @@ public:
  *
  * 猪灵头的贴墙碰撞箱略大（10 像素宽），单独重写形状。
  *
- * 参考: net.minecraft.world.level.block.PiglinWallSkullBlock
  */
 class PiglinWallSkullBlock : public WallSkullBlock {
 public:

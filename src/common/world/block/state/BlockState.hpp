@@ -363,7 +363,6 @@ public:
      * 默认返回碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，
      * 但支撑形状是完整方块。
      *
-     * 参考: net.minecraft.block.BlockStateBase#getBlockSupportShape
      *
      * @return 支撑形状引用
      */

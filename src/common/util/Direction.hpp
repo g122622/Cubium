@@ -78,7 +78,6 @@ enum class Plane : u8 { Horizontal = 0, Vertical = 1 };
 /**
  * @brief 旋转枚举（用于结构旋转）
  *
- * 参考: net.minecraft.util.Rotation
  */
 enum class Rotation : u8 {
     None = 0,              ///< 无旋转
@@ -90,7 +89,6 @@ enum class Rotation : u8 {
 /**
  * @brief 镜像枚举（用于结构镜像）
  *
- * 参考: net.minecraft.util.Mirror
  */
 enum class Mirror : u8 {
     None = 0,      ///< 无镜像

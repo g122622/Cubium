@@ -45,7 +45,6 @@ namespace item::items {
  * 注：Cubium 无数据驱动的 Equippable 数据组件体系，允许装备 harness 的实体范围由
  *     EntityTypeTags::CAN_EQUIP_HARNESS 显式判定（该标签此前仅被注释引用，从未定义）。
  *
- * 参考: net.minecraft.world.item.equipment.Equippable#harness(DyeColor)
  */
 class HarnessItem : public Item {
 public:

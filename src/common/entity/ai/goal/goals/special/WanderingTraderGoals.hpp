@@ -61,7 +61,6 @@ namespace wandering_trader {
  * 使生物在特定条件下使用物品（如喝药水）。
  * 流浪商人使用此目标在夜间喝隐身药水、白天喝牛奶恢复可见。
  *
- * 参考: net.minecraft.world.entity.ai.goal.UseItemGoal
  */
 class UseItemGoal : public Goal {
 public:
@@ -128,7 +127,6 @@ private:
  *
  * 商人在交易时看向顾客，但不移动位置。
  *
- * 参考: net.minecraft.world.entity.ai.goal.LookAtTradingPlayerGoal
  */
 class LookAtCustomerGoal : public Goal {
 public:
@@ -164,7 +162,6 @@ private:
  *
  * 使商人实体在玩家附近时停止移动并准备交易。
  *
- * 参考: net.minecraft.world.entity.ai.goal.TradeWithPlayerGoal
  */
 class TradeWithPlayerGoal : public Goal {
 public:
@@ -198,7 +195,6 @@ private:
  * 距离目标超过10格时，先向目标方向移动10格作为中间航点（分段接近策略）；
  * 距离10格以内时，直接导航到目标点。
  *
- * 参考: net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader.WanderToPositionGoal
  */
 class MoveToWanderTargetGoal : public Goal {
 public:

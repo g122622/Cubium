@@ -55,7 +55,6 @@ namespace command {
  * - pitch: 音调（0.0-2.0，可选，默认1.0）
  * - minimumVolume: 最小音量（0.0-1.0，可选，默认0.0）
  *
- * 参考: net.minecraft.command.impl.PlaySoundCommand
  */
 class PlaySoundCommand {
 public:

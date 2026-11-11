@@ -48,7 +48,6 @@ namespace blocks {
  * 试炼密室核心方块，根据玩家战斗生成怪物。
  * 状态属性：TRIAL_SPAWNER_STATE, OMINOUS
  *
- * 参考: net.minecraft.block.TrialSpawnerBlock
  */
 class TrialSpawnerBlock : public Block {
 public:
@@ -88,7 +87,6 @@ protected:
  * 试炼密室的奖励容器，需要特定钥匙才能打开。
  * 状态属性：VAULT_STATE, FACING, OMINOUS
  *
- * 参考: net.minecraft.block.VaultBlock
  */
 class VaultBlock : public HorizontalBlock {
 public:
@@ -127,7 +125,6 @@ protected:
  * CrafterBlockEntity 维护6 tick倒计时动画。
  * 状态属性：ORIENTATION, TRIGGERED, CRAFTING
  *
- * 参考: net.minecraft.block.CrafterBlock
  */
 class CrafterBlock : public Block {
 public:

@@ -54,7 +54,6 @@ namespace blocks {
  * vanilla 1.21.11 旗帜不持有 waterlogged 属性（不实现 SimpleWaterloggedBlock），
  * 因此本项目旗帜同样不可含水，状态容器仅含 rotation/facing。
  *
- * 参考: net.minecraft.block.AbstractBannerBlock
  */
 class AbstractBannerBlock : public Block {
 public:
@@ -128,7 +127,6 @@ protected:
  * 状态属性：
  * - ROTATION_0_15: 0-15，表示16个旋转方向
  *
- * 参考: net.minecraft.block.BannerBlock
  */
 class StandingBannerBlock : public AbstractBannerBlock {
 public:
@@ -190,7 +188,6 @@ private:
  * 状态属性：
  * - HORIZONTAL_FACING: 北、南、东、西四个方向
  *
- * 参考: net.minecraft.block.WallBannerBlock
  */
 class WallBannerBlock : public AbstractBannerBlock {
 public:

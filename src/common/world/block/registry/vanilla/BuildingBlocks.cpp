@@ -255,7 +255,6 @@ void registerBuildingBlocks()
             world::biome::BiomeClimate::Precipitation::Rain);
 
     // 岩浆炼药锅 - 始终满的炼药锅，发光等级15，实体进入受岩浆伤害
-    // 参考: net.minecraft.world.level.block.LavaCauldronBlock
     BuildingBlocks::LAVA_CAULDRON =
         &registry.registerBlock<blocks::LavaCauldronBlock>(ResourceLocation("minecraft:lava_cauldron"),
             BlockProperties(Material::IRON)

@@ -39,7 +39,6 @@ namespace crafting {
  * - 烟花之星 0~N 个，各自携带的 firework_explosion 组件依网格顺序累积为火箭的爆炸列表。
  * 结果火箭携带 fireworks 组件承载以上数据。
  *
- * 参考: net.minecraft.world.item.crafting.FireworkRocketRecipe
  */
 class FireworkRocketRecipe : public SpecialRecipe {
 public:

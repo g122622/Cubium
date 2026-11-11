@@ -44,7 +44,6 @@ namespace item::items {
  * 2. 对玩家无效
  * 3. 消耗一个物品
  *
- * 参考: net.minecraft.item.NameTagItem
  */
 class NameTagItem : public Item {
 public:

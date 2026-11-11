@@ -644,7 +644,6 @@ std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& source) c
 bool WolfEntity::canShearEquipment(const Player& player) const
 {
     // 狼只允许主人剪切狼铠
-    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.canShearEquipment()
     return isOwner(player.uuidBytes());
 }
 
@@ -666,7 +665,6 @@ bool WolfEntity::hurt(DamageSource& source, f32 amount)
 void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)
 {
     // 狼铠伤害吸收逻辑
-    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.actuallyHurt()
     if (!_canArmorAbsorb(source)) {
         // 狼铠不吸收此伤害，走父类正常受伤流程
         TameableEntity::actuallyHurt(source, amount);

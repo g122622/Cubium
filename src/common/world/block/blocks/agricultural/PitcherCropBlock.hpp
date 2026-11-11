@@ -64,7 +64,6 @@ namespace blocks {
  * - 未成熟（AGE < 4）：掉落瓶草荚果
  * - 成熟（AGE = 4）：可能额外掉落瓶草荚果（由战利品表控制）
  *
- * 参考: net.minecraft.world.level.block.PitcherCropBlock
  */
 class PitcherCropBlock : public DoublePlantBlock, public IGrowable {
 public:
@@ -242,7 +241,6 @@ public:
      * 当 Ravager 实体进入瓶草作物方块且 mobGriefing 游戏规则开启时，
      * 方块会被破坏并掉落物品。仅在服务端执行。
      *
-     * 参考: net.minecraft.world.level.block.PitcherCropBlock#entityInside
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

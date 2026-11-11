@@ -40,7 +40,6 @@ namespace item::items {
  * 当 12 个末地传送门框架全部嵌入末影之眼后，中央 3×3 区域会生成末地传送门方块，
  * 并触发全服广播的末地传送门激活音效（事件 1038，globalLevelEvent）。
  *
- * 参考: net.minecraft.item.EnderEyeItem
  */
 class EnderEyeItem : public Item {
 public:

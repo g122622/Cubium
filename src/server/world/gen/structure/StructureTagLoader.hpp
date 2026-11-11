@@ -67,7 +67,6 @@ namespace world::gen::structure {
  * - replace=true：清空已有条目后追加当前数据包的内容
  * - replace=false（默认）：追加当前数据包的内容
  *
- * 参考: net.minecraft.tags.TagLoader (MC 1.21.11)
  */
 class StructureTagLoader {
 public:

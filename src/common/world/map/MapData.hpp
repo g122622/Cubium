@@ -46,7 +46,6 @@ namespace mc::world::map {
  * @brief 地图数据
  *
  * 存储单个地图的全部状态数据，包括地图像素颜色、装饰物、旗帜标记等。
- * 参考: net.minecraft.world.storage.MapData
  */
 class MapData {
 public:
@@ -172,7 +171,6 @@ public:
      *
      * 检查指定位置是否存在旗帜方块实体，如果存在则在地图上添加/切换旗帜标记。
      * 如果旗帜已存在则移除，如果不存在则添加。同时检查装饰物数量上限。
-     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.toggleBanner
      *
      * @param world 世界引用
      * @param pos 旗帜方块位置
@@ -185,7 +183,6 @@ public:
      *
      * 检查指定区域内的旗帜标记是否仍然有效（旗帜方块仍然存在且颜色匹配），
      * 移除不再匹配的旗帜标记和对应的装饰物。
-     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.checkBanners
      *
      * @param world 世界引用
      * @param x 区块X坐标
@@ -368,7 +365,6 @@ private:
      *
      * 在下界中使用基于游戏时间的伪随机旋转，模拟指南针失灵效果。
      * 在其他维度中使用实际朝向角度。
-     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.calculateRotation
      *
      * @param world 世界指针（可为nullptr，下界旋转需要）
      * @param rotation 实际旋转角度（度）
@@ -379,7 +375,6 @@ private:
     /**
      * @brief 检查追踪的装饰物数量是否超过上限
      *
-     * 参考: net.minecraft.world.level.saveddata.maps.MapItemSavedData.isTrackedCountOverLimit
      */
     [[nodiscard]] bool isTrackedCountOverLimit(i32 limit) const;
 

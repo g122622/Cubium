@@ -38,7 +38,6 @@ namespace blocks {
  * GameTest 框架的调试方块（GameMasterBlock），标记一个测试实例（结构）的位置。
  * 管理员右键打开测试实例界面。方块实体承载测试元数据（见 TestInstanceBlockEntity）。
  *
- * 参考: net.minecraft.world.level.block.TestInstanceBlock
  */
 class TestInstanceBlock : public Block, public GameMasterBlock {
 public:

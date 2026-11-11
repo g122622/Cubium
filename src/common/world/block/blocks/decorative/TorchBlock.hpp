@@ -46,7 +46,6 @@ namespace blocks {
  * 可放置在地面上的火把，发光等级14，生成火焰和烟雾粒子。
  * 必须放置在具有坚固上表面的方块上方。
  *
- * 参考: net.minecraft.world.level.block.TorchBlock
  */
 class TorchBlock : public Block {
 public:

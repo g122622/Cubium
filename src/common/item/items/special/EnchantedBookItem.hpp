@@ -42,7 +42,6 @@ namespace item::items {
  * 存储附魔的书籍，可用于铁砧将附魔应用到物品上。
  * 附魔书始终显示附魔光效。
  *
- * 参考: net.minecraft.item.EnchantedBookItem
  *
  * NBT结构:
  * - StoredEnchantments: JSON数组 附魔列表

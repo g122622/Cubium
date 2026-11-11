@@ -52,7 +52,6 @@ namespace blocks {
  * - POWERED: 是否被充能
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.LightningRodBlock
  */
 class LightningRodBlock : public DirectionalBlock, public IWaterLoggable {
 public:
@@ -138,7 +137,6 @@ public:
      * @brief 降水处理
      *
      * 在雷暴天气且避雷针朝上时，有概率被闪电击中而激活。
-     * 参考: net.minecraft.block.LightningRodBlock#handlePrecipitation
      *
      * @param world 世界
      * @param pos 方块位置

@@ -38,7 +38,6 @@ namespace loot {
  * @brief 设置数量函数
  *
  * 用于设置物品堆的数量。可以设置固定数量或随机范围。
- * 参考: net.minecraft.loot.functions.SetCount
  *
  * 通过 add 参数控制是替换原数量还是叠加到原数量上。
  */

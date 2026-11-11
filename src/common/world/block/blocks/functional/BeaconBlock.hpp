@@ -49,7 +49,6 @@ namespace blocks {
  * 提供增益效果的功能方块。
  * 需要金字塔基座才能激活，基座层数决定可用效果。
  *
- * 参考: net.minecraft.block.BeaconBlock
  */
 class BeaconBlock : public Block {
 public:

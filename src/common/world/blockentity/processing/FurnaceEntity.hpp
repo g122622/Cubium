@@ -41,7 +41,6 @@ namespace blockentity {
  * 实现200tick熔炼时间的熔炉。
  * 可以熔炼所有类型的物品（矿石、食物、材料等）。
  *
- * 参考: net.minecraft.tileentity.FurnaceTileEntity
  */
 class FurnaceEntity : public AbstractFurnaceEntity {
 public:

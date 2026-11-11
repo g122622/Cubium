@@ -52,7 +52,6 @@ namespace blocks {
  * - DRIED_GHAST_HYDRATION_LEVELS: 湿润等级 (0-3)
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.DriedGhastBlock
  */
 class DriedGhastBlock : public Block, public IWaterLoggable {
 public:

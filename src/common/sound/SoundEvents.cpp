@@ -543,7 +543,6 @@ const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE("minecraft:block.copper_
 
 // 监守者
 // 完整对齐 MC 1.21.11 SoundEvents 中所有 WARDEN_* 事件（共 21 个）。
-// 参考: net.minecraft.sounds.SoundEvents
 const ResourceLocation ENTITY_WARDEN_AGITATED("minecraft:entity.warden.agitated");
 const ResourceLocation ENTITY_WARDEN_AMBIENT("minecraft:entity.warden.ambient");
 const ResourceLocation ENTITY_WARDEN_ANGRY("minecraft:entity.warden.angry");
@@ -1063,7 +1062,6 @@ const ResourceLocation ENTITY_SNOW_GOLEM_SHEAR("minecraft:entity.snow_golem.shea
 
 // 铜傀儡（MC 1.21.11）
 // 完整对齐 MC 1.21.11 SoundEvents 中所有 COPPER_GOLEM_* 与铜傀儡雕像相关事件。
-// 参考: net.minecraft.sounds.SoundEvents
 // 基础（Unaffected 等级）铜傀儡音效
 const ResourceLocation ENTITY_COPPER_GOLEM_STEP("minecraft:entity.copper_golem.step");
 const ResourceLocation ENTITY_COPPER_GOLEM_HURT("minecraft:entity.copper_golem.hurt");

@@ -44,7 +44,6 @@ namespace blocks {
  * - 可以攀爬
  * - 实现 IWaterLoggable 接口支持含水功能
  *
- * 参考: net.minecraft.block.ChainBlock
  */
 class ChainBlock : public Block, public IWaterLoggable {
 public:

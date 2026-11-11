@@ -41,7 +41,6 @@ namespace mc {
  * - WallOrFloorItem：支持地面和墙壁两种放置方式（告示牌、旗帜等）
  * - BannerItem：旗帜物品，支持颜色信息
  *
- * 参考: net.minecraft.item.BlockItem
  */
 class BlockItem : public Item {
 public:

@@ -74,7 +74,6 @@ class FluidState;
  * 不可变的流体状态对象，包含流体的所有属性值。
  * 继承自StateHolder以支持O(1)的状态转换。
  *
- * 参考: net.minecraft.fluid.FluidState
  *
  * 用法示例:
  * @code
@@ -222,7 +221,6 @@ private:
  * 所有流体类型的基类。流体通过FluidRegistry注册，
  * 每个流体有一个或多个FluidState表示不同状态。
  *
- * 参考: net.minecraft.fluid.Fluid
  *
  * 用法示例:
  * @code

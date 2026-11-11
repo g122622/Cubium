@@ -57,7 +57,6 @@ namespace blocks {
  *
  * MC ID: minecraft:open_eyeblossom, minecraft:closed_eyeblossom
  *
- * 参考: net.minecraft.world.level.block.EyeblossomBlock
  */
 class EyeblossomBlock : public FlowerBlock {
 public:
@@ -121,7 +120,6 @@ public:
      * 2. 播放 longSwitchSound（长音效）
      * 3. 连锁触发周围 3×2×3 范围内同种眼眸花方块的延迟 tick
      *
-     * 参考: net.minecraft.world.level.block.EyeblossomBlock#randomTick
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -132,7 +130,6 @@ public:
      * shortSwitchSound（短音效）。注意：连锁仅对相同状态的眼眸花方块触发，
      * 这样在原始方块切换后，邻居会在延迟 tick 后跟着切换。
      *
-     * 参考: net.minecraft.world.level.block.EyeblossomBlock#tick
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -144,7 +141,6 @@ public:
      * 仅在客户端调用，用于环境效果：
      * - 开放状态：1/700 概率在苍白苔藓方块上播放 EYEBLOSSOM_IDLE 环境音
      *
-     * 参考: net.minecraft.world.level.block.EyeblossomBlock#animateTick
      */
     void animateTick(IBlockAnimateContext& context,
         const BlockPos& pos,
@@ -160,7 +156,6 @@ public:
      * 闭合眼眸花不在 BlockTags::BEE_ATTRACTIVE 标签中，因此不会触发中毒。
      * 已中毒的蜜蜂不会被重复施加效果。
      *
-     * 参考: net.minecraft.world.level.block.EyeblossomBlock#entityInside
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
@@ -200,7 +195,6 @@ public:
      *
      * 服务端通过 addTrailParticle 广播给附近玩家。
      *
-     * 参考: net.minecraft.world.level.block.EyeblossomBlock.Type#spawnTransformParticle
      *
      * @param world 世界引用
      * @param pos 方块位置

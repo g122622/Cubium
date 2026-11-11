@@ -33,7 +33,6 @@ namespace blocks {
  *
  * 紫水晶块的基础类，投掷物击中时播放风铃声。
  *
- * 参考: net.minecraft.block.AmethystBlock
  */
 class AmethystBlock : public Block {
 public:

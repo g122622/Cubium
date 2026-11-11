@@ -37,7 +37,6 @@ namespace crafting {
  * 合成，染料颜色按网格顺序累积为 fade_colors 写入星形的 firework_explosion 组件
  * （形状/主色/拖尾/闪烁原样保留）。星形未携带该组件时以默认爆炸为初值。
  *
- * 参考: net.minecraft.world.item.crafting.FireworkStarFadeRecipe
  */
 class FireworkStarFadeRecipe : public SpecialRecipe {
 public:

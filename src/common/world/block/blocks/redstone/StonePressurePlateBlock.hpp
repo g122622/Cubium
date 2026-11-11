@@ -38,7 +38,6 @@ namespace blocks {
  * 石头压力板只能被生物（玩家、怪物）触发，物品不会触发。
  * 只输出两种信号：0（无实体）和 15（有实体）。
  *
- * 参考: net.minecraft.block.StonePressurePlateBlock
  */
 class StonePressurePlateBlock : public AbstractPressurePlateBlock {
 public:

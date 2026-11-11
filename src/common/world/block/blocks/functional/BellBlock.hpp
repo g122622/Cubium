@@ -68,7 +68,6 @@ namespace blocks {
  * - 红石信号变化：触发自动敲响并切换 POWERED 状态
  * - 支撑失效：方块掉落为物品
  *
- * 参考: net.minecraft.world.level.block.BellBlock
  */
 class BellBlock : public Block {
 public:
@@ -186,7 +185,6 @@ public:
     /**
      * @brief 投射物击中钟时自动敲响
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#onProjectileHit
      */
     void onProjectileHit(
         IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile) override;
@@ -198,7 +196,6 @@ public:
      * - 从无到有：自动敲响钟（attemptToRing）
      * - 切换 POWERED 状态
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#neighborChanged
      */
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
@@ -235,7 +232,6 @@ public:
      *
      * 判定是否为有效敲击方向，若是则敲响钟并给玩家加 BELL_RING 统计。
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#onHit
      *
      * @param world 世界引用
      * @param state 方块状态

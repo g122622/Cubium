@@ -69,7 +69,6 @@ public:
      * 自身伤害）。潜行实体同样免疫（Java fallOn 中 isSuppressingBounce 仅控制是否调用
      * causeFallDamage，但 multiplier 恒为 0，结果一致）。
      *
-     * 参考: net.minecraft.world.level.block.SlimeBlock#fallOn
      */
     void onFallenUpon(
         IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;

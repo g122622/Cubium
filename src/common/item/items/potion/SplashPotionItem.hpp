@@ -43,7 +43,6 @@ namespace item {
  * 可投掷的药水，落地时在区域内应用效果。
  * 继承ThrowablePotionItem以获得药水物品的共享行为。
  *
- * 参考: net.minecraft.item.SplashPotionItem
  */
 class SplashPotionItem : public ThrowablePotionItem {
 public:

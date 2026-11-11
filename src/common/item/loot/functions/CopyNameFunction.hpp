@@ -42,7 +42,6 @@ namespace loot {
  * @brief 复制名称函数
  *
  * 从掉落源复制名称到物品。
- * 参考: net.minecraft.loot.functions.CopyName
  *
  * 用于命名实体掉落物品时保留名称（如命名生物掉落的物品）。
  */

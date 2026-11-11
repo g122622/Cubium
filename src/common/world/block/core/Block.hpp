@@ -91,7 +91,6 @@ class FluidState;
  * 所有方块类型的基类。方块通过BlockRegistry注册，
  * 每个方块有一个或多个BlockState表示不同状态。
  *
- * 参考: net.minecraft.block.Block
  *
  * 用法示例:
  * @code
@@ -260,7 +259,6 @@ public:
      * @param pos 位置（可选）
      * @return 光照等级 (0-15)
      *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getLightValue
      */
     [[nodiscard]] virtual u8 getLightLevel(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const
@@ -295,7 +293,6 @@ public:
      * @param pos 位置（可选）
      * @return 遮光亮度 (0.0F-1.0F)
      *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getShadeBrightness
      */
     [[nodiscard]] virtual f32 getShadeBrightness(
         const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
@@ -312,7 +309,6 @@ public:
      * @param pos 位置（可选）
      * @return 地图颜色ID
      *
-     * 参考: net.minecraft.block.Block#getDefaultMaterialColor
      *
      * 注册时显式设置过 `BlockProperties::mapColor()` 的方块用注册值；否则回退到
      * 原版快照表（`lookupVanillaMapColor`）。快照由差分能力 block_map_color 逐方块实测
@@ -483,7 +479,6 @@ public:
      * 某些方块（如洞穴藤蔓）的中键选取返回的物品与方块物品不同，
      * 需要覆写此方法返回正确的物品。
      *
-     * 参考: net.minecraft.block.Block.getCloneItemStack
      *
      * @param state 方块状态
      * @param world 世界指针（可能为空）
@@ -561,7 +556,6 @@ public:
      * 默认返回碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，
      * 但支撑形状是完整方块，因此需要在子类中重写此方法。
      *
-     * 参考: net.minecraft.block.Block#getBlockSupportShape
      *
      * @param state 方块状态
      * @return 支撑形状引用
@@ -574,7 +568,6 @@ public:
      * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
      * 默认实现返回完整遮挡形状的切片。
      *
-     * 参考: net.minecraft.block.BlockState#getFaceOcclusionShape
      *
      * @param state 方块状态
      * @param direction 方向
@@ -590,7 +583,6 @@ public:
      * 某些方块（如炼药锅、细雪）重写此方法返回更小的形状，使得只有当实体实际
      * 进入方块的内容区域（如炼药锅内的岩浆/水）时才触发 onEntityCollision。
      *
-     * 参考: net.minecraft.block.BlockBehaviour#getEntityInsideCollisionShape
      *
      * @param state 方块状态
      * @return 实体内部碰撞形状引用
@@ -606,7 +598,6 @@ public:
      *
      * 用于台阶、楼梯、栅栏等非完整方块。
      *
-     * 参考: net.minecraft.block.BlockState#useShapeForLightOcclusion
      *
      * @param state 方块状态
      * @return 是否使用形状进行光照遮挡
@@ -721,7 +712,6 @@ public:
      * 该开关与材质无关：铁栏杆（金属材质）、潜影盒（木质材质）等 vanilla noOcclusion 方块
      * 不再被当作完全遮光（见 `Block::getOpacity`）。
      *
-     * 参考: net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase#canOcclude
      */
     [[nodiscard]] bool canOcclude() const noexcept
     {
@@ -747,7 +737,6 @@ public:
      * 对于透明方块（如玻璃），返回0但仍然阻挡天空光传播。
      * 对于树叶、冰、水等，返回1-2使光线衰减。
      *
-     * 参考: net.minecraft.block.BlockState#getOpacity
      *
      * @param state 方块状态
      * @param world 世界（可选，用于上下文相关透明度）
@@ -763,7 +752,6 @@ public:
      * 某些方块（如树叶、冰、水）会使天空光衰减1级后传播，
      * 而不是完全阻挡或无衰减传播。
      *
-     * 参考: net.minecraft.block.BlockState#propagatesSkylightDown
      *
      * @param state 方块状态
      * @param world 世界（可选）
@@ -808,7 +796,6 @@ public:
      * 当方块的计划刻到期时调用。默认实现为空。
      * 需要tick行为的方块（如活塞、红石元件、农作物等）应重写此方法。
      *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#tick
      *
      * @param world 世界引用
      * @param pos 方块位置
@@ -957,7 +944,6 @@ public:
      * 默认实现返回 false：方块 ID 变化时旧方块实体会被销毁，新方块实体会被创建。
      * 铜箱子等容器类铜方块应重写此方法返回 true，避免物品在氧化/涂蜡/除蜡/刮削时丢失。
      *
-     * 参考: net.minecraft.world.level.block.state.BlockBehaviour#shouldChangedStateKeepBlockEntity
      * (MC 1.21.11)
      *
      * @param state 当前方块状态
@@ -984,7 +970,6 @@ public:
      * @param state 方块状态（破坏前的状态）
      * @param player 破坏方块的玩家
      *
-     * 参考: net.minecraft.block.Block#playerWillDestroy
      */
     virtual void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player);
 
@@ -1003,7 +988,6 @@ public:
      * @param tool 破坏工具（可能为空，如爆炸破坏）
      * @param dropExp 是否掉落经验（爆炸时可能为 false）
      *
-     * 参考: net.minecraft.block.BlockBehaviour.spawnAfterBreak
      */
     virtual void spawnAfterBreak(
         IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack* tool, bool dropExp) const;
@@ -1040,7 +1024,6 @@ public:
      * @param state 方块状态
      * @return 爆炸抗性值
      *
-     * 参考: net.minecraft.block.Block.getExplosionResistance
      */
     [[nodiscard]] virtual f32 getExplosionResistance(const BlockState& state) const noexcept
     {
@@ -1056,7 +1039,6 @@ public:
      * @param state 方块状态
      * @return 是否可以掉落物品
      *
-     * 参考: net.minecraft.block.Block.canDropFromExplosion
      */
     [[nodiscard]] virtual bool canDropFromExplosion(const BlockState& state) const noexcept
     {
@@ -1106,7 +1088,6 @@ public:
      * @param state 方块状态
      * @param explosion 引发此方块破坏的爆炸，可能为 nullptr
      *
-     * 参考: net.minecraft.block.Block.onBlockExploded
      */
     virtual void onBlockExploded(
         IWorld& world, const BlockPos& pos, const BlockState& state, const world::explosion::Explosion* explosion) const
@@ -1124,7 +1105,6 @@ public:
      * 仙人掌造成伤害、甜浆果丛减速等。
      * 默认实现为空。
      *
-     * 参考: net.minecraft.block.Block.onEntityCollision
      *
      * @param state 方块状态
      * @param world 世界引用
@@ -1146,7 +1126,6 @@ public:
      * 此方法必须更新实体的Y轴速度，因为实体不会自动执行此操作。
      * 默认实现将实体的Y速度归零。
      *
-     * 参考: net.minecraft.block.Block.onLanded
      *
      * @param state 方块状态
      * @param world 世界引用（可为IBlockReader）
@@ -1162,7 +1141,6 @@ public:
      * 岩浆方块产生气泡、脚手架攀爬等。
      * 默认实现为空。
      *
-     * 参考: net.minecraft.block.Block.onEntityWalk
      *
      * @param state 方块状态
      * @param world 世界引用
@@ -1182,7 +1160,6 @@ public:
      *
      * 注意：蜂蜜块的减速效果通过 speedFactor 和 jumpFactor 实现，而非修改滑度。
      *
-     * 参考: net.minecraft.block.Block.getFriction
      *
      * @param state 方块状态
      * @param world 世界引用（可选）
@@ -1210,7 +1187,6 @@ public:
      * - 0.5f: 蜂蜜块（减速）
      * - 1.5f: 灵魂沙（减速，特殊处理）
      *
-     * 参考: net.minecraft.block.Block.getSpeedFactor
      *
      * @param state 方块状态
      * @param world 世界引用（可选）
@@ -1233,7 +1209,6 @@ public:
      * - 1.0f: 默认值（正常跳跃）
      * - 蜂蜜块会减少跳跃高度
      *
-     * 参考: net.minecraft.block.Block.getJumpFactor
      *
      * @param state 方块状态
      * @param world 世界引用（可选）
@@ -1259,7 +1234,6 @@ public:
      * - 最大水平速度为 0.15
      * - 重力被抵消
      *
-     * 参考: net.minecraft.block.Block.isLadder
      *
      * @param state 方块状态
      * @param world 世界引用（可选）
@@ -1285,7 +1259,6 @@ public:
      * 返回true时，该方块会被随机刻系统选中执行randomTick。
      * 默认返回BlockProperties中设置的值。
      *
-     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#ticksRandomly
      *
      * @return 是否响应随机刻
      */
@@ -1312,7 +1285,6 @@ public:
      * 当返回 true 时，此方块接触岩浆会被点燃。
      * 木头类、TNT等可燃方块应返回 true。
      *
-     * 参考: net.minecraft.block.Block.isIgnitedByLava
      */
     [[nodiscard]] bool isIgnitedByLava() const noexcept
     {
@@ -1325,7 +1297,6 @@ public:
      * 控制方块渲染时的随机位置偏移。
      * 植物、花等小方块使用XZ偏移来避免视觉重复。
      *
-     * 参考: net.minecraft.block.Block.getOffsetType
      */
     [[nodiscard]] BlockOffsetType getOffsetType() const noexcept
     {
@@ -1447,7 +1418,6 @@ public:
      * 当音符盒放置在此方块上方时演奏的乐器。显式设置的属性优先（如头颅、熔炉）；
      * 未显式设置时由音符盒按方块类型默认规则推导（NoteBlock::blockInstrumentByType）。
      *
-     * 参考: net.minecraft.block.Block.getInstrument
      */
     [[nodiscard]] NoteBlockInstrument getInstrument() const noexcept
     {
@@ -1587,7 +1557,6 @@ public:
      * 默认实现返回 false（不支持任何植物）。
      * 子类（如草方块、泥土、耕地等）应重写此方法。
      *
-     * 参考: net.minecraft.block.Block#canSustainPlant
      *
      * @param state 当前方块状态
      * @param world 世界读取器
@@ -1700,7 +1669,6 @@ public:
      * Block 子类需要通过同时继承 GameMasterBlock 标记接口并重写此方法返回 true
      * 来标记自身为管理员方块。
      *
-     * 参考: net.minecraft.world.level.block.GameMasterBlock
      *
      * @return 如果此方块为游戏管理员方块返回true
      */
@@ -1851,7 +1819,6 @@ public:
      * @brief 检查方块是否为粘性方块
      *
      * 粘性方块（黏液块、蜂蜜块）可以粘住相邻方块一起被活塞推动。
-     * 参考: net.minecraft.block.Block#isStickyBlock
      *
      * @param state 方块状态
      * @return 如果是粘性方块返回 true
@@ -1867,7 +1834,6 @@ public:
      *
      * 判断此方块是否可以粘住另一个方块。
      * 黏液块可以粘住黏液块和蜂蜜块，蜂蜜块只能粘住蜂蜜块。
-     * 参考: net.minecraft.block.Block#canStickTo
      *
      * @param state 当前方块状态
      * @param other 目标方块状态
@@ -1895,7 +1861,6 @@ public:
      * 默认实现返回 0（不可燃）。
      * 可燃方块应重写此方法或通过 FireInfoRegistry 注册。
      *
-     * 参考: net.minecraft.block.FireBlock.getFlammability()
      * Forge: IForgeBlock.getFlammability()
      *
      * @param state 方块状态
@@ -1918,7 +1883,6 @@ public:
      * 默认实现返回 0（不加速蔓延）。
      * 可燃方块应重写此方法或通过 FireInfoRegistry 注册。
      *
-     * 参考: net.minecraft.block.FireBlock.getFireSpreadSpeed()
      * Forge: IForgeBlock.getFireSpreadSpeed()
      *
      * @param state 方块状态
@@ -2068,7 +2032,6 @@ public:
      * 判断相邻两个方块之间是否需要渲染遮挡面。
      * 用于渲染面剔除优化。
      *
-     * 参考: net.minecraft.block.Block#shouldSideBeRendered
      *
      * @param state 当前方块状态
      * @param world 世界
@@ -2084,7 +2047,6 @@ public:
      *
      * 用于判断方块是否可以放置在某个位置（如门、栅栏等需要顶部支撑的方块）。
      *
-     * 参考: net.minecraft.block.Block#hasSolidSideOnTop
      *
      * @param world 世界
      * @param pos 方块位置
@@ -2097,7 +2059,6 @@ public:
      *
      * 检查方块在指定方向是否有固体面。
      *
-     * 参考: net.minecraft.block.Block#hasEnoughSolidSide
      *
      * @param world 世界
      * @param pos 方块位置
@@ -2120,7 +2081,6 @@ public:
      * 与 hasEnoughSolidSide 不同，本方法基于"支撑形状"而非"固体面"判定，
      * 允许非完整方块（如铁砧、楼梯）在中心柱区域提供支撑。
      *
-     * 参考: net.minecraft.world.level.block.Block#canSupportCenter
      *
      * @param world 世界只读接口
      * @param pos 方块位置
@@ -2137,7 +2097,6 @@ public:
      *
      * 判定逻辑：BlockState.isFaceSturdy(Direction.UP, SupportType.RIGID)
      *
-     * 参考: net.minecraft.world.level.block.Block#canSupportRigidBlock
      *
      * @param world 世界只读接口
      * @param pos 方块位置
@@ -2165,7 +2124,6 @@ public:
      * 提取形状在指定方向的面投影，然后判断投影是否覆盖整个单位方块面。
      * 这是 isFaceSturdy 的核心判定逻辑。
      *
-     * 参考: net.minecraft.block.Block#isFaceFull
      *
      * @param shape 3D 形状（通常是碰撞形状或支撑形状）
      * @param direction 要检查的面方向
@@ -2179,7 +2137,6 @@ public:
      * 某些方块虽然是固体的，但栅栏、墙、玻璃板等不应与它们建立连接。
      * 这些方块包括：树叶、屏障、雕刻南瓜、南瓜灯、西瓜、南瓜、潜影盒。
      *
-     * 参考: net.minecraft.block.Block#isExceptionForConnection
      *
      * @param state 方块状态
      * @return 如果是连接例外方块返回 true
@@ -2196,7 +2153,6 @@ public:
      * - 雪层增加时推出站在上面的实体
      * - 耕地变为泥土时推出上面的实体（FarmlandBlock::turnToDirt）
      *
-     * 参考: net.minecraft.block.Block#pushEntitiesUp
      *
      * @param oldState 变化前的方块状态
      * @param newState 变化后的方块状态
@@ -2287,7 +2243,6 @@ public:
      * 当玩家左键点击（攻击）方块时调用。
      * 默认实现为空，需要特殊行为的方块（如 TNT、创造模式等）应重写。
      *
-     * 参考: net.minecraft.block.Block#onBlockClicked
      *
      * @param state 方块状态
      * @param world 世界
@@ -2308,7 +2263,6 @@ public:
      * 当投掷物（箭、三叉戟等）击中方块时调用。
      * 默认实现为空，需要特殊行为的方块应重写。
      *
-     * 参考: net.minecraft.block.Block#onProjectileHit
      *
      * @param world 世界
      * @param state 方块状态
@@ -2334,7 +2288,6 @@ public:
      * - 海龟蛋方块：不调用父类方法（取消摔落伤害）
      * - 耕地方块：先执行踩踏逻辑，再调用父类方法（保留普通摔落伤害）
      *
-     * 参考: net.minecraft.block.Block#fallOn
      *
      * @param world 世界
      * @param pos 方块位置
@@ -2355,7 +2308,6 @@ public:
      *
      * 调用条件：世界正在下雨（isRaining()）且生物群系的降水类型不为 None。
      *
-     * 参考: net.minecraft.block.Block#handlePrecipitation
      *
      * @param world 世界
      * @param pos 方块位置
@@ -2375,7 +2327,6 @@ public:
      * 当玩家成功破坏方块时调用，处理掉落物和统计数据。
      * 默认实现调用掉落处理。
      *
-     * 参考: net.minecraft.block.Block#harvestBlock
      *
      * @param world 世界
      * @param player 玩家
@@ -2397,7 +2348,6 @@ public:
      * 计算玩家挖掘方块的速度倍率。
      * 考虑工具效率、附魔效果、水下挖掘等因素。
      *
-     * 参考: net.minecraft.block.Block#getPlayerRelativeBlockHardness
      *
      * @param player 玩家
      * @param world 世界
@@ -2417,7 +2367,6 @@ public:
      * - LIQUID: 液体渲染
      * - ENTITYBLOCK_ANIMATED: 方块实体动画渲染
      *
-     * 参考: net.minecraft.block.Block#getRenderType
      *
      * @param state 方块状态
      * @return 渲染类型
@@ -2435,7 +2384,6 @@ public:
      * 用于实体路径查找系统判断是否可以穿过方块。
      * 默认返回材质的 blocksMovement 取反。
      *
-     * 参考: net.minecraft.block.Block#allowsMovement
      *
      * @param state 方块状态
      * @param world 世界读取器
@@ -2455,7 +2403,6 @@ public:
      * 默认：方块不是固体、也不是液体。压力板、告示牌、旗帜等方块重写为 true。
      * 仅用于强制重生点的落点合法性判定（床/重生锚走各自的站位搜索）。
      *
-     * 参考: net.minecraft.world.level.block.Block#isPossibleToRespawnInThis
      *
      * @param state 方块状态
      * @return 允许在方块内部重生返回 true

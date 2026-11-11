@@ -39,7 +39,6 @@ namespace crafting {
  * 允许玩家使用成书和书与笔复制书的内容。
  * 每次复制会增加书的代数（generation），最多复制到第二代。
  *
- * 参考: net.minecraft.item.crafting.BookCloningRecipe
  *
  * 匹配条件：
  * - 必须有一本已写入的书（WrittenBookItem）

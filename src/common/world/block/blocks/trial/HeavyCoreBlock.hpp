@@ -42,7 +42,6 @@ namespace blocks {
  * 试炼密室中的核心方块，高硬度和爆炸抗性，支持含水。
  * 碰撞箱为小型柱状（8x16x8像素，居中）。
  *
- * 参考: net.minecraft.block.HeavyCoreBlock
  */
 class HeavyCoreBlock : public Block, public IWaterLoggable {
 public:

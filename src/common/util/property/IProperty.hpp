@@ -39,7 +39,6 @@ namespace mc {
  * 所有属性类型（BooleanProperty、IntegerProperty、EnumProperty等）
  * 都通过此接口提供统一的访问方式。
  *
- * 参考: net.minecraft.state.Property
  */
 class IProperty {
 public:

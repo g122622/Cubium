@@ -43,7 +43,6 @@ namespace blocks {
  * （#dirt 标签 + 耕地），与 vanilla VegetationBlock.mayPlaceOn 一致。
  * 可以放在花盆中。
  *
- * 参考: net.minecraft.block.FlowerBlock
  */
 class FlowerBlock : public BushBlock {
 public:
@@ -117,7 +116,6 @@ protected:
  *
  * 两格高的花朵，可制作染料。
  *
- * 参考: net.minecraft.block.LilacBlock
  */
 class LilacBlock : public DoublePlantBlock {
 public:
@@ -129,7 +127,6 @@ public:
  *
  * 两格高的花朵，可制作红色染料。
  *
- * 参考: net.minecraft.block.RoseBushBlock
  */
 class RoseBushBlock : public DoublePlantBlock {
 public:
@@ -141,7 +138,6 @@ public:
  *
  * 两格高的花朵，可制作粉色染料。
  *
- * 参考: net.minecraft.block.PeonyBlock
  */
 class PeonyBlock : public DoublePlantBlock {
 public:
@@ -168,7 +164,6 @@ public:
  *
  * 两格高的花朵，朝向太阳。
  *
- * 参考: net.minecraft.block.SunflowerBlock
  */
 class SunflowerBlock : public DoublePlantBlock {
 public:

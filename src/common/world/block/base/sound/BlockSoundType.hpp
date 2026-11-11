@@ -34,7 +34,6 @@ namespace mc {
  * 定义方块在不同操作时播放的声音事件。
  * 每个 BlockSoundType 包含破坏、踩踏、放置、击打和坠落声音。
  *
- * 参考: net.minecraft.block.SoundType
  *
  * 使用示例:
  * @code
@@ -174,7 +173,6 @@ private:
 /**
  * @brief 预定义的方块声音类型
  *
- * 参考: net.minecraft.block.SoundEvents
  */
 namespace BlockSoundTypes {
 // 木头

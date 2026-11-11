@@ -35,7 +35,6 @@ namespace mc {
  *
  * 注意：这些值必须与 item::tool::ToolType 枚举值保持同步。
  *
- * 参考: net.minecraftforge.common.ToolType
  */
 namespace HarvestTool {
 constexpr u8 None = 0;    ///< 无需工具或非工具物品

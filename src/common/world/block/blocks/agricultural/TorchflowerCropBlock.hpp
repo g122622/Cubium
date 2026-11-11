@@ -46,7 +46,6 @@ namespace blocks {
  * - 骨粉每次只增加 1 个生长阶段
  * - 成熟后继续生长会变为火把花方块（而非停留在最大年龄）
  *
- * 参考: net.minecraft.world.level.block.TorchflowerCropBlock
  */
 class TorchflowerCropBlock : public CropBlock {
 public:

@@ -48,7 +48,6 @@ class IWorld;
  * 当红石信号触发合成时，CrafterBlock 调度4 tick延时后执行合成逻辑，
  * 合成成功后 CRAFTING 属性置 true，本实体维护6 tick倒计时动画。
  *
- * 参考: net.minecraft.world.level.block.entity.CrafterBlockEntity
  */
 class CrafterBlockEntity : public ContainerBlockEntity {
 public:

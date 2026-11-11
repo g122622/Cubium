@@ -32,7 +32,6 @@
  * - functions: 掉落函数数组
  * - type: 参数集类型（可选）
  *
- * 参考: net.minecraft.loot.LootSerializers
  */
 
 #pragma once

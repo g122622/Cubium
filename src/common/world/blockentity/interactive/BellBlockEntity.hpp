@@ -60,7 +60,6 @@ namespace blockentity {
  * - HEAR_BELL_RADIUS = 32：听到钟声的半径
  * - HIGHLIGHT_RAIDERS_RADIUS = 48：发光效果施加半径
  *
- * 参考: net.minecraft.world.level.block.entity.BellBlockEntity
  */
 class BellBlockEntity : public BlockEntity {
 public:
@@ -111,7 +110,6 @@ public:
      * 设置敲击方向，启动摇晃动画，并通过 blockEvent 将动画同步到客户端。
      * 若钟已经在摇晃，则重置 ticks 计数。
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#onHit
      *
      * @param world 世界引用
      * @param direction 敲击方向（玩家点击面或投射物击中面）
@@ -172,7 +170,6 @@ public:
      * 由于本实现将服务端与客户端逻辑合并（项目尚无 BlockEntityTicker 分离机制），
      * tick() 同时承担 serverTick 与 clientTick 的职责。
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#tick
      *       net.minecraft.world.level.block.entity.BellBlockEntity#serverTick
      *       net.minecraft.world.level.block.entity.BellBlockEntity#clientTick
      *
@@ -202,7 +199,6 @@ public:
      * - 重置 ticks 计数
      * - 启动摇晃
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#triggerEvent
      *
      * @param id 事件 ID（1=敲击动画）
      * @param type 事件数据（Direction 的 3D 数据值）
@@ -226,7 +222,6 @@ private:
      * 搜索范围为以钟为中心、半径 SEARCH_RADIUS 的 AABB。
      * 同时（仅服务端）给范围内的存活实体写入 HEARD_BELL_TIME 记忆。
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#updateEntities
      *
      * @param world 世界引用
      */
@@ -241,7 +236,6 @@ private:
      * - 距离钟中心不超过 HEAR_BELL_RADIUS
      * - 实体类型属于 RAIDERS 标签
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#areRaidersNearby
      *
      * @return 如果存在符合条件的灾厄村民返回 true
      */
@@ -252,7 +246,6 @@ private:
      *
      * 筛选 m_nearbyEntities 中满足条件的灾厄村民，施加 GLOW_DURATION tick 的发光效果。
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#makeRaidersGlow
      *
      * @param world 世界引用
      */
@@ -264,7 +257,6 @@ private:
      * 在客户端发射 ENTITY_EFFECT 粒子，颜色随灾厄村民数量变化。
      * 由于本实现将服务端与客户端逻辑合并，仅在世界为客户端时发射粒子。
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#showBellParticles
      *
      * @param world 世界引用
      */
@@ -273,7 +265,6 @@ private:
     /**
      * @brief 判断实体是否为范围内（HIGHLIGHT_RAIDERS_RADIUS）的灾厄村民
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#isRaiderWithinRange
      *
      * @param entity 待判断的实体
      * @return 如果是范围内的灾厄村民返回 true
@@ -283,7 +274,6 @@ private:
     /**
      * @brief 对单个实体施加发光效果
      *
-     * 参考: net.minecraft.world.level.block.entity.BellBlockEntity#glow
      *
      * @param entity 目标实体
      */

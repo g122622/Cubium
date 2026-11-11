@@ -40,7 +40,6 @@ namespace mc {
  * 用于橡树、白桦等生成球形树冠的树木。
  * 从上到下生成多层树叶，每层半径逐渐减小。
  *
- * 参考: net.minecraft.world.gen.foliageplacer.BlobFoliagePlacer
  */
 class BlobFoliagePlacer : public FoliagePlacer {
 public:

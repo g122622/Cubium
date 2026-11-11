@@ -62,7 +62,6 @@ namespace blocks {
  * 同时实现 ILiquidSealed：高海草不被水流替换（否则水流每次 tick 都会把高海草当作被冲毁的
  * 方块而生成一次掉落物）。
  *
- * 参考: net.minecraft.world.level.block.TallSeagrassBlock
  */
 class TallSeagrassBlock : public Block, public IPlantable, public ILiquidSealed {
 public:

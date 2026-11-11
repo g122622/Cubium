@@ -43,7 +43,6 @@ namespace blockentity {
  * 实现100tick熔炼时间的熔炉。
  * 只能烹饪食物。
  *
- * 参考: net.minecraft.tileentity.SmokerTileEntity
  */
 class SmokerEntity : public AbstractFurnaceEntity {
 public:

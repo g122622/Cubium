@@ -35,7 +35,6 @@ namespace item::items {
  * 通过 UseAction::Spyglass 通知客户端播放缩放视角动画，并由
  * LivingEntity::isScoping 消费（影响 FOV 与移速）。
  *
- * 参考: net.minecraft.world.item.SpyglassItem
  */
 class SpyglassItem : public Item {
 public:

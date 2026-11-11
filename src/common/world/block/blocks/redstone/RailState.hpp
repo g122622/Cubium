@@ -48,7 +48,6 @@ class AbstractRailBlock;
  * - 处理三连接和四连接情况下的红石道岔切换
  * - 在放置和更新时传播连接变化到相邻铁轨
  *
- * 参考: net.minecraft.world.level.block.RailState
  */
 class RailState {
 public:

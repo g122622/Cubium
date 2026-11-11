@@ -40,7 +40,6 @@ namespace mc {
  *
  * 表示一个布尔类型的方块状态属性，如 lit, powered, open 等。
  *
- * 参考: net.minecraft.state.BooleanProperty
  *
  * 用法示例:
  * @code

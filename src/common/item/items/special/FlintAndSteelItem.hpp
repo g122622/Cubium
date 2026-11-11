@@ -53,7 +53,6 @@ namespace tool {
  *
  * 耐久度: 64 次
  *
- * 参考: net.minecraft.item.FlintAndSteelItem
  */
 class FlintAndSteelItem : public Item {
 public:

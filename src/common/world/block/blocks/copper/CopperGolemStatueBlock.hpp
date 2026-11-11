@@ -65,7 +65,6 @@ namespace blocks {
  * - COPPER_GOLEM_POSE: 姿态
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.CopperGolemStatueBlock (MC 1.21.11)
  */
 class CopperGolemStatueBlock : public Block, public IWaterLoggable {
 public:
@@ -258,7 +257,6 @@ protected:
  * （不实现 WeatheringCopper，不参与氧化 tick），但处于氧化链的 Unaffected 位置。
  * 暴露/锈蚀/氧化等级使用本类，可氧化到下一等级。
  *
- * 参考: net.minecraft.world.level.block.WeatheringCopperGolemStatueBlock (MC 1.21.11)
  */
 class WeatheringCopperGolemStatueBlock : public CopperGolemStatueBlock, public IOxidizableBlock {
 public:

@@ -42,7 +42,6 @@ namespace item::items {
  * NBT结构：
  * - "recipes" 列表，每个元素是配方ID字符串（如 "minecraft:recovery_compass"）
  *
- * 参考: net.minecraft.world.item.KnowledgeBookItem
  */
 class KnowledgeBookItem : public Item {
 public:

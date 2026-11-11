@@ -131,7 +131,6 @@ struct RootPlacerConfig {
 /**
  * @brief 树木特征配置
  *
- * 参考: net.minecraft.world.gen.feature.BaseTreeFeatureConfig
  *
  * trunkBlock 为树干单一状态（trunk_provider 解析期降级，trunk 仅支持 simple）。
  *
@@ -343,7 +342,6 @@ struct TreeFeatureConfig : public IFeatureConfig {
  *
  * 生成树木的主要特征类。
  *
- * 参考: net.minecraft.world.gen.feature.TreeFeature
  */
 class TreeFeature {
 public:

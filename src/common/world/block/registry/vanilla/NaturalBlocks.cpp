@@ -229,7 +229,6 @@ void registerNaturalBlocks()
     // （构造函数设 m_slipperiness=SLIPPERINESS_SLIME）。此前误注册为 SimpleBlock 致上述虚函数分发到
     // Block 基类默认实现（getSlipperiness 返回 0.6、onFallenUpon multiplier=1.0 施加完整摔落伤害、
     // isStickyBlock 返回 false），SlimeBlock 子类沦为死代码——与红石块（BaseBlocks.cpp）同模式缺陷。
-    // 参考: net.minecraft.world.level.block.SlimeBlock
     NaturalBlocks::SLIME_BLOCK = &registry.registerBlock<blocks::SlimeBlock>(ResourceLocation("minecraft:slime_block"),
         BlockProperties(Material::SLIME).hardness(0.0f).noOcclusion().soundType(BlockSoundTypes::SLIME));
 

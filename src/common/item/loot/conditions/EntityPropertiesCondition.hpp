@@ -41,7 +41,6 @@ namespace loot {
  * 检查指定实体（this/killer/direct_killer/killer_player）是否满足属性谓词。
  * 使用 advancement 命名空间中的 EntityPredicate 进行匹配。
  *
- * 参考: net.minecraft.loot.conditions.EntityHasProperty
  *
  * JSON 格式示例:
  * @code

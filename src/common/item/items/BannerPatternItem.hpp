@@ -51,7 +51,6 @@ namespace item {
  * - GLOBE: 地球图案（无合成配方，战利品获取）
  * - PIGLIN: 猪灵图案（无合成配方，战利品获取）
  *
- * 参考: net.minecraft.item.BannerPatternItem
  */
 class BannerPatternItem : public Item {
 public:

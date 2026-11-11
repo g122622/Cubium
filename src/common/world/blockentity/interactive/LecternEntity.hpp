@@ -47,7 +47,6 @@ namespace blockentity {
  * - 红石比较器输出当前页数
  * - 右键翻页
  *
- * 参考: net.minecraft.tileentity.LecternTileEntity
  */
 class LecternEntity : public BlockEntity {
 public:

@@ -55,7 +55,6 @@ namespace blocks {
  * - 玩家破坏不稳定的TNT时自动点燃
  * - 爆炸时不会掉落物品
  *
- * 参考: net.minecraft.block.TntBlock
  */
 class TNTBlock : public Block {
 public:

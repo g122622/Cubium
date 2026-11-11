@@ -33,7 +33,6 @@ namespace mc {
  * @brief 空气方块
  *
  * 无碰撞、非固体、非不透明的方块。
- * 参考: net.minecraft.block.AirBlock
  */
 class AirBlock : public Block {
 public:

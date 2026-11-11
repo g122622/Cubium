@@ -41,7 +41,6 @@ namespace blocks {
  * 放置在水面上的青蛙卵，可孵化出蝌蚪。
  * 是一种非常薄的方块，只能放置在水源上方。
  *
- * 参考: net.minecraft.block.FrogspawnBlock
  */
 class FrogspawnBlock : public Block {
 public:

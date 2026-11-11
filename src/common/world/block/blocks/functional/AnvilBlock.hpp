@@ -57,7 +57,6 @@ namespace blocks {
  * 三个铁砧变体（anvil、chipped_anvil、damaged_anvil）均为 AnvilBlock 实例，
  * 通过不同的 Block 注册来区分。
  *
- * 参考: net.minecraft.world.level.block.AnvilBlock
  */
 class AnvilBlock : public FallingBlock {
 public:

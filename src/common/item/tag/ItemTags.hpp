@@ -375,7 +375,6 @@ public:
      *
      * 包含：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果
      *
-     * 参考: net.minecraft.world.entity.ai.behavior.HarvestFarmland#plantCrop
      * （MC 1.21.11 通过 ItemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) 判断）
      */
     static ItemTag& VILLAGER_PLANTABLE_SEEDS();
@@ -386,7 +385,6 @@ public:
      * 包含可用于诱引、繁殖嗅探兽及加速幼体成长的物品。
      * 对应 MC 原版标签 minecraft:sniffer_food（数据包键 "sniffer_food"）。
      *
-     * 参考: net.minecraft.world.entity.animal.sniffer.Sniffer#isFood
      * （MC 1.21.11 通过 ItemStack.is(ItemTags.SNIFFER_FOOD) 判断）
      */
     static ItemTag& SNIFFER_FOOD();
@@ -405,7 +403,6 @@ public:
      * 包含可诱引、繁殖青蛙并加速蝌蚪变态的物品（黏液球）。
      * 对应 MC 原版标签 minecraft:frog_food（数据包键 "frog_food"）。
      *
-     * 参考: net.minecraft.world.entity.animal.frog.Frog#isFood
      * （MC 1.21.11 通过 ItemStack.is(ItemTags.FROG_FOOD) 判断）
      */
     static ItemTag& FROG_FOOD();
@@ -416,7 +413,6 @@ public:
      * 包含可喂食、诱引快乐恶魂的物品（雪球）。
      * 对应 MC 原版标签 minecraft:happy_ghast_food（数据包键 "happy_ghast_food"）。
      *
-     * 参考: net.minecraft.world.entity.animal.happyghast.HappyGhast#isFood
      * （MC 1.21.11 通过 ItemStack.is(ItemTags.HAPPY_GHAST_FOOD) 判断）
      */
     static ItemTag& HAPPY_GHAST_FOOD();
@@ -427,7 +423,6 @@ public:
      * 包含可喂食、诱引骆驼繁殖的物品（仙人掌）。
      * 对应 MC 原版标签 minecraft:camel_food。
      *
-     * 参考: net.minecraft.world.entity.animal.camel.Camel#isFood
      */
     static ItemTag& CAMEL_FOOD();
 
@@ -437,7 +432,6 @@ public:
      * 包含可喂食骆驼尸壳的物品（兔子脚）。
      * 对应 MC 原版标签 minecraft:camel_husk_food。
      *
-     * 参考: net.minecraft.world.entity.animal.camel.CamelHusk#isFood
      */
     static ItemTag& CAMEL_HUSK_FOOD();
 
@@ -457,7 +451,6 @@ public:
      * 包含可用于点燃苦力怕的物品（打火石、火焰弹）。
      * 对应 MC 原版标签 minecraft:creeper_igniters。
      *
-     * 参考: net.minecraft.world.entity.monster.Creeper#mobInteract
      * （MC 1.21.11 通过 itemstack.is(ItemTags.CREEPER_IGNITERS) 判断手持物品能否点燃苦力怕）
      */
     static ItemTag& CREEPER_IGNITERS();

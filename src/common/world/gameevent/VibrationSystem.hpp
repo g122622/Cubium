@@ -239,7 +239,6 @@ public:
      *
      * 当源实体正在潜行（isSteppingCarefully）时，
      * 属于此类别的事件不会触发振动信号。
-     * 参考: net.minecraft.tags.GameEventTags.IGNORE_VIBRATIONS_SNEAKING
      *
      * 包含的事件：HIT_GROUND, PROJECTILE_SHOOT, STEP, SWIM,
      *            ITEM_INTERACT_START, ITEM_INTERACT_FINISH

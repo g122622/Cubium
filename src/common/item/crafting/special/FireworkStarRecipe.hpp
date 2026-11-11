@@ -41,7 +41,6 @@ namespace crafting {
  * - 荧石粉置 has_twinkle，钻石置 has_trail，各至多一个。
  * 匹配要求网格非空物品数 >= 2，且至少含一个火药与一个染料。
  *
- * 参考: net.minecraft.world.item.crafting.FireworkStarRecipe
  */
 class FireworkStarRecipe : public SpecialRecipe {
 public:

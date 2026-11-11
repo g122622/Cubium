@@ -76,7 +76,6 @@ namespace entity::ai::goal {
  *
  * 记忆：visitedPositions（已访问位置，避免重复）与 unreachablePositions（不可达位置）。
  *
- * 参考: net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers (MC 1.21.11)
  *       net.minecraft.world.entity.animal.golem.CopperGolemAi (MC 1.21.11)
  */
 class TransportItemsBetweenContainersGoal : public Goal {

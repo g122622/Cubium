@@ -41,7 +41,6 @@ namespace loot {
  * - 精确匹配：检查属性值是否等于指定值
  * - 范围匹配：检查属性值是否在指定范围内（适用于整数属性）
  *
- * 参考: net.minecraft.loot.conditions.BlockStateProperty
  *
  * JSON 格式示例:
  * @code

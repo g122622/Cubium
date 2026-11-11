@@ -99,7 +99,6 @@ struct SlotBackground {
  * 表示背包中的一个槽位，用于容器UI显示和交互。
  * 包含槽位索引、所属背包引用和可放置性检查。
  *
- * 参考: net.minecraft.inventory.container.Slot
  */
 class Slot {
 public:
@@ -445,7 +444,6 @@ class CraftingInventory;
  * 特殊槽位，用于显示合成结果。
  * 不能直接放入物品，只能取出。
  *
- * 参考: net.minecraft.inventory.container.CraftingResultSlot
  */
 class ResultSlot : public Slot {
 public:
@@ -521,7 +519,6 @@ private:
  *
  * 只接受燃料物品，桶类物品限制堆叠数为1。
  *
- * 参考: net.minecraft.inventory.container.FurnaceFuelSlot
  */
 class FurnaceFuelSlot : public Slot {
 public:
@@ -568,7 +565,6 @@ public:
  *
  * 只能取出，不能放入。取出时触发经验发放。
  *
- * 参考: net.minecraft.inventory.container.FurnaceResultSlot
  */
 class FurnaceResultSlot : public Slot {
 public:

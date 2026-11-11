@@ -45,7 +45,6 @@ class IRecipe;
  * - 合成结果槽位追踪配方（用于解锁配方成就）
  * - 熔炉等方块实体追踪当前配方
  *
- * 参考: net.minecraft.inventory.IRecipeHolder
  */
 class IRecipeHolder {
 public:
