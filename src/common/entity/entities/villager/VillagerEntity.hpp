@@ -471,6 +471,18 @@ public:
     // ========== NBT ==========
 
 public:
+    /**
+     * @brief 设置攻击目标，并同步到 Brain 的 ATTACK_TARGET 记忆
+     *
+     * 基类 MobEntity 只写 m_attackTarget 成员，而 Brain 侧的任务
+     * （AttackTask / ChaseTask）以及 FIGHT / RAID 活动的门槛读的是
+     * ATTACK_TARGET 记忆。两套存储不同步时，村民虽然被设了目标却永远不会攻击。
+     * 本重写把两处一起写，读侧仍然各自工作（Goal 系统读成员，Brain 读记忆）。
+     *
+     * @param target 新的攻击目标，nullptr 表示清除
+     */
+    void setAttackTarget(LivingEntity* target) override;
+
     /// 该村民的声誉流言（治愈后由僵尸村民交还，随 NBT 持久化）
     [[nodiscard]] const world::village::VillageGossipManager& gossips() const
     {

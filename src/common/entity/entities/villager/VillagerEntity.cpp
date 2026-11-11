@@ -561,6 +561,21 @@ void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
     AbstractVillagerEntity::setLastHurtBy(attacker);
 }
 
+void VillagerEntity::setAttackTarget(LivingEntity* target)
+{
+    // 先写基类成员：Goal 系统与 attackTarget() 读的是它。
+    MobEntity::setAttackTarget(target);
+
+    // 再同步 Brain 记忆：Brain 侧任务与 FIGHT/RAID 活动的门槛读的是它。
+    // 两套存储不同步的话，下面那些 Brain 任务永远不会被触发。
+    auto& brain = this->brain();
+    if (target == nullptr) {
+        brain.removeMemory(ai::brain::memory::MemoryModuleTypes::ATTACK_TARGET);
+    } else {
+        brain.setMemory(ai::brain::memory::MemoryModuleTypes::ATTACK_TARGET, target->id());
+    }
+}
+
 void VillagerEntity::initializeBrain()
 {
     if (!m_brain) {

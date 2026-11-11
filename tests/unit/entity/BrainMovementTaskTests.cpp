@@ -398,3 +398,35 @@ TEST_F(MovementTaskTest, TaskGetNameReturnsCorrectName)
 }
 
 } // namespace
+
+// 基类 MobEntity::setAttackTarget 只写 m_attackTarget，而 Brain 侧任务与
+// FIGHT/RAID 活动的门槛读的是 ATTACK_TARGET 记忆。
+// 本用例钉住"两处同步写"这个契约。
+TEST_F(MovementTaskTest, VillagerSetAttackTargetMirrorsIntoBrainMemory)
+{
+    VillagerEntity villager(EntityInstanceId(1), mc::test::testEcsRegistry());
+    villager.setWorld(m_world.get());
+    villager.setPosition(0.0f, 64.0f, 0.0f);
+
+    VillagerEntity other(EntityInstanceId(2), mc::test::testEcsRegistry());
+    other.setWorld(m_world.get());
+    other.setPosition(1.0f, 64.0f, 0.0f);
+
+    auto& brain = villager.brain();
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET));
+
+    villager.setAttackTarget(&other);
+
+    // 基类成员仍然生效（Goal 系统靠它）
+    EXPECT_EQ(villager.attackTarget(), &other);
+    // Brain 记忆同步写入（Brain 任务靠它）
+    ASSERT_TRUE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET));
+    auto stored = brain.getMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET);
+    ASSERT_TRUE(stored.has_value());
+    EXPECT_EQ(*stored, other.id());
+
+    // 清除时两处一起清
+    villager.setAttackTarget(nullptr);
+    EXPECT_EQ(villager.attackTarget(), nullptr);
+    EXPECT_FALSE(brain.hasMemory(MemoryModuleTypes::ATTACK_TARGET));
+}
