@@ -66,7 +66,7 @@ public:
      * @param durationMin 最小持续时间
      * @param durationMax 最大持续时间
      */
-    explicit Task(MemoryStateMap requiredMemoryState = {}, i32 durationMin = 60, i32 durationMax = 60)
+    explicit Task(MemoryStateMap requiredMemoryState, i32 durationMin, i32 durationMax)
         : m_requiredMemoryState(std::move(requiredMemoryState))
         , m_status(TaskStatus::STOPPED)
         , m_stopTime(0)

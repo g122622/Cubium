@@ -250,14 +250,13 @@
 ### 11. 构造函数默认参数违反项目规范
 
 项目规范明确禁止给函数参数设默认值（“大量的默认值会导致数据流变得难以理解”）。
-本目录下仍有 6 处遗留，修改时请按子目录逐个处理：
+本目录下仍有 5 处遗留，修改时请按子目录逐个处理：
 
 | 子目录 | 处数 | 例如 |
 |---|---|---|
 | `goal/goals/target` | 2 | ⚠ `NearestAttackableTargetGoal` 有约 100 处调用点，`HurtByTargetGoal` 约 60 处 |
 | `goal/goals/special` | 1 | `IronGolemNearestAttackableTargetGoal(IronGolemEntity*, i32 chance = 5)` |
 | `goal/goals` | 3 | `MeleeAttackGoal(..., bool useLongMemory = false)` |
-| `brain/task` | 1 | `Task(MemoryStateMap requiredMemoryState = {}, ...)` |
 
 `brain/task/tasks/{action,movement,interact}` 下的 15 处已于
 `033a60556` / `fa54c564d` / `5b715d96d` / `424d5afe8` 全部清理，可作为参考写法。

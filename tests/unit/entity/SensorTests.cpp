@@ -487,6 +487,10 @@ TEST(BrainActivityTest, SwitchToActivatesActivityWithoutMemoryRequirements)
 // 而 _tryEventActivity 正是以 m_tasks 为活动来源。
 class StubTask final : public task::Task<MockTestEntity> {
 public:
+    StubTask()
+        : task::Task<MockTestEntity>({}, 60, 60)
+    {}
+
     bool shouldExecute(IWorld* /*world*/, MockTestEntity* /*owner*/) override
     {
         return false;
