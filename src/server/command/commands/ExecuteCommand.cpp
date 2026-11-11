@@ -1064,20 +1064,49 @@ bool ExecuteCommand::_evaluateDataCondition(
     }
 
     const std::string dataType = context.getArgumentOr<std::string>(kDataConditionTypeKey, std::string());
-    // block / entity 变体需要方块实体与实体的 NBT 视图，尚未接通；不要猜。
-    if (dataType != "storage") {
-        return false;
-    }
-
-    const auto storageId = context.getArgumentOr<ResourceLocation>("source", ResourceLocation());
-    if (storageId.toString().empty()) {
-        return false;
-    }
-
     const auto path = context.getArgumentOr<NbtPath>("path", NbtPath{});
-    // 数据源为空（或该 id 下还没有数据）时算"路径未命中"：不建空存储。
-    StorageDataAccessor accessor(&server->commandStorage(), storageId);
-    const auto data = accessor.getData();
+    if (path.toString().empty()) {
+        return false;
+    }
+
+    // 三种数据源各走自己的 accessor。取不到数据（方块实体不存在、实体已消失、存储未建）
+    // 一律算"路径未命中"，不建空对象。
+    std::unique_ptr<nbt::tags::compound_tag> data;
+
+    if (dataType == "block") {
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        const Vector3i pos = BlockPosArgumentType::getBlockPos(context, "sourcePos", target);
+        const BlockPos blockPos(pos.x, pos.y, pos.z);
+        // 该位置没有方块实体时 BlockDataAccessor::getData() 会抛 CommandException，
+        // 而条件语义应当是“不成立”而非报错。这里先判一次。
+        if (world->getBlockEntity(blockPos) == nullptr) {
+            return false;
+        }
+        BlockDataAccessor accessor(world, blockPos);
+        data = accessor.getData();
+    } else if (dataType == "entity") {
+        const auto selector = context.getArgumentOr<EntitySelector>("source", EntitySelector{});
+        Entity* entity = support::EntityResolver::resolveSingle(target, selector);
+        if (entity == nullptr) {
+            return false;
+        }
+        EntityDataAccessor accessor(entity);
+        data = accessor.getData();
+    } else if (dataType == "storage") {
+        const auto storageId = context.getArgumentOr<ResourceLocation>("source", ResourceLocation());
+        if (storageId.toString().empty()) {
+            return false;
+        }
+        StorageDataAccessor accessor(&server->commandStorage(), storageId);
+        data = accessor.getData();
+    } else {
+        // 未识别的数据源类型：不猜，按条件不成立处理。
+        return false;
+    }
+
     if (data == nullptr) {
         return false;
     }

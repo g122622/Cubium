@@ -30,14 +30,24 @@
 
 #include <gtest/gtest.h>
 
+#include <spdlog/sinks/callback_sink.h>
+#include <spdlog/spdlog.h>
+
+#include <memory>
+#include <string>
+
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -785,4 +795,108 @@ TEST_F(ExecuteCommandBiomeTest, ExecuteIfBiomeAgreesWithWorld)
         m_server.commandRegistry().execute("execute if biome 0 64 0 minecraft:not_a_real_biome run help", m_console);
     ASSERT_TRUE(miss.success());
     EXPECT_EQ(miss.value(), 0);
+}
+
+// ============================================================================
+// if data entity 的正向路径
+// ============================================================================
+
+class ExecuteCommandDataEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+        mc::entity::VanillaEntities::registerAll();
+
+        mc::command::ExecuteCommand::registerTo(m_server.commandRegistry().dispatcher());
+        mc::command::HelpCommand::registerTo(m_server.commandRegistry().dispatcher());
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto world = std::make_unique<mc::server::ServerWorld>(config);
+        auto settings = mc::DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+        auto generator = std::make_unique<mc::NoiseChunkGenerator>(
+            std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<mc::server::ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        m_world = world.get();
+        dimension->setWorld(std::move(world));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+
+        auto zombie = std::make_unique<mc::ZombieEntity>(mc::EntityInstanceId(1), mc::test::testEcsRegistry());
+        zombie->setWorld(m_world);
+        m_world->entityManager().addEntity(std::move(zombie));
+    }
+
+    /// 执行命令并返回期间收集到的日志（命令反馈走 sendMessage/sendError → spdlog）。
+    std::pair<mc::Result<mc::i32>, std::string> _run(const std::string& command)
+    {
+        std::string captured;
+        auto sink = std::make_shared<spdlog::sinks::callback_sink_mt>([&captured](const spdlog::details::log_msg& msg) {
+            captured.append(msg.payload.data(), msg.payload.size());
+            captured.push_back('\n');
+        });
+        auto logger = std::make_shared<spdlog::logger>("data-capture", sink);
+        auto previous = spdlog::default_logger();
+        spdlog::set_default_logger(logger);
+
+        auto result = m_server.commandRegistry().execute(command, m_console);
+
+        spdlog::set_default_logger(previous);
+        return {std::move(result), captured};
+    }
+
+    mc::test::BaseTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+    mc::server::ServerWorld* m_world = nullptr;
+};
+
+// Pos 是每个实体 writeToNBT 都会写的键。命中与未命两个方向都要验：
+// 只验命中无法发现“恒真”，只验未命中无法发现“恒假”。
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataEntityHoldsWhenPathExists)
+{
+    auto [hit, hitLog] = _run("execute if data entity @e[limit=1] Pos run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "Pos exists on the entity, condition must hold. log:\n" << hitLog;
+
+    auto [miss, missLog] = _run("execute if data entity @e[limit=1] NoSuchKeyHere run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "a missing path must not satisfy the condition. log:\n" << missLog;
+}
+
+// ============================================================================
+// if data block 的正向路径
+//
+// 用命令方块实体：它的 NBT 里有确定存在的 "Command" 键，且构造成本低。
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataBlockHoldsWhenPathExists)
+{
+    const mc::BlockPos pos(4, 64, 4);
+    auto commandBlock =
+        std::make_unique<mc::blockentity::CommandBlockEntity>(pos, mc::blockentity::CommandBlockMode::Redstone);
+    commandBlock->setCommand("say hello");
+    m_world->setBlockEntity(pos, std::move(commandBlock));
+
+    auto [hit, hitLog] = _run("execute if data block 4 64 4 Command run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "the command block stores a Command tag. log:\n" << hitLog;
+
+    auto [miss, missLog] = _run("execute if data block 4 64 4 NoSuchKeyHere run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "a missing path must not satisfy the condition. log:\n" << missLog;
+
+    // 该位置没有方块实体时，条件应当不成立而不是报错。
+    auto [empty, emptyLog] = _run("execute if data block 0 0 0 Command run help");
+    ASSERT_TRUE(empty.success()) << "missing block entity must not error out. log:\n" << emptyLog;
+    EXPECT_EQ(empty.value(), 0);
 }
