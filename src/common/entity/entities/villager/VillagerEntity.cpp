@@ -771,6 +771,21 @@ void VillagerEntity::initializeBrain()
 
     // AVOID 活动：逃跑、移动到目标
     // 注意：本活动目前**不可达**。门槛是 AVOID_TARGET 记忆，而该记忆的唯一写入方是
+    // ---- 关于下面这批"非时间线活动"的重要前提 ----
+    // 本实体注册了 9 个活动：AVOID / FIGHT / HIDE / IDLE / MEET / PANIC / RAID / REST / WORK。
+    // 而时间线（common/world/time/timeline/Timelines.cpp）只激活其中 4 个：
+    // IDLE / WORK / MEET / REST。
+    //
+    // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
+    // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
+    // 要启用它们，需要在这些活动对应的触发条件出现时显式切换活动
+    // （例如被袭击时切到 FIGHT/RAID，遇险时切到 AVOID/HIDE），
+    // 而不是只把任务注册进活动。
+    //
+    // 下面几处注释里提到的"活动不可达"都以此为大前提：先把活动激活，
+    // 再谈门槛、传感器、记忆写入方是否齐全。
+    // ----------------------------------------------------
+
     // AvoidEntitySensor —— 本实体的 registerSensor 列表里没有它（见 initializeBrain
     // 末尾那批注册）。所以村民永远不会"因看到威胁而逃跑"，
     // 该行为目前由 Goal 系统完整承担、且是另一条独立路径：
