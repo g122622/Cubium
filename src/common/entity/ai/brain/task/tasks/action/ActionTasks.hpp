@@ -561,7 +561,11 @@ private:
  * 当前为占位实现，待实体饥饿系统完善后集成。
  *
  * TODO: 实体的饥饿状态（isHungry）系统尚未实现，需要在 AnimalEntity 或
- * AgeableEntity 中添加饥饿机制后才能完成此任务。
+ * AgeableEntity 中添加饥饿机制后才能完成此任务。补齐时需要改三处：
+ *   (1) 本类的 shouldExecute：当前横返 false，应改为"饥饿且附近有可食用物品"；
+ *   (2) 本类的 updateTask：计到 m_eatDuration 后执行真正的进食（消耗物品 + 回复饥饿值）；
+ *   (3) 饥饿状态本身的存储与 tick 递减（AnimalEntity / AgeableEntity）。
+ *   在 (3) 完成之前本类无法被触发，因此不要把它注册进任何实体的 Brain。
  */
 template <typename E>
 class EatTask : public Task<E> {
@@ -584,7 +588,7 @@ protected:
             return false;
         }
 
-        // TODO: 实体的饥饿状态系统尚未实现，当前无法判断是否需要进食
+        // 饥饿状态未实现，横不需要进食（见本类文档注释的 TODO）。
         return false;
     }
 
@@ -596,7 +600,7 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         m_eatTimer++;
-        // TODO: 当饥饿系统实现后，在此处执行进食逻辑
+        // 同上：进食逻辑在饥饿系统实现后补入（见本类文档注释的 TODO）。
     }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override
