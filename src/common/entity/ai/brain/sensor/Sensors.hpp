@@ -98,7 +98,7 @@ protected:
 template <typename E>
 class NearestVisibleLivingEntitySensor : public Sensor<E> {
 public:
-    explicit NearestVisibleLivingEntitySensor(f32 range = 16.0f, i32 interval = 20)
+    explicit NearestVisibleLivingEntitySensor(f32 range, i32 interval)
         : Sensor<E>(interval)
         , m_range(range)
     {}
@@ -148,7 +148,7 @@ protected:
 template <typename E>
 class MobSensor : public Sensor<E> {
 public:
-    explicit MobSensor(f32 range = 16.0f, i32 interval = 20)
+    explicit MobSensor(f32 range, i32 interval)
         : Sensor<E>(interval)
         , m_range(range)
     {}
@@ -292,7 +292,7 @@ protected:
 template <typename E>
 class AvoidEntitySensor : public Sensor<E> {
 public:
-    explicit AvoidEntitySensor(f32 range = 16.0f, i32 interval = 20)
+    explicit AvoidEntitySensor(f32 range, i32 interval)
         : Sensor<E>(interval)
         , m_range(range)
     {}
@@ -335,7 +335,7 @@ class TemptingPlayerSensor : public Sensor<E> {
 public:
     using ItemPredicate = std::function<bool(const ItemStack&)>;
 
-    explicit TemptingPlayerSensor(ItemPredicate itemPredicate, f32 range = 10.0f, i32 interval = 20)
+    explicit TemptingPlayerSensor(ItemPredicate itemPredicate, f32 range, i32 interval)
         : Sensor<E>(interval)
         , m_itemPredicate(std::move(itemPredicate))
         , m_range(range)
@@ -365,7 +365,7 @@ private:
 template <typename E>
 class InteractableDoorsSensor : public Sensor<E> {
 public:
-    explicit InteractableDoorsSensor(f32 range = 4.0f, i32 interval = 20)
+    explicit InteractableDoorsSensor(f32 range, i32 interval)
         : Sensor<E>(interval)
         , m_range(range)
     {}

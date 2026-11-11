@@ -53,7 +53,7 @@ public:
      * @brief 构造传感器
      * @param interval 更新间隔(ticks)
      */
-    explicit Sensor(i32 interval = 20)
+    explicit Sensor(i32 interval)
         : m_interval(interval)
     {}
 

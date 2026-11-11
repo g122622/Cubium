@@ -627,13 +627,13 @@ void VillagerEntity::initializeBrain()
 
     // 注册传感器
     m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
-    m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>(16.0f, 20));
     m_brain->registerSensor(std::make_unique<HurtBySensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<VillagerHostilesSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<WorkStationSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<VillagePoiSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());
-    m_brain->registerSensor(std::make_unique<InteractableDoorsSensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<InteractableDoorsSensor<VillagerEntity>>(4.0f, 20));
 
     // 设置时间线：幼年村民走幼年活动轨道，成年村民走成年活动轨道
     m_brain->setTimeline(&world::timeline::Timelines::VILLAGER_SCHEDULE(),

@@ -166,9 +166,12 @@ protected:
 TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorUsedMemories)
 {
     using namespace mc::entity::ai::brain::sensor;
-    TemptingPlayerSensor<VillagerEntity> sensor([](const ItemStack&) {
-        return false;
-    });
+    TemptingPlayerSensor<VillagerEntity> sensor(
+        [](const ItemStack&) {
+            return false;
+        },
+        10.0f,
+        20);
     auto usedMemories = sensor.getUsedMemories();
 
     bool hasTemptingPlayer = false;
@@ -185,7 +188,7 @@ TEST_F(SensorUsedMemoriesTest, TemptingPlayerSensorUsedMemories)
 TEST_F(SensorUsedMemoriesTest, InteractableDoorsSensorUsedMemories)
 {
     using namespace mc::entity::ai::brain::sensor;
-    InteractableDoorsSensor<VillagerEntity> sensor;
+    InteractableDoorsSensor<VillagerEntity> sensor(4.0f, 20);
     auto usedMemories = sensor.getUsedMemories();
 
     bool hasDoors = false;
