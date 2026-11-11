@@ -54,7 +54,7 @@ public:
      * @param min 最小值（包含）
      * @param max 最大值（包含）
      */
-    explicit UniformIntDistribution(i32 min = 0, i32 max = std::numeric_limits<i32>::max())
+    explicit UniformIntDistribution(i32 min, i32 max)
         : m_min(min)
         , m_max(max)
     {}

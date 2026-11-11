@@ -50,9 +50,8 @@ random/
 - `Random.hpp` 用 `MC_RANDOM_XOROSHIRO128PP` / `MC_RANDOM_XOSHIRO256PP` /
   `MC_RANDOM_LCG` 宏分支选择 `Random` 别名，默认走 Xoroshiro128++。
   读别名定义时不要只看第一个分支。
-- **`UniformIntDistribution` 的构造函数带有默认参数**
-  （`min = 0, max = limits<i32>::max()`），违反项目"函数参数禁止默认值"的规范。
-  调用时请显式传参；若后续清理该默认值，请按"让编译器当解析器"的流程处理
-  （去掉默认值 → 编译 → 从 `requested here` 取精确行号 → 按行号补参）。
+- `UniformIntDistribution` / `UniformRealDistribution` 的构造函数**要求显式传参**，
+  不要依赖默认区间。项目规范禁止给函数参数设默认值；这两个类的默认值已于
+  清理时移除，当前全仓没有依赖它的调用点。
 - 需要"可复现的种子流"时用 `PositionalRandomFactory`，不要自己拼接坐标与种子——
   拼接方式一旦与原版不同，同一世界的生成结果就对不上。

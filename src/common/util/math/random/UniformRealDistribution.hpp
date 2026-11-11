@@ -53,7 +53,7 @@ public:
      * @param min 最小值（包含）
      * @param max 最大值（不包含）
      */
-    explicit UniformRealDistribution(f32 min = 0.0f, f32 max = 1.0f)
+    explicit UniformRealDistribution(f32 min, f32 max)
         : m_min(min)
         , m_max(max)
     {}
