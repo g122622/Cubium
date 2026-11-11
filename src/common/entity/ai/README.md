@@ -246,3 +246,27 @@
 ### 10. GoalConstants 使用
 
 **建议**：在实现新目标时，优先使用 `GoalConstants` 中定义的常量（距离、时间、概率、速度等），而不是硬编码数值，便于统一调整和保持一致性。
+
+### 11. 构造函数默认参数违反项目规范
+
+项目规范明确禁止给函数参数设默认值（“大量的默认值会导致数据流变得难以理解”）。
+本目录下仍有 16 处遗留，修改时请按子目录逐个处理：
+
+| 子目录 | 处数 | 例如 |
+|---|---|---|
+| `brain/sensor` | 6 | `Sensor(i32 interval = 20)` |
+| `goal/goals/target` | 2 | `NearestAttackableTargetGoal(..., i32 chance = 0)` |
+| `goal/goals/special` | 2 | `PandaLookAtPlayerGoal(f32 lookDistance = 6.0f)` |
+| `goal/goals` | 3 | `MeleeAttackGoal(..., bool useLongMemory = false)` |
+| `brain/memory` | 1 | `Memory(const T& value, i64 ttl = ...)` |
+| `brain/task` | 1 | `Task(MemoryStateMap requiredMemoryState = {}, ...)` |
+| `controller` | 1 | `FlyingMovementController(..., i32 maxTurn = 90, ...)` |
+
+`brain/task/tasks/{action,movement,interact}` 下的 15 处已于
+`033a60556` / `fa54c564d` / `5b715d96d` 全部清理，可作为参考写法。
+
+**去掉默认值时最容易出的错是“部分传参的调用点”**：它们只传了前靠前的参数，
+其余静默取默认值，去掉默认值时**不会报编译错误，行为会静默改变**。
+又因为注释里常常同样写着签名原文，批量替换脚本会命中错位置。
+参考做法：逐行处理、跳过注释行，并对每个替换模式**断言命中数**，不符就中止。
+
