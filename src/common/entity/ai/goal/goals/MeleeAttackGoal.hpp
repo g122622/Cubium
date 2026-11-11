@@ -51,7 +51,7 @@ public:
      * @param speed 移动速度倍率
      * @param useLongMemory 是否使用长期记忆（目标丢失后继续追踪）
      */
-    MeleeAttackGoal(CreatureEntity* creature, f64 speed, bool useLongMemory = false);
+    MeleeAttackGoal(CreatureEntity* creature, f64 speed, bool useLongMemory);
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
