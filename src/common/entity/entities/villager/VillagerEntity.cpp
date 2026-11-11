@@ -667,8 +667,8 @@ void VillagerEntity::initializeBrain()
 
     m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
         1,
-        makeTasks(
-            std::make_unique<MoveToTargetTask<VillagerEntity>>(), std::make_unique<StrollTask<VillagerEntity>>(0.6f)),
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.6f, 40)),
         {},
         {});
 
@@ -830,8 +830,8 @@ void VillagerEntity::initializeBrain()
     //   就会出现两套逻辑同时驱赶同一个村民，必须避免。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
-        makeTasks(
-            std::make_unique<FleeTask<VillagerEntity>>(1.0f), std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>()),
         {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});
 

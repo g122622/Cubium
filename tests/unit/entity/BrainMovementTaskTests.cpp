@@ -297,7 +297,7 @@ TEST_F(MovementTaskTest, ChaseTaskShouldNotExecuteWithoutAttackTarget)
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
     // ChaseTask 需要 ATTACK_TARGET=PRESENT 才能执行
-    movement::ChaseTask<VillagerEntity> task;
+    movement::ChaseTask<VillagerEntity> task(1.5f, 2.0f);
 
     mc::math::Random rng(42);
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
@@ -310,7 +310,7 @@ TEST_F(MovementTaskTest, FleeTaskShouldNotExecuteWithoutAvoidTarget)
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
     // FleeTask 需要 AVOID_TARGET=PRESENT 且 WALK_TARGET=ABSENT
-    movement::FleeTask<VillagerEntity> task;
+    movement::FleeTask<VillagerEntity> task(1.5f, mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE);
 
     mc::math::Random rng(42);
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
@@ -323,7 +323,7 @@ TEST_F(MovementTaskTest, FindHiddenBlockTaskShouldNotExecuteWithoutHurtOrBell)
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
     // FindHiddenBlockTask 需要 HURT_BY 或 HEARD_BELL_TIME 存在
-    movement::FindHiddenBlockTask<VillagerEntity> task;
+    movement::FindHiddenBlockTask<VillagerEntity> task(1.0f);
 
     mc::math::Random rng(42);
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
@@ -344,7 +344,7 @@ TEST_F(MovementTaskTest, FindHiddenBlockTaskRunsEvenWhenHidingPlaceAlreadySet)
     // 模拟"上一次已经找过隐蔽点"。
     brain.setMemory<BlockPos>(MemoryModuleTypes::HIDING_PLACE, BlockPos(3, 64, 3));
 
-    movement::FindHiddenBlockTask<VillagerEntity> task;
+    movement::FindHiddenBlockTask<VillagerEntity> task(1.0f);
     mc::math::Random rng(42);
     EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng))
         << "HIDING_PLACE 已存在不应阻止本任务再次触发（否则会自锁）";
@@ -380,7 +380,7 @@ TEST_F(MovementTaskTest, StrollTaskShouldNotExecuteWhenWalkTargetPresent)
     brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
     brain.setMemory(MemoryModuleTypes::WALK_TARGET, WalkTarget(BlockPos(10, 64, 10), 1.0f, 1));
 
-    movement::StrollTask<VillagerEntity> task;
+    movement::StrollTask<VillagerEntity> task(1.0f, 40);
 
     mc::math::Random rng(42);
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
@@ -390,11 +390,12 @@ TEST_F(MovementTaskTest, TaskGetNameReturnsCorrectName)
 {
     // 验证所有任务的 getName() 返回正确名称
     EXPECT_EQ(movement::MoveToTargetTask<VillagerEntity>().getName(), "MoveToTargetTask");
-    EXPECT_EQ(movement::StrollTask<VillagerEntity>().getName(), "StrollTask");
+    EXPECT_EQ(movement::StrollTask<VillagerEntity>(1.0f, 40).getName(), "StrollTask");
     EXPECT_EQ(movement::LookAtEntityTask<VillagerEntity>().getName(), "LookAtEntityTask");
-    EXPECT_EQ(movement::FindHiddenBlockTask<VillagerEntity>().getName(), "FindHiddenBlockTask");
-    EXPECT_EQ(movement::ChaseTask<VillagerEntity>().getName(), "ChaseTask");
-    EXPECT_EQ(movement::FleeTask<VillagerEntity>().getName(), "FleeTask");
+    EXPECT_EQ(movement::FindHiddenBlockTask<VillagerEntity>(1.0f).getName(), "FindHiddenBlockTask");
+    EXPECT_EQ(movement::ChaseTask<VillagerEntity>(1.5f, 2.0f).getName(), "ChaseTask");
+    EXPECT_EQ(movement::FleeTask<VillagerEntity>(1.5f, mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE).getName(),
+        "FleeTask");
 }
 
 } // namespace
