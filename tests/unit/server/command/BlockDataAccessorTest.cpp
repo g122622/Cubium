@@ -298,7 +298,7 @@ TEST_F(BlockDataAccessorTest, GetPosition_ReturnsConstructorPosition)
 TEST_F(BlockDataAccessorTest, GetData_NoBlockEntity_ThrowsException)
 {
     BlockDataAccessor accessor(nullptr, kPos);
-    EXPECT_THROW(accessor.getData(), CommandError);
+    EXPECT_TRUE((accessor.getData()).failed());
 }
 
 TEST_F(BlockDataAccessorTest, GetData_WrongPosition_ThrowsException)
@@ -306,14 +306,16 @@ TEST_F(BlockDataAccessorTest, GetData_WrongPosition_ThrowsException)
     // 位置不匹配时 getBlockEntity 返回 nullptr，isValid 为 false
     BlockDataAccessor accessor(&world_, BlockPos(99, 99, 99));
     EXPECT_FALSE(accessor.isValid());
-    EXPECT_THROW(accessor.getData(), CommandError);
+    EXPECT_TRUE((accessor.getData()).failed());
 }
 
 TEST_F(BlockDataAccessorTest, GetData_BaseBlockEntity_ContainsBasicFields)
 {
     // 基类 BlockEntity::saveToNBT 写入 id, x, y, z
     BlockDataAccessor accessor(&world_, kPos);
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 验证基础字段
@@ -338,7 +340,9 @@ TEST_F(BlockDataAccessorTest, GetData_SignEntity_ContainsSpecificFields)
 {
     // SignEntity 额外保存 lines, editable, color, glowing, is_waxed
     BlockDataAccessor accessor(&world_, kPos);
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 验证 SignEntity 特有字段
@@ -369,7 +373,7 @@ TEST_F(BlockDataAccessorTest, MergeData_NoBlockEntity_ThrowsException)
 {
     BlockDataAccessor accessor(nullptr, kPos);
     nbt::tags::compound_tag data;
-    EXPECT_THROW(accessor.mergeData(data), CommandError);
+    EXPECT_TRUE((accessor.mergeData(data)).failed());
 }
 
 TEST_F(BlockDataAccessorTest, MergeData_AddsNewField)
@@ -384,11 +388,14 @@ TEST_F(BlockDataAccessorTest, MergeData_AddsNewField)
     nbt::tags::compound_tag data;
     data.put("is_waxed", static_cast<i8>(1));
 
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证字段已合并且被 SignEntity 正确加载
-    auto mergedData = accessor.getData();
-    ASSERT_NE(mergedData, nullptr);
+    auto mergedDataResult = accessor.getData();
+    ASSERT_TRUE(mergedDataResult.success()) << mergedDataResult.error().toString();
+    auto mergedData = std::move(mergedDataResult).value();
     auto waxedIt = mergedData->value.find("is_waxed");
     ASSERT_NE(waxedIt, mergedData->value.end());
     EXPECT_EQ(dynamic_cast<const nbt::tags::byte_tag&>(*waxedIt->second).value, 1);
@@ -404,8 +411,9 @@ TEST_F(BlockDataAccessorTest, MergeData_OverwritesExistingField)
     BlockDataAccessor accessor(&world_, kPos);
 
     // 先检查 is_waxed 默认为 false
-    auto originalData = accessor.getData();
-    ASSERT_NE(originalData, nullptr);
+    auto originalDataResult = accessor.getData();
+    ASSERT_TRUE(originalDataResult.success()) << originalDataResult.error().toString();
+    auto originalData = std::move(originalDataResult).value();
     auto waxedIt = originalData->value.find("is_waxed");
     ASSERT_NE(waxedIt, originalData->value.end());
     EXPECT_EQ(dynamic_cast<const nbt::tags::byte_tag&>(*waxedIt->second).value, 0);
@@ -413,11 +421,13 @@ TEST_F(BlockDataAccessorTest, MergeData_OverwritesExistingField)
     // 合并修改 is_waxed 为 true
     nbt::tags::compound_tag data;
     data.put("is_waxed", static_cast<i8>(1));
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证字段已被覆盖
-    auto mergedData = accessor.getData();
-    ASSERT_NE(mergedData, nullptr);
+    auto mergedDataResult = accessor.getData();
+    ASSERT_TRUE(mergedDataResult.success()) << mergedDataResult.error().toString();
+    auto mergedData = std::move(mergedDataResult).value();
     waxedIt = mergedData->value.find("is_waxed");
     ASSERT_NE(waxedIt, mergedData->value.end());
     EXPECT_EQ(dynamic_cast<const nbt::tags::byte_tag&>(*waxedIt->second).value, 1);
@@ -427,17 +437,22 @@ TEST_F(BlockDataAccessorTest, MergeData_EmptyCompound_NoChange)
 {
     // 合并空数据不应改变方块实体
     BlockDataAccessor accessor(&world_, kPos);
-    auto originalData = accessor.getData();
-    ASSERT_NE(originalData, nullptr);
+    auto originalDataResult = accessor.getData();
+    ASSERT_TRUE(originalDataResult.success()) << originalDataResult.error().toString();
+    auto originalData = std::move(originalDataResult).value();
 
     // 记录原始字段数量
     std::size_t originalSize = originalData->value.size();
 
     nbt::tags::compound_tag emptyData;
-    accessor.mergeData(emptyData);
+    auto mergeResult = accessor.mergeData(emptyData);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
-    auto mergedData = accessor.getData();
-    ASSERT_NE(mergedData, nullptr);
+    auto mergedDataResult = accessor.getData();
+
+    ASSERT_TRUE(mergedDataResult.success()) << mergedDataResult.error().toString();
+
+    auto mergedData = std::move(mergedDataResult).value();
     // 字段数量不应减少
     EXPECT_GE(mergedData->value.size(), originalSize);
 }
@@ -450,7 +465,8 @@ TEST_F(BlockDataAccessorTest, MergeData_NotifiesBlockUpdate)
 
     nbt::tags::compound_tag data;
     data.put("is_waxed", static_cast<i8>(1));
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // 验证 notifyBlockUpdate 被调用且位置正确
     ASSERT_EQ(world_.blockUpdateCalls().size(), 1u);
@@ -466,7 +482,8 @@ TEST_F(BlockDataAccessorTest, MergeData_SetsChangedFlag)
     BlockDataAccessor accessor(&world_, kPos);
     nbt::tags::compound_tag data;
     data.put("is_waxed", static_cast<i8>(1));
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     EXPECT_TRUE(signEntity_->isChanged());
 }
@@ -491,7 +508,9 @@ TEST_F(BlockDataAccessorTest, RoundTrip_SerializeDeserialize_PreservesSignData)
     signEntity_->setGlowing(true);
 
     BlockDataAccessor accessor(&world_, kPos);
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    ASSERT_TRUE(dataResult.success()) << dataResult.error().toString();
+    auto data = std::move(dataResult).value();
     ASSERT_NE(data, nullptr);
 
     // 验证设置的字段在序列化数据中
@@ -508,8 +527,9 @@ TEST_F(BlockDataAccessorTest, RoundTrip_MergePreservesUnchangedFields)
 {
     // 合并不影响未修改的字段
     BlockDataAccessor accessor(&world_, kPos);
-    auto originalData = accessor.getData();
-    ASSERT_NE(originalData, nullptr);
+    auto originalDataResult = accessor.getData();
+    ASSERT_TRUE(originalDataResult.success()) << originalDataResult.error().toString();
+    auto originalData = std::move(originalDataResult).value();
 
     // 记录原始 color 值
     auto colorIt = originalData->value.find("color");
@@ -519,11 +539,13 @@ TEST_F(BlockDataAccessorTest, RoundTrip_MergePreservesUnchangedFields)
     // 只修改 is_waxed
     nbt::tags::compound_tag data;
     data.put("is_waxed", static_cast<i8>(1));
-    accessor.mergeData(data);
+    auto mergeResult = accessor.mergeData(data);
+    EXPECT_TRUE(mergeResult.success()) << mergeResult.error().toString();
 
     // color 不应被改变
-    auto mergedData = accessor.getData();
-    ASSERT_NE(mergedData, nullptr);
+    auto mergedDataResult = accessor.getData();
+    ASSERT_TRUE(mergedDataResult.success()) << mergedDataResult.error().toString();
+    auto mergedData = std::move(mergedDataResult).value();
     colorIt = mergedData->value.find("color");
     ASSERT_NE(colorIt, mergedData->value.end());
     EXPECT_EQ(dynamic_cast<const nbt::tags::int_tag&>(*colorIt->second).value, originalColor);

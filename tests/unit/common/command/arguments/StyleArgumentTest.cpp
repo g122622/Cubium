@@ -49,9 +49,13 @@ namespace {
 /// 解析一整段文本（断言游标正好停在末尾）
 StylePtr parseAll(StyleArgumentType& parser, StringReader& reader)
 {
-    StylePtr style = parser.parse(reader);
+    auto styleResult = parser.parse(reader);
+    EXPECT_TRUE(styleResult.success()) << styleResult.error().toString();
     EXPECT_EQ(reader.getCursor(), reader.getTotalLength());
-    return style;
+    if (styleResult.failed()) {
+        return nullptr;
+    }
+    return std::move(styleResult).value();
 }
 
 } // namespace
@@ -140,7 +144,11 @@ TEST(StyleArgumentTypeTest, StopsAtTrailingArgument)
     // 后面还有别的参数时，只消费样式本身
     StyleArgumentType parser;
     StringReader reader("{bold:true} Steve");
-    const auto style = parser.parse(reader);
+    auto styleResult = parser.parse(reader);
+
+    ASSERT_TRUE(styleResult.success()) << styleResult.error().toString();
+
+    const auto style = std::move(styleResult).value();
 
     ASSERT_NE(style, nullptr);
     EXPECT_EQ(style->bold(), true);
@@ -152,7 +160,7 @@ TEST(StyleArgumentTypeTest, RejectsUnbalancedBraces)
 {
     StyleArgumentType parser;
     StringReader reader("{bold:true");
-    EXPECT_THROW(parser.parse(reader), CommandError);
+    EXPECT_TRUE((parser.parse(reader)).failed());
     // 失败后游标回到起点，便于上层报出准确位置
     EXPECT_EQ(reader.getCursor(), 0);
 }
@@ -161,14 +169,14 @@ TEST(StyleArgumentTypeTest, RejectsNonCompoundText)
 {
     StyleArgumentType parser;
     StringReader reader("bold");
-    EXPECT_THROW(parser.parse(reader), CommandError);
+    EXPECT_TRUE((parser.parse(reader)).failed());
 }
 
 TEST(StyleArgumentTypeTest, RejectsInvalidColor)
 {
     StyleArgumentType parser;
     StringReader reader("{color:\"not-a-color\"}");
-    EXPECT_THROW(parser.parse(reader), CommandError);
+    EXPECT_TRUE((parser.parse(reader)).failed());
 }
 
 TEST(StyleArgumentTypeTest, ReportsTypeNameAndExamples)

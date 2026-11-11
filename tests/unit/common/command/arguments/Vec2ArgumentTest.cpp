@@ -78,7 +78,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseAbsoluteCoordinates)
 {
     // "100 -200" -> WorldCoordinates(abs(100), rel(0), abs(-200))
     StringReader reader("100 -200");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
@@ -91,7 +93,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseZeroCoordinates)
 {
     // "0 0" -> WorldCoordinates(abs(0), rel(0), abs(0))
     StringReader reader("0 0");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
@@ -104,7 +108,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseDecimalCoordinates)
 {
     // "0.1 -0.5" -> WorldCoordinates(abs(0.1), rel(0), abs(-0.5))
     StringReader reader("0.1 -0.5");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 0.1);
@@ -117,7 +123,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseNegativeCoordinates)
 {
     // "-50.5 -100.7" -> WorldCoordinates(abs(-50.5), rel(0), abs(-100.7))
     StringReader reader("-50.5 -100.7");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), -50.5);
@@ -132,7 +140,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseTildeTilde)
 {
     // "~ ~" -> WorldCoordinates(rel(0), rel(0), rel(0))
     StringReader reader("~ ~");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
@@ -145,7 +155,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseTildeWithOffset)
 {
     // "~1 ~-2" -> WorldCoordinates(rel(1), rel(0), rel(-2))
     StringReader reader("~1 ~-2");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 1.0);
@@ -158,7 +170,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseTildeWithDecimalOffset)
 {
     // "~1.5 ~-0.5" -> WorldCoordinates(rel(1.5), rel(0), rel(-0.5))
     StringReader reader("~1.5 ~-0.5");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 1.5);
@@ -171,7 +185,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseMixedAbsoluteAndRelative)
 {
     // "100 ~5" -> WorldCoordinates(abs(100), rel(0), rel(5))
     StringReader reader("100 ~5");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
@@ -184,7 +200,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseTildeAloneThenNumber)
 {
     // "~ 50" -> WorldCoordinates(rel(0), rel(0), abs(50))
     StringReader reader("~ 50");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
@@ -252,7 +270,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseLargeCoordinates)
 {
     // 大坐标值
     StringReader reader("30000000 -30000000");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 30000000.0);
@@ -265,7 +285,9 @@ TEST_F(Vec2ArgumentTypeTest, ParseVerySmallDecimals)
 {
     // 极小小数
     StringReader reader("0.001 -0.001");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 0.001);
@@ -280,7 +302,9 @@ TEST_F(Vec2ArgumentTypeTest, TabSeparatedCoordinates)
 {
     // Tab 分隔也可以被 skipWhitespace 处理
     StringReader reader("100\t200");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
@@ -295,7 +319,9 @@ TEST_F(Vec2ArgumentTypeTest, YComponentIsAlwaysRelativeZero)
 {
     // Vec2ArgumentType 将 y 分量填充为 relative(0)，无论输入如何
     StringReader reader("100 -200");
-    auto result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     auto* wc = toWorldCoords(result);
     ASSERT_NE(wc, nullptr);
     EXPECT_DOUBLE_EQ(wc->y().value(), 0.0);

@@ -38,8 +38,8 @@
 #include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/errors/CommandErrors.hpp"
 
-using mc::command::CommandErrorType;
 using mc::command::CommandError;
+using mc::command::CommandErrorType;
 using mc::command::ItemSlot;
 using mc::command::ItemSlotArgumentType;
 using mc::command::StringReader;
@@ -256,28 +256,28 @@ TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("5");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotZeroRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("0");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotMaxContainerRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("53");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNegativeNumericSlotFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("-1");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseHotbarSlots)
@@ -285,20 +285,20 @@ TEST_F(ItemSlotArgumentTypeTest, ParseHotbarSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("hotbar.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 0);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 0);
 
     StringReader r4("hotbar.4");
-    EXPECT_EQ(parser->parse(r4).slotIndex(), 4);
+    EXPECT_EQ((parser->parse(r4).value().slotIndex()), 4);
 
     StringReader r8("hotbar.8");
-    EXPECT_EQ(parser->parse(r8).slotIndex(), 8);
+    EXPECT_EQ((parser->parse(r8).value().slotIndex()), 8);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseHotbarOutOfRangeFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("hotbar.9");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseContainerSlots)
@@ -306,20 +306,20 @@ TEST_F(ItemSlotArgumentTypeTest, ParseContainerSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("container.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 0);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 0);
 
     StringReader r27("container.27");
-    EXPECT_EQ(parser->parse(r27).slotIndex(), 27);
+    EXPECT_EQ((parser->parse(r27).value().slotIndex()), 27);
 
     StringReader r53("container.53");
-    EXPECT_EQ(parser->parse(r53).slotIndex(), 53);
+    EXPECT_EQ((parser->parse(r53).value().slotIndex()), 53);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseContainerOutOfRangeFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("container.54");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseInventorySlots)
@@ -327,10 +327,10 @@ TEST_F(ItemSlotArgumentTypeTest, ParseInventorySlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("inventory.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 9); // 偏移到主背包起始
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 9); // 偏移到主背包起始
 
     StringReader r26("inventory.26");
-    EXPECT_EQ(parser->parse(r26).slotIndex(), 35); // 偏移到主背包末尾
+    EXPECT_EQ((parser->parse(r26).value().slotIndex()), 35); // 偏移到主背包末尾
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseWeaponSlots)
@@ -338,13 +338,13 @@ TEST_F(ItemSlotArgumentTypeTest, ParseWeaponSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r1("weapon");
-    EXPECT_EQ(parser->parse(r1).slotIndex(), 98);
+    EXPECT_EQ((parser->parse(r1).value().slotIndex()), 98);
 
     StringReader r2("weapon.mainhand");
-    EXPECT_EQ(parser->parse(r2).slotIndex(), 98);
+    EXPECT_EQ((parser->parse(r2).value().slotIndex()), 98);
 
     StringReader r3("weapon.offhand");
-    EXPECT_EQ(parser->parse(r3).slotIndex(), 99);
+    EXPECT_EQ((parser->parse(r3).value().slotIndex()), 99);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseArmorSlots)
@@ -353,26 +353,26 @@ TEST_F(ItemSlotArgumentTypeTest, ParseArmorSlots)
 
     // 原版槽位号：head=103、chest=102、legs=101、feet=100（与枚举顺序一致）。
     StringReader r1("armor.head");
-    EXPECT_EQ(parser->parse(r1).slotIndex(), 103);
+    EXPECT_EQ((parser->parse(r1).value().slotIndex()), 103);
 
     StringReader r2("armor.chest");
-    EXPECT_EQ(parser->parse(r2).slotIndex(), 102);
+    EXPECT_EQ((parser->parse(r2).value().slotIndex()), 102);
 
     StringReader r3("armor.legs");
-    EXPECT_EQ(parser->parse(r3).slotIndex(), 101);
+    EXPECT_EQ((parser->parse(r3).value().slotIndex()), 101);
 
     StringReader r4("armor.feet");
-    EXPECT_EQ(parser->parse(r4).slotIndex(), 100);
+    EXPECT_EQ((parser->parse(r4).value().slotIndex()), 100);
 
     StringReader r5("armor.body");
-    EXPECT_EQ(parser->parse(r5).slotIndex(), 105);
+    EXPECT_EQ((parser->parse(r5).value().slotIndex()), 105);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseSaddle)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("saddle");
-    EXPECT_EQ(parser->parse(reader).slotIndex(), 106);
+    EXPECT_EQ((parser->parse(reader).value().slotIndex()), 106);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseEnderChestSlots)
@@ -380,10 +380,10 @@ TEST_F(ItemSlotArgumentTypeTest, ParseEnderChestSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("enderchest.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 200);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 200);
 
     StringReader r26("enderchest.26");
-    EXPECT_EQ(parser->parse(r26).slotIndex(), 226);
+    EXPECT_EQ((parser->parse(r26).value().slotIndex()), 226);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseVillagerSlots)
@@ -391,10 +391,10 @@ TEST_F(ItemSlotArgumentTypeTest, ParseVillagerSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("villager.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 300);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 300);
 
     StringReader r7("villager.7");
-    EXPECT_EQ(parser->parse(r7).slotIndex(), 307);
+    EXPECT_EQ((parser->parse(r7).value().slotIndex()), 307);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseHorseSlots)
@@ -402,10 +402,10 @@ TEST_F(ItemSlotArgumentTypeTest, ParseHorseSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("horse.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 500);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 500);
 
     StringReader r14("horse.14");
-    EXPECT_EQ(parser->parse(r14).slotIndex(), 514);
+    EXPECT_EQ((parser->parse(r14).value().slotIndex()), 514);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParsePlayerCraftingSlots)
@@ -413,38 +413,38 @@ TEST_F(ItemSlotArgumentTypeTest, ParsePlayerCraftingSlots)
     auto parser = ItemSlotArgumentType::itemSlot();
 
     StringReader r0("player.crafting.0");
-    EXPECT_EQ(parser->parse(r0).slotIndex(), 500);
+    EXPECT_EQ((parser->parse(r0).value().slotIndex()), 500);
 
     StringReader r3("player.crafting.3");
-    EXPECT_EQ(parser->parse(r3).slotIndex(), 503);
+    EXPECT_EQ((parser->parse(r3).value().slotIndex()), 503);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParsePlayerCursor)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("player.cursor");
-    EXPECT_EQ(parser->parse(reader).slotIndex(), 499);
+    EXPECT_EQ((parser->parse(reader).value().slotIndex()), 499);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseHorseChest)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("horse.chest");
-    EXPECT_EQ(parser->parse(reader).slotIndex(), 499);
+    EXPECT_EQ((parser->parse(reader).value().slotIndex()), 499);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseUnknownSlotNameFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("unknown.slot");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseEmptyStringFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("");
-    EXPECT_THROW(parser->parse(reader), CommandError);
+    EXPECT_TRUE((parser->parse(reader)).failed());
 }
 
 TEST_F(ItemSlotArgumentTypeTest, GetTypeName)

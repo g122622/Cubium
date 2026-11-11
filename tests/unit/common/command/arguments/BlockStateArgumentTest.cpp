@@ -91,7 +91,11 @@ TEST_F(BlockStateArgumentTest, ParseSimpleBlockId)
     StringReader reader("stone");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::STONE);
@@ -102,7 +106,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockIdWithNamespace)
     StringReader reader("minecraft:stone");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::STONE);
@@ -113,7 +121,7 @@ TEST_F(BlockStateArgumentTest, ParseUnknownBlockThrowsError)
     StringReader reader("minecraft:nonexistent_block_xyz");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 // ========== 方块状态属性解析测试 ==========
@@ -128,7 +136,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithSingleProperty)
     StringReader reader("oak_door[facing=north]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
@@ -146,7 +158,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithMultipleProperties)
     StringReader reader("oak_stairs[facing=east,half=top]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
@@ -165,7 +181,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithThreeProperties)
     StringReader reader("oak_stairs[facing=south,half=bottom,waterlogged=false]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);
@@ -187,13 +207,15 @@ TEST_F(BlockStateArgumentTest, StairsHalfRejectsDoorHalfNames)
         // StringReader 持有 string_view，输入字符串必须存活于 reader 之外
         const std::string text = std::string("oak_stairs[half=") + value + "]";
         StringReader reader(text);
-        EXPECT_THROW(argType.parse(reader), CommandError) << "value=" << value;
+        EXPECT_TRUE(argType.parse(reader).failed()) << "value=" << value;
     }
 
     for (const char* value : {"top", "bottom"}) {
         const std::string text = std::string("oak_stairs[half=") + value + "]";
         StringReader reader(text);
-        BlockStateInput input = argType.parse(reader);
+        auto inputResult = argType.parse(reader);
+        ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+        auto input = std::move(inputResult).value();
         EXPECT_TRUE(input.isValid()) << "value=" << value;
     }
 }
@@ -208,7 +230,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockWithNamespaceAndProperties)
     StringReader reader("minecraft:oak_door[facing=south]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
@@ -227,7 +253,7 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyThrowsError)
     StringReader reader("stone[facing=north]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError)
@@ -241,7 +267,7 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError)
     StringReader reader("oak_door[facing=invalid_value]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError)
@@ -255,7 +281,7 @@ TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError)
     StringReader reader("oak_door[facing=north,facing=south]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError)
@@ -263,7 +289,7 @@ TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError)
     StringReader reader("oak_door[facing=]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError)
@@ -271,7 +297,7 @@ TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError)
     StringReader reader("oak_door[=north]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState)
@@ -282,7 +308,9 @@ TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState)
     BlockStateArgumentType argType;
 
     // 不抛出异常，返回默认状态
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
 }
 
@@ -296,7 +324,11 @@ TEST_F(BlockStateArgumentTest, EmptyBracketsReturnsDefaultState)
     StringReader reader("oak_door[]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
 }
@@ -311,7 +343,11 @@ TEST_F(BlockStateArgumentTest, TrailingCommaInBracketsReturnsValidState)
     StringReader reader("oak_door[facing=north,]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_DOOR);
 }
@@ -355,7 +391,9 @@ TEST_F(BlockStateArgumentTest, StringReaderIntegration)
     EXPECT_TRUE(reader.canRead());
     EXPECT_EQ(reader.peek(), 's');
 
-    std::string result = reader.readString();
+    auto resultRead = reader.readString();
+    ASSERT_TRUE(resultRead.success()) << resultRead.error().toString();
+    const std::string result = std::move(resultRead).value();
     EXPECT_EQ(result, "stone");
     EXPECT_FALSE(reader.canRead()); // 读取完毕
 }
@@ -376,7 +414,7 @@ TEST_F(BlockStateArgumentTest, EmptyStringThrowsError)
     StringReader reader("");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError)
@@ -384,7 +422,7 @@ TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError)
     StringReader reader("minecraft:");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandError);
+    EXPECT_TRUE((argType.parse(reader)).failed());
 }
 
 // ========== 更多方块解析测试 ==========
@@ -396,7 +434,9 @@ TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes)
     // 测试各种方块
     {
         StringReader reader("dirt");
-        BlockStateInput input = argType.parse(reader);
+        auto inputResult = argType.parse(reader);
+        ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+        auto input = std::move(inputResult).value();
         EXPECT_TRUE(input.isValid());
         if (VanillaBlocks::DIRT != nullptr) {
             EXPECT_EQ(&input.getBlock(), VanillaBlocks::DIRT);
@@ -405,7 +445,9 @@ TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes)
 
     {
         StringReader reader("cobblestone");
-        BlockStateInput input = argType.parse(reader);
+        auto inputResult = argType.parse(reader);
+        ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+        auto input = std::move(inputResult).value();
         EXPECT_TRUE(input.isValid());
         if (VanillaBlocks::COBBLESTONE != nullptr) {
             EXPECT_EQ(&input.getBlock(), VanillaBlocks::COBBLESTONE);
@@ -414,7 +456,9 @@ TEST_F(BlockStateArgumentTest, ParseMultipleBlockTypes)
 
     {
         StringReader reader("oak_planks");
-        BlockStateInput input = argType.parse(reader);
+        auto inputResult = argType.parse(reader);
+        ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+        auto input = std::move(inputResult).value();
         EXPECT_TRUE(input.isValid());
         if (VanillaBlocks::OAK_PLANKS != nullptr) {
             EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_PLANKS);
@@ -433,7 +477,11 @@ TEST_F(BlockStateArgumentTest, ParseBlockStateId)
     StringReader reader("oak_stairs[facing=west,half=top,waterlogged=true]");
     BlockStateArgumentType argType;
 
-    BlockStateInput input = argType.parse(reader);
+    auto inputResult = argType.parse(reader);
+
+    ASSERT_TRUE(inputResult.success()) << inputResult.error().toString();
+
+    auto input = std::move(inputResult).value();
     EXPECT_TRUE(input.isValid());
     EXPECT_NE(input.state(), nullptr);
     EXPECT_EQ(&input.getBlock(), VanillaBlocks::OAK_STAIRS);

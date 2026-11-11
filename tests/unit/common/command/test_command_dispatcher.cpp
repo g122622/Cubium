@@ -75,7 +75,7 @@ TEST_F(StringReaderTest, BasicRead)
 
     EXPECT_TRUE(reader.canRead());
     EXPECT_EQ(reader.peek(), 'h');
-    EXPECT_EQ(reader.read(), 'h');
+    EXPECT_EQ(reader.read().value(), 'h');
     EXPECT_EQ(reader.getCursor(), 1);
 }
 
@@ -96,7 +96,11 @@ TEST_F(StringReaderTest, ReadQuotedString)
 {
     StringReader reader("\"hello world\" rest");
 
-    std::string str = reader.readQuotedString();
+    auto strResult = reader.readQuotedString();
+
+    ASSERT_TRUE(strResult.success()) << strResult.error().toString();
+
+    std::string str = std::move(strResult).value();
     EXPECT_EQ(str, "hello world");
     EXPECT_EQ(reader.getRemaining(), " rest");
 }
@@ -105,7 +109,11 @@ TEST_F(StringReaderTest, ReadQuotedStringWithEscape)
 {
     StringReader reader("\"hello \\\"world\\\"\" rest");
 
-    std::string str = reader.readQuotedString();
+    auto strResult = reader.readQuotedString();
+
+    ASSERT_TRUE(strResult.success()) << strResult.error().toString();
+
+    std::string str = std::move(strResult).value();
     EXPECT_EQ(str, "hello \"world\"");
 }
 
@@ -114,15 +122,19 @@ TEST_F(StringReaderTest, ReadStringAutoDetect)
     StringReader reader1("hello world");
     StringReader reader2("\"quoted string\"");
 
-    EXPECT_EQ(reader1.readString(), "hello");
-    EXPECT_EQ(reader2.readString(), "quoted string");
+    EXPECT_EQ(reader1.readString().value(), "hello");
+    EXPECT_EQ(reader2.readString().value(), "quoted string");
 }
 
 TEST_F(StringReaderTest, ReadInt)
 {
     StringReader reader("123");
 
-    i32 value = reader.readInt();
+    auto valueResult = reader.readInt();
+
+    ASSERT_TRUE(valueResult.success()) << valueResult.error().toString();
+
+    i32 value = std::move(valueResult).value();
     EXPECT_EQ(value, 123);
     EXPECT_FALSE(reader.canRead());
 }
@@ -131,7 +143,11 @@ TEST_F(StringReaderTest, ReadNegativeInt)
 {
     StringReader reader("-456");
 
-    i32 value = reader.readInt();
+    auto valueResult = reader.readInt();
+
+    ASSERT_TRUE(valueResult.success()) << valueResult.error().toString();
+
+    i32 value = std::move(valueResult).value();
     EXPECT_EQ(value, -456);
 }
 
@@ -140,9 +156,9 @@ TEST_F(StringReaderTest, ReadIntWithRange)
     StringReader reader1("50");
     StringReader reader2("150");
 
-    EXPECT_EQ(reader1.readInt(0, 100), 50);
+    EXPECT_EQ(reader1.readInt(0, 100).value(), 50);
 
-    EXPECT_THROW((void)reader2.readInt(0, 100), CommandError);
+    EXPECT_TRUE(reader2.readInt(0, 100).failed());
 }
 
 TEST_F(StringReaderTest, ReadBool)
@@ -150,15 +166,19 @@ TEST_F(StringReaderTest, ReadBool)
     StringReader reader1("true");
     StringReader reader2("false");
 
-    EXPECT_TRUE(reader1.readBool());
-    EXPECT_FALSE(reader2.readBool());
+    EXPECT_TRUE(reader1.readBool().value());
+    EXPECT_FALSE(reader2.readBool().value());
 }
 
 TEST_F(StringReaderTest, ReadDouble)
 {
     StringReader reader("3.14159");
 
-    f64 value = reader.readDouble();
+    auto valueResult = reader.readDouble();
+
+    ASSERT_TRUE(valueResult.success()) << valueResult.error().toString();
+
+    f64 value = std::move(valueResult).value();
     EXPECT_NEAR(value, 3.14159, 0.00001);
 }
 
@@ -177,7 +197,7 @@ TEST_F(StringReaderTest, Expect)
     reader.expect('h');
     EXPECT_EQ(reader.getCursor(), 1);
 
-    EXPECT_THROW(reader.expect('x'), CommandError);
+    EXPECT_TRUE((reader.expect('x')).failed());
 }
 
 TEST_F(StringReaderTest, TryRead)
@@ -266,13 +286,13 @@ TEST_F(ArgumentTypeTest, StringArgument)
     auto greedyArg = StringArgumentType::greedyString();
 
     StringReader reader1("hello");
-    EXPECT_EQ(wordArg->parse(reader1), "hello");
+    EXPECT_EQ(wordArg->parse(reader1).value(), "hello");
 
     StringReader reader2("\"hello world\"");
-    EXPECT_EQ(phraseArg->parse(reader2), "hello world");
+    EXPECT_EQ(phraseArg->parse(reader2).value(), "hello world");
 
     StringReader reader3("hello world rest");
-    EXPECT_EQ(greedyArg->parse(reader3), "hello world rest");
+    EXPECT_EQ(greedyArg->parse(reader3).value(), "hello world rest");
 }
 
 TEST_F(ArgumentTypeTest, IntegerArgument)
@@ -280,13 +300,13 @@ TEST_F(ArgumentTypeTest, IntegerArgument)
     auto intArg = IntegerArgumentType::integer(0, 100);
 
     StringReader reader1("50");
-    EXPECT_EQ(intArg->parse(reader1), 50);
+    EXPECT_EQ(intArg->parse(reader1).value(), 50);
 
     StringReader reader2("150");
-    EXPECT_THROW((void)intArg->parse(reader2), CommandError);
+    EXPECT_TRUE(intArg->parse(reader2).failed());
 
     StringReader reader3("-10");
-    EXPECT_THROW((void)intArg->parse(reader3), CommandError);
+    EXPECT_TRUE(intArg->parse(reader3).failed());
 }
 
 TEST_F(ArgumentTypeTest, FloatArgument)
@@ -294,10 +314,10 @@ TEST_F(ArgumentTypeTest, FloatArgument)
     auto floatArg = FloatArgumentType::floatArg(0.0f, 1.0f);
 
     StringReader reader1("0.5");
-    EXPECT_NEAR(floatArg->parse(reader1), 0.5f, 0.001f);
+    EXPECT_NEAR(floatArg->parse(reader1).value(), 0.5f, 0.001f);
 
     StringReader reader2("1.5");
-    EXPECT_THROW((void)floatArg->parse(reader2), CommandError);
+    EXPECT_TRUE(floatArg->parse(reader2).failed());
 }
 
 TEST_F(ArgumentTypeTest, BoolArgument)
@@ -311,7 +331,7 @@ TEST_F(ArgumentTypeTest, BoolArgument)
     EXPECT_FALSE(boolArg->parse(reader2));
 
     StringReader reader3("invalid");
-    EXPECT_THROW((void)boolArg->parse(reader3), CommandError);
+    EXPECT_TRUE(boolArg->parse(reader3).failed());
 }
 
 TEST_F(ArgumentTypeTest, EnumArgument)
@@ -324,13 +344,13 @@ TEST_F(ArgumentTypeTest, EnumArgument)
     enumArg->add("c", TestEnum::C);
 
     StringReader reader1("a");
-    EXPECT_EQ(enumArg->parse(reader1), TestEnum::A);
+    EXPECT_EQ(enumArg->parse(reader1).value(), TestEnum::A);
 
     StringReader reader2("b");
-    EXPECT_EQ(enumArg->parse(reader2), TestEnum::B);
+    EXPECT_EQ(enumArg->parse(reader2).value(), TestEnum::B);
 
     StringReader reader3("invalid");
-    EXPECT_THROW((void)enumArg->parse(reader3), CommandError);
+    EXPECT_TRUE(enumArg->parse(reader3).failed());
 }
 
 // ========== CommandResult Tests ==========

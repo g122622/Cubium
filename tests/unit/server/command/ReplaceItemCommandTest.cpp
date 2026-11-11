@@ -219,7 +219,9 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_CursorSlotParsing)
 {
     // player.cursor 应解析为 499
     StringReader reader("player.cursor");
-    auto slot = ItemSlotArgumentType::itemSlot()->parse(reader);
+    auto slotResult = ItemSlotArgumentType::itemSlot()->parse(reader);
+    ASSERT_TRUE(slotResult.success()) << slotResult.error().toString();
+    auto slot = std::move(slotResult).value();
     EXPECT_EQ(slot.slotIndex(), 499);
     EXPECT_TRUE(slot.isCursorSlot());
 }
@@ -228,11 +230,15 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_CursorSlotAndHorseChestOverlap)
 {
     // player.cursor (499) 和 horse.chest (499) 编号重叠
     StringReader cursorReader("player.cursor");
-    auto cursorSlot = ItemSlotArgumentType::itemSlot()->parse(cursorReader);
+    auto cursorSlotResult = ItemSlotArgumentType::itemSlot()->parse(cursorReader);
+    ASSERT_TRUE(cursorSlotResult.success()) << cursorSlotResult.error().toString();
+    auto cursorSlot = std::move(cursorSlotResult).value();
     EXPECT_EQ(cursorSlot.slotIndex(), 499);
 
     StringReader chestReader("horse.chest");
-    auto chestSlot = ItemSlotArgumentType::itemSlot()->parse(chestReader);
+    auto chestSlotResult = ItemSlotArgumentType::itemSlot()->parse(chestReader);
+    ASSERT_TRUE(chestSlotResult.success()) << chestSlotResult.error().toString();
+    auto chestSlot = std::move(chestSlotResult).value();
     EXPECT_EQ(chestSlot.slotIndex(), 499);
 
     // 两者都返回 slotIndex 499，isCursorSlot 和 isHorseChestSlot 都为 true
@@ -249,10 +255,12 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_NumericSlot499IsCursor)
 {
     // 原版没有纯数字槽位写法；499 只能通过 player.cursor / horse.chest 这两个名字得到。
     StringReader reader("499");
-    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
+    EXPECT_TRUE((ItemSlotArgumentType::itemSlot()->parse(reader)).failed());
 
     StringReader named("player.cursor");
-    auto slot = ItemSlotArgumentType::itemSlot()->parse(named);
+    auto slotResult = ItemSlotArgumentType::itemSlot()->parse(named);
+    ASSERT_TRUE(slotResult.success()) << slotResult.error().toString();
+    auto slot = std::move(slotResult).value();
     EXPECT_EQ(slot.slotIndex(), 499);
     EXPECT_TRUE(slot.isCursorSlot());
     EXPECT_TRUE(slot.isHorseChestSlot());
@@ -280,7 +288,9 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_EquipmentSlots)
 
     for (const auto& [name, expected] : equipmentSlots) {
         StringReader reader(name);
-        auto slot = ItemSlotArgumentType::itemSlot()->parse(reader);
+        auto slotResult = ItemSlotArgumentType::itemSlot()->parse(reader);
+        ASSERT_TRUE(slotResult.success()) << slotResult.error().toString();
+        auto slot = std::move(slotResult).value();
         EXPECT_EQ(slot.slotIndex(), expected) << "Slot '" << name << "' should be " << expected;
         EXPECT_TRUE(slot.isEquipmentSlot()) << "Slot '" << name << "' should be equipment";
     }
@@ -289,12 +299,16 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_EquipmentSlots)
 TEST_F(ReplaceItemCommandTest, ItemSlot_EnderChestSlots)
 {
     StringReader reader("enderchest.0");
-    auto slot = ItemSlotArgumentType::itemSlot()->parse(reader);
+    auto slotResult = ItemSlotArgumentType::itemSlot()->parse(reader);
+    ASSERT_TRUE(slotResult.success()) << slotResult.error().toString();
+    auto slot = std::move(slotResult).value();
     EXPECT_EQ(slot.slotIndex(), 200);
     EXPECT_TRUE(slot.isEnderChestSlot());
 
     StringReader reader2("enderchest.26");
-    auto slot2 = ItemSlotArgumentType::itemSlot()->parse(reader2);
+    auto slot2Result = ItemSlotArgumentType::itemSlot()->parse(reader2);
+    ASSERT_TRUE(slot2Result.success()) << slot2Result.error().toString();
+    auto slot2 = std::move(slot2Result).value();
     EXPECT_EQ(slot2.slotIndex(), 226);
     EXPECT_TRUE(slot2.isEnderChestSlot());
 }
@@ -303,16 +317,20 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_PlayerInventorySlots)
 {
     // 快捷栏 0-8
     StringReader reader("hotbar.4");
-    auto slot = ItemSlotArgumentType::itemSlot()->parse(reader);
+    auto slotResult = ItemSlotArgumentType::itemSlot()->parse(reader);
+    ASSERT_TRUE(slotResult.success()) << slotResult.error().toString();
+    auto slot = std::move(slotResult).value();
     EXPECT_EQ(slot.slotIndex(), 4);
     EXPECT_TRUE(slot.isPlayerInventorySlot());
 
     // 原版没有纯数字槽位写法；背包槽位只用 inventory.N 这类名字
     StringReader reader2("20");
-    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader2), CommandError);
+    EXPECT_TRUE((ItemSlotArgumentType::itemSlot()->parse(reader2)).failed());
 
     StringReader reader3("inventory.20");
-    auto slot2 = ItemSlotArgumentType::itemSlot()->parse(reader3);
+    auto slot2Result = ItemSlotArgumentType::itemSlot()->parse(reader3);
+    ASSERT_TRUE(slot2Result.success()) << slot2Result.error().toString();
+    auto slot2 = std::move(slot2Result).value();
     EXPECT_EQ(slot2.slotIndex(), 29);
     EXPECT_TRUE(slot2.isPlayerInventorySlot());
 }
@@ -321,17 +339,23 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_UnsupportedSlotsRecognized)
 {
     // 合成槽位
     StringReader craftingReader("player.crafting.0");
-    auto craftingSlot = ItemSlotArgumentType::itemSlot()->parse(craftingReader);
+    auto craftingSlotResult = ItemSlotArgumentType::itemSlot()->parse(craftingReader);
+    ASSERT_TRUE(craftingSlotResult.success()) << craftingSlotResult.error().toString();
+    auto craftingSlot = std::move(craftingSlotResult).value();
     EXPECT_TRUE(craftingSlot.isCraftingSlot());
 
     // 村民槽位
     StringReader villagerReader("villager.3");
-    auto villagerSlot = ItemSlotArgumentType::itemSlot()->parse(villagerReader);
+    auto villagerSlotResult = ItemSlotArgumentType::itemSlot()->parse(villagerReader);
+    ASSERT_TRUE(villagerSlotResult.success()) << villagerSlotResult.error().toString();
+    auto villagerSlot = std::move(villagerSlotResult).value();
     EXPECT_TRUE(villagerSlot.isVillagerSlot());
 
     // 马匹槽位
     StringReader horseReader("horse.5");
-    auto horseSlot = ItemSlotArgumentType::itemSlot()->parse(horseReader);
+    auto horseSlotResult = ItemSlotArgumentType::itemSlot()->parse(horseReader);
+    ASSERT_TRUE(horseSlotResult.success()) << horseSlotResult.error().toString();
+    auto horseSlot = std::move(horseSlotResult).value();
     EXPECT_TRUE(horseSlot.isHorseSlot());
 }
 
@@ -342,14 +366,14 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_UnsupportedSlotsRecognized)
 TEST_F(ReplaceItemCommandTest, ItemSlot_InvalidSlotName)
 {
     StringReader reader("invalid.slot");
-    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
+    EXPECT_TRUE(ItemSlotArgumentType::itemSlot()->parse(reader).failed());
 }
 
 TEST_F(ReplaceItemCommandTest, ItemSlot_EnderChestOutOfRange)
 {
     // enderchest.27 超出范围
     StringReader reader("enderchest.27");
-    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
+    EXPECT_TRUE(ItemSlotArgumentType::itemSlot()->parse(reader).failed());
 }
 
 // ============================================================================

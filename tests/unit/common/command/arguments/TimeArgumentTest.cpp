@@ -44,8 +44,8 @@
 #include "common/command/errors/CommandErrors.hpp"
 
 using mc::i32;
-using mc::command::CommandErrorType;
 using mc::command::CommandError;
+using mc::command::CommandErrorType;
 using mc::command::StringReader;
 using mc::command::TimeArgumentType;
 
@@ -60,7 +60,9 @@ TEST_F(TimeArgumentTypeTest, ParsePureNumber)
 {
     // "100" -> 100 tick（无后缀默认为 tick）
     StringReader reader("100");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 100);
     EXPECT_EQ(reader.getCursor(), 3); // 消费了 "100"
 }
@@ -69,7 +71,9 @@ TEST_F(TimeArgumentTypeTest, ParseTickSuffix)
 {
     // "100t" -> 100 tick
     StringReader reader("100t");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 100);
     EXPECT_EQ(reader.getCursor(), 4);
 }
@@ -78,7 +82,9 @@ TEST_F(TimeArgumentTypeTest, ParseSecondSuffix)
 {
     // "5s" -> 5 * 20 = 100 tick
     StringReader reader("5s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 100);
     EXPECT_EQ(reader.getCursor(), 2);
 }
@@ -87,7 +93,9 @@ TEST_F(TimeArgumentTypeTest, ParseDaySuffix)
 {
     // "1d" -> 1 * 24000 = 24000 tick
     StringReader reader("1d");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 24000);
     EXPECT_EQ(reader.getCursor(), 2);
 }
@@ -96,7 +104,9 @@ TEST_F(TimeArgumentTypeTest, ParseZeroTicks)
 {
     // "0" -> 0 tick
     StringReader reader("0");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 0);
 }
 
@@ -104,7 +114,9 @@ TEST_F(TimeArgumentTypeTest, ParseZeroSeconds)
 {
     // "0s" -> 0 tick
     StringReader reader("0s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 0);
 }
 
@@ -112,7 +124,9 @@ TEST_F(TimeArgumentTypeTest, ParseZeroDays)
 {
     // "0d" -> 0 tick
     StringReader reader("0d");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 0);
 }
 
@@ -122,7 +136,9 @@ TEST_F(TimeArgumentTypeTest, ParseFloatDay)
 {
     // "1.5d" -> round(1.5 * 24000) = 36000 tick
     StringReader reader("1.5d");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 36000);
 }
 
@@ -130,7 +146,9 @@ TEST_F(TimeArgumentTypeTest, ParseHalfSecond)
 {
     // "0.5s" -> round(0.5 * 20) = 10 tick
     StringReader reader("0.5s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 10);
 }
 
@@ -138,7 +156,9 @@ TEST_F(TimeArgumentTypeTest, ParseFractionalDay)
 {
     // "0.25d" -> round(0.25 * 24000) = 6000 tick
     StringReader reader("0.25d");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 6000);
 }
 
@@ -146,7 +166,9 @@ TEST_F(TimeArgumentTypeTest, ParseFloatTick)
 {
     // "1.5t" -> round(1.5 * 1) = 2 tick
     StringReader reader("1.5t");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 2);
 }
 
@@ -157,7 +179,9 @@ TEST_F(TimeArgumentTypeTest, MinimumZeroAllowsZero)
     // minimum=0，0 tick 合法
     TimeArgumentType minZero(0);
     StringReader reader("0");
-    i32 result = minZero.parse(reader);
+    auto resultResult = minZero.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 0);
 }
 
@@ -166,7 +190,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsZero)
     // minimum=1，0 tick 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
+    EXPECT_TRUE(minOne.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOne)
@@ -174,7 +198,9 @@ TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOne)
     // minimum=1，1 tick 合法
     TimeArgumentType minOne(1);
     StringReader reader("1");
-    i32 result = minOne.parse(reader);
+    auto resultResult = minOne.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 1);
 }
 
@@ -183,7 +209,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsZeroSeconds)
     // minimum=1，"0s" (0 tick) 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0s");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
+    EXPECT_TRUE(minOne.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOneSecond)
@@ -191,7 +217,9 @@ TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOneSecond)
     // minimum=1，"1s" (20 tick) 合法
     TimeArgumentType minOne(1);
     StringReader reader("1s");
-    i32 result = minOne.parse(reader);
+    auto resultResult = minOne.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 20);
 }
 
@@ -200,7 +228,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsFractionalSecond)
     // minimum=1，"0.01s" (round(0.2) = 0 tick) 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0.01s");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
+    EXPECT_TRUE(minOne.parse(reader).failed());
 }
 
 // ========== 无效输入测试 ==========
@@ -209,14 +237,14 @@ TEST_F(TimeArgumentTypeTest, InvalidUnitThrows)
 {
     // "5m" -> "m" 不是合法单位
     StringReader reader("5m");
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, InvalidUnitXThrows)
 {
     // "5x" -> "x" 不是合法单位
     StringReader reader("5x");
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidUnit)
@@ -224,7 +252,7 @@ TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidUnit)
     // 解析失败时应回退游标到起始位置
     StringReader reader("5m");
     i32 startCursor = reader.getCursor();
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
     EXPECT_EQ(reader.getCursor(), startCursor);
 }
 
@@ -232,14 +260,14 @@ TEST_F(TimeArgumentTypeTest, EmptyInputThrows)
 {
     // 空输入无法读取浮点数
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, LettersOnlyThrows)
 {
     // 纯字母无法读取浮点数
     StringReader reader("abc");
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
 }
 
 TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidNumber)
@@ -247,7 +275,7 @@ TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidNumber)
     // 解析失败时应回退游标到起始位置
     StringReader reader("abc");
     i32 startCursor = reader.getCursor();
-    EXPECT_THROW({ parser.parse(reader); }, CommandError);
+    EXPECT_TRUE(parser.parse(reader).failed());
     EXPECT_EQ(reader.getCursor(), startCursor);
 }
 
@@ -284,7 +312,7 @@ TEST_F(TimeArgumentTypeTest, FactoryMethodWithMinimum)
     ASSERT_NE(arg, nullptr);
     // minimum=1 应拒绝 0 tick
     StringReader reader("0");
-    EXPECT_THROW({ arg->parse(reader); }, CommandError);
+    EXPECT_TRUE(arg->parse(reader).failed());
 }
 
 // ========== 序列化元数据测试 ==========
@@ -311,7 +339,9 @@ TEST_F(TimeArgumentTypeTest, LargeDayValue)
 {
     // "100d" -> 100 * 24000 = 2400000 tick
     StringReader reader("100d");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 2400000);
 }
 
@@ -319,7 +349,9 @@ TEST_F(TimeArgumentTypeTest, LargeSecondValue)
 {
     // "1000s" -> 1000 * 20 = 20000 tick
     StringReader reader("1000s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 20000);
 }
 
@@ -327,7 +359,9 @@ TEST_F(TimeArgumentTypeTest, RoundingBehavior)
 {
     // "0.06s" -> round(0.06 * 20) = round(1.2) = 1 tick
     StringReader reader("0.06s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 1);
 }
 
@@ -335,7 +369,9 @@ TEST_F(TimeArgumentTypeTest, RoundingDownBehavior)
 {
     // "0.04s" -> round(0.04 * 20) = round(0.8) = 1 tick
     StringReader reader("0.04s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 1);
 }
 
@@ -343,7 +379,9 @@ TEST_F(TimeArgumentTypeTest, RoundingZeroBehavior)
 {
     // "0.02s" -> round(0.02 * 20) = round(0.4) = 0 tick
     StringReader reader("0.02s");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 0);
 }
 
@@ -390,7 +428,9 @@ TEST_F(TimeArgumentTypeTest, StopsAtSpace)
 {
     // 输入 "100 extra" 应该只消费 "100"，留下 " extra"
     StringReader reader("100 extra");
-    i32 result = parser.parse(reader);
+    auto resultResult = parser.parse(reader);
+    ASSERT_TRUE(resultResult.success()) << resultResult.error().toString();
+    auto result = std::move(resultResult).value();
     EXPECT_EQ(result, 100);
     EXPECT_EQ(reader.getCursor(), 3);
     EXPECT_EQ(reader.getRemaining(), " extra");
