@@ -63,6 +63,7 @@
 #include "server/command/data/DataAccessor.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -1052,4 +1053,57 @@ TEST_F(ExecuteCommandDataEntityTest, ExecuteIfPredicateFollowsRegisteredConditio
     EXPECT_NE(unknownLog.find("unknown loot predicate"), std::string::npos)
         << "an unregistered predicate must be reported, not silently false; log:\n"
         << unknownLog;
+}
+
+// ============================================================================
+// if function 的正向与负向路径
+//
+// 依赖 /return 把值写进 ServerCommandSource 的函数返回通道，
+// 由 CommandFunction::execute 捕获并带出来。
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfFunctionFollowsReturnValue)
+{
+    auto& functions = m_server.functionManager();
+    functions.registerFunction(mc::ResourceLocation("test:returns_positive"), {"/return 7"});
+    functions.registerFunction(mc::ResourceLocation("test:returns_zero"), {"/return 0"});
+    functions.registerFunction(mc::ResourceLocation("test:returns_nothing"), {"/help"});
+
+    // 返回值 7 > 0 → 命中
+    auto [hit, hitLog] = _run("execute if function test:returns_positive run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "return value 7 must satisfy the condition. log:\n" << hitLog;
+
+    // 返回值 0 不 > 0 → 不命中
+    auto [zero, zeroLog] = _run("execute if function test:returns_zero run help");
+    ASSERT_TRUE(zero.success()) << "log:\n" << zeroLog;
+    EXPECT_EQ(zero.value(), 0) << "return value 0 must not satisfy the condition. log:\n" << zeroLog;
+
+    // 没有 return 的函数 → 不命中
+    auto [none, noneLog] = _run("execute if function test:returns_nothing run help");
+    ASSERT_TRUE(none.success()) << "log:\n" << noneLog;
+    EXPECT_EQ(none.value(), 0) << "a function without return must not satisfy it. log:\n" << noneLog;
+
+    // 不存在的函数 → 不命中且 warn
+    auto [unknown, unknownLog] = _run("execute if function test:no_such_function run help");
+    ASSERT_TRUE(unknown.success()) << "log:\n" << unknownLog;
+    EXPECT_EQ(unknown.value(), 0);
+    EXPECT_NE(unknownLog.find("unknown function"), std::string::npos) << "an unknown function must be reported; log:\n"
+                                                                      << unknownLog;
+}
+
+// /return 应该终止函数后续命令：第二条命令不应被执行。
+TEST_F(ExecuteCommandDataEntityTest, ReturnStopsFollowingFunctionCommands)
+{
+    auto& functions = m_server.functionManager();
+    // 先 return 5，后面跟一条会失败的命令：若 /return 没有截断函数，
+    // 这条会被执行并计入 failureCount。
+    functions.registerFunction(
+        mc::ResourceLocation("test:return_then_fail"), {"/return 5", "/this_command_does_not_exist"});
+
+    const auto result = functions.execute(mc::ResourceLocation("test:return_then_fail"), m_console);
+
+    EXPECT_EQ(result.failureCount, 0) << "/return must stop the remaining commands";
+    ASSERT_TRUE(result.returnValue.has_value());
+    EXPECT_EQ(*result.returnValue, 5);
 }

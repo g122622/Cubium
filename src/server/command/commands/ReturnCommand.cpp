@@ -81,7 +81,12 @@ void ReturnCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 i32 ReturnCommand::_returnValue(CommandContext<ServerCommandSource>& context)
 {
     // 原版：以给定值作为命令结果返回。
-    return context.getArgument<i32>("value");
+    const i32 value = context.getArgument<i32>("value");
+    // 同时写进源的函数返回值通道，使 CommandFunction 能在执行完这条命令后结束函数。
+    // 不写这里的话 /return 只是一个普通命令结果，函数会继续执行后续命令，
+    // 与原版语义不符。
+    context.getSource().setFunctionReturnValue(value);
+    return value;
 }
 
 i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
@@ -114,12 +119,18 @@ i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
         source.sendError(result.error().message());
         return 0;
     }
-    return result.value().result();
+    // /return run <cmd> 的返回值就是被转发命令的结果，同样要写进函数返回通道。
+    const i32 value = result.value().result();
+    source.setFunctionReturnValue(value);
+    return value;
 }
 
 i32 ReturnCommand::_returnFail(CommandContext<ServerCommandSource>& context)
 {
     // 原版 /return fail：以失败结束，函数链随之停止。
+    // 写入 0 作为返回值：CommandFunction 看到有返回值就停止后续命令，
+    // 而返回值 0 不满足 if function 的 "> 0" 判定，两边语义一致。
+    context.getSource().setFunctionReturnValue(0);
     return 0;
 }
 

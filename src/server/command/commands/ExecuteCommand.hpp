@@ -153,6 +153,19 @@ private:
      * @param context 命令上下文
      * @return 条件是否成立
      */
+    /**
+     * @brief 求值 if function <name> 条件
+     *
+     * 执行指定函数，取它通过 /return 给出的返回值；返回值 > 0 才算成立。
+     * 函数不存在时 warn 并返回 false；函数没有 return 时也返回 false（与原版一致）。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateFunctionCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
     static bool _evaluatePredicateCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 

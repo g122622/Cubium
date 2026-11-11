@@ -72,6 +72,7 @@
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <charconv>
@@ -1030,6 +1031,42 @@ bool ExecuteCommand::_evaluateScoreCondition(
     return false;
 }
 
+bool ExecuteCommand::_evaluateFunctionCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    const auto functionArg = context.getArgumentOr<FunctionArgumentResult>("name", FunctionArgumentResult{});
+    const ResourceLocation& id = functionArg.id();
+    if (id.path().empty()) {
+        return false;
+    }
+
+    // 标签形式（#tag）需要遍历标签内所有函数、任一返回值 > 0 即成立；
+    // 项目当前没有函数标签注册表，按不成立处理而不是猜。
+    if (functionArg.isTag()) {
+        spdlog::warn("/execute if function with tag '{}' is not supported (no function tag registry)", id.toString());
+        return false;
+    }
+
+    if (!server->functionManager().hasFunction(id)) {
+        spdlog::warn("/execute if function: unknown function '{}'", id.toString());
+        return false;
+    }
+
+    // 原版语义：执行函数，它的返回值 > 0 才算成立。
+    // 未 return 的函数（没有 returnValue）按不成立处理。
+    auto& mutableSource = const_cast<ServerCommandSource&>(target);
+    const auto execResult = server->functionManager().execute(id, mutableSource);
+    if (!execResult.returnValue.has_value()) {
+        return false;
+    }
+    return *execResult.returnValue > 0;
+}
+
 bool ExecuteCommand::_evaluatePredicateCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -1288,6 +1325,11 @@ bool ExecuteCommand::_evaluateBlockCondition(
     if (context.hasArgument("predicate")) {
         // predicate <id>：战利品谓词是否成立
         return _evaluatePredicateCondition(target, context);
+    }
+
+    if (context.hasArgument("name")) {
+        // function <name>：执行函数，看它的返回值
+        return _evaluateFunctionCondition(target, context);
     }
 
     if (context.hasArgument("block")) {

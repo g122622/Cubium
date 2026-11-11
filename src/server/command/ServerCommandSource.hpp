@@ -305,6 +305,28 @@ public:
         m_feedbackDisabled = disabled;
     }
 
+    /**
+     * @brief 记录函数返回值（由 /return 写入）
+     *
+     * @param value 返回值
+     */
+    void setFunctionReturnValue(i32 value) noexcept
+    {
+        m_functionReturnValue = value;
+    }
+
+    /**
+     * @brief 取走函数返回值（取后清空，避免影响后续命令）
+     *
+     * @return 有返回值时返回该值，否则返回 nullopt
+     */
+    [[nodiscard]] std::optional<i32> takeFunctionReturnValue() noexcept
+    {
+        std::optional<i32> value = m_functionReturnValue;
+        m_functionReturnValue.reset();
+        return value;
+    }
+
     // ========== 静态工厂方法 ==========
 
     /**
@@ -340,6 +362,12 @@ protected:
     i32 m_permissionLevel;
     std::string m_name;
     bool m_feedbackDisabled;
+
+    // 函数返回值通道：/return <value> 与 /return run ... 把值写在这里，
+    // CommandFunction::execute 每执行完一条命令就取走它并据此结束函数，
+    // 最终通过 FunctionExecuteResult::returnValue 交给 /execute if function 判定。
+    // 用 optional 而不是哨兵值：0 是合法的返回值，不能用 0 表示"没有返回"。
+    std::optional<i32> m_functionReturnValue;
     EntityAnchorType m_anchor = EntityAnchorType::Feet;
 };
 

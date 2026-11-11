@@ -44,7 +44,7 @@ FunctionExecuteResult CommandFunction::execute(FunctionManager& /*manager*/,
     command::ServerCommandSource& source,
     const nbt::tags::compound_tag* /*arguments*/) const
 {
-    FunctionExecuteResult result{0, 0};
+    FunctionExecuteResult result{};
 
     if (m_commands.empty()) {
         return result;
@@ -74,6 +74,13 @@ FunctionExecuteResult CommandFunction::execute(FunctionManager& /*manager*/,
                 command,
                 m_id.toString(),
                 execResult.error().toString());
+        }
+
+        // /return 会把值写进 source；一旦有返回值就结束整个函数，后续命令不再执行
+        // （与原版 ReturnCommandException 展开函数的语义一致）。
+        if (auto returned = source.takeFunctionReturnValue(); returned.has_value()) {
+            result.returnValue = returned;
+            break;
         }
     }
 
