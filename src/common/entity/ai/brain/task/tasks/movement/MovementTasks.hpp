@@ -868,7 +868,11 @@ private:
 
         // 使用 RandomPositionGenerator 生成远离威胁的位置
         // TODO: FleeTask 要求 CreatureEntity 类型以使用 RandomPositionGenerator，
-        // 非 CreatureEntity 将使用下方的备用反方向计算
+        // 非 CreatureEntity 将使用下方的备用反方向计算。
+        // 注：目前本任务只注册在 VillagerEntity 上（继承链含 CreatureEntity），
+        // 但下方从第 891 行开始的备用方案**并非死代码**：当
+        // findRandomTargetBlockAwayFrom 找不到合适位置、或找到的逃跑点并不比
+        // 当前位置更远离威胁时，也会走到那里。所以改动备用方案时需要一并验证。
         auto* creature = dynamic_cast<CreatureEntity*>(owner);
         if (creature) {
             Vector3 fleePos;
