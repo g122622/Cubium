@@ -26,6 +26,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
@@ -545,4 +546,46 @@ TEST_F(AddonEntityStateQueryTest, MolangQuerySeparatesUnimplementedFromNotApplic
         << "an implemented query must resolve even when the entity does not support it";
     EXPECT_FALSE(EntityStateQuery::molangQuery(plain, "query.has_target").has_value())
         << "an unimplemented query must report nullopt";
+}
+
+// 按能力推导的组件（movement / knockback_resistance / follow_range /
+// despawn / persistent / rideable）必须跟着实体能力走，而不是一律报 Unsupported。
+TEST_F(AddonEntityStateQueryTest, CapabilityDerivedComponentsFollowLivingAndMobSplit)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    LivingEntity living(EntityInstanceId(2), nullptr, registry);
+    ZombieEntity mob(EntityInstanceId(3), registry);
+
+    // 生物属性表相关：只有 LivingEntity 有属性表。
+    for (const char* livingOnly : {"minecraft:movement", "minecraft:knockback_resistance"}) {
+        const auto onPlain = EntityStateQuery::hasComponent(plain, livingOnly);
+        ASSERT_TRUE(onPlain.success()) << livingOnly;
+        EXPECT_FALSE(onPlain.value()) << livingOnly << " must not appear on a non-living entity";
+
+        const auto onLiving = EntityStateQuery::hasComponent(living, livingOnly);
+        ASSERT_TRUE(onLiving.success()) << livingOnly;
+        EXPECT_TRUE(onLiving.value()) << livingOnly << " must appear on a living entity";
+    }
+
+    // 生物行为相关（追击范围 / 自然消失 / 持久化）：只有 MobEntity 有。
+    for (const char* mobOnly : {"minecraft:follow_range", "minecraft:despawn", "minecraft:persistent"}) {
+        const auto onLiving = EntityStateQuery::hasComponent(living, mobOnly);
+        ASSERT_TRUE(onLiving.success()) << mobOnly;
+        EXPECT_FALSE(onLiving.value()) << mobOnly << " must not appear on a plain living entity";
+
+        const auto onMob = EntityStateQuery::hasComponent(mob, mobOnly);
+        ASSERT_TRUE(onMob.success()) << mobOnly;
+        EXPECT_TRUE(onMob.value()) << mobOnly << " must appear on a mob";
+    }
+}
+
+// rideable 必须与骑乘硬门槛 Entity::couldAcceptPassenger() 保持一致。
+// 不能写死 true，否则脚本会对本来拒绝乘客的实体报"可骑"。
+TEST_F(AddonEntityStateQueryTest, RideableMirrorsCouldAcceptPassenger)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+
+    const auto onPlain = EntityStateQuery::hasComponent(plain, "minecraft:rideable");
+    ASSERT_TRUE(onPlain.success()) << onPlain.error().message();
+    EXPECT_EQ(onPlain.value(), plain.couldAcceptPassenger()) << "rideable must mirror Entity::couldAcceptPassenger()";
 }
