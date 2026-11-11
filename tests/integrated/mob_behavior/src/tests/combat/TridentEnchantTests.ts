@@ -122,6 +122,8 @@ function setupThrowerAndVictim(test: Test, tridentStack: any, victimType: string
     player.setItem(tridentStack, 0, true); // 主手三叉戟 slot 0
 
     const victim = test.spawn(victimType, VICTIM_POS);
+    // 冻结靶实体移动：随机游荡会让直线飞行的三叉戟落空。
+    (victim.getComponent("minecraft:movement") as any).setCurrentValue(0);
     // 玩家朝向靶实体（精确对准眼部，shootFrom 用此朝向发射三叉戟飞向靶）。
     (player as any).lookAtEntity(victim);
 
@@ -129,7 +131,7 @@ function setupThrowerAndVictim(test: Test, tridentStack: any, victimType: string
     test.runAtTickTime(5, () => {
         (player as any).useItem(tridentStack as unknown as Parameters<typeof player.useItem>[0]);
     });
-    // tick 19 释放前重新 lookAtEntity 校准朝向（补偿靶 AI 游荡移动）。
+    // tick 19 释放前重新 lookAtEntity 校准朝向。
     test.runAtTickTime(19, () => {
         (player as any).lookAtEntity(victim);
     });
@@ -446,13 +448,15 @@ function setupLoyaltyThrower(test: Test, tridentStack: any): { player: any; vict
     player.setItem(tridentStack as unknown as Parameters<typeof player.setItem>[0], 0, true);
 
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    // 冻结村民移动：随机游荡会让直线飞行的三叉戟落空。
+    (victim.getComponent("minecraft:movement") as any).setCurrentValue(0);
     (player as any).lookAtEntity(victim);
 
     // tick 5 useItem(三叉戟) → setActiveHand 拉弓（useDuration=72000）。
     test.runAtTickTime(5, () => {
         (player as any).useItem(tridentStack as unknown as Parameters<typeof player.useItem>[0]);
     });
-    // tick 19 释放前重新 lookAtEntity 校准朝向（补偿 villager AI 移动）。
+    // tick 19 释放前重新 lookAtEntity 校准朝向。
     test.runAtTickTime(19, () => {
         (player as any).lookAtEntity(victim);
     });

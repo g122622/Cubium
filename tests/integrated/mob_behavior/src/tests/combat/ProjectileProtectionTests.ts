@@ -86,6 +86,12 @@ function readHp(entity: any): number {
     return (health as any).currentValue as number;
 }
 
+// 冻结村民移动：其 AI 随机漫步会让 1 格宽的直射击线落空（箭矢沿 +Z 直飞），
+// 表现为 HP 保持 20 的偶发失败。同 BlastProtectionKnockbackTests 范式。
+function freezeMovement(entity: any): void {
+    entity.getComponent("minecraft:movement").setCurrentValue(0);
+}
+
 // 构造物品 ItemStack（Cubium 的 @minecraft/server 与 server-gametest 依赖的 @minecraft/server
 // 是两个独立包实例，ItemStack 类型不兼容，用 as any 绕过，同 ArmorDamageReductionTests 范式）。
 function makeItem(itemId: string): any {
@@ -141,6 +147,7 @@ function setupArcher(test: Test): any {
 function noProjectileProtectionTakesFullArrowDamage(test: Test): void {
     (test as any).killAllEntities();
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    freezeMovement(victim);
     equipLeatherArmor(victim, false);
     setupArcher(test);
 
@@ -172,6 +179,7 @@ function noProjectileProtectionTakesFullArrowDamage(test: Test): void {
 function projectileProtectionIvReducesArrowDamage(test: Test): void {
     (test as any).killAllEntities();
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    freezeMovement(victim);
     equipLeatherArmor(victim, true);
     setupArcher(test);
 
