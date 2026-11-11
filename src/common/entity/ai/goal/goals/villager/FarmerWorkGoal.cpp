@@ -429,10 +429,10 @@ bool FarmerWorkGoal::_hasFarmSeeds() const
         return false;
     }
 
-    // 参考 MC 1.21.11 HarvestFarmland.validPos()：
-    //   villager.getInventory().hasItem(stack -> stack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS))
-    // 标签包含 6 种物品：小麦种子、胡萝卜、马铃薯、甜菜种子、火把花种子、瓶草荚果。
-    // 数据包（datapacks/Vanilla/.../villager_plantable_seeds.json）载入后会替换硬编码默认值。
+    // 判定条件是「背包里存在任意一种可种植种子」。种子集合来自数据包标签
+    // `minecraft:villager_plantable_seeds`（共 6 种：小麦种子、胡萝卜、马铃薯、
+    // 甜菜种子、火把花种子、瓶草荚果），由 data/minecraft/tags/item/ 下的 JSON 定义，
+    // 载入后会替换硬编码默认值——所以不要在代码里另行维护这份清单。
     const item::tag::ItemTag& plantableSeeds = item::tag::ItemTags::VILLAGER_PLANTABLE_SEEDS();
 
     IInventory& inventory = m_villager->inventory();
