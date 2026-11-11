@@ -484,6 +484,22 @@ if(MC_ENABLE_NO_EXCEPTIONS)
                 # 不定义时 STL 头文件自身会编译失败（见 docs/iterations/exception禁用指南.md）。
                 target_compile_definitions(${_mc_target} PRIVATE _HAS_EXCEPTIONS=0)
             endif()
+            # entt 是 header-only，其 config.h 依据 __cpp_exceptions 发出
+            #   #pragma detect_mismatch("entt.noexcept", ENTT_TRY 的字符串形式)
+            # 于是开了异常的 TU 得到 "try"、关了的得到 "if(true)"，混在同一个链接里
+            # 会被 lld 的 /failifmismatch 拒绝。统一改为定义 ENTT_NOEXCEPTION，
+            # 让所有包含 entt 的 TU 发出同一个值（见下方 mc_tests 的同样处理）。
+            target_compile_definitions(${_mc_target} PRIVATE ENTT_NOEXCEPTION)
+        endif()
+    endforeach()
+
+    # 测试侧目标：它们保留真实异常，但同样会包含 entt 头文件并链接上面这些
+    # -fno-exceptions 的静态库。只要有一个 TU 的 ENTT_TRY 取到 "try"，
+    # 链接就会报 entt.noexcept 不一致。所以凡是参与测试链接的目标都补同一个定义。
+    # ENTT_NOEXCEPTION 只影响 entt 内部的 throw 策略，不影响调用方能否使用 try/throw。
+    foreach(_mc_test_target mc_tests mc_test_support mc_client_tests mc_trident_tests)
+        if(TARGET ${_mc_test_target})
+            target_compile_definitions(${_mc_test_target} PRIVATE ENTT_NOEXCEPTION)
         endif()
     endforeach()
     message(STATUS "  No exceptions:  ON (production targets only)")
