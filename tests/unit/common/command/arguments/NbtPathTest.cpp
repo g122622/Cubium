@@ -23,7 +23,7 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include <sstream>
 #include <gtest/gtest.h>
 
@@ -246,7 +246,7 @@ TEST_F(NbtPathTest, InvalidPathThrowsError)
     StringReader reader("[");
     NbtPathArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(NbtPathTest, UnquotedKeyMayContainColon)
@@ -264,7 +264,7 @@ TEST_F(NbtPathTest, InvalidIndexThrowsError)
     StringReader reader("foo[abc]");
     NbtPathArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 // ========== 引号键名与索引/过滤器组合路径测试 ==========
@@ -711,7 +711,7 @@ TEST_F(NbtPathTest, PathInsertIntoTagList)
         try {
             i32 count = path.insert(root, 1, values);
         }
-        catch (const CommandException& e) {
+        catch (const CommandError& e) {
             // 如果抛出异常，测试仍然通过（记录当前行为）
         }
     });
@@ -738,7 +738,7 @@ TEST_F(NbtPathTest, PathAppendToTagList)
         try {
             i32 count = path.append(root, values);
         }
-        catch (const CommandException& e) {
+        catch (const CommandError& e) {
             // 如果抛出异常，测试仍然通过
         }
     });
@@ -765,7 +765,7 @@ TEST_F(NbtPathTest, PathPrependToTagList)
         try {
             i32 count = path.prepend(root, values);
         }
-        catch (const CommandException& e) {
+        catch (const CommandError& e) {
             // 如果抛出异常，测试仍然通过
         }
     });
@@ -1283,7 +1283,7 @@ TEST_F(NbtPathTest, SetIsTooDeepRejected)
                      [&deep]() {
                          return deep->copy();
                      }),
-        CommandException);
+        CommandError);
     EXPECT_TRUE(root.value.empty());
 }
 

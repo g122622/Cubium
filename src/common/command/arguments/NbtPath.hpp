@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -58,7 +58,7 @@ public:
      * @brief 从 NBT 标签中获取匹配的所有值
      * @param tag 输入的 NBT 标签
      * @return 匹配的标签列表
-     * @throws CommandException 如果路径无效
+     * @throws CommandError 如果路径无效
      */
     [[nodiscard]] virtual std::vector<nbt::tags::tag*> get(nbt::tags::tag* tag) const = 0;
 
@@ -232,7 +232,7 @@ public:
      * @brief 从复合标签获取路径指向的所有值
      * @param tag 复合标签
      * @return 匹配的标签列表
-     * @throws CommandException 如果路径无效或未找到
+     * @throws CommandError 如果路径无效或未找到
      */
     [[nodiscard]] std::vector<const nbt::tags::tag*> get(const nbt::tags::compound_tag& tag) const;
 
@@ -240,7 +240,7 @@ public:
      * @brief 从复合标签获取单个值
      * @param tag 复合标签
      * @return 匹配的单个标签，如果有多个匹配则抛出异常
-     * @throws CommandException 如果路径无效、未找到或找到多个
+     * @throws CommandError 如果路径无效、未找到或找到多个
      */
     [[nodiscard]] const nbt::tags::tag* getSingle(const nbt::tags::compound_tag& tag) const;
 
@@ -268,7 +268,7 @@ public:
      * @param tag 复合标签（会被修改）
      * @param valueSupplier 值提供函数，仅在确实需要写入时调用（每次写入都会重新调用）
      * @return 修改的数量
-     * @throws CommandException 如果路径无效或写入后数据嵌套过深
+     * @throws CommandError 如果路径无效或写入后数据嵌套过深
      */
     i32 set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const;
 
@@ -276,7 +276,7 @@ public:
      * @brief 删除路径指向的值
      * @param tag 复合标签（会被修改）
      * @return 删除的数量
-     * @throws CommandException 如果路径无效
+     * @throws CommandError 如果路径无效
      */
     i32 remove(nbt::tags::compound_tag& tag) const;
 

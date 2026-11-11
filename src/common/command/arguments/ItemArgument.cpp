@@ -23,7 +23,7 @@
 #include "ItemArgument.hpp"
 
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -134,7 +134,7 @@ static std::string readIdentifierGreedy(StringReader& reader)
     return std::string(reader.getString().substr(startIdx, endIdx - startIdx));
 }
 
-ItemPredicateInput ItemPredicateArgumentType::parse(StringReader& reader)
+Result<ItemPredicateInput, CommandError> ItemPredicateArgumentType::parse(StringReader& reader)
 {
     i32 start = reader.getCursor();
 
@@ -150,14 +150,14 @@ ItemPredicateInput ItemPredicateArgumentType::parse(StringReader& reader)
         std::string str = readIdentifierGreedy(reader);
         if (str.empty()) {
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::StringExpected, "Expected item tag name after '#'", start);
+            return CommandError(CommandErrorType::StringExpected, "Expected item tag name after '#'", start);
         }
         ResourceLocation id = ResourceLocation::parse(str);
         return ItemPredicateInput(std::move(id)); // Mode::Tag
     }
 
     // 3. 特定物品 minecraft:stone 或 stone：匹配特定物品
-    std::string str = reader.readString();
+    MC_TRY_DECLARE(str, reader.readString());
 
     // 解析命名空间
     std::string namespace_;
@@ -178,7 +178,7 @@ ItemPredicateInput ItemPredicateArgumentType::parse(StringReader& reader)
 
     if (item == nullptr) {
         reader.setCursor(start);
-        throw CommandException(CommandErrorType::Unknown, "Unknown item: " + str, start);
+        throw CommandError(CommandErrorType::Unknown, "Unknown item: " + str, start);
     }
 
     return ItemPredicateInput(item->itemId()); // Mode::Item

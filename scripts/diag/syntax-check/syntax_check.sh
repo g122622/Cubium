@@ -57,6 +57,8 @@ while index < len(parts):
     index += 1
 
 result.append('-fsyntax-only')
+# 不限制错误条数：迁移类任务需要一次看到全部不匹配点
+result.append('-ferror-limit=0')
 result.append(target)
 print(' '.join(shlex.quote(token) for token in result))
 PY

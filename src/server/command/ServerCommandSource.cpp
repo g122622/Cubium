@@ -24,7 +24,7 @@
 #include "ServerCommandSource.hpp"
 #include "common/command/CommandSource.hpp"
 #include "common/command/ICommandSource.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/network/ir/IrPacket.hpp"
@@ -166,7 +166,7 @@ bool ServerCommandSource::allowLogging() const noexcept
 ServerPlayer& ServerCommandSource::assertPlayer() const
 {
     if (!m_player) {
-        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.player");
+        throw CommandError(CommandErrorType::PermissionDenied, "commands.requires.player");
     }
     return *m_player;
 }
@@ -174,7 +174,7 @@ ServerPlayer& ServerCommandSource::assertPlayer() const
 Entity& ServerCommandSource::entityOrException() const
 {
     if (m_entity == nullptr) {
-        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.entity");
+        throw CommandError(CommandErrorType::PermissionDenied, "commands.requires.entity");
     }
     return *m_entity;
 }

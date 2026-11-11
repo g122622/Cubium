@@ -161,7 +161,7 @@ private:
     /**
      * @brief 按异常类型发送错误提示
      */
-    static void _sendCommandError(ServerCommandSource& source, const CommandException& error);
+    static void _sendCommandError(ServerCommandSource& source, const CommandError& error);
 };
 
 } // namespace command

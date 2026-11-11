@@ -31,7 +31,7 @@
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -540,7 +540,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
                     return static_cast<i32>(results.size());
                 }
             }
-            catch (const CommandException& e) {
+            catch (const CommandError& e) {
                 _sendError(source, e.message());
                 return 0;
             }
@@ -550,7 +550,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
             return 1;
         }
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -613,7 +613,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
                     return static_cast<i32>(results.size());
                 }
             }
-            catch (const CommandException& e) {
+            catch (const CommandError& e) {
                 _sendError(source, e.message());
                 return 0;
             }
@@ -622,7 +622,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
             return 1;
         }
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -676,7 +676,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
                     return static_cast<i32>(results.size());
                 }
             }
-            catch (const CommandException& e) {
+            catch (const CommandError& e) {
                 _sendError(source, e.message());
                 return 0;
             }
@@ -685,7 +685,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
             return 1;
         }
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -890,7 +890,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         source.sendMessage(targetAccessor->getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendCommandError(source, e);
         return 0;
     }
@@ -936,7 +936,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendCommandError(source, e);
         return 0;
     }
@@ -988,7 +988,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendCommandError(source, e);
         return 0;
     }
@@ -1028,7 +1028,7 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendCommandError(source, e);
         return 0;
     }
@@ -1061,7 +1061,7 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1100,7 +1100,7 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1127,7 +1127,7 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1169,7 +1169,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1217,7 +1217,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1253,7 +1253,7 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         _sendError(source, e.message());
         return 0;
     }
@@ -1328,7 +1328,7 @@ void DataCommand::_sendError(ServerCommandSource& source, const std::string& mes
     source.sendMessage("§c" + message);
 }
 
-void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandException& error)
+void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandError& error)
 {
     // 数据过深是写入前的整体拒绝，与"路径不存在"不同，需要给出明确的错误提示
     if (error.type() == CommandErrorType::NbtPathDataTooDeep) {

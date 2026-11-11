@@ -41,11 +41,11 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 
 using mc::i32;
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::StringReader;
 using mc::command::TimeArgumentType;
 
@@ -166,7 +166,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsZero)
     // minimum=1，0 tick 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandException);
+    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOne)
@@ -183,7 +183,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsZeroSeconds)
     // minimum=1，"0s" (0 tick) 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0s");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandException);
+    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, MinimumOneAllowsOneSecond)
@@ -200,7 +200,7 @@ TEST_F(TimeArgumentTypeTest, MinimumOneRejectsFractionalSecond)
     // minimum=1，"0.01s" (round(0.2) = 0 tick) 应抛出异常
     TimeArgumentType minOne(1);
     StringReader reader("0.01s");
-    EXPECT_THROW({ minOne.parse(reader); }, CommandException);
+    EXPECT_THROW({ minOne.parse(reader); }, CommandError);
 }
 
 // ========== 无效输入测试 ==========
@@ -209,14 +209,14 @@ TEST_F(TimeArgumentTypeTest, InvalidUnitThrows)
 {
     // "5m" -> "m" 不是合法单位
     StringReader reader("5m");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, InvalidUnitXThrows)
 {
     // "5x" -> "x" 不是合法单位
     StringReader reader("5x");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidUnit)
@@ -224,7 +224,7 @@ TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidUnit)
     // 解析失败时应回退游标到起始位置
     StringReader reader("5m");
     i32 startCursor = reader.getCursor();
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
     EXPECT_EQ(reader.getCursor(), startCursor);
 }
 
@@ -232,14 +232,14 @@ TEST_F(TimeArgumentTypeTest, EmptyInputThrows)
 {
     // 空输入无法读取浮点数
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, LettersOnlyThrows)
 {
     // 纯字母无法读取浮点数
     StringReader reader("abc");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidNumber)
@@ -247,7 +247,7 @@ TEST_F(TimeArgumentTypeTest, CursorResetOnInvalidNumber)
     // 解析失败时应回退游标到起始位置
     StringReader reader("abc");
     i32 startCursor = reader.getCursor();
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
     EXPECT_EQ(reader.getCursor(), startCursor);
 }
 
@@ -284,7 +284,7 @@ TEST_F(TimeArgumentTypeTest, FactoryMethodWithMinimum)
     ASSERT_NE(arg, nullptr);
     // minimum=1 应拒绝 0 tick
     StringReader reader("0");
-    EXPECT_THROW({ arg->parse(reader); }, CommandException);
+    EXPECT_THROW({ arg->parse(reader); }, CommandError);
 }
 
 // ========== 序列化元数据测试 ==========

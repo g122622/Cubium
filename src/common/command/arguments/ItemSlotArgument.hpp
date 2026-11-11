@@ -26,7 +26,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include <cstddef>
@@ -332,7 +332,7 @@ public:
         }
 
         // 与 brigadier 一致：游标停留在已读到的位置，报错点名整个名字。
-        throw CommandException(CommandErrorType::Unknown, "Unknown slot: " + str, reader.getCursor());
+        throw CommandError(CommandErrorType::Unknown, "Unknown slot: " + str, reader.getCursor());
     }
 
     [[nodiscard]] std::string getTypeName() const noexcept override

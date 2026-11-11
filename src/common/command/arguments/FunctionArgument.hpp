@@ -122,7 +122,7 @@ private:
  */
 class FunctionArgumentType : public ArgumentType<FunctionArgumentResult> {
 public:
-    [[nodiscard]] FunctionArgumentResult parse(StringReader& reader) override;
+    [[nodiscard]] Result<FunctionArgumentResult, CommandError> parse(StringReader& reader) override;
 
     [[nodiscard]] std::string getTypeName() const override
     {

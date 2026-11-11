@@ -21,13 +21,13 @@
  *
  */
 
-#include "CommandExceptions.hpp"
+#include "CommandErrors.hpp"
 
 #include "common/resource/LanguageManager.hpp"
 
 namespace mc::command {
 
-std::string CommandException::translatedMessage() const
+std::string CommandError::translatedMessage() const
 {
     const LanguageManager& languages = LanguageManager::instance();
     if (!languages.has(m_message)) {

@@ -38,12 +38,12 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 using mc::ResourceLocation;
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::FunctionArgumentResult;
 using mc::command::FunctionArgumentType;
 using mc::command::StringReader;
@@ -187,21 +187,21 @@ TEST_F(FunctionArgumentTypeTest, ParseEmptyInputThrows)
 {
     // 空输入应抛出异常
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseHashOnlyThrows)
 {
     // 只有 "#" 后面没有标识符应抛出异常
     StringReader reader("#");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseHashFollowedBySpaceThrows)
 {
     // "# " 后面只有空格应抛出异常
     StringReader reader("# ");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(FunctionArgumentTypeTest, ParseFunctionWithDotsAndDashes)

@@ -33,7 +33,7 @@
 #include "common/command/ICommandSource.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "server/application/IServer.hpp"
@@ -142,7 +142,7 @@ TEST_F(StringReaderTest, ReadIntWithRange)
 
     EXPECT_EQ(reader1.readInt(0, 100), 50);
 
-    EXPECT_THROW((void)reader2.readInt(0, 100), CommandException);
+    EXPECT_THROW((void)reader2.readInt(0, 100), CommandError);
 }
 
 TEST_F(StringReaderTest, ReadBool)
@@ -177,7 +177,7 @@ TEST_F(StringReaderTest, Expect)
     reader.expect('h');
     EXPECT_EQ(reader.getCursor(), 1);
 
-    EXPECT_THROW(reader.expect('x'), CommandException);
+    EXPECT_THROW(reader.expect('x'), CommandError);
 }
 
 TEST_F(StringReaderTest, TryRead)
@@ -283,10 +283,10 @@ TEST_F(ArgumentTypeTest, IntegerArgument)
     EXPECT_EQ(intArg->parse(reader1), 50);
 
     StringReader reader2("150");
-    EXPECT_THROW((void)intArg->parse(reader2), CommandException);
+    EXPECT_THROW((void)intArg->parse(reader2), CommandError);
 
     StringReader reader3("-10");
-    EXPECT_THROW((void)intArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)intArg->parse(reader3), CommandError);
 }
 
 TEST_F(ArgumentTypeTest, FloatArgument)
@@ -297,7 +297,7 @@ TEST_F(ArgumentTypeTest, FloatArgument)
     EXPECT_NEAR(floatArg->parse(reader1), 0.5f, 0.001f);
 
     StringReader reader2("1.5");
-    EXPECT_THROW((void)floatArg->parse(reader2), CommandException);
+    EXPECT_THROW((void)floatArg->parse(reader2), CommandError);
 }
 
 TEST_F(ArgumentTypeTest, BoolArgument)
@@ -311,7 +311,7 @@ TEST_F(ArgumentTypeTest, BoolArgument)
     EXPECT_FALSE(boolArg->parse(reader2));
 
     StringReader reader3("invalid");
-    EXPECT_THROW((void)boolArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)boolArg->parse(reader3), CommandError);
 }
 
 TEST_F(ArgumentTypeTest, EnumArgument)
@@ -330,7 +330,7 @@ TEST_F(ArgumentTypeTest, EnumArgument)
     EXPECT_EQ(enumArg->parse(reader2), TestEnum::B);
 
     StringReader reader3("invalid");
-    EXPECT_THROW((void)enumArg->parse(reader3), CommandException);
+    EXPECT_THROW((void)enumArg->parse(reader3), CommandError);
 }
 
 // ========== CommandResult Tests ==========
@@ -361,35 +361,35 @@ TEST_F(CommandResultTest, FailureResult)
     EXPECT_FALSE(result);
 }
 
-// ========== CommandException Tests ==========
+// ========== CommandError Tests ==========
 
-class CommandExceptionTest : public ::testing::Test {
+class CommandErrorTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
 
-TEST_F(CommandExceptionTest, CreateException)
+TEST_F(CommandErrorTest, CreateException)
 {
-    CommandException ex(CommandErrorType::IntegerExpected, "Expected integer", 5);
+    CommandError ex(CommandErrorType::IntegerExpected, "Expected integer", 5);
 
     EXPECT_EQ(ex.type(), CommandErrorType::IntegerExpected);
     EXPECT_EQ(ex.message(), "Expected integer");
     EXPECT_EQ(ex.cursor(), 5);
 }
 
-TEST_F(CommandExceptionTest, SimpleException)
+TEST_F(CommandErrorTest, SimpleException)
 {
-    SimpleCommandException simpleEx(CommandErrorType::EntityNotFound, "Entity not found");
+    SimpleCommandError simpleEx(CommandErrorType::EntityNotFound, "Entity not found");
 
-    CommandException ex = simpleEx.create();
+    CommandError ex = simpleEx.create();
     EXPECT_EQ(ex.type(), CommandErrorType::EntityNotFound);
     EXPECT_EQ(ex.cursor(), -1);
 }
 
-TEST_F(CommandExceptionTest, ExceptionWithInput)
+TEST_F(CommandErrorTest, ExceptionWithInput)
 {
-    CommandException ex(CommandErrorType::Unknown, "Error", 5);
-    CommandException withInput = ex.withInput("test input");
+    CommandError ex(CommandErrorType::Unknown, "Error", 5);
+    CommandError withInput = ex.withInput("test input");
 
     EXPECT_EQ(withInput.input(), "test input");
 }

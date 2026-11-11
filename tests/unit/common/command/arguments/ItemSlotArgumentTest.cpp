@@ -36,10 +36,10 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ItemSlotArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::ItemSlot;
 using mc::command::ItemSlotArgumentType;
 using mc::command::StringReader;
@@ -256,28 +256,28 @@ TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("5");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotZeroRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("0");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNumericSlotMaxContainerRejected)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("53");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseNegativeNumericSlotFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("-1");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseHotbarSlots)
@@ -298,7 +298,7 @@ TEST_F(ItemSlotArgumentTypeTest, ParseHotbarOutOfRangeFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("hotbar.9");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseContainerSlots)
@@ -319,7 +319,7 @@ TEST_F(ItemSlotArgumentTypeTest, ParseContainerOutOfRangeFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("container.54");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseInventorySlots)
@@ -437,14 +437,14 @@ TEST_F(ItemSlotArgumentTypeTest, ParseUnknownSlotNameFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("unknown.slot");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, ParseEmptyStringFails)
 {
     auto parser = ItemSlotArgumentType::itemSlot();
     StringReader reader("");
-    EXPECT_THROW(parser->parse(reader), CommandException);
+    EXPECT_THROW(parser->parse(reader), CommandError);
 }
 
 TEST_F(ItemSlotArgumentTypeTest, GetTypeName)

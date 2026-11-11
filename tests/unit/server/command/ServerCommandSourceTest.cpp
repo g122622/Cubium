@@ -33,7 +33,7 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
@@ -229,10 +229,10 @@ TEST_F(ServerCommandSourceTest, EntityReturnsExplicitEntityWhenProvided)
 
 TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsWhenEntityIsNullptr)
 {
-    // 控制台命令源调用 entityOrException() 应抛出 CommandException
+    // 控制台命令源调用 entityOrException() 应抛出 CommandError
     ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
 
-    EXPECT_THROW({ source.entityOrException(); }, CommandException);
+    EXPECT_THROW({ source.entityOrException(); }, CommandError);
 }
 
 TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsCorrectErrorType)
@@ -242,9 +242,9 @@ TEST_F(ServerCommandSourceTest, EntityOrExceptionThrowsCorrectErrorType)
 
     try {
         source.entityOrException();
-        FAIL() << "Expected CommandException";
+        FAIL() << "Expected CommandError";
     }
-    catch (const CommandException& e) {
+    catch (const CommandError& e) {
         EXPECT_EQ(e.type(), CommandErrorType::PermissionDenied);
         EXPECT_EQ(e.message(), "commands.requires.entity");
     }

@@ -486,6 +486,22 @@ public:
         , m_success(true)
     {}
 
+    /**
+     * @brief 由派生类指针的 unique_ptr 构造成功结果
+     *
+     * 使 `Result<std::unique_ptr<Base>>` 能直接接住 `std::make_unique<Derived>()`，
+     * 不必在每个返回点手写基类指针转换。派生类指针转基类指针失败时该构造函数不参与重载。
+     */
+    template <typename Derived,
+        typename DerivedDeleter,
+        typename = std::enable_if_t<std::is_convertible_v<Derived*, T*> && !std::is_same_v<Derived, T> &&
+            std::is_constructible_v<Deleter, DerivedDeleter&&>>>
+    Result(std::unique_ptr<Derived, DerivedDeleter>&& value) // NOLINT: 允许隐式转换
+        : m_value(static_cast<T*>(value.release()))
+        , m_deleter(value.get_deleter())
+        , m_success(true)
+    {}
+
     Result(E error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
         , m_success(false)

@@ -24,7 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
@@ -298,7 +298,7 @@ TEST_F(BlockDataAccessorTest, GetPosition_ReturnsConstructorPosition)
 TEST_F(BlockDataAccessorTest, GetData_NoBlockEntity_ThrowsException)
 {
     BlockDataAccessor accessor(nullptr, kPos);
-    EXPECT_THROW(accessor.getData(), CommandException);
+    EXPECT_THROW(accessor.getData(), CommandError);
 }
 
 TEST_F(BlockDataAccessorTest, GetData_WrongPosition_ThrowsException)
@@ -306,7 +306,7 @@ TEST_F(BlockDataAccessorTest, GetData_WrongPosition_ThrowsException)
     // 位置不匹配时 getBlockEntity 返回 nullptr，isValid 为 false
     BlockDataAccessor accessor(&world_, BlockPos(99, 99, 99));
     EXPECT_FALSE(accessor.isValid());
-    EXPECT_THROW(accessor.getData(), CommandException);
+    EXPECT_THROW(accessor.getData(), CommandError);
 }
 
 TEST_F(BlockDataAccessorTest, GetData_BaseBlockEntity_ContainsBasicFields)
@@ -369,7 +369,7 @@ TEST_F(BlockDataAccessorTest, MergeData_NoBlockEntity_ThrowsException)
 {
     BlockDataAccessor accessor(nullptr, kPos);
     nbt::tags::compound_tag data;
-    EXPECT_THROW(accessor.mergeData(data), CommandException);
+    EXPECT_THROW(accessor.mergeData(data), CommandError);
 }
 
 TEST_F(BlockDataAccessorTest, MergeData_AddsNewField)

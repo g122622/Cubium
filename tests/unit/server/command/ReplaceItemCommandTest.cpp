@@ -249,7 +249,7 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_NumericSlot499IsCursor)
 {
     // 原版没有纯数字槽位写法；499 只能通过 player.cursor / horse.chest 这两个名字得到。
     StringReader reader("499");
-    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader), CommandException);
+    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
 
     StringReader named("player.cursor");
     auto slot = ItemSlotArgumentType::itemSlot()->parse(named);
@@ -309,7 +309,7 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_PlayerInventorySlots)
 
     // 原版没有纯数字槽位写法；背包槽位只用 inventory.N 这类名字
     StringReader reader2("20");
-    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader2), CommandException);
+    EXPECT_THROW(ItemSlotArgumentType::itemSlot()->parse(reader2), CommandError);
 
     StringReader reader3("inventory.20");
     auto slot2 = ItemSlotArgumentType::itemSlot()->parse(reader3);
@@ -342,14 +342,14 @@ TEST_F(ReplaceItemCommandTest, ItemSlot_UnsupportedSlotsRecognized)
 TEST_F(ReplaceItemCommandTest, ItemSlot_InvalidSlotName)
 {
     StringReader reader("invalid.slot");
-    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandException);
+    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
 }
 
 TEST_F(ReplaceItemCommandTest, ItemSlot_EnderChestOutOfRange)
 {
     // enderchest.27 超出范围
     StringReader reader("enderchest.27");
-    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandException);
+    EXPECT_THROW(auto slot = ItemSlotArgumentType::itemSlot()->parse(reader), CommandError);
 }
 
 // ============================================================================

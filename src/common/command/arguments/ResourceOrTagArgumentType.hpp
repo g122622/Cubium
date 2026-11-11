@@ -89,7 +89,7 @@ private:
     try {
         return ParsedResourceOrTag(readResourceLocationId(reader), tag);
     }
-    catch (const CommandException&) {
+    catch (const CommandError&) {
         reader.setCursor(start);
         throw;
     }

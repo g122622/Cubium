@@ -28,7 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -44,12 +44,12 @@ namespace mc {
 namespace command {
 
 /// 错误：尝试在同 tick 调度函数（time == 0）
-static const CommandException ERROR_SAME_TICK =
-    CommandException(CommandErrorType::DispatcherUnknownCommand, "Cannot schedule a function to run in the same tick");
+static const CommandError ERROR_SAME_TICK =
+    CommandError(CommandErrorType::DispatcherUnknownCommand, "Cannot schedule a function to run in the same tick");
 
 /// 错误：尝试清除不存在的调度
-static const CommandException ERROR_CANT_REMOVE =
-    CommandException(CommandErrorType::DispatcherUnknownCommand, "No scheduled function found");
+static const CommandError ERROR_CANT_REMOVE =
+    CommandError(CommandErrorType::DispatcherUnknownCommand, "No scheduled function found");
 
 void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {

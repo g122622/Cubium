@@ -32,7 +32,7 @@
 #include "ArgumentType.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/IProperty.hpp"
@@ -170,7 +170,7 @@ private:
         // 获取方块
         Block* block = BlockRegistry::instance().getBlock(location);
         if (block == nullptr) {
-            throw CommandException(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
+            throw CommandError(CommandErrorType::Unknown, "Unknown block: " + location.toString(), start);
         }
 
         // 获取默认状态
@@ -221,7 +221,7 @@ private:
             // 读取属性名
             size_t eqPos = propsStr.find('=', startPos);
             if (eqPos == std::string::npos) {
-                throw CommandException(CommandErrorType::Unknown,
+                throw CommandError(CommandErrorType::Unknown,
                     "Expected '=' after property name in: " + propsStr.substr(startPos),
                     start);
             }
@@ -251,7 +251,7 @@ private:
             // 查找属性
             auto propIt = properties.find(propName);
             if (propIt == properties.end()) {
-                throw CommandException(CommandErrorType::Unknown,
+                throw CommandError(CommandErrorType::Unknown,
                     "Unknown property '" + propName + "' for block " + block->blockLocation().toString(),
                     start);
             }
@@ -260,14 +260,14 @@ private:
 
             // 检查重复属性
             if (wantedProps.find(prop) != wantedProps.end()) {
-                throw CommandException(
+                throw CommandError(
                     CommandErrorType::Unknown, "Duplicate property '" + propName + "' in block state", start);
             }
 
             // 解析属性值
             auto parsedValue = prop->parseValue(propValue);
             if (!parsedValue) {
-                throw CommandException(CommandErrorType::Unknown,
+                throw CommandError(CommandErrorType::Unknown,
                     "Invalid value '" + propValue + "' for property '" + propName + "' of block " +
                         block->blockLocation().toString(),
                     start);

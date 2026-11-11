@@ -35,7 +35,7 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -46,7 +46,7 @@ using mc::Items;
 using mc::ItemStack;
 using mc::ResourceLocation;
 using mc::command::CommandErrorType;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::ItemArgumentType;
 using mc::command::ItemInput;
 using mc::command::ItemPredicateArgumentType;
@@ -139,14 +139,14 @@ TEST_F(ItemArgumentTest, ParseUnknownItemThrows)
     // 不存在的物品应抛出异常
     ItemArgumentType parser;
     StringReader reader("minecraft:nonexistent_item_xyz");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(ItemArgumentTest, ParseEmptyInputThrows)
 {
     ItemArgumentType parser;
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 // ========== ItemPredicateInput 测试 ==========
@@ -388,27 +388,27 @@ TEST_F(ItemPredicateArgumentTypeTest, ParseTagHashOnlyThrows)
 {
     // "#" 后面没有标识符应抛出异常
     StringReader reader("#");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseTagHashSpaceThrows)
 {
     // "# " 后面只有空格应抛出异常
     StringReader reader("# ");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseUnknownItemThrows)
 {
     // 不存在的物品应抛出异常
     StringReader reader("minecraft:nonexistent_item_xyz");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 TEST_F(ItemPredicateArgumentTypeTest, ParseEmptyInputThrows)
 {
     StringReader reader("");
-    EXPECT_THROW({ parser.parse(reader); }, CommandException);
+    EXPECT_THROW({ parser.parse(reader); }, CommandError);
 }
 
 // ========== ItemPredicateArgumentType 类型信息测试 ==========

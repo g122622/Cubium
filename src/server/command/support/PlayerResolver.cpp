@@ -68,7 +68,7 @@ EntitySelector gameProfileSelector(const std::string& text)
             mc::command::StringReader reader(text);
             return mc::command::EntityArgumentType::entity()->parse(reader);
         }
-        catch (const mc::command::CommandException&) {
+        catch (const mc::command::CommandError&) {
             // 选择器语法不合法：原样交给按用户名查找，交由调用方报「找不到玩家」。
         }
     }

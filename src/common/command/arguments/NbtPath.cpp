@@ -22,7 +22,7 @@
  */
 
 #include "NbtPath.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -334,7 +334,7 @@ i32 tagExtraDepth(const nbt::tags::tag& tag, i32 depth)
 void checkNotTooDeep(const nbt::tags::tag& value, i32 pathDepth)
 {
     if (tagExtraDepth(value, pathDepth) >= MAX_NBT_DEPTH) {
-        throw CommandException(CommandErrorType::NbtPathDataTooDeep, "NBT data is too deep", 0);
+        throw CommandError(CommandErrorType::NbtPathDataTooDeep, "NBT data is too deep", 0);
     }
 }
 
@@ -401,10 +401,10 @@ const nbt::tags::tag* NbtPath::getSingle(const nbt::tags::compound_tag& tag) con
 {
     auto results = get(tag);
     if (results.empty()) {
-        throw CommandException(CommandErrorType::NbtPathNotFound, "NBT path '" + m_rawText + "' not found", 0);
+        throw CommandError(CommandErrorType::NbtPathNotFound, "NBT path '" + m_rawText + "' not found", 0);
     }
     if (results.size() > 1) {
-        throw CommandException(
+        throw CommandError(
             CommandErrorType::NbtPathMultipleResults, "NBT path '" + m_rawText + "' returned multiple results", 0);
     }
     return results[0];
@@ -655,7 +655,7 @@ i32 NbtPath::insert(
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::List) {
-            throw CommandException(
+            throw CommandError(
                 CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
         }
 
@@ -664,7 +664,7 @@ i32 NbtPath::insert(
 
         i32 insertIndex = index < 0 ? static_cast<i32>(tagList->value.size()) + index + 1 : index;
         if (insertIndex < 0 || insertIndex > static_cast<i32>(tagList->value.size())) {
-            throw CommandException(CommandErrorType::NbtPathIndexOutOfBounds,
+            throw CommandError(CommandErrorType::NbtPathIndexOutOfBounds,
                 "Index " + std::to_string(index) + " out of bounds for list of size " +
                     std::to_string(tagList->value.size()),
                 0);
@@ -722,7 +722,7 @@ i32 NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& 
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::Compound) {
-            throw CommandException(
+            throw CommandError(
                 CommandErrorType::NbtPathInvalidType, "Expected compound tag at path '" + m_rawText + "'", 0);
         }
 

@@ -168,7 +168,7 @@ public:
             try {
                 segmentNode->parse(reader, context);
             }
-            catch (const CommandException&) {
+            catch (const CommandError&) {
                 reader.setCursor(tokenStart);
                 reader.skipWhitespace();
                 break;

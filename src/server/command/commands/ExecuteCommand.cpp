@@ -180,7 +180,7 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
     auto node = std::make_shared<ArgumentCommandNode<ServerCommandSource, typename Type::Value>>(name, std::move(type));
     if (executable) {
         node->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-            throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+            throw CommandError(CommandErrorType::Unknown, "commands.execute.conditional");
         });
     }
     return node;
@@ -236,7 +236,7 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         for (const char* mode : {"all", "masked"}) {
             auto modeNode = conditionLiteral(mode);
             modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-                throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
+                throw CommandError(CommandErrorType::Unknown, "commands.execute.conditional");
             });
             destination->addChild(modeNode);
         }

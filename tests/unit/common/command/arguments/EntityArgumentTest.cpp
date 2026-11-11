@@ -36,11 +36,11 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 using mc::ResourceLocation;
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::EntityArgumentType;
 using mc::command::EntitySelector;
 using mc::command::EntitySelectorSort;
@@ -537,7 +537,7 @@ TEST_F(EntityArgumentParseTest, ParseAtS)
 TEST_F(EntityArgumentParseTest, ParseInvalidSelectorThrows)
 {
     StringReader reader("@x");
-    EXPECT_THROW(playerArg->parse(reader), CommandException);
+    EXPECT_THROW(playerArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentParseTest, ParseDistanceRange)
@@ -1112,63 +1112,63 @@ TEST_F(EntityArgumentEdgeCaseTest, ZeroLimitThrows)
 {
     // limit=0 应该抛出异常
     StringReader reader("@a[limit=0]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, NegativeLimitThrows)
 {
     // limit=-1 应该抛出异常
     StringReader reader("@a[limit=-1]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, InvalidSelectorTypeThrows)
 {
     // 无效的选择器类型
     StringReader reader("@x");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, MissingClosingBracketThrows)
 {
     // 缺少闭合括号
     StringReader reader("@a[distance=10");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, InvalidParameterNameThrows)
 {
     // 无效的参数名
     StringReader reader("@a[invalid_param=value]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateNameThrows)
 {
     // 重复的 name 参数
     StringReader reader("@a[name=Steve,name=Alex]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateTypeThrows)
 {
     // 重复的 type 参数
     StringReader reader("@e[type=zombie,type=skeleton]");
-    EXPECT_THROW(entitiesArg->parse(reader), CommandException);
+    EXPECT_THROW(entitiesArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateGamemodeThrows)
 {
     // 重复的 gamemode 参数
     StringReader reader("@a[gamemode=survival,gamemode=creative]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, DuplicateTeamThrows)
 {
     // 重复的 team 参数
     StringReader reader("@a[team=red,team=blue]");
-    EXPECT_THROW(playersArg->parse(reader), CommandException);
+    EXPECT_THROW(playersArg->parse(reader), CommandError);
 }
 
 TEST_F(EntityArgumentEdgeCaseTest, PlayerSelectorWithNonPlayerType)

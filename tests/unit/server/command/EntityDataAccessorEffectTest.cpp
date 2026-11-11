@@ -461,7 +461,7 @@ TEST_F(EntityDataAccessorEffectTest, MergeData_PlayerEntity_ThrowsException)
     data.value.emplace(ACTIVE_EFFECTS, std::move(effectsList));
 
     EntityDataAccessor accessor(&player);
-    EXPECT_THROW(accessor.mergeData(data), CommandException);
+    EXPECT_THROW(accessor.mergeData(data), CommandError);
 }
 
 // ============================================================================

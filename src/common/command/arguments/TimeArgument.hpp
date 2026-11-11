@@ -27,7 +27,7 @@
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include <cmath>
 #include <memory>
@@ -84,7 +84,7 @@ public:
         f64 value = 0.0;
         if (!readWorldCoordinateDouble(reader, value)) {
             reader.setCursor(start);
-            throw CommandException(
+            throw CommandError(
                 CommandErrorType::FloatExpected, "Expected float at position " + std::to_string(start), start);
         }
 
@@ -96,7 +96,7 @@ public:
         if (it == s_units.end()) {
             const i32 end = reader.getCursor();
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::Unknown,
+            throw CommandError(CommandErrorType::Unknown,
                 "Invalid time unit: '" + unit + "'. Expected 's', 'd', 't', or no unit",
                 end);
         }
@@ -112,7 +112,7 @@ public:
         if (ticks < m_minimum) {
             const i32 end = reader.getCursor();
             reader.setCursor(start);
-            throw CommandException(CommandErrorType::IntegerTooLow,
+            throw CommandError(CommandErrorType::IntegerTooLow,
                 "Time value must be at least " + std::to_string(m_minimum) + " ticks (got " + std::to_string(ticks) +
                     ")",
                 end);

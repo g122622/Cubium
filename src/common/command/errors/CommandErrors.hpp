@@ -26,7 +26,6 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -34,9 +33,10 @@
 namespace mc::command {
 
 /**
- * @brief 命令语法异常类型
+ * @brief 命令错误类型
  *
- * 定义命令解析过程中可能遇到的各种语法错误类型
+ * 定义命令解析过程中可能遇到的各种错误类型。它是**值类型**的一部分，
+ * 不再通过 C++ 异常传递（项目正在推进 `-fno-exceptions`）。
  */
 enum class CommandErrorType {
     // 分发器错误
@@ -84,69 +84,48 @@ enum class CommandErrorType {
 };
 
 /**
- * @brief 命令语法异常
+ * @brief 命令错误（纯值类型）
  *
- * 用于命令解析和执行过程中的错误报告
+ * 携带 `CommandErrorType`（决定翻译键与客户端提示分类）、原始消息（通常就是翻译键）、
+ * 出错游标（用于「最佳失败候选」比较与客户端高亮）以及原始输入。
+ *
+ * 【重要】它**不是** `std::exception` 派生类，也不再被 `throw`：所有解析/执行函数统一
+ * 用 `Result<T, CommandError>` 把失败返回给调用方。这样命令子系统在
+ * `-fno-exceptions` 下可以正常编译，且玩家输入错误不会终止进程。
  */
-class CommandException : public std::runtime_error {
+class CommandError {
 public:
-    explicit CommandException(CommandErrorType type, const std::string& message)
-        : std::runtime_error(message)
-        , m_type(type)
-        , m_message(message)
+    CommandError() = default;
+
+    CommandError(CommandErrorType type, std::string message)
+        : m_type(type)
+        , m_message(std::move(message))
         , m_cursor(-1)
     {}
 
-    CommandException(CommandErrorType type, const std::string& message, i32 cursor)
-        : std::runtime_error(message)
-        , m_type(type)
+    CommandError(CommandErrorType type, std::string message, i32 cursor)
+        : m_type(type)
+        , m_message(std::move(message))
+        , m_cursor(cursor)
+    {}
+
+    CommandError(CommandErrorType type, const char* message, i32 cursor)
+        : m_type(type)
         , m_message(message)
         , m_cursor(cursor)
     {}
 
-    // 拷贝构造函数
-    CommandException(const CommandException& other)
-        : std::runtime_error(other)
-        , m_type(other.m_type)
-        , m_message(other.m_message)
-        , m_cursor(other.m_cursor)
-        , m_input(other.m_input)
+    /**
+     * @brief 由通用 `Error` 构造
+     *
+     * 用于跨子系统传播：命令代码调用返回 `Result<T>`（错误类型为 `mc::Error`）的函数时，
+     * `MC_TRY` 会借这个构造函数把 `Error` 隐式转成 `CommandError`。
+     */
+    CommandError(const Error& error) // NOLINT: 允许隐式转换
+        : m_type(CommandErrorType::Unknown)
+        , m_message(error.message())
+        , m_cursor(-1)
     {}
-
-    // 移动构造函数
-    CommandException(CommandException&& other) noexcept
-        : std::runtime_error(std::move(other))
-        , m_type(other.m_type)
-        , m_message(std::move(other.m_message))
-        , m_cursor(other.m_cursor)
-        , m_input(std::move(other.m_input))
-    {}
-
-    // 拷贝赋值运算符
-    CommandException& operator=(const CommandException& other)
-    {
-        if (this != &other) {
-            std::runtime_error::operator=(other);
-            m_type = other.m_type;
-            m_message = other.m_message;
-            m_cursor = other.m_cursor;
-            m_input = other.m_input;
-        }
-        return *this;
-    }
-
-    // 移动赋值运算符
-    CommandException& operator=(CommandException&& other) noexcept
-    {
-        if (this != &other) {
-            std::runtime_error::operator=(std::move(other));
-            m_type = other.m_type;
-            m_message = std::move(other.m_message);
-            m_cursor = other.m_cursor;
-            m_input = std::move(other.m_input);
-        }
-        return *this;
-    }
 
     [[nodiscard]] CommandErrorType type() const noexcept
     {
@@ -161,7 +140,7 @@ public:
     /**
      * @brief 取得面向用户的错误文本
      *
-     * 命令实现经常直接抛出翻译键（如 "commands.execute.conditional"），message() 原样
+     * 命令实现经常直接使用翻译键（如 "commands.execute.conditional"），message() 原样
      * 保留以便日志排查；展示给玩家/控制台时应使用本方法：按当前语言解析成可读文本，
      * 找不到翻译时回退原文。
      *
@@ -175,12 +154,12 @@ public:
     }
 
     /**
-     * @brief 创建带有上下文的异常
+     * @brief 附加原始输入字符串
      * @param input 原始输入字符串
      */
-    [[nodiscard]] CommandException withInput(std::string_view input) const
+    [[nodiscard]] CommandError withInput(std::string_view input) const
     {
-        CommandException result(m_type, m_message, m_cursor);
+        CommandError result(m_type, m_message, m_cursor);
         result.m_input = std::string(input);
         return result;
     }
@@ -190,57 +169,53 @@ public:
         return m_input;
     }
 
-    /**
-     * @brief 设置输入字符串（内部使用）
-     */
     void setInput(const std::string& input)
     {
         m_input = input;
     }
 
+    /**
+     * @brief 生成用于日志/断言的可读文本
+     *
+     * `Result::value()` 在失败时用 `error().toString()` 作为断言消息，因此错误载体必须
+     * 提供该方法。
+     */
+    [[nodiscard]] std::string toString() const
+    {
+        std::string text = "[CommandError " + std::to_string(static_cast<i32>(m_type)) + "] " + m_message;
+        if (m_cursor >= 0) {
+            text += " (cursor " + std::to_string(m_cursor) + ")";
+        }
+        return text;
+    }
+
 private:
-    CommandErrorType m_type;
+    CommandErrorType m_type = CommandErrorType::Unknown;
     std::string m_message;
-    i32 m_cursor;
+    i32 m_cursor = -1;
     std::string m_input;
 };
 
 /**
- * @brief 简单命令异常类型
+ * @brief 无参数命令错误工厂
  *
- * 用于创建无参数的异常消息
+ * 用于创建不需要额外参数的错误消息。
  */
-class SimpleCommandException {
+class SimpleCommandError {
 public:
-    explicit SimpleCommandException(CommandErrorType type, const std::string& message)
+    SimpleCommandError(CommandErrorType type, std::string message)
         : m_type(type)
-        , m_message(message)
+        , m_message(std::move(message))
     {}
 
-    // 移动构造函数
-    SimpleCommandException(SimpleCommandException&& other) noexcept
-        : m_type(other.m_type)
-        , m_message(std::move(other.m_message))
-    {}
-
-    // 移动赋值运算符
-    SimpleCommandException& operator=(SimpleCommandException&& other) noexcept
+    [[nodiscard]] CommandError create() const
     {
-        if (this != &other) {
-            m_type = other.m_type;
-            m_message = std::move(other.m_message);
-        }
-        return *this;
+        return CommandError(m_type, m_message);
     }
 
-    [[nodiscard]] CommandException create() const
+    [[nodiscard]] CommandError createWithContext(i32 cursor, std::string_view input) const
     {
-        return CommandException(m_type, m_message);
-    }
-
-    [[nodiscard]] CommandException createWithContext(i32 cursor, std::string_view input) const
-    {
-        CommandException result(m_type, m_message, cursor);
+        CommandError result(m_type, m_message, cursor);
         result.setInput(std::string(input));
         return result;
     }
@@ -251,51 +226,41 @@ private:
 };
 
 /**
- * @brief 动态命令异常类型
+ * @brief 带参数命令错误工厂
  *
- * 用于创建带参数的异常消息
+ * 用于创建带参数的错误消息，格式串只支持按顺序替换的 `{}` 占位符。
  */
 template <typename... Args>
-class DynamicCommandException {
+class DynamicCommandError {
 public:
-    explicit DynamicCommandException(CommandErrorType type, const std::string& format)
+    DynamicCommandError(CommandErrorType type, std::string format)
         : m_type(type)
-        , m_format(format)
+        , m_format(std::move(format))
     {}
 
-    // 移动构造函数
-    DynamicCommandException(DynamicCommandException&& other) noexcept
-        : m_type(other.m_type)
-        , m_format(std::move(other.m_format))
-    {}
-
-    // 移动赋值运算符
-    DynamicCommandException& operator=(DynamicCommandException&& other) noexcept
+    [[nodiscard]] CommandError create(Args... args) const
     {
-        if (this != &other) {
-            m_type = other.m_type;
-            m_format = std::move(other.m_format);
-        }
-        return *this;
+        return CommandError(m_type, _formatMessage(args...));
     }
 
-    [[nodiscard]] CommandException create(Args... args) const
+    [[nodiscard]] CommandError createWithContext(i32 cursor, std::string_view input, Args... args) const
     {
-        return CommandException(m_type, _formatMessage(args...));
+        CommandError result(m_type, _formatMessage(args...), cursor);
+        result.setInput(std::string(input));
+        return result;
     }
 
 private:
     std::string _formatMessage(Args... args) const
     {
         std::string result = m_format;
-        // 简单实现：支持 {} 占位符
         ((_replaceFirst(result, "{}", std::to_string(args))), ...);
         return result;
     }
 
     static void _replaceFirst(std::string& str, const std::string& from, const std::string& to)
     {
-        size_t pos = str.find(from);
+        const size_t pos = str.find(from);
         if (pos != std::string::npos) {
             str.replace(pos, from.length(), to);
         }

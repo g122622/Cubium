@@ -113,7 +113,7 @@ TEST_F(BlockStateArgumentTest, ParseUnknownBlockThrowsError)
     StringReader reader("minecraft:nonexistent_block_xyz");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 // ========== 方块状态属性解析测试 ==========
@@ -187,7 +187,7 @@ TEST_F(BlockStateArgumentTest, StairsHalfRejectsDoorHalfNames)
         // StringReader 持有 string_view，输入字符串必须存活于 reader 之外
         const std::string text = std::string("oak_stairs[half=") + value + "]";
         StringReader reader(text);
-        EXPECT_THROW(argType.parse(reader), CommandException) << "value=" << value;
+        EXPECT_THROW(argType.parse(reader), CommandError) << "value=" << value;
     }
 
     for (const char* value : {"top", "bottom"}) {
@@ -227,7 +227,7 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyThrowsError)
     StringReader reader("stone[facing=north]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError)
@@ -241,7 +241,7 @@ TEST_F(BlockStateArgumentTest, InvalidPropertyValueThrowsError)
     StringReader reader("oak_door[facing=invalid_value]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError)
@@ -255,7 +255,7 @@ TEST_F(BlockStateArgumentTest, DuplicatePropertyThrowsError)
     StringReader reader("oak_door[facing=north,facing=south]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError)
@@ -263,7 +263,7 @@ TEST_F(BlockStateArgumentTest, MissingPropertyValueThrowsError)
     StringReader reader("oak_door[facing=]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError)
@@ -271,7 +271,7 @@ TEST_F(BlockStateArgumentTest, MissingPropertyNameThrowsError)
     StringReader reader("oak_door[=north]");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, MissingClosingBracketReturnsDefaultState)
@@ -376,7 +376,7 @@ TEST_F(BlockStateArgumentTest, EmptyStringThrowsError)
     StringReader reader("");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError)
@@ -384,7 +384,7 @@ TEST_F(BlockStateArgumentTest, OnlyNamespaceThrowsError)
     StringReader reader("minecraft:");
     BlockStateArgumentType argType;
 
-    EXPECT_THROW(argType.parse(reader), CommandException);
+    EXPECT_THROW(argType.parse(reader), CommandError);
 }
 
 // ========== 更多方块解析测试 ==========

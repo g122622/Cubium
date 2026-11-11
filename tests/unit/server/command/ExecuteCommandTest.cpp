@@ -443,7 +443,7 @@ TEST_F(ExecuteCommandTest, ExecuteInOverworld)
 {
     // /execute in overworld run list - 维度参数 "overworld" 解析为 DimensionId=0
     // BaseTestServer 的 dimensionManager() 未实现（抛异常），因此执行阶段会失败
-    // 但解析阶段应成功（不会因无效维度名而抛出 CommandException）
+    // 但解析阶段应成功（不会因无效维度名而抛出 CommandError）
     const auto result = m_server.commandRegistry().execute("execute in overworld run list", m_console);
 
     // 解析成功但维度验证失败（BaseTestServer 未注册维度）→ failed() 或 value()==0
@@ -485,7 +485,7 @@ TEST_F(ExecuteCommandTest, ExecuteInNumericFormat)
 TEST_F(ExecuteCommandTest, ExecuteInInvalidDimension)
 {
     // /execute in invalid_dimension run list - 无效维度名称应导致解析错误
-    // _isValidDimensionName 不认识 "invalid_dimension"，抛出 CommandException
+    // _isValidDimensionName 不认识 "invalid_dimension"，抛出 CommandError
     const auto result = m_server.commandRegistry().execute("execute in invalid_dimension run list", m_console);
 
     // 解析失败 → result.failed() 为 true
@@ -586,23 +586,23 @@ TEST_F(DimensionArgumentTypeTest, ParseNumericOne)
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidThrows)
 {
-    // 无效的维度名称应抛出 CommandException
+    // 无效的维度名称应抛出 CommandError
     mc::command::StringReader reader("invalid_dimension");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandError);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidNamespaceThrows)
 {
-    // 无效的命名空间格式应抛出 CommandException
+    // 无效的命名空间格式应抛出 CommandError
     mc::command::StringReader reader("minecraft:invalid");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandError);
 }
 
 TEST_F(DimensionArgumentTypeTest, ParseInvalidNumericThrows)
 {
-    // 无效的数字 ID 应抛出 CommandException
+    // 无效的数字 ID 应抛出 CommandError
     mc::command::StringReader reader("42");
-    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandException);
+    EXPECT_THROW({ m_parser.parse(reader); }, mc::command::CommandError);
 }
 
 TEST_F(DimensionArgumentTypeTest, GetTypeName)

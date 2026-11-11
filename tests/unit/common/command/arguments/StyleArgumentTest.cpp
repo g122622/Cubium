@@ -28,7 +28,7 @@
  * 覆盖：
  * - SNBT 复合标签解析（布尔/字节/字符串颜色/自定义 RGB/insertion）
  * - 花括号内空白与引号内空白、括号的切分（命令参数按空白分隔，但 SNBT 内部允许空白）
- * - 解析失败（未配平 / 非法 SNBT / 非法颜色）必须抛 CommandException 而不是静默成功
+ * - 解析失败（未配平 / 非法 SNBT / 非法颜色）必须抛 CommandError 而不是静默成功
  * - 空样式 `{}`（会被包成非空指针，不能与「没有命令」混淆）
  */
 
@@ -36,10 +36,10 @@
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/StyleArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/util/text/TextStyle.hpp"
 
-using mc::command::CommandException;
+using mc::command::CommandError;
 using mc::command::StringReader;
 using mc::command::StyleArgumentType;
 using mc::command::StylePtr;
@@ -152,7 +152,7 @@ TEST(StyleArgumentTypeTest, RejectsUnbalancedBraces)
 {
     StyleArgumentType parser;
     StringReader reader("{bold:true");
-    EXPECT_THROW(parser.parse(reader), CommandException);
+    EXPECT_THROW(parser.parse(reader), CommandError);
     // 失败后游标回到起点，便于上层报出准确位置
     EXPECT_EQ(reader.getCursor(), 0);
 }
@@ -161,14 +161,14 @@ TEST(StyleArgumentTypeTest, RejectsNonCompoundText)
 {
     StyleArgumentType parser;
     StringReader reader("bold");
-    EXPECT_THROW(parser.parse(reader), CommandException);
+    EXPECT_THROW(parser.parse(reader), CommandError);
 }
 
 TEST(StyleArgumentTypeTest, RejectsInvalidColor)
 {
     StyleArgumentType parser;
     StringReader reader("{color:\"not-a-color\"}");
-    EXPECT_THROW(parser.parse(reader), CommandException);
+    EXPECT_THROW(parser.parse(reader), CommandError);
 }
 
 TEST(StyleArgumentTypeTest, ReportsTypeNameAndExamples)

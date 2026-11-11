@@ -26,7 +26,7 @@
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/command/suggestions/Suggestions.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
@@ -176,7 +176,13 @@ public:
         m_treeHidden = hidden;
     }
 
-    virtual void parse(StringReader& reader, CommandContext<S>& context) const = 0;
+    /**
+     * @brief 从输入中解析本节点
+     *
+     * 失败时返回 `CommandError`（携带错误类型与游标），调用方据此挑选「最佳失败候选」；
+     * 不再用异常表达解析失败。
+     */
+    [[nodiscard]] virtual Result<void, CommandError> parse(StringReader& reader, CommandContext<S>& context) const = 0;
 
     [[nodiscard]] const std::string& getUsageText() const noexcept
     {
@@ -434,7 +440,10 @@ public:
         return "";
     }
 
-    void parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override {}
+    [[nodiscard]] Result<void, CommandError> parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override
+    {
+        return Result<void, CommandError>::ok();
+    }
 };
 
 /**
@@ -464,15 +473,16 @@ public:
         return m_literal;
     }
 
-    void parse(StringReader& reader, CommandContext<S>& /*context*/) const override
+    [[nodiscard]] Result<void, CommandError> parse(StringReader& reader, CommandContext<S>& /*context*/) const override
     {
         const i32 start = reader.getCursor();
         const std::string literal = reader.readUnquotedString();
         if (literal != m_literal) {
             reader.setCursor(start);
-            throw CommandException(
+            return CommandError(
                 CommandErrorType::DispatcherExpectedLiteral, "Expected literal '" + m_literal + "'", start);
         }
+        return Result<void, CommandError>::ok();
     }
 
     bool equals(const CommandNode<S>& other) const noexcept override
@@ -516,11 +526,12 @@ public:
         , m_contextKey(std::move(contextKey))
     {}
 
-    void parse(StringReader& reader, CommandContext<S>& context) const override
+    [[nodiscard]] Result<void, CommandError> parse(StringReader& reader, CommandContext<S>& context) const override
     {
-        LiteralCommandNode<S>::parse(reader, context);
+        MC_TRY(LiteralCommandNode<S>::parse(reader, context));
         // 基类已经校验并消费了字面量，这里补记一笔，值就是本节点的字面量文本。
         context.setArgument(m_contextKey, LiteralCommandNode<S>::getLiteral());
+        return Result<void, CommandError>::ok();
     }
 
 private:
@@ -535,7 +546,8 @@ private:
 template <typename S, typename T>
 class ArgumentCommandNode : public CommandNode<S> {
 public:
-    using Parser = std::function<T(std::string_view, i32&, CommandException&)>;
+    /// 解析函数：输入整段文本与游标位置，返回解析值或错误
+    using Parser = std::function<Result<T, CommandError>(std::string_view, i32&)>;
 
     /**
      * @brief 使用解析函数构造
@@ -553,22 +565,18 @@ public:
      */
     ArgumentCommandNode(const std::string& name, std::shared_ptr<ArgumentType<T>> argumentType)
         : m_name(name)
-        , m_parser([this](std::string_view input, i32& cursor, CommandException& error) -> T {
+        , m_parser([this](std::string_view input, i32& cursor) -> Result<T, CommandError> {
             const i32 start = cursor;
             StringReader reader(input);
             reader.setCursor(cursor);
-            try {
-                T result = m_argumentType->parse(reader);
-                cursor = reader.getCursor();
-                return result;
-            }
-            catch (const CommandException& e) {
-                // 失败时把游标还原到起点并抛出：上层 parse 用它定位错误；把 cursor 置 -1 会让
-                // setCursor(-1) 写出负数游标，之后的 getRemaining() 取到整段输入。
-                error = e;
+            auto parsed = m_argumentType->parse(reader);
+            if (parsed.failed()) {
+                // 失败时把游标还原到起点：让上层按起点定位错误；不还原会留下读了一半的位置。
                 reader.setCursor(start);
-                throw;
+                return parsed.error();
             }
+            cursor = reader.getCursor();
+            return std::move(parsed).value();
         })
         , m_argumentType(std::move(argumentType))
     {}
@@ -598,34 +606,33 @@ public:
         return m_argumentType ? m_argumentType->getExamples() : std::vector<std::string>{};
     }
 
-    void parse(StringReader& reader, CommandContext<S>& context) const override
+    [[nodiscard]] Result<void, CommandError> parse(StringReader& reader, CommandContext<S>& context) const override
     {
         const i32 start = reader.getCursor();
         i32 cursor = start;
-        T result = parse(reader.getString(), cursor);
+        auto parsed = parse(reader.getString(), cursor);
+        if (parsed.failed()) {
+            return parsed.error();
+        }
         if (cursor == start) {
             // 一个字符都没读走：参数值由节点自己的 dispatch 阶段提供（/execute 的 run →
             // forward <command> 就是这种转发节点），这里只留下尚未消费的剩余文本。
-            return;
+            return Result<void, CommandError>::ok();
         }
         reader.setCursor(cursor);
-        context.setArgument(m_name, result, start);
+        context.setArgument(m_name, std::move(parsed).value(), start);
+        return Result<void, CommandError>::ok();
     }
 
     /**
      * @brief 解析参数值
      * @param input 输入字符串
      * @param cursor 当前位置（会被更新）
-     * @return 解析结果，失败时抛出异常
+     * @return 解析结果；失败时返回错误
      */
-    [[nodiscard]] T parse(std::string_view input, i32& cursor) const
+    [[nodiscard]] Result<T, CommandError> parse(std::string_view input, i32& cursor) const
     {
-        CommandException error(CommandErrorType::Unknown, "Parse error");
-        T result = m_parser(input, cursor, error);
-        if (cursor < 0) {
-            throw error;
-        }
-        return result;
+        return m_parser(input, cursor);
     }
 
     /**

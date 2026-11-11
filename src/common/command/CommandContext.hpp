@@ -26,7 +26,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandResult.hpp"
 #include "common/command/StringReader.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include <any>
@@ -399,7 +399,7 @@ public:
         , m_remaining(remaining)
     {}
 
-    ParseResults(CommandException error, i32 cursor)
+    ParseResults(CommandError error, i32 cursor)
         : m_error(std::move(error))
         , m_errorCursor(cursor)
     {}
@@ -427,7 +427,7 @@ public:
         return m_context.get();
     }
 
-    [[nodiscard]] const std::optional<CommandException>& getError() const noexcept
+    [[nodiscard]] const std::optional<CommandError>& getError() const noexcept
     {
         return m_error;
     }
@@ -454,7 +454,7 @@ public:
      * 与 brigadier 一致：只看解析错误。剩余文本是否算错误由 parseNodes 决定——它只会
      * 把「输入用完」的结果当成成功候选，所以这里不再额外检查 remaining。
      */
-    [[nodiscard]] std::optional<CommandException> getException() const
+    [[nodiscard]] std::optional<CommandError> getException() const
     {
         return m_error;
     }
@@ -464,7 +464,7 @@ private:
     // 注意：remaining 的源头是 parse 里的临时 StringReader，切成视图会悬垂：
     // 对象被移动/返回时视图仍指向旧对象的成员。这里只保存一份拥有的副本。
     std::string m_remaining;
-    std::optional<CommandException> m_error;
+    std::optional<CommandError> m_error;
     i32 m_errorCursor = -1;
 };
 

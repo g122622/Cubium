@@ -56,7 +56,7 @@
 #include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
-#include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
@@ -378,7 +378,7 @@ std::string runLine(std::string_view inputLine)
         json value = parseValue(type, reader);
         return json{{"unit", unit}, {"ok", true}, {"value", value}}.dump();
     }
-    catch (const command::CommandException& e) {
+    catch (const command::CommandError& e) {
         return json{{"unit", unit}, {"ok", false}, {"cursor", e.cursor()}}.dump();
     }
 }
