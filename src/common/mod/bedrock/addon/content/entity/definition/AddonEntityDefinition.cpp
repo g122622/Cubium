@@ -1364,8 +1364,8 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
             // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
             // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包
             //   需要 IInventory 实例 + NBT 序列化 + 死亡掉落 + 容器菜单接入，属独立特性。
-            //   在此之前脚本 query.has_component("minecraft:inventory") 会返回 false（见
-            //   EntityStateQuery），与"组件已声明但查不到"的自洽性由该处一并维持。
+            //   在此之前 EntityStateQuery::hasComponent("minecraft:inventory") 返回的是
+            //   ErrorCode::Unsupported（不是 false），脚本 query.has_component 会把这个错误传上去。
             MC_TRY(_members(component,
                 {"additional_slots_per_strength",
                     "can_be_siphoned_from",

@@ -33,6 +33,7 @@
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/EntityAddonState.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -578,6 +579,13 @@ Result<bool> _test(const nlohmann::json& filter, const EntityFilterContext& cont
             : expected == "precipitation"        ? world->isRaining()
                                                  : world->isThundering();
         return _compare(matches, true, operation);
+    }
+    if (test != "distance_to_nearest_player") {
+        // 不能再用“兑底走距离比较”的写法：_validate 白名单里
+        // 声明了但尚未实现的 test 会被静默当成距离判定而得出错误结果。
+        // 这里直接断言暴露，避免错误分支被当成正常返回值传下去。
+        spdlog::warn("Entity filter test reached the distance fallback without an explicit branch: {}", test);
+        return Error(ErrorCode::Unsupported, "Entity filter test is not implemented: " + test);
     }
     double nearest = std::numeric_limits<f32>::max();
     for (const auto* player : world->getPlayers()) {

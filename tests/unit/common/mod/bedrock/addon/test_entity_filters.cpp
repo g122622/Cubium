@@ -545,3 +545,22 @@ TEST_F(EntityFilterTest, TemperatureValueRequiresAWorldBoundEntity)
     ASSERT_TRUE(matches.failed());
     EXPECT_EQ(matches.error().code(), ErrorCode::Unsupported);
 }
+
+// has_component 要走 EntityStateQuery 的统一查询入口，
+// 而不是被 "兑底走距离比较" 的隐式分支吾掉。
+TEST_F(EntityFilterTest, HasComponentQueriesTheUnifiedStateQuery)
+{
+    // 普通 Entity 既没有 AddonEntityComponents，也不是 LivingEntity：
+    // minecraft:health 在它上不存在。
+    check({{"test", "has_component"}, {"value", "minecraft:health"}}, false);
+    check({{"test", "has_component"}, {"value", "minecraft:health"}, {"operator", "not"}}, true);
+    // fire_immune 是实体固有属性，普通实体默认不免火。
+    check({{"test", "has_component"}, {"value", "minecraft:fire_immune"}}, false);
+}
+
+// 白名单里未实现的 test 不得再被静默当成 distance_to_nearest_player。
+TEST_F(EntityFilterTest, UnimplementedTestIsRejectedInsteadOfSilentlyComparedAsDistance)
+{
+    // 这些名字不在 _validate 白名单里，应当在编译期就报错。
+    EXPECT_TRUE(EntityFilter::compile({{"test", "definitely_not_a_real_test"}, {"value", 1}}).failed());
+}
