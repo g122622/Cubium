@@ -133,15 +133,16 @@ public:
     // GoalSelector 现已按 vanilla Mob.serverAiStep 的 (tickCount+id)%2 门控（见
     // GoalSelector::tickRunningGoalsEveryTick），requiresUpdateEveryTick() 的语义与 vanilla 一致：
     // true 的 goal 每 tick 调 tick()，false 的 goal 每 2 tick 调一次。
-    // TODO: 全仓 goal 概率/tick 计时对齐 vanilla adjustedTickDelay/reducedTickDelay 的工作尚未完成。
-    // 已对齐核心 goal（EatGrass/RandomWalking/RandomSwimming/LookAt/LookRandomly/MeleeAttack/
-    // Breed/FollowParent/Tempt/Swim/NearestAttackableTarget/TargetGoal.unseenMemory/CreeperSwell/
-    // MoveToBlock/RangedAttack/RangedBowAttack/RangedCrossbowAttack/DoorInteract）。
-    // special 类 goal（FoxGoals/CatGoals/DolphinGoals/PhantomGoals/SlimeGoals/ShulkerGoals/
-    // VexGoals/TurtleGoals/EndermanGoals/IronGolemGoals/BatGoals/RangedAttackGoals 及 villager 系列；
-    // BeeGoals 的 BeePollinateGoal 已按 vanilla requiresUpdateEveryTick 补齐）
-    // 多为项目自创逻辑或与 vanilla 对应关系复杂，其 shouldExecute 概率与 tick 计时器仍用裸值，
-    // 待后续逐一核对 vanilla 源码后用 adjustedTickDelay/reducedTickDelay 补偿。
+    // TODO: 全仓 goal 概率/tick 计时改用 adjustedTickDelay / reducedTickDelay 的工作尚未完成。
+    //
+    // 【不要在此维护"已对齐/未对齐"的文件清单】——清单需要人工同步，必然滞后于代码。
+    // 需要知道某个 goal 是否已用这两个辅助函数时，直接搜如下模式（排除定义与注释行）：
+    //     rg -n 'adjustedTickDelay\(|reducedTickDelay\(' src/common/entity/ai
+    // 截至本次核对，实际使用点为：goals/ 目录 11 处、goals/special/ 6 处
+    // （BeeGoals 3、FoxGoals 1、PandaGoals 2）、goals/target/ 2 处。
+    //
+    // 尚未覆盖的主要是各 special 子目录里与 vanilla 对应关系复杂的自创逻辑，
+    // 其 shouldExecute 概率与 tick 计时器仍用裸值，待逐一核对后再补偿。
 
     /**
      * @brief 开始执行
