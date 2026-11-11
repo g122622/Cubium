@@ -168,6 +168,69 @@ TEST_F(ExecuteCommandTest, ExecuteIfBlockCommandNoWorld)
     EXPECT_TRUE(result.failed() || result.value() == 0);
 }
 
+// ============================================================================
+// if|unless 条件按参数分派（block / biome / dimension / entity / loaded）
+// ============================================================================
+
+// 与命令源当前维度一致 → 条件成立，嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDimensionMatchesCurrentDimension)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if dimension minecraft:overworld run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "the condition holds, so the nested command must run";
+}
+
+// 与当前维度不同 → 条件不成立，嵌套命令不执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDimensionMismatchSkipsNestedCommand)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if dimension minecraft:the_nether run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0) << "the condition fails, so the nested command must not run";
+}
+
+// unless 是 if 取反：维度不同时条件为真，嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteUnlessDimensionMismatchRunsNestedCommand)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute unless dimension minecraft:the_nether run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "unless inverts if, so a mismatching dimension must run the nested command";
+}
+
+// 没有任何实体可选中 → if entity 不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfEntityWithNoMatchesSkipsNestedCommand)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if entity @e[type=minecraft:pig] run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+// 无世界时无法判定区块是否加载 → if loaded 不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfLoadedWithoutWorldSkipsNestedCommand)
+{
+    const auto result = m_server.commandRegistry().execute("execute if loaded 0 0 0 run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+// biome 求值尚未实现，即使语法合法也按不成立处理（不能误让嵌套命令执行）。
+TEST_F(ExecuteCommandTest, ExecuteIfBiomeIsTreatedAsUnmet)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if biome 0 0 0 minecraft:plains run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
 TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)
 {
     mc::i32 executions = 0;

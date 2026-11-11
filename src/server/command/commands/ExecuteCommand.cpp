@@ -896,13 +896,46 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
 bool ExecuteCommand::_evaluateBlockCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
-    // 只有 `if block <pos> <block>` 真正求值。其余 11 种条件的参数子树由
-    // buildConditionNodes() 建好了（解析期会把参数写进上下文），但求值未实现，
-    // 这里统一按「条件不成立」处理。
-    // TODO: 补齐其余条件时，本函数要按条件名分派，而不是只认 block——注意 `biome` 与
-    //   `block` 都带 `pos` 参数，仅靠参数存在性无法区分，必须拿到条件名（`if`/`unless`
-    //   之后的那个字面量）。执行链当前只有动词链、拿不到条件字面量，需要在解析期把它
-    //   写进上下文。
+    // 按「上下文里出现了哪个参数」分派，而不是靠条件名——执行链里只有动词字面量，
+    // 拿不到 `if` 之后的条件名，但解析期已经把该条件的参数写进上下文了。
+    // 各条件的参数集互不重叠，所以这套判据是唯一且有意义的：
+    //   block 带 block、biome 带 biome、dimension 带 dimension、entity 带 entities、
+    //   loaded 只带裸 pos。
+    if (context.hasArgument("block")) {
+        // 落到下面继续求值
+    } else if (context.hasArgument("biome")) {
+        // biome 条件的位表/标签匹配尚未实现，按「条件不成立」处理
+        return false;
+    } else if (context.hasArgument("dimension")) {
+        // 与命令源当前维度比对（`/execute in <dim>` 已在链上改写过 source）
+        const auto wanted = context.getArgumentOr<DimensionId>("dimension", target.dimensionId());
+        return wanted == target.dimensionId();
+    } else if (context.hasArgument("entities")) {
+        // 选择器是否至少选中一个实体
+        const auto entities = support::EntityResolver::resolve(
+            target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
+        return !entities.empty() && entities.front() != nullptr;
+    } else if (context.hasArgument("pos")) {
+        // loaded <pos>：pos 所在区块是否已加载
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        auto* chunkManager = world->chunkManager();
+        if (chunkManager == nullptr) {
+            return false;
+        }
+        const Vector3d resolvedPos = Vec3ArgumentType::getVec3(context, "pos", target);
+        const i32 chunkX = static_cast<i32>(std::floor(resolvedPos.x)) >> world::CHUNK_SHIFT;
+        const i32 chunkZ = static_cast<i32>(std::floor(resolvedPos.z)) >> world::CHUNK_SHIFT;
+        return chunkManager->tryToGetChunkInMem(static_cast<ChunkCoord>(chunkX), static_cast<ChunkCoord>(chunkZ)) !=
+            nullptr;
+    } else {
+        // blocks / data / items / score / predicate / function / stopwatch 的参数分别落在
+        // 各自的参数名上，这里一并按「条件不成立」处理。
+        return false;
+    }
+
     if (!context.hasArgument("pos") || !context.hasArgument("block")) {
         return false;
     }
