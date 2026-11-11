@@ -64,6 +64,20 @@ using mc::entity::ai::goal::constants::BREED_DETECTION_RANGE;
 using mc::entity::ai::goal::constants::BREED_DISTANCE_SQ;
 using mc::entity::ai::goal::constants::SPAWN_BABY_DELAY;
 
+// ============================================================================
+// 本文件各 Brain 任务的当前实例化情况
+//
+// 这些都是模板类，**只有被 make_unique<Task<X>> 实例化过才会进二进制**。
+// 核实结果（唯一起作用方是 VillagerEntity，因为只有它有 brain()）：
+//   - AttackTask     —— 已实例化（VillagerEntity 的 fight 活动）
+//   - BreedTask      —— 未实例化，等动物实体接入 Brain
+//   - EatTask        —— 未实例化，且 shouldExecute 恒返 false，等饥饿系统
+//   - PlayDeadTask   —— 未实例化，等美西螈等接入 Brain
+//
+// 因此本文件里"类存在 + 有测试"不等于"运行时生效"。要给某个实体启用这些任务，
+// 除了注册进它的 Brain，还要先补上各类文档注释中写明的前置依赖。
+// ============================================================================
+
 /**
  * @brief 近战攻击任务（对应 MC MeleeAttack）
  *
@@ -588,7 +602,7 @@ protected:
             return false;
         }
 
-        // 饥饿状态未实现，横不需要进食（见本类文档注释的 TODO）。
+        // 饥饿状态未实现，恒不需要进食（见本类文档注释的 TODO）。
         return false;
     }
 
