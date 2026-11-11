@@ -347,6 +347,11 @@ protected:
         if (!creature) {
             // TODO: StrollTask 要求实体为 CreatureEntity 类型以使用 RandomPositionGenerator，
             // 非 CreatureEntity（如飞行实体）需要其他漫步策略。当前静默跳过。
+            // 注：目前本任务只注册在 VillagerEntity 上，其继承链为
+            // VillagerEntity → AbstractVillagerEntity → AgeableEntity → CreatureEntity，
+            // 所以这条跳过分支当前**不可达**。等真要给飞行实体（如悦灵、恶魂）复用时
+            // 才会走到这里，届时需要补一套基于飞行移动控制器的漫步策略，
+            // 并在此处加 warn 级日志（英文），而不是静默 return。
             return;
         }
         if (util::RandomPositionGenerator::findRandomTarget(creature, m_xzRange, m_yRange, targetPos)) {
