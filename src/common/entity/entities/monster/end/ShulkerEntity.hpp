@@ -344,6 +344,27 @@ public:
      */
     bool hurt(DamageSource& source, f32 amount) override;
 
+    // ========== 运动免疫 ==========
+
+    // 保留基类的向量重载，避免被下方单参数列表重写隐藏。
+    using Entity::addVelocity;
+
+    /**
+     * @brief 忽略外部速度冲量
+     *
+     * 潜影贝的速度恒为零：爆炸冲击、抛飞、气泡柱、载具推挤等均不能使其移动。
+     * 这些写入路径在 vanilla 中统一落到 Shulker#setDeltaMovement 的空实现上，
+     * 此处集中在速度增量入口拦截。
+     */
+    void addVelocity(f32 dx, f32 dy, f32 dz) override;
+
+    /**
+     * @brief 忽略击退
+     *
+     * 近战/弹射物击退在 vanilla 中同样经 setDeltaMovement 写入，对潜影贝无效。
+     */
+    void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ) override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

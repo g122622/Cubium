@@ -1368,13 +1368,14 @@ public:
     /**
      * @brief 应用击退效果
      *
-     * 击退强度会被击退抗性属性降低。
+     * 击退强度会被击退抗性属性降低。声明为虚函数以支持运动免疫实体：
+     * 潜影贝恒不受击退影响，重写为空操作。
      *
      * @param strength 击退强度（默认为1.0）
      * @param ratioX X方向比例（归一化后会乘以强度）
      * @param ratioZ Z方向比例（归一化后会乘以强度）
      */
-    void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ);
+    virtual void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ);
 
     /**
      * @brief 应用击退效果（带来源实体）

@@ -364,6 +364,22 @@ bool ShulkerEntity::hurt(DamageSource& source, f32 amount)
     return false;
 }
 
+void ShulkerEntity::addVelocity(f32 dx, f32 dy, f32 dz)
+{
+    // 潜影贝速度恒为零，外部冲量一律忽略（爆炸冲击、抛飞、气泡柱、载具推挤等）。
+    MC_UNUSED(dx);
+    MC_UNUSED(dy);
+    MC_UNUSED(dz);
+}
+
+void ShulkerEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
+{
+    // 潜影贝不受任何击退影响：其速度恒为零，近战/弹射物击退不生效。
+    MC_UNUSED(strength);
+    MC_UNUSED(ratioX);
+    MC_UNUSED(ratioZ);
+}
+
 void ShulkerEntity::_hitByShulkerBullet(const Vector3& originalPos)
 {
     // 对齐 vanilla 1.21.11 Shulker.hitByShulkerBullet（Shulker.java:440-455）：

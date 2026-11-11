@@ -54,8 +54,10 @@ function minibiomes(test: Test): void {
 // ~100t（y=2→8 升 6 格，每 tick +0.05 加速）——最坏 ~260t 触上限偶发超时。3v3 多实体干扰（目标分散、
 // zoglin 游走、shulker 受伤瞬移）进一步拉长。600t 为目标选择、反击、命中与上升保留观察时间。
 // 断言体积（0,6,0）→（13,13,13）：结构为 13x14x11，zoglin 被 bullet 命中后 Levitation 上升至 y≥6
-// 即满足。体积上界须达 x=13/y=13——实测失败 run 中贴东墙 zoglin 浮至 x=12.7，撞 y=13 天花板后停留，
-// 原体积（0,8,0）→（12,12,12）既够不到墙边也够不到天花板下沿，是该 ~37% 失败率的直接根因。
+// 即满足。体积上界须达 x=13/y=13——zoglin 会被撞到墙边或天花板下沿，原体积（0,8,0）→（12,12,12）
+// 覆盖不到这些位置。
+// 潜影贝必须留在场内：zoglin 的抛飞（flingTarget）与爆炸冲击在 ShulkerEntity 中被忽略（其速度恒为零），
+// 否则潜影贝会被抛出围栏、失去对场内 zoglin 的视线而不再反击，测试随机超时。
 // Ref: zoglin_float（mob_behavior/ZoglinTests.ts）同链路 1v1 范式
 function collapsing(test: Test): void {
   const zoglinEntityType = "minecraft:zoglin";
@@ -80,13 +82,16 @@ function collapsing(test: Test): void {
       "raised zoglin must have levitation from a shulker bullet");
   });
   test.runAtTickTime(599, () => {
-    const entities = test.getDimension().getEntities({
-      location: test.worldLocation({ x: 0, y: 0, z: 0 }),
-      volume: { x: 13, y: 14, z: 13 },
-    });
-    const state = entities.map((entity) => ({ type: entity.typeId, pos: entity.location,
-      health: (entity.getComponent("minecraft:health") as any)?.currentValue }));
-    test.assert(false, `no zoglin levitated into upper volume: ${JSON.stringify(state)}`);
+    // 超时诊断：报告存活实体位置/血量/浮空状态，区分"未反击""未命中""未升空"。
+    const describe = (entity: any): string => {
+      const p = entity.location;
+      const health = entity.getComponent("minecraft:health") as any;
+      const levitation = entity.getEffect("levitation") !== undefined;
+      return `(${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)})hp=${health?.currentValue}lev=${levitation}`;
+    };
+    const shulkers = test.getDimension().getEntities({ type: shulkerEntityType }).map(describe);
+    const zoglins = test.getDimension().getEntities({ type: zoglinEntityType }).map(describe);
+    test.assert(false, `no zoglin rose with levitation: shulkers=[${shulkers.join(",")}] zoglins=[${zoglins.join(",")}]`);
   });
 }
 
