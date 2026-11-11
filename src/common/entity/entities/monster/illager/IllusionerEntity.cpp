@@ -290,7 +290,7 @@ void IllusionerEntity::registerGoals()
 
     // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
     {
-        auto playerTarget = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true);
+        auto playerTarget = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0);
         playerTarget->setUnseenMemoryTicks(300);
         m_targetSelector.addGoal(2, std::move(playerTarget));
     }
@@ -299,7 +299,7 @@ void IllusionerEntity::registerGoals()
     {
         auto villagerTarget =
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
-                this, false);
+                this, false, 0);
         villagerTarget->setUnseenMemoryTicks(300);
         m_targetSelector.addGoal(3, std::move(villagerTarget));
     }
@@ -307,7 +307,7 @@ void IllusionerEntity::registerGoals()
     // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
     {
         auto ironGolemTarget =
-            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false);
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false, 0);
         ironGolemTarget->setUnseenMemoryTicks(300);
         m_targetSelector.addGoal(3, std::move(ironGolemTarget));
     }

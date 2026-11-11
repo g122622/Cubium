@@ -206,7 +206,7 @@ void ShulkerPeekGoal::tick()
 // ============================================================================
 
 ShulkerNearestAttackGoal::ShulkerNearestAttackGoal(ShulkerEntity* shulker)
-    : NearestAttackableTargetGoal<Player>(shulker, true)
+    : NearestAttackableTargetGoal<Player>(shulker, true, 0)
 {}
 
 bool ShulkerNearestAttackGoal::shouldExecute()

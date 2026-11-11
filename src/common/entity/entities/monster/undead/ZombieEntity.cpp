@@ -527,16 +527,16 @@ void ZombieEntity::registerGoals()
     }
 
     // 优先级 2: 攻击玩家
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民（不需要视线检查）
     m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this,
-            false)); // checkSight=false — 僵尸可以穿过墙壁感知村民
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+            this, false, 0)); // checkSight=false — 僵尸可以穿过墙壁感知村民
 
     // 优先级 3: 攻击铁傀儡
     m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0));
 
     // 优先级 5: 攻击幼年海龟（仅陆地上的幼体，10 tick 间隔检查）
     m_targetSelector.addGoal(5,

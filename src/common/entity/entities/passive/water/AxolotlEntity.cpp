@@ -219,7 +219,7 @@ void AxolotlEntity::registerGoals()
 
     // 目标选择器
     // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
     // 优先级 2: 攻击水生敌对生物和鱼类
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::AxolotlTargetGoal>(this));
 }

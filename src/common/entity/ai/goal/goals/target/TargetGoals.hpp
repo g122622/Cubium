@@ -140,7 +140,7 @@ public:
      * @param checkSight 是否需要视线检查
      * @param chance 每tick检查的概率倒数（0=每tick都检查）
      */
-    NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance = 0);
+    NearestAttackableTargetGoal(MobEntity* mob, bool checkSight, i32 chance);
 
     /**
      * @brief 构造函数（带目标筛选谓词）
@@ -179,7 +179,7 @@ public:
      * @param mob 拥有此目标的生物
      * @param alertAllies 是否警醒盟友
      */
-    HurtByTargetGoal(MobEntity* mob, bool alertAllies = false);
+    HurtByTargetGoal(MobEntity* mob, bool alertAllies);
 
     /**
      * @brief 构造函数（带攻击者排除谓词）

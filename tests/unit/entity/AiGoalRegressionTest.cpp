@@ -339,9 +339,13 @@ TEST(AiGoalRegressionTest, TemptGoal_UsesTemptingPlayerHandItems)
 
     world.setEntities({&closePlayer, &temptingPlayer});
 
-    TemptGoal goal(&creature, 1.0, [&temptItem](const ItemStack& stack) {
-        return stack.getItem() == &temptItem;
-    });
+    TemptGoal goal(
+        &creature,
+        1.0,
+        [&temptItem](const ItemStack& stack) {
+            return stack.getItem() == &temptItem;
+        },
+        false);
 
     EXPECT_TRUE(goal.shouldExecute());
     goal.startExecuting();

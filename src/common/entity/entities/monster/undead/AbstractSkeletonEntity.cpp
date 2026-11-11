@@ -295,14 +295,14 @@ void AbstractSkeletonEntity::registerGoals()
 
     // 优先级 1: 被攻击后反击
     // MC 原版: targetSelector.addGoal(1, HurtByTargetGoal(this))
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 2: 攻击玩家
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击铁傀儡
     m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0));
 
     // 优先级 3: 攻击幼年海龟（陆地上不在水中的幼体，10 tick 间隔检查）
     m_targetSelector.addGoal(3,

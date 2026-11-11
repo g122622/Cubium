@@ -162,7 +162,7 @@ void BlazeEntity::registerGoals()
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 
     // 优先级 2: NearestAttackableTargetGoal<Player>（攻击玩家）
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 }
 
 void BlazeEntity::registerAttributes()

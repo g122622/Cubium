@@ -436,7 +436,7 @@ void EndermanEntity::registerGoals()
 
     // 优先级 2: 被攻击后反击
     // MC 原版: targetSelector.addGoal(2, HurtByTargetGoal(this))
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 3: 攻击末影螨
     // 对齐 MC Java 1.21.11 EnderMan.registerGoals（EnderMan.java:104）：

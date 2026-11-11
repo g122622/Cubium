@@ -316,11 +316,12 @@ void PillagerEntity::registerGoals()
 
     // 优先级 3: 攻击村民（穿透墙壁感知）
     m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, false));
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+            this, false, 0));
 
     // 优先级 3: 攻击铁傀儡
     m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0));
 }
 
 void PillagerEntity::registerAttributes()
@@ -426,12 +427,12 @@ void VindicatorEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, true));
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, true, 0));
 
     // 优先级 3: 攻击铁傀儡
     m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0));
 
     // 优先级 4: Johnny 彩蛋——命名为 "Johnny" 时攻击所有可攻击生物。对齐 vanilla
     //   Vindicator.registerGoals:73 `targetSelector.addGoal(4, new VindicatorJohnnyAttackGoal(this))`。

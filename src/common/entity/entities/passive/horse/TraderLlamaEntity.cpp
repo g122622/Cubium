@@ -141,7 +141,7 @@ void TraderLlamaEntity::registerGoals()
 
     // 目标优先级 2：攻击灾厄村民
     m_targetSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AbstractIllagerEntity>>(this, true));
+        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AbstractIllagerEntity>>(this, true, 0));
 }
 
 void TraderLlamaEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const

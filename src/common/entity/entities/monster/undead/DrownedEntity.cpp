@@ -285,11 +285,11 @@ void DrownedEntity::registerGoals()
     // ===== 溺尸专属目标选择 =====
 
     // 优先级 2: 攻击玩家（带 okTarget 过滤）
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击美西螈
     m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AxolotlEntity>>(this, true));
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AxolotlEntity>>(this, true, 0));
 }
 
 void DrownedEntity::registerAttributes()

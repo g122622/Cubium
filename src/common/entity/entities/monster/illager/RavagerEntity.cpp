@@ -477,7 +477,7 @@ void RavagerEntity::registerGoals()
         }));
 
     // 优先级 3: 攻击玩家
-    targetSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    targetSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 4: 攻击村民（排除幼年村民）
     // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, true, (p_199899_, p_376378_) ->
@@ -491,7 +491,7 @@ void RavagerEntity::registerGoals()
 
     // 优先级 4: 攻击铁傀儡
     targetSelector().addGoal(
-        4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+        4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0));
 }
 
 void RavagerEntity::registerAttributes()

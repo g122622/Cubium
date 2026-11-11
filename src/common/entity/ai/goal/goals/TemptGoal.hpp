@@ -58,7 +58,7 @@ public:
      * @param itemPredicate 物品检查函数
      * @param scaredByMovement 是否被玩家移动吓跑
      */
-    TemptGoal(CreatureEntity* creature, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement = false);
+    TemptGoal(CreatureEntity* creature, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement);
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;

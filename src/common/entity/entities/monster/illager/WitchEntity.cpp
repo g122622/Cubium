@@ -282,7 +282,7 @@ void WitchEntity::registerGoals()
     // 此前 Cubium 女巫只注册了 HurtByTargetGoal（受伤反击），无主动攻击目标 goal，
     // 与原版不一致——原版女巫主动攻击玩家，Cubium 女巫只能被攻击后反击。
     // checkSight=true 对齐原版第四参数（需视线可见才选目标）。
-    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 女巫 AI 目标
     // priority 1: 游泳目标（已在父类注册）

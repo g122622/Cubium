@@ -158,11 +158,11 @@ void RabbitEntity::applyRabbitType(RabbitType newType)
 
         // 主动攻击玩家
         m_targetSelector.addGoal(
-            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
         // 主动攻击狼
         m_targetSelector.addGoal(
-            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<WolfEntity>>(this, true));
+            2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<WolfEntity>>(this, true, 0));
 
         // ATTACK_DAMAGE +5 修改器（对应 MC EVIL_ATTACK_POWER_MODIFIER）
         // 使用 addOrUpdateTransientModifier 语义：先移除同 ID 修改器再添加

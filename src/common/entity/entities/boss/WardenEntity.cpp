@@ -278,14 +278,14 @@ void WardenEntity::registerGoals()
     // 优先级 1: 被攻击后反击
     // MC 1.21.11 Warden 通过振动系统接收伤害信号并 increaseAngerAt，
     // 简化实现使用 HurtByTargetGoal。
-    m_targetSelector.addGoal(1, std::make_unique<ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 2: 攻击玩家
     // MC 1.21.11 Warden.canTargetEntity() 排除创造/旁观模式玩家、
     // 盔甲架、其他监守者、无敌实体、死亡/濒死实体、世界边界外实体。
     // 简化实现使用 NearestAttackableTargetGoal<Player>，由 Player 谓词
     // 自动排除创造/旁观模式。
-    m_targetSelector.addGoal(2, std::make_unique<ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    m_targetSelector.addGoal(2, std::make_unique<ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // TODO: 完整的监守者行为系统包括以下未实现的子系统：
     // - VibrationSystem: 振动感知系统（监听 game_event 并 increaseAngerAt）

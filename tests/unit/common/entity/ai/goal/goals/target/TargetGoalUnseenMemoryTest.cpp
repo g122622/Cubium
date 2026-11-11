@@ -165,7 +165,7 @@ protected:
 TEST_F(TargetGoalUnseenMemoryTest, SetUnseenMemoryTicks_ReturnsReference)
 {
     // setUnseenMemoryTicks 应返回 TargetGoal& 以支持链式调用
-    auto goal = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(pig.get(), true);
+    auto goal = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(pig.get(), true, 0);
     auto& ref = goal->setUnseenMemoryTicks(300);
     EXPECT_EQ(&ref, goal.get());
 }
@@ -204,7 +204,7 @@ TEST_F(TargetGoalUnseenMemoryTest, SetUnseenMemoryTicks_ChangesValue)
 class TestableHurtByTargetGoal : public entity::ai::goal::HurtByTargetGoal {
 public:
     explicit TestableHurtByTargetGoal(MobEntity* mob)
-        : entity::ai::goal::HurtByTargetGoal(mob)
+        : entity::ai::goal::HurtByTargetGoal(mob, false)
     {}
 
     [[nodiscard]] i32 getUnseenMemoryTicks() const
@@ -235,7 +235,7 @@ TEST_F(TargetGoalUnseenMemoryTest, HurtByTargetGoal_SetsUnseenMemoryTicksTo300On
 TEST_F(TargetGoalUnseenMemoryTest, NearestAttackableTargetGoal_DefaultChanceIsZero)
 {
     // 默认 chance=0，每 tick 都检查目标
-    auto goal = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(pig.get(), true);
+    auto goal = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(pig.get(), true, 0);
     EXPECT_NE(goal, nullptr);
 }
 

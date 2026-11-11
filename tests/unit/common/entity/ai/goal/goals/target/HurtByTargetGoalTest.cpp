@@ -55,7 +55,7 @@ protected:
 
 TEST_F(HurtByTargetGoalTest, DefaultConstructor_AlertAlliesFalse)
 {
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     EXPECT_NE(goal, nullptr);
 }
 
@@ -76,7 +76,7 @@ TEST_F(HurtByTargetGoalTest, Constructor_WithIgnoreDamagePredicate)
 
 TEST_F(HurtByTargetGoalTest, SetAlertOthers_ReturnsReference)
 {
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     auto& ref = goal->setAlertOthers([](const LivingEntity* ally) -> bool {
         return ally != nullptr && ally->entityType() == entity::VanillaEntityTypeKeys::ZOMBIFIED_PIGLIN;
     });
@@ -232,7 +232,7 @@ protected:
 TEST_F(HurtByTargetBehaviorTest, ShouldExecute_NoAttacker_ReturnsFalse)
 {
     // 没有攻击者时，shouldExecute 应返回 false
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     EXPECT_FALSE(goal->shouldExecute());
 }
 
@@ -241,7 +241,7 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_WithAttacker_ReturnsTrue)
     // 设置攻击者
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     EXPECT_TRUE(goal->shouldExecute());
 }
 
@@ -284,7 +284,7 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_DoesNotRepeatForSameAttack)
 {
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
 
     // 第一次调用 shouldExecute 应返回 true
     EXPECT_TRUE(goal->shouldExecute());
@@ -297,7 +297,7 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_NewAttackAfterReset_AllowsReExecu
 {
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
 
     // 第一次攻击
     EXPECT_TRUE(goal->shouldExecute());
@@ -320,7 +320,7 @@ TEST_F(HurtByTargetBehaviorTest, ShouldExecute_SelfAttack_ExcludedByIsSuitableTa
     // 实体攻击自己（不应反击自身，isSuitableTarget 检查 target != mob）
     pig->setLastHurtBy(pig.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     // isSuitableTarget 检查 target != m_mob，自身攻击应被排除
     EXPECT_FALSE(goal->shouldExecute());
 }
@@ -329,7 +329,7 @@ TEST_F(HurtByTargetBehaviorTest, StartExecuting_SetsAttackTarget)
 {
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
 
     // shouldExecute 设置内部目标
     ASSERT_TRUE(goal->shouldExecute());
@@ -343,7 +343,7 @@ TEST_F(HurtByTargetBehaviorTest, ResetTask_ClearsAttackTarget)
 {
     pig->setLastHurtBy(attacker.get());
 
-    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     ASSERT_TRUE(goal->shouldExecute());
     goal->startExecuting();
     EXPECT_EQ(pig->attackTarget(), attacker.get());

@@ -290,8 +290,7 @@ void SlimeEntity::registerGoals()
                 return yDiff <= 4.0;
             }));
     m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this,
-            true)); // checkSight
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true, 0)); // checkSight
 }
 
 void SlimeEntity::registerAttributes()

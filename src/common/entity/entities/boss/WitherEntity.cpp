@@ -899,7 +899,7 @@ void WitherEntity::registerGoals()
     // ========== 目标选择器 ==========
 
     // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // 优先级 2: 攻击非亡灵生物（凋灵同族友军外的所有 LivingEntity）
     // 对齐 MC Java 1.21.11 WitherBoss.registerGoals（WitherBoss.java:104-105）：

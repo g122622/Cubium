@@ -247,29 +247,42 @@
 
 **建议**：在实现新目标时，优先使用 `GoalConstants` 中定义的常量（距离、时间、概率、速度等），而不是硬编码数值，便于统一调整和保持一致性。
 
-### 11. 构造函数默认参数违反项目规范
+### 11. 构造函数默认参数已全面清理
 
-项目规范明确禁止给函数参数设默认值（“大量的默认值会导致数据流变得难以理解”）。
-本目录下仍有 3 处遗留，修改时请按子目录逐个处理：
+项目规范禁止给函数参数设默认值。本目录下的违规已全部处理完毕：
 
-| 子目录 | 处数 | 例如 |
+| 位置 | 处数 | 提交 |
 |---|---|---|
-| `goal/goals/target` | 2 | ⚠ `NearestAttackableTargetGoal` 有约 100 处调用点，`HurtByTargetGoal` 约 60 处 |
-| `goal/goals/special` | 1 | `IronGolemNearestAttackableTargetGoal(IronGolemEntity*, i32 chance = 5)` |
-| `goal/goals` | 1 | `TemptGoal(..., bool scaredByMovement = false)` |
+| `brain/task/tasks/action` | 6 | `033a60556` |
+| `brain/task/tasks/movement` | 4 | `fa54c564d` |
+| `brain/task/tasks/interact` | 5 | `5b715d96d` |
+| `controller` | 1 | `3d83b5112` |
+| `brain/sensor` | 6 | `f9e233900` |
+| `brain/memory` / `brain/task` | 2 | `8e6713e12` / `3f1b1f678` |
+| `goal/goals` 与 `goal/goals/special` | 3 | `146c839ba` / `e81a13ee3` / `5027b040b` |
+| `goal/goals/target` 与 `TemptGoal` | 3 | 本次 |
 
-`brain/task/tasks/{action,movement,interact}` 下的 15 处已于
-`033a60556` / `fa54c564d` / `5b715d96d` / `424d5afe8` 全部清理，可作为参考写法。
+**新增代码不要再引入默认值。**
 
-**注意“影响面”不能按子目录下的次数排**：上表里 `goal/goals/target` 只有 2 处声明，
-但 `NearestAttackableTargetGoal` 作为模板基类被几乎每个敌对生物实体实例化（约 100 处），
-`HurtByTargetGoal` 约 60 处。它们是**被广泛使用的基类**，不是叶子类。
-真正影响面小的是那些只在一两个实体里用到的子类（如
-`PandaLookAtPlayerGoal`、`IronGolemNearestAttackableTargetGoal`）。
-修改前应先数一遍实际调用点，而不是看子目录里有几行声明。
+## 清理默认值的正确做法（重要）
 
-**去掉默认值时最容易出的错是“部分传参的调用点”**：它们只传了前靠前的参数，
-其余静默取默认值，去掉默认值时**不会报编译错误，行为会静默改变**。
-又因为注释里常常同样写着签名原文，批量替换脚本会命中错位置。
-参考做法：逐行处理、跳过注释行，并对每个替换模式**断言命中数**，不符就中止。
+不要用正则去「数调用点」——C++ 的调用形态（模板参数、跨行 lambda、重载、
+子类名以父类名结尾）无法用文本匹配可靠覆盖。本项目尝试过三种正则/手写扫描器，
+全部出错（最差的一次漏检 65%）。
 
+**正确做法：让编译器当解析器。**
+
+1. 直接去掉默认值，编译；
+2. 从编译错误的 `note: in instantiation ... requested here` 行里提取精确的
+   `文件:行号`；
+3. **按行号**修改（不要用正则匹配语法），补上原默认值；
+4. 重复 2-3 直到编译通过。
+
+实践中要注意两点：
+
+- **同一个 .cpp 会逐个暴露**：编译器每次只报第一个错，修完重编会重复出现
+  同文件的新错误。应当把该文件里**所有同类调用一次性处理完**，
+  而不是接受一次一个。
+- **子类调用不能一起改**：例如 `TestableHurtByTargetGoal(pig.get())` 是子类构造，
+  参数个数由子类自己定；只改父类那一行会弄坏子类调用。
+  只能改「基类初始化列表」（`: Base(args)`）与直接构造父类的地方。

@@ -439,7 +439,7 @@ void LlamaEntity::registerGoals()
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::PanicGoal>(this, 1.2));
 
     // Target 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 
     // Target 优先级 2: 防御目标 - 攻击未驯服的狼
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::LlamaDefendTargetGoal>(this));

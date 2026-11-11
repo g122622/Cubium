@@ -86,7 +86,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveGoalsOfType_RemovesMatchingType)
     entity::ai::GoalSelector selector;
 
     // 添加一个 HurtByTargetGoal 和一个 LookAtGoal
-    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get()));
+    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false));
     selector.addGoal(2, std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 8.0f));
 
     // 验证初始状态：2 个目标
@@ -108,7 +108,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveGoalsOfType_RemovesMultipleMatch
     entity::ai::GoalSelector selector;
 
     // 添加两个 HurtByTargetGoal（不同优先级）和一个 LookAtGoal
-    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get()));
+    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false));
     selector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true));
     selector.addGoal(3, std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 8.0f));
 
@@ -174,7 +174,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveGoalsOfType_BaseClassRemovesDeri
     // HurtByTargetGoal 继承自 TargetGoal，使用 TargetGoal 类型移除
     entity::ai::GoalSelector selector;
 
-    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get()));
+    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false));
     selector.addGoal(2, std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 8.0f));
 
     EXPECT_EQ(selector.getAllGoals().size(), 2u);
@@ -193,7 +193,7 @@ TEST_F(GoalSelectorRemoveGoalsOfTypeTest, RemoveAllGoals_ClearsEverything)
 {
     entity::ai::GoalSelector selector;
 
-    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get()));
+    selector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false));
     selector.addGoal(2, std::make_unique<entity::ai::goal::LookAtGoal>(pig.get(), 8.0f));
     selector.addGoal(3, std::make_unique<AlwaysExecuteGoal>());
 

@@ -101,7 +101,7 @@ template <typename T>
 class SpiderTargetGoal : public entity::ai::goal::NearestAttackableTargetGoal<T> {
 public:
     SpiderTargetGoal(SpiderEntity* spider)
-        : entity::ai::goal::NearestAttackableTargetGoal<T>(spider, true)
+        : entity::ai::goal::NearestAttackableTargetGoal<T>(spider, true, 0)
         , m_spider(spider)
     {}
 
