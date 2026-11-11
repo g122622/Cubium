@@ -174,3 +174,51 @@ TEST(JsonReadTest, ValueOnlyOverloads)
     ASSERT_TRUE(text.success());
     EXPECT_EQ(util::json::getString(text.value()).value(), "hello");
 }
+
+TEST(JsonReadTest, IntegerGettersHandleUnsignedLiterals)
+{
+    // 非负整数字面量被 nlohmann 解析为 number_unsigned，不能被误判为类型不符
+    auto document = util::json::parse(R"({"positive":7,"negative":-7})");
+    ASSERT_TRUE(document.success());
+
+    auto positive = util::json::getInt32(document.value(), "positive");
+    ASSERT_TRUE(positive.success());
+    EXPECT_EQ(positive.value(), 7);
+
+    auto negative = util::json::getInt32(document.value(), "negative");
+    ASSERT_TRUE(negative.success());
+    EXPECT_EQ(negative.value(), -7);
+
+    auto wide = util::json::getInt64(document.value(), "positive");
+    ASSERT_TRUE(wide.success());
+    EXPECT_EQ(wide.value(), 7);
+}
+
+TEST(JsonReadTest, IntegerGettersRejectOutOfRangeValues)
+{
+    // get<i32>() 在越界时会抛 out_of_range，这一层必须转成 Error
+    auto document = util::json::parse(R"({"tooBig":3000000000,"tooSmall":-3000000000,"u64Max":18446744073709551615})");
+    ASSERT_TRUE(document.success());
+
+    EXPECT_TRUE(util::json::getInt32(document.value(), "tooBig").failed());
+    EXPECT_TRUE(util::json::getInt32(document.value(), "tooSmall").failed());
+    EXPECT_TRUE(util::json::getInt64(document.value(), "u64Max").failed()); // 超出 int64 范围
+}
+
+TEST(JsonReadTest, FloatGetterRejectsOutOfRangeValues)
+{
+    // 超出 f32 范围的数值不能静默变成 inf
+    auto document = util::json::parse(R"({"huge":1e300,"normal":0.5})");
+    ASSERT_TRUE(document.success());
+
+    EXPECT_TRUE(util::json::getFloat32(document.value(), "huge").failed());
+
+    auto normal = util::json::getFloat32(document.value(), "normal");
+    ASSERT_TRUE(normal.success());
+    EXPECT_FLOAT_EQ(normal.value(), 0.5f);
+
+    // f64 仍可读取 1e300，只是不能收敛到 f32
+    auto wide = util::json::getFloat64(document.value(), "huge");
+    ASSERT_TRUE(wide.success());
+    EXPECT_DOUBLE_EQ(wide.value(), 1e300);
+}

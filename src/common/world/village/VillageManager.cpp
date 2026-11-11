@@ -347,8 +347,8 @@ void VillageManager::deserialize(const nbt::tags::compound_tag& tag)
     }
 
     // 如果有 NextVillageId 字段，使用它（向后兼容）
-    if (tag.value.find("NextVillageId") != tag.value.end()) {
-        VillageId savedNextId = static_cast<VillageId>(tag.get<nbt::tags::long_tag>("NextVillageId"));
+    if (const auto* nextIdTag = tag.findAs<nbt::tags::long_tag>("NextVillageId"); nextIdTag != nullptr) {
+        VillageId savedNextId = static_cast<VillageId>(nextIdTag->value);
         if (savedNextId > m_nextVillageId) {
             m_nextVillageId = savedNextId;
         }

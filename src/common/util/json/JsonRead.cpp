@@ -23,8 +23,11 @@
 
 #include "JsonRead.hpp"
 
+#include <cmath>
+#include <cstdint>
 #include <istream>
 #include <iterator>
+#include <limits>
 #include <string>
 
 namespace mc::util::json {
@@ -112,46 +115,78 @@ Result<nlohmann::json> parse(std::istream& input)
 
 Result<i32> getInt32(const nlohmann::json& value)
 {
-    if (!value.is_number_integer()) {
-        return Error(ErrorCode::InvalidData, "JSON: value must be an integer");
+    // 先按 i64 取，再自行判定是否落在 int32 内：nlohmann 的 get<i32>() 越界会抛 out_of_range
+    const auto wide = getInt64(value);
+    if (wide.failed()) {
+        return wide.error();
     }
-    return value.get<i64>();
+
+    const i64 number = wide.value();
+    if (number < static_cast<i64>(std::numeric_limits<i32>::min()) ||
+        number > static_cast<i64>(std::numeric_limits<i32>::max())) {
+        return Error(ErrorCode::InvalidData, "JSON: integer is out of int32 range");
+    }
+
+    return static_cast<i32>(number);
 }
 
 Result<i32> getInt32(const nlohmann::json& value, std::string_view field)
 {
-    Error error{ErrorCode::Success};
-    const auto* field_value = _requireType(value, field, nlohmann::json::value_t::number_integer, "an integer", error);
+    // 非负整数字面量被 nlohmann 解析为 number_unsigned，故这里必须用 is_number_integer() 而非类型相等判断
+    const auto* field_value = findField(value, field);
     if (field_value == nullptr) {
-        return error;
+        return _missingField(field);
+    }
+    if (!field_value->is_number_integer()) {
+        return _typeMismatch(field, "an integer");
     }
     return getInt32(*field_value);
 }
 
 Result<i64> getInt64(const nlohmann::json& value)
 {
+    // is_number_integer() 对无符号整数同样为真，而 get<i64>() 在超出 int64 时会抛 out_of_range
+    if (value.is_number_unsigned()) {
+        const u64 number = value.get<u64>();
+        if (number > static_cast<u64>(std::numeric_limits<i64>::max())) {
+            return Error(ErrorCode::InvalidData, "JSON: integer is out of int64 range");
+        }
+        return static_cast<i64>(number);
+    }
+
     if (!value.is_number_integer()) {
         return Error(ErrorCode::InvalidData, "JSON: value must be an integer");
     }
+
     return value.get<i64>();
 }
 
 Result<i64> getInt64(const nlohmann::json& value, std::string_view field)
 {
-    Error error{ErrorCode::Success};
-    const auto* field_value = _requireType(value, field, nlohmann::json::value_t::number_integer, "an integer", error);
+    const auto* field_value = findField(value, field);
     if (field_value == nullptr) {
-        return error;
+        return _missingField(field);
+    }
+    if (!field_value->is_number_integer()) {
+        return _typeMismatch(field, "an integer");
     }
     return getInt64(*field_value);
 }
 
 Result<f32> getFloat32(const nlohmann::json& value)
 {
-    if (!value.is_number()) {
-        return Error(ErrorCode::InvalidData, "JSON: value must be a number");
+    // 先用 f64 承接，再判定能否安全收敛到 f32，避免数值溢出成 inf
+    const auto wide = getFloat64(value);
+    if (wide.failed()) {
+        return wide.error();
     }
-    return value.get<f64>();
+
+    const f64 number = wide.value();
+    if (std::abs(number) > static_cast<f64>(std::numeric_limits<f32>::max())) {
+        return Error(ErrorCode::InvalidData, "JSON: number is out of float32 range");
+    }
+
+    return static_cast<f32>(number);
 }
 
 Result<f32> getFloat32(const nlohmann::json& value, std::string_view field)

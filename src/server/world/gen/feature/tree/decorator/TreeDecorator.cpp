@@ -29,6 +29,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/BooleanProperty.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
@@ -120,7 +121,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
     if (!decoratorJson.is_object() || !decoratorJson.contains("type")) {
         return Error(ErrorCode::InvalidData, "tree decorator missing 'type'");
     }
-    std::string typeStr = decoratorJson["type"].get<std::string>();
+    std::string typeStr;
+    MC_TRY_ASSIGN(typeStr, util::json::getString(decoratorJson, "type"));
     // 剥离 "minecraft:" 前缀。
     const std::string::size_type colon = typeStr.find(':');
     if (colon != std::string::npos) {
@@ -138,7 +140,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "attached_to_logs missing 'probability'");
         }
-        const f32 probability = decoratorJson["probability"].get<f32>();
+        f32 probability = 0.0f;
+        MC_TRY_ASSIGN(probability, util::json::getFloat32(decoratorJson, "probability"));
         if (probability < 0.0f || probability > 1.0f) {
             return Error(ErrorCode::InvalidData, "attached_to_logs probability out of range [0.0,1.0]");
         }
@@ -161,10 +164,11 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
             if (!dirJson.is_string()) {
                 return Error(ErrorCode::InvalidData, "attached_to_logs direction entry must be a string");
             }
-            auto dir = Directions::fromName(dirJson.get<std::string>());
+            std::string dirName;
+            MC_TRY_ASSIGN(dirName, util::json::getString(dirJson));
+            auto dir = Directions::fromName(dirName);
             if (!dir.has_value()) {
-                return Error(
-                    ErrorCode::InvalidData, "attached_to_logs unknown direction: " + dirJson.get<std::string>());
+                return Error(ErrorCode::InvalidData, "attached_to_logs unknown direction: " + dirName);
             }
             directions.push_back(dir.value());
         }
@@ -178,24 +182,24 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         // tries(正整数，默认128) / radius(非负，默认2) / height(非负，默认1) / block_state_provider
         i32 tries = 128;
         if (decoratorJson.contains("tries")) {
-            if (!decoratorJson["tries"].is_number_integer() || decoratorJson["tries"].get<i32>() <= 0) {
+            MC_TRY_ASSIGN(tries, util::json::getInt32(decoratorJson, "tries"));
+            if (tries <= 0) {
                 return Error(ErrorCode::InvalidData, "place_on_ground 'tries' must be a positive integer");
             }
-            tries = decoratorJson["tries"].get<i32>();
         }
         i32 radius = 2;
         if (decoratorJson.contains("radius")) {
-            if (!decoratorJson["radius"].is_number_integer() || decoratorJson["radius"].get<i32>() < 0) {
+            MC_TRY_ASSIGN(radius, util::json::getInt32(decoratorJson, "radius"));
+            if (radius < 0) {
                 return Error(ErrorCode::InvalidData, "place_on_ground 'radius' must be a non-negative integer");
             }
-            radius = decoratorJson["radius"].get<i32>();
         }
         i32 height = 1;
         if (decoratorJson.contains("height")) {
-            if (!decoratorJson["height"].is_number_integer() || decoratorJson["height"].get<i32>() < 0) {
+            MC_TRY_ASSIGN(height, util::json::getInt32(decoratorJson, "height"));
+            if (height < 0) {
                 return Error(ErrorCode::InvalidData, "place_on_ground 'height' must be a non-negative integer");
             }
-            height = decoratorJson["height"].get<i32>();
         }
         if (!decoratorJson.contains("block_state_provider")) {
             return Error(ErrorCode::InvalidData, "place_on_ground missing 'block_state_provider'");
@@ -213,7 +217,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "beehive missing 'probability'");
         }
-        const f32 probability = decoratorJson["probability"].get<f32>();
+        f32 probability = 0.0f;
+        MC_TRY_ASSIGN(probability, util::json::getFloat32(decoratorJson, "probability"));
         if (probability < 0.0f || probability > 1.0f) {
             return Error(ErrorCode::InvalidData, "beehive probability out of range [0.0,1.0]");
         }
@@ -224,7 +229,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "leave_vine missing 'probability'");
         }
-        const f32 probability = decoratorJson["probability"].get<f32>();
+        f32 probability = 0.0f;
+        MC_TRY_ASSIGN(probability, util::json::getFloat32(decoratorJson, "probability"));
         if (probability < 0.0f || probability > 1.0f) {
             return Error(ErrorCode::InvalidData, "leave_vine probability out of range [0.0,1.0]");
         }
@@ -235,7 +241,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "cocoa missing 'probability'");
         }
-        const f32 probability = decoratorJson["probability"].get<f32>();
+        f32 probability = 0.0f;
+        MC_TRY_ASSIGN(probability, util::json::getFloat32(decoratorJson, "probability"));
         if (probability < 0.0f || probability > 1.0f) {
             return Error(ErrorCode::InvalidData, "cocoa probability out of range [0.0,1.0]");
         }
@@ -257,7 +264,8 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "attached_to_leaves missing 'probability'");
         }
-        const f32 probability = decoratorJson["probability"].get<f32>();
+        f32 probability = 0.0f;
+        MC_TRY_ASSIGN(probability, util::json::getFloat32(decoratorJson, "probability"));
         if (probability < 0.0f || probability > 1.0f) {
             return Error(ErrorCode::InvalidData, "attached_to_leaves probability out of range [0.0,1.0]");
         }
@@ -283,43 +291,55 @@ Result<std::unique_ptr<TreeDecorator>> parseDecorator(const nlohmann::json& deco
             if (!dirJson.is_string()) {
                 return Error(ErrorCode::InvalidData, "attached_to_leaves direction entry must be a string");
             }
-            auto dir = Directions::fromName(dirJson.get<std::string>());
+            std::string dirName;
+            MC_TRY_ASSIGN(dirName, util::json::getString(dirJson));
+            auto dir = Directions::fromName(dirName);
             if (!dir.has_value()) {
-                return Error(
-                    ErrorCode::InvalidData, "attached_to_leaves unknown direction: " + dirJson.get<std::string>());
+                return Error(ErrorCode::InvalidData, "attached_to_leaves unknown direction: " + dirName);
             }
             leafDirections.push_back(dir.value());
         }
+        i32 exclusionRadiusXz = 0;
+        i32 exclusionRadiusY = 0;
+        i32 requiredEmptyBlocks = 0;
+        MC_TRY_ASSIGN(exclusionRadiusXz, util::json::getInt32(decoratorJson, "exclusion_radius_xz"));
+        MC_TRY_ASSIGN(exclusionRadiusY, util::json::getInt32(decoratorJson, "exclusion_radius_y"));
+        MC_TRY_ASSIGN(requiredEmptyBlocks, util::json::getInt32(decoratorJson, "required_empty_blocks"));
         return std::unique_ptr<TreeDecorator>(std::make_unique<AttachedToLeavesDecorator>(probability,
-            decoratorJson["exclusion_radius_xz"].get<i32>(),
-            decoratorJson["exclusion_radius_y"].get<i32>(),
+            exclusionRadiusXz,
+            exclusionRadiusY,
             leafProviderResult.value(),
-            decoratorJson["required_empty_blocks"].get<i32>(),
+            requiredEmptyBlocks,
             std::move(leafDirections)));
     }
 
     if (typeStr == "pale_moss") {
         // leaves_probability / trunk_probability / ground_probability（三者独立，无默认值）
-        for (const char* field : {"leaves_probability", "trunk_probability", "ground_probability"}) {
-            if (!decoratorJson.contains(field) || !decoratorJson[field].is_number()) {
-                return Error(ErrorCode::InvalidData, std::string("pale_moss missing '") + field + "'");
-            }
-            const f32 v = decoratorJson[field].get<f32>();
-            if (v < 0.0f || v > 1.0f) {
-                return Error(ErrorCode::InvalidData, std::string("pale_moss '") + field + "' out of range [0.0,1.0]");
-            }
+        f32 leavesProbability = 0.0f;
+        f32 trunkProbability = 0.0f;
+        f32 groundProbability = 0.0f;
+        MC_TRY_ASSIGN(leavesProbability, util::json::getFloat32(decoratorJson, "leaves_probability"));
+        MC_TRY_ASSIGN(trunkProbability, util::json::getFloat32(decoratorJson, "trunk_probability"));
+        MC_TRY_ASSIGN(groundProbability, util::json::getFloat32(decoratorJson, "ground_probability"));
+        if (leavesProbability < 0.0f || leavesProbability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "pale_moss 'leaves_probability' out of range [0.0,1.0]");
+        }
+        if (trunkProbability < 0.0f || trunkProbability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "pale_moss 'trunk_probability' out of range [0.0,1.0]");
+        }
+        if (groundProbability < 0.0f || groundProbability > 1.0f) {
+            return Error(ErrorCode::InvalidData, "pale_moss 'ground_probability' out of range [0.0,1.0]");
         }
         return std::unique_ptr<TreeDecorator>(
-            std::make_unique<PaleMossDecorator>(decoratorJson["leaves_probability"].get<f32>(),
-                decoratorJson["trunk_probability"].get<f32>(),
-                decoratorJson["ground_probability"].get<f32>()));
+            std::make_unique<PaleMossDecorator>(leavesProbability, trunkProbability, groundProbability));
     }
 
     if (typeStr == "creaking_heart") {
         if (!decoratorJson.contains("probability") || !decoratorJson["probability"].is_number()) {
             return Error(ErrorCode::InvalidData, "creaking_heart missing 'probability'");
         }
-        const f32 creakProb = decoratorJson["probability"].get<f32>();
+        f32 creakProb = 0.0f;
+        MC_TRY_ASSIGN(creakProb, util::json::getFloat32(decoratorJson, "probability"));
         if (creakProb < 0.0f || creakProb > 1.0f) {
             return Error(ErrorCode::InvalidData, "creaking_heart probability out of range [0.0,1.0]");
         }
