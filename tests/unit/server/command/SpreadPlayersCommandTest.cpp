@@ -31,12 +31,30 @@
 
 #include <gtest/gtest.h>
 
+#include <spdlog/sinks/callback_sink.h>
+#include <spdlog/spdlog.h>
+
+#include <memory>
+#include <string>
+
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/command/CommandTreeSnapshot.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/SpreadPlayersCommand.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 namespace mc {
 namespace command {
@@ -256,3 +274,82 @@ TEST_F(SpreadPlayersCommandTest, CenterArgumentParsesTwoCoordinates)
 
 } // namespace command
 } // namespace mc
+
+// ============================================================================
+// 非玩家实体不再被静默丢弃（/spreadplayers）
+//
+// 改动前：选中集合里只有非玩家实体时，命令报 "No players matched the selector"，
+// 实体被静默丢弃。改动后：它会被当成合法目标，命令继续走到分散算法。
+// ============================================================================
+
+class SpreadPlayersEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+        mc::entity::VanillaEntities::registerAll();
+
+        mc::command::SpreadPlayersCommand::registerTo(m_server.commandRegistry().dispatcher());
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto world = std::make_unique<mc::server::ServerWorld>(config);
+        auto settings = mc::DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+        auto generator = std::make_unique<mc::NoiseChunkGenerator>(
+            std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<mc::server::ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        m_world = world.get();
+        dimension->setWorld(std::move(world));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+    }
+
+    /// 把命令执行期间的 spdlog 输出收集起来（命令反馈走 sendMessage/sendError → spdlog）。
+    std::string _executeCapturingLog(const std::string& command)
+    {
+        std::string captured;
+        auto sink = std::make_shared<spdlog::sinks::callback_sink_mt>([&captured](const spdlog::details::log_msg& msg) {
+            captured.append(msg.payload.data(), msg.payload.size());
+            captured.push_back('\n');
+        });
+        auto logger = std::make_shared<spdlog::logger>("spread-capture", sink);
+        auto previous = spdlog::default_logger();
+        spdlog::set_default_logger(logger);
+
+        m_server.commandRegistry().execute(command, m_console);
+
+        spdlog::set_default_logger(previous);
+        return captured;
+    }
+
+    mc::test::BaseTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+    mc::server::ServerWorld* m_world = nullptr;
+};
+
+TEST_F(SpreadPlayersEntityTest, NonPlayerEntityIsAcceptedAsTarget)
+{
+    auto zombie = std::make_unique<mc::ZombieEntity>(mc::EntityInstanceId(1), mc::test::testEcsRegistry());
+    m_world->entityManager().addEntity(std::move(zombie));
+
+    // 测试世界未加载区块，spreadPositions 拿不到合法落点（max distance 恒为 0），
+    // 所以不断言“分散成功”，只断言命令把它当成了 1 个目标。
+    const std::string log = _executeCapturingLog("spreadplayers 0 0 0 20 false @e");
+
+    EXPECT_EQ(log.find("No players matched the selector"), std::string::npos)
+        << "regression: the non-player entity was dropped at the resolution step";
+    EXPECT_EQ(log.find("No entities matched the selector"), std::string::npos)
+        << "the zombie should have been matched, so this error must not appear";
+    EXPECT_NE(log.find("Could not spread 1 entities"), std::string::npos)
+        << "expected exactly one target (the zombie); actual log:\n"
+        << log;
+}
