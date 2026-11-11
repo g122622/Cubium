@@ -621,7 +621,9 @@ DensityJitFn compileDensityJit(const std::vector<Op>& ops, u32 regCount) noexcep
     if (ops.empty()) {
         return nullptr;
     }
-    try {
+    // 本函数已在每个失败点用 asmjit 错误码处理并返回 nullptr；去异常化后不再用
+    // try/catch 兜底（asmjit 的异常式接口在本项目未启用）。
+    {
         asmjit::JitRuntime& rt = jitRuntime();
         asmjit::CodeHolder code;
         asmjit::Error err = code.init(rt.environment(), rt.cpuFeatures());
@@ -667,10 +669,6 @@ DensityJitFn compileDensityJit(const std::vector<Op>& ops, u32 regCount) noexcep
             return nullptr;
         }
         return fn;
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("density JIT: exception during compilation ({})", e.what());
-        return nullptr;
     }
 }
 
