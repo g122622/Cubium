@@ -551,6 +551,10 @@ std::optional<ResourceLocation> MobEntity::getAmbientSound() const
     // TODO: 以下实体尚未在 Cubium 实现（VanillaEntities 未注册），待补齐实体类时一并 override
     //       getAmbientSound：
     //   - creaking     嘎枝        CREAKING_AMBIENT（1.21 新实体，声音键 entity.creaking.ambient）
+    //     已核实的现状：VanillaEntityDimensions.cpp 里**已经有** minecraft:creaking 的尺寸条目
+    //     （0.9 宽 × 2.7 高，眼高 2.3），但 VanillaEntityTypeKeys 里**没有** CREAKING 类型键，
+    //     也没有对应的实体类。所以补实现时只需加类型键 + 实体类 + 注册，
+    //     **不要重复添加尺寸条目**；那条尺寸目前无任何代码查询，属于预埋数据。
     // 已实现并各自 override 的实体：allay（AllayEntity，手持物品/空手两套）、
     // armadillo（受惊返回 nullopt）、camel、goat、frog、happy_ghast。
     return makeSoundEventId("ambient");
