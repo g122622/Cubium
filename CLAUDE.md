@@ -998,6 +998,11 @@ benchmark 默认关闭，需显式传 `-DMC_BUILD_BENCHMARKS=ON`。客户端测�
 
 `tests/diff` 下的差分包默认**不**参与常规构建，需显式配置 `-DMC_BUILD_DIFF_PROBES=ON` 才会生成 `diff_*` 可执行文件。
 
+【重要】**生产 target 默认在 `-fno-exceptions` 下编译**（`MC_ENABLE_NO_EXCEPTIONS` 默认 ON，开关定义在 `cmake/BuildOptions.cmake`）。作用范围是 `mc_common` / `mc_gen` / `mc_server_shared` / `mc_server_storage` / `mc_bedrock_addon` / `minecraft-server`；`mc_tests` 与 `mc_benchmark` **故意保留异常**（gtest 死亡测试、`benchmark/MemoryProfiler.cpp` 的全局 `operator new` 依赖它）。两个直接后果：
+
+1. 往 `src/` 里写 `throw` / `try` / `catch` 会**编译失败**，失败一律走 `Result` + `Error`；断言走 `MC_ASSERT_RELEASE`（abort），因此断言失败类测试只能用 `EXPECT_DEATH` / `EXPECT_EXIT`，不能用 `EXPECT_THROW`。
+2. PCH 的异常模式必须与使用方一致，所以 `mc_tests` 在开关开启时**不能** `REUSE_FROM mc_common`，改为用同一份 `pch_common.hpp` 自带 PCH（已封装在 `mc_configure_unit_target()` 里，新增测试目标复用它即可）。
+
 【重要】**本项目只支持 `RelWithDebInfo` 与 `Release` 两种配置，Debug 构建已被彻底移除**（`CMAKE_CONFIGURATION_TYPES` 固定为 `RelWithDebInfo;Release`，preset 中不再有 debug 项）。原因：`-O0` 下区块生成、网络包编解码慢一个数量级，没有实用价值。
 
 `RelWithDebInfo` 固定用 `-O2 -DNDEBUG -gline-tables-only -gno-pubnames`，**不要改回 CMake 默认的 `-g`**：本工程模板实例化密集，默认 `-g` 会让单个 `.o` 膨胀到 188 MB、`build/` 到 74 GB。**调试一律看日志（英文），不要指望调试器看变量**。

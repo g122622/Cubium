@@ -15,10 +15,13 @@ option(MC_BUILD_DIFF_PROBES "Build differential probes (tests/diff)" OFF)
 option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
 # 生产 target 禁用 C++ 异常（-fno-exceptions，Windows 另需 _HAS_EXCEPTIONS=0）。
 #
+# 默认 ON：生产 target 已全量在 -fno-exceptions 下构建通过，去异常化是既定架构约束，
+# 不是可选优化。新增生产代码若用到异常会在编译期直接失败，而不是留到运行期。
+#
 # 打开后：生产 target 的断言一律走 defaultAssertHandler（abort + 诊断输出），
 # tests target 仍保留异常（gtest 的 EXPECT_THROW 与 AssertException 支持依赖它）。
 # 详见 docs/iterations/exception禁用指南.md。
-option(MC_ENABLE_NO_EXCEPTIONS "Compile production targets with -fno-exceptions" OFF)
+option(MC_ENABLE_NO_EXCEPTIONS "Compile production targets with -fno-exceptions" ON)
 # 灰度开关：为空表示「全部生产 target」；填分号分隔的 target 名则只对子集生效。
 # 用途是分 target 逐步去异常化（例如先只给 mc_common 打开，验证通过后再扩到 server）。
 set(MC_NO_EXCEPTIONS_TARGETS "" CACHE STRING
