@@ -528,6 +528,15 @@ private:
  *
  * 当需要隐蔽时，搜索附近的床或安全区域，设置 HIDING_PLACE 和 WALK_TARGET 记忆。
  * 实际移动由 MoveToTargetTask 执行。
+ *
+ * TODO(hiding-place-selflock): 本任务存在自锁缺陷。门槛要求 HIDING_PLACE 为
+ * VALUE_ABSENT，而本任务执行时**自己写入** HIDING_PLACE（见下方 setMemory）。
+ * 全仓没有任何代码 getMemory 或 removeMemory 这个记忆——所以首次执行成功后，
+ * 门槛永久为 false，该任务此后再也不会运行。
+ * 下方"不清除 HIDING_PLACE 记忆，让其他逻辑决定何时清除"的注释描述的逻辑
+ * **并不存在**。
+ * 两处需要补齐：(1) 某个消费方读取 HIDING_PLACE 并在抵达/危险解除后清除它；
+ * 或 (2) 若这个记忆本就不需要跨 tick 保留，改成用完即 removeMemory。
  */
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
