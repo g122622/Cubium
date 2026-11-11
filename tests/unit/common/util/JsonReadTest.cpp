@@ -222,3 +222,29 @@ TEST(JsonReadTest, FloatGetterRejectsOutOfRangeValues)
     ASSERT_TRUE(wide.success());
     EXPECT_DOUBLE_EQ(wide.value(), 1e300);
 }
+
+TEST(JsonReadTest, FallbackGettersUseFallbackOnMissingOrMismatch)
+{
+    // 可选字段：缺失或类型不符都落到兜底值，且不抛 type_error
+    auto document =
+        util::json::parse(R"({"int":3,"float":0.5,"bool":true,"text":"x","object":{"k":1},"wrongType":"notANumber"})");
+    ASSERT_TRUE(document.success());
+    const auto& json = document.value();
+
+    EXPECT_EQ(util::json::getInt32Or(json, "int", -1), 3);
+    EXPECT_EQ(util::json::getInt32Or(json, "missing", -1), -1);
+    EXPECT_EQ(util::json::getInt32Or(json, "wrongType", -1), -1);
+
+    EXPECT_FLOAT_EQ(util::json::getFloat32Or(json, "float", 0.0f), 0.5f);
+    EXPECT_FLOAT_EQ(util::json::getFloat32Or(json, "missing", 0.0f), 0.0f);
+
+    EXPECT_TRUE(util::json::getBoolOr(json, "bool", false));
+    EXPECT_FALSE(util::json::getBoolOr(json, "missing", false));
+
+    EXPECT_EQ(util::json::getStringOr(json, "text", "fallback"), "x");
+    EXPECT_EQ(util::json::getStringOr(json, "missing", "fallback"), "fallback");
+
+    EXPECT_EQ(util::json::getObjectOrEmpty(json, "object").at("k").get<i32>(), 1);
+    EXPECT_TRUE(util::json::getObjectOrEmpty(json, "missing").empty());
+    EXPECT_TRUE(util::json::getObjectOrEmpty(json, "wrongType").empty());
+}

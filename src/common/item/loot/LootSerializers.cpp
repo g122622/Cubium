@@ -575,8 +575,8 @@ Result<std::unique_ptr<LevelBasedValue>> LootSerializers::_parseLevelBasedValue(
 
     if (shortType == "linear") {
         // 原版 Linear 两个字段都可缺省为 0。
-        const f32 base = json.value("base", 0.0f);
-        const f32 perLevelAboveFirst = json.value("per_level_above_first", 0.0f);
+        const f32 base = util::json::getFloat32Or(json, "base", 0.0f);
+        const f32 perLevelAboveFirst = util::json::getFloat32Or(json, "per_level_above_first", 0.0f);
         return LevelBasedValue::linear(base, perLevelAboveFirst);
     }
 

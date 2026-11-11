@@ -250,59 +250,12 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createCoral(const nlohmann::json&
 // 中档工厂：config 字段较少，从 JSON 读取后构造
 // ----------------------------------------------------------------------------
 
-namespace {
-
-/// 读取可选数值字段：缺失、类型不符或数值超出 f32 范围时返回 fallback（不会抛异常）
-f32 _optionalFloat(const nlohmann::json& obj, const char* key, f32 fallback)
-{
-    const auto value = util::json::getFloat32(obj, key);
-    return value.success() ? value.value() : fallback;
-}
-
-/// 读取可选整数字段：缺失、类型不符或数值超出 i32 范围时返回 fallback（不会抛异常）
-i32 _optionalInt(const nlohmann::json& obj, const char* key, i32 fallback)
-{
-    const auto value = util::json::getInt32(obj, key);
-    return value.success() ? value.value() : fallback;
-}
-
-/// 读取可选双精度字段：缺失、类型不符时返回 fallback（不会抛异常）
-f64 _optionalDouble(const nlohmann::json& obj, const char* key, f64 fallback)
-{
-    const auto value = util::json::getFloat64(obj, key);
-    return value.success() ? value.value() : fallback;
-}
-
-/// 读取可选字符串字段：缺失或类型不符时返回 fallback（不会抛异常）
-std::string _optionalString(const nlohmann::json& obj, const char* key, std::string fallback)
-{
-    const auto value = util::json::getString(obj, key);
-    return value.success() ? value.value() : fallback;
-}
-
-/// 读取可选对象字段；缺失或不是对象时返回空对象（不会抛异常）
-const nlohmann::json& _optionalObject(const nlohmann::json& obj, const char* key)
-{
-    static const nlohmann::json empty = nlohmann::json::object();
-    const auto* found = util::json::findField(obj, key);
-    return (found != nullptr && found->is_object()) ? *found : empty;
-}
-
-/// 读取可选布尔字段：缺失或类型不符时返回 fallback（不会抛异常）
-bool _optionalBool(const nlohmann::json& obj, const char* key, bool fallback)
-{
-    const auto value = util::json::getBool(obj, key);
-    return value.success() ? value.value() : fallback;
-}
-
-} // namespace
-
 /**
  * @brief bamboo 工厂：probability → podzolProbability；4 个竹子方块状态硬编码。
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createBamboo(const nlohmann::json& configJson)
 {
-    const f32 podzolProbability = _optionalFloat(configJson, "probability", 0.0f);
+    const f32 podzolProbability = util::json::getFloat32Or(configJson, "probability", 0.0f);
     auto config = std::make_unique<BambooFeatureConfig>();
     config->podzolProbability = podzolProbability;
     // 粗竹竿：AGE=1, STAGE=0, LEAVES=None
@@ -334,7 +287,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBamboo(const nlohmann::json
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createSeagrass(const nlohmann::json& configJson)
 {
-    const f32 tallChance = _optionalFloat(configJson, "probability", 0.0f);
+    const f32 tallChance = util::json::getFloat32Or(configJson, "probability", 0.0f);
     auto config = std::make_unique<SeagrassFeatureConfig>();
     config->seagrassState = &VanillaBlocks::SEAGRASS->defaultState();
     config->tallSeagrassLowerState = &VanillaBlocks::TALL_SEAGRASS->defaultState().with(
@@ -350,7 +303,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSeagrass(const nlohmann::js
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createSeaPickle(const nlohmann::json& configJson)
 {
-    const i32 count = _optionalInt(configJson, "count", 10);
+    const i32 count = util::json::getInt32Or(configJson, "count", 10);
     auto config = std::make_unique<SeaPickleFeatureConfig>();
     config->seaPickleState = &VanillaBlocks::SEA_PICKLE->defaultState().with(BlockStateProperties::PICKLES_1_4(), 1);
     config->tries = count;
@@ -382,8 +335,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBigMushroom(const nlohmann:
     if (stemState == nullptr) {
         return Error(ErrorCode::InvalidData, "huge_mushroom stem_provider must be simple_state_provider");
     }
-    auto config =
-        std::make_unique<BigMushroomFeatureConfig>(capState, stemState, _optionalInt(configJson, "foliage_radius", 2));
+    auto config = std::make_unique<BigMushroomFeatureConfig>(
+        capState, stemState, util::json::getInt32Or(configJson, "foliage_radius", 2));
     return toBase(std::make_unique<ConfiguredBigMushroomFeature>(
         std::move(config), isBrown ? "huge_brown_mushroom" : "huge_red_mushroom", isBrown));
 }
@@ -448,7 +401,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createHugeFungus(const nlohmann::
             fungusType = FungusType::Warped;
         }
     }
-    auto config = std::make_unique<HugeFungusFeatureConfig>(fungusType, _optionalBool(configJson, "planted", false));
+    auto config =
+        std::make_unique<HugeFungusFeatureConfig>(fungusType, util::json::getBoolOr(configJson, "planted", false));
     return toBase(std::make_unique<ConfiguredHugeFungusFeature>(std::move(config), "huge_fungus"));
 }
 
@@ -621,7 +575,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRandomSelector(const nlohma
             }
             WeightedFeatureEntry weighted;
             weighted.featureId = idResult.value();
-            weighted.chance = _optionalFloat(entry, "chance", 0.0f);
+            weighted.chance = util::json::getFloat32Or(entry, "chance", 0.0f);
             config->features.push_back(std::move(weighted));
         }
     }
@@ -676,9 +630,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createWeepingVines(const nlohmann
 Result<std::unique_ptr<ConfiguredFeatureBase>> createTwistingVines(const nlohmann::json& configJson)
 {
     auto config = std::make_unique<TwistingVinesFeatureConfig>();
-    config->spreadWidth = _optionalInt(configJson, "spread_width", 0);
-    config->spreadHeight = _optionalInt(configJson, "spread_height", 0);
-    config->maxHeight = _optionalInt(configJson, "max_height", 0);
+    config->spreadWidth = util::json::getInt32Or(configJson, "spread_width", 0);
+    config->spreadHeight = util::json::getInt32Or(configJson, "spread_height", 0);
+    config->maxHeight = util::json::getInt32Or(configJson, "max_height", 0);
     return toBase(std::make_unique<ConfiguredTwistingVinesFeature>(std::move(config)));
 }
 
@@ -878,8 +832,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createMultifaceGrowth(const nlohm
 
     auto config = std::make_unique<cave::MultifaceGrowthConfig>();
     config->placeBlock = multiface;
-    config->searchRange = _optionalInt(configJson, "search_range", 10);
-    config->chanceOfSpreading = _optionalFloat(configJson, "chance_of_spreading", 0.5f);
+    config->searchRange = util::json::getInt32Or(configJson, "search_range", 10);
+    config->chanceOfSpreading = util::json::getFloat32Or(configJson, "chance_of_spreading", 0.5f);
 
     if (configJson.contains("can_be_placed_on")) {
         auto r = parseMultifaceCanBePlacedOn(configJson["can_be_placed_on"], *config);
@@ -890,9 +844,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createMultifaceGrowth(const nlohm
 
     // MC: 由 can_place_on_{ceiling,floor,wall} 派生 validDirections。
     //   ceiling→UP, floor→DOWN, wall→HORIZONTAL(NORTH/SOUTH/WEST/EAST)。
-    const bool canCeiling = _optionalBool(configJson, "can_place_on_ceiling", false);
-    const bool canFloor = _optionalBool(configJson, "can_place_on_floor", false);
-    const bool canWall = _optionalBool(configJson, "can_place_on_wall", false);
+    const bool canCeiling = util::json::getBoolOr(configJson, "can_place_on_ceiling", false);
+    const bool canFloor = util::json::getBoolOr(configJson, "can_place_on_floor", false);
+    const bool canWall = util::json::getBoolOr(configJson, "can_place_on_wall", false);
     config->validDirections.clear();
     if (canCeiling) {
         config->validDirections.push_back(Direction::Up);
@@ -1105,21 +1059,23 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createGeode(const nlohmann::json&
     }
 
     // layers
-    const auto& layersJson = _optionalObject(configJson, "layers");
-    config->layerSettings.filling = _optionalDouble(layersJson, "filling", 1.7);
-    config->layerSettings.innerLayer = _optionalDouble(layersJson, "inner_layer", 2.2);
-    config->layerSettings.middleLayer = _optionalDouble(layersJson, "middle_layer", 3.2);
-    config->layerSettings.outerLayer = _optionalDouble(layersJson, "outer_layer", 4.2);
+    const auto& layersJson = util::json::getObjectOrEmpty(configJson, "layers");
+    config->layerSettings.filling = util::json::getFloat64Or(layersJson, "filling", 1.7);
+    config->layerSettings.innerLayer = util::json::getFloat64Or(layersJson, "inner_layer", 2.2);
+    config->layerSettings.middleLayer = util::json::getFloat64Or(layersJson, "middle_layer", 3.2);
+    config->layerSettings.outerLayer = util::json::getFloat64Or(layersJson, "outer_layer", 4.2);
 
     // crack
-    const auto& crackJson = _optionalObject(configJson, "crack");
-    config->crackSettings.generateCrackChance = _optionalDouble(crackJson, "generate_crack_chance", 1.0);
-    config->crackSettings.baseCrackSize = _optionalDouble(crackJson, "base_crack_size", 2.0);
-    config->crackSettings.crackPointOffset = _optionalInt(crackJson, "crack_point_offset", 2);
+    const auto& crackJson = util::json::getObjectOrEmpty(configJson, "crack");
+    config->crackSettings.generateCrackChance = util::json::getFloat64Or(crackJson, "generate_crack_chance", 1.0);
+    config->crackSettings.baseCrackSize = util::json::getFloat64Or(crackJson, "base_crack_size", 2.0);
+    config->crackSettings.crackPointOffset = util::json::getInt32Or(crackJson, "crack_point_offset", 2);
 
-    config->usePotentialPlacementsChance = _optionalDouble(configJson, "use_potential_placements_chance", 0.35);
-    config->useAlternateLayer0Chance = _optionalDouble(configJson, "use_alternate_layer0_chance", 0.0);
-    config->placementsRequireLayer0Alternate = _optionalBool(configJson, "placements_require_layer0_alternate", true);
+    config->usePotentialPlacementsChance =
+        util::json::getFloat64Or(configJson, "use_potential_placements_chance", 0.35);
+    config->useAlternateLayer0Chance = util::json::getFloat64Or(configJson, "use_alternate_layer0_chance", 0.0);
+    config->placementsRequireLayer0Alternate =
+        util::json::getBoolOr(configJson, "placements_require_layer0_alternate", true);
 
     if (!configJson.contains("outer_wall_distance")) {
         return Error(ErrorCode::InvalidData, "geode config missing 'outer_wall_distance' IntProvider");
@@ -1146,10 +1102,10 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createGeode(const nlohmann::json&
         config->pointOffset = r.value();
     }
 
-    config->minGenOffset = _optionalInt(configJson, "min_gen_offset", -16);
-    config->maxGenOffset = _optionalInt(configJson, "max_gen_offset", 16);
-    config->noiseMultiplier = _optionalDouble(configJson, "noise_multiplier", 0.05);
-    config->invalidBlocksThreshold = _optionalInt(configJson, "invalid_blocks_threshold", 1);
+    config->minGenOffset = util::json::getInt32Or(configJson, "min_gen_offset", -16);
+    config->maxGenOffset = util::json::getInt32Or(configJson, "max_gen_offset", 16);
+    config->noiseMultiplier = util::json::getFloat64Or(configJson, "noise_multiplier", 0.05);
+    config->invalidBlocksThreshold = util::json::getInt32Or(configJson, "invalid_blocks_threshold", 1);
 
     return toBase(std::make_unique<cave::ConfiguredGeodeFeature>(std::move(config), "geode"));
 }
@@ -1193,8 +1149,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createOre(const nlohmann::json& c
     if (!targetsResult.success()) {
         return targetsResult.error();
     }
-    const i32 size = _optionalInt(configJson, "size", 0);
-    const f32 discardChance = _optionalFloat(configJson, "discard_chance_on_air_exposure", 0.0f);
+    const i32 size = util::json::getInt32Or(configJson, "size", 0);
+    const f32 discardChance = util::json::getFloat32Or(configJson, "discard_chance_on_air_exposure", 0.0f);
     auto config = std::make_unique<OreFeatureConfig>(std::move(targetsResult.value()), size, discardChance);
     return toBase(std::make_unique<ConfiguredOreFeature>(std::move(config), "ore"));
 }
@@ -1289,9 +1245,9 @@ Result<void> parseMangroveRootPlacement(const nlohmann::json& placementJson, Man
         out.muddyRootsProvider = std::move(muddyProviderResult).value();
     }
 
-    out.maxRootWidth = _optionalInt(placementJson, "max_root_width", 8);
-    out.maxRootLength = _optionalInt(placementJson, "max_root_length", 15);
-    out.randomSkewChance = _optionalFloat(placementJson, "random_skew_chance", 0.0f);
+    out.maxRootWidth = util::json::getInt32Or(placementJson, "max_root_width", 8);
+    out.maxRootLength = util::json::getInt32Or(placementJson, "max_root_length", 15);
+    out.randomSkewChance = util::json::getFloat32Or(placementJson, "random_skew_chance", 0.0f);
     return {};
 }
 
@@ -1303,7 +1259,7 @@ Result<std::unique_ptr<RootPlacerConfig>> parseRootPlacer(const nlohmann::json& 
     if (!rootJson.is_object()) {
         return Error(ErrorCode::InvalidData, "root_placer must be an object");
     }
-    const std::string type = _optionalString(rootJson, "type", "");
+    const std::string type = util::json::getStringOr(rootJson, "type", "");
     if (type != "minecraft:mangrove_root_placer") {
         return Error(ErrorCode::InvalidData, "unsupported root_placer type: " + type);
     }
@@ -1394,9 +1350,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createTree(const nlohmann::json& 
             config->decorators.push_back(std::move(decResult).value());
         }
     }
-    config->ignoreVines = _optionalBool(configJson, "ignore_vines", false);
+    config->ignoreVines = util::json::getBoolOr(configJson, "ignore_vines", false);
     // MC 的 force_dirt 对应项目 forcePlacement（跳过高度检查的强制放置语义最近）
-    config->forcePlacement = _optionalBool(configJson, "force_dirt", false);
+    config->forcePlacement = util::json::getBoolOr(configJson, "force_dirt", false);
     // 解析 minimum_size（TwoLayersFeatureSize / ThreeLayersFeatureSize），用于 getMaxFreeTreeHeight
     if (configJson.contains("minimum_size")) {
         auto sizeResult = parser::FeatureSizeParser::parse(configJson["minimum_size"]);
@@ -1460,7 +1416,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createBlockColumn(const nlohmann:
         }
         config->allowedPlacement = predResult.value();
     }
-    config->prioritizeTip = _optionalBool(configJson, "prioritize_tip", false);
+    config->prioritizeTip = util::json::getBoolOr(configJson, "prioritize_tip", false);
     return toBase(std::make_unique<cave::ConfiguredBlockColumnFeature>(std::move(config), "block_column"));
 }
 
@@ -1515,9 +1471,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createVegetationPatch(const nlohm
         }
         config->depth = depthResult.value();
     }
-    config->extraBottomBlockChance = _optionalFloat(configJson, "extra_bottom_block_chance", 0.0f);
-    config->verticalRange = _optionalInt(configJson, "vertical_range", 5);
-    config->vegetationChance = _optionalFloat(configJson, "vegetation_chance", 0.8f);
+    config->extraBottomBlockChance = util::json::getFloat32Or(configJson, "extra_bottom_block_chance", 0.0f);
+    config->verticalRange = util::json::getInt32Or(configJson, "vertical_range", 5);
+    config->vegetationChance = util::json::getFloat32Or(configJson, "vegetation_chance", 0.8f);
     if (configJson.contains("xz_radius")) {
         auto radiusResult = valueprovider::IntProviderParser::parse(configJson["xz_radius"]);
         if (!radiusResult.success()) {
@@ -1525,7 +1481,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createVegetationPatch(const nlohm
         }
         config->xzRadius = radiusResult.value();
     }
-    config->extraEdgeColumnChance = _optionalFloat(configJson, "extra_edge_column_chance", 0.3f);
+    config->extraEdgeColumnChance = util::json::getFloat32Or(configJson, "extra_edge_column_chance", 0.3f);
 
     if (waterlogged) {
         return toBase(std::make_unique<cave::ConfiguredWaterloggedPatchFeature>(
@@ -1550,8 +1506,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
         configJson["feature"].contains("feature") && configJson["feature"]["feature"].is_string()) {
         config->treeFeatureId = ResourceLocation(configJson["feature"]["feature"].get<std::string>());
     }
-    config->requiredVerticalSpaceForTree = _optionalInt(configJson, "required_vertical_space_for_tree", 3);
-    config->rootRadius = _optionalInt(configJson, "root_radius", 3);
+    config->requiredVerticalSpaceForTree = util::json::getInt32Or(configJson, "required_vertical_space_for_tree", 3);
+    config->rootRadius = util::json::getInt32Or(configJson, "root_radius", 3);
     if (configJson.contains("root_replaceable") && configJson["root_replaceable"].is_string()) {
         config->rootReplaceableTag = configJson["root_replaceable"].get<std::string>();
     }
@@ -1562,10 +1518,10 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
         }
         config->rootState = providerResult.value()->asSingleState();
     }
-    config->rootPlacementAttempts = _optionalInt(configJson, "root_placement_attempts", 20);
-    config->rootColumnMaxHeight = _optionalInt(configJson, "root_column_max_height", 100);
-    config->hangingRootRadius = _optionalInt(configJson, "hanging_root_radius", 20);
-    config->hangingRootsVerticalSpan = _optionalInt(configJson, "hanging_roots_vertical_span", 2);
+    config->rootPlacementAttempts = util::json::getInt32Or(configJson, "root_placement_attempts", 20);
+    config->rootColumnMaxHeight = util::json::getInt32Or(configJson, "root_column_max_height", 100);
+    config->hangingRootRadius = util::json::getInt32Or(configJson, "hanging_root_radius", 20);
+    config->hangingRootsVerticalSpan = util::json::getInt32Or(configJson, "hanging_roots_vertical_span", 2);
     if (configJson.contains("hanging_root_state_provider")) {
         auto providerResult = parser::BlockStateProviderParser::parse(configJson["hanging_root_state_provider"]);
         if (!providerResult.success()) {
@@ -1573,8 +1529,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
         }
         config->hangingRootState = providerResult.value()->asSingleState();
     }
-    config->hangingRootPlacementAttempts = _optionalInt(configJson, "hanging_root_placement_attempts", 3);
-    config->allowedVerticalWaterForTree = _optionalInt(configJson, "allowed_vertical_water_for_tree", 2);
+    config->hangingRootPlacementAttempts = util::json::getInt32Or(configJson, "hanging_root_placement_attempts", 3);
+    config->allowedVerticalWaterForTree = util::json::getInt32Or(configJson, "allowed_vertical_water_for_tree", 2);
     return toBase(std::make_unique<cave::ConfiguredRootSystemFeature>(std::move(config), "root_system"));
 }
 
@@ -1585,9 +1541,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRootSystem(const nlohmann::
 Result<std::unique_ptr<ConfiguredFeatureBase>> createFlower(const nlohmann::json& configJson)
 {
     auto config = std::make_unique<FlowerFeatureConfig>();
-    config->tries = _optionalInt(configJson, "tries", 64);
-    config->xzSpread = _optionalInt(configJson, "xz_spread", 7);
-    config->ySpread = _optionalInt(configJson, "y_spread", 3);
+    config->tries = util::json::getInt32Or(configJson, "tries", 64);
+    config->xzSpread = util::json::getInt32Or(configJson, "xz_spread", 7);
+    config->ySpread = util::json::getInt32Or(configJson, "y_spread", 3);
 
     // 内联特征结构：config.feature.feature.config.to_place (BlockStateProvider)
     if (configJson.contains("feature") && configJson["feature"].is_object() &&
@@ -1669,9 +1625,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createRandomPatch(const nlohmann:
     }
 
     auto config = std::make_unique<RandomPatchFeatureConfig>();
-    config->tries = _optionalInt(configJson, "tries", 128);
-    config->xzSpread = _optionalInt(configJson, "xz_spread", 7);
-    config->ySpread = _optionalInt(configJson, "y_spread", 3);
+    config->tries = util::json::getInt32Or(configJson, "tries", 128);
+    config->xzSpread = util::json::getInt32Or(configJson, "xz_spread", 7);
+    config->ySpread = util::json::getInt32Or(configJson, "y_spread", 3);
     config->inlineFeature = std::move(inlineFeature);
     // PlacedFeature 持有 inlineFeature 裸指针（由 config 持有所有权，生命周期长于 PlacedFeature）
     config->feature = std::make_unique<PlacedFeature>(config->inlineFeature.get(), chainResult.value(), placeholderId);
@@ -1716,11 +1672,11 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLake(const nlohmann::json& 
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createPointedDripstone(const nlohmann::json& configJson)
 {
-    auto config =
-        std::make_unique<cave::PointedDripstoneConfig>(_optionalFloat(configJson, "chance_of_taller_dripstone", 0.2F),
-            _optionalFloat(configJson, "chance_of_directional_spread", 0.7F),
-            _optionalFloat(configJson, "chance_of_spread_radius2", 0.5F),
-            _optionalFloat(configJson, "chance_of_spread_radius3", 0.5F));
+    auto config = std::make_unique<cave::PointedDripstoneConfig>(
+        util::json::getFloat32Or(configJson, "chance_of_taller_dripstone", 0.2F),
+        util::json::getFloat32Or(configJson, "chance_of_directional_spread", 0.7F),
+        util::json::getFloat32Or(configJson, "chance_of_spread_radius2", 0.5F),
+        util::json::getFloat32Or(configJson, "chance_of_spread_radius3", 0.5F));
     return toBase(std::make_unique<cave::ConfiguredPointedDripstoneFeature>(std::move(config), "pointed_dripstone"));
 }
 
@@ -1732,7 +1688,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createPointedDripstone(const nloh
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohmann::json& configJson)
 {
-    const i32 searchRange = _optionalInt(configJson, "floor_to_ceiling_search_range", 30);
+    const i32 searchRange = util::json::getInt32Or(configJson, "floor_to_ceiling_search_range", 30);
     if (!configJson.contains("column_radius")) {
         return Error(ErrorCode::InvalidData, "large_dripstone config missing 'column_radius' IntProvider");
     }
@@ -1762,9 +1718,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohma
     if (!windResult.success()) {
         return windResult.error();
     }
-    const f32 maxRatio = _optionalFloat(configJson, "max_column_radius_to_cave_height_ratio", 0.0F);
-    const i32 minRadiusWind = _optionalInt(configJson, "min_radius_for_wind", 0);
-    const f32 minBluntWind = _optionalFloat(configJson, "min_bluntness_for_wind", 0.0F);
+    const f32 maxRatio = util::json::getFloat32Or(configJson, "max_column_radius_to_cave_height_ratio", 0.0F);
+    const i32 minRadiusWind = util::json::getInt32Or(configJson, "min_radius_for_wind", 0);
+    const f32 minBluntWind = util::json::getFloat32Or(configJson, "min_bluntness_for_wind", 0.0F);
 
     auto config = std::make_unique<cave::LargeDripstoneConfig>(searchRange,
         std::move(radiusResult).value(),
@@ -1787,7 +1743,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createLargeDripstone(const nlohma
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createDripstoneCluster(const nlohmann::json& configJson)
 {
-    const i32 searchRange = _optionalInt(configJson, "floor_to_ceiling_search_range", 0);
+    const i32 searchRange = util::json::getInt32Or(configJson, "floor_to_ceiling_search_range", 0);
     if (!configJson.contains("height") || !configJson.contains("radius") ||
         !configJson.contains("dripstone_block_layer_thickness")) {
         return Error(ErrorCode::InvalidData,
@@ -1816,11 +1772,13 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDripstoneCluster(const nloh
     if (!wetnessResult.success()) {
         return wetnessResult.error();
     }
-    const i32 maxHeightDiff = _optionalInt(configJson, "max_stalagmite_stalactite_height_diff", 0);
-    const i32 heightDeviation = _optionalInt(configJson, "height_deviation", 0);
-    const f32 chanceAtMax = _optionalFloat(configJson, "chance_of_dripstone_column_at_max_distance_from_center", 0.0F);
-    const i32 maxDistEdge = _optionalInt(configJson, "max_distance_from_edge_affecting_chance_of_dripstone_column", 0);
-    const i32 maxDistCenter = _optionalInt(configJson, "max_distance_from_center_affecting_height_bias", 0);
+    const i32 maxHeightDiff = util::json::getInt32Or(configJson, "max_stalagmite_stalactite_height_diff", 0);
+    const i32 heightDeviation = util::json::getInt32Or(configJson, "height_deviation", 0);
+    const f32 chanceAtMax =
+        util::json::getFloat32Or(configJson, "chance_of_dripstone_column_at_max_distance_from_center", 0.0F);
+    const i32 maxDistEdge =
+        util::json::getInt32Or(configJson, "max_distance_from_edge_affecting_chance_of_dripstone_column", 0);
+    const i32 maxDistCenter = util::json::getInt32Or(configJson, "max_distance_from_center_affecting_height_bias", 0);
 
     auto config = std::make_unique<cave::DripstoneClusterConfig>(searchRange,
         std::move(heightResult).value(),
@@ -1904,9 +1862,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDelta(const nlohmann::json&
  */
 Result<std::unique_ptr<ConfiguredFeatureBase>> createUnderwaterMagma(const nlohmann::json& configJson)
 {
-    const i32 floorSearchRange = _optionalInt(configJson, "floor_search_range", 0);
-    const i32 placementRadius = _optionalInt(configJson, "placement_radius_around_floor", 0);
-    const f32 probability = _optionalFloat(configJson, "placement_probability_per_valid_position", 0.0f);
+    const i32 floorSearchRange = util::json::getInt32Or(configJson, "floor_search_range", 0);
+    const i32 placementRadius = util::json::getInt32Or(configJson, "placement_radius_around_floor", 0);
+    const f32 probability = util::json::getFloat32Or(configJson, "placement_probability_per_valid_position", 0.0f);
     UnderwaterMagmaConfig config(floorSearchRange, placementRadius, probability);
     return toBase(std::make_unique<ConfiguredUnderwaterMagmaFeature>(config, "underwater_magma"));
 }
@@ -1978,9 +1936,9 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createSpringFeature(const nlohman
         return stateResult.error();
     }
     config->state = stateResult.value();
-    config->requiresBlockBelow = _optionalBool(configJson, "requires_block_below", true);
-    config->rockCount = _optionalInt(configJson, "rock_count", 4);
-    config->holeCount = _optionalInt(configJson, "hole_count", 1);
+    config->requiresBlockBelow = util::json::getBoolOr(configJson, "requires_block_below", true);
+    config->rockCount = util::json::getInt32Or(configJson, "rock_count", 4);
+    config->holeCount = util::json::getInt32Or(configJson, "hole_count", 1);
     if (!configJson.contains("valid_blocks")) {
         return Error(ErrorCode::InvalidData, "spring_feature config missing 'valid_blocks'");
     }
@@ -2025,8 +1983,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createNetherForestVegetation(cons
     }
     auto config = std::make_unique<NetherForestVegetationConfig>();
     config->stateProvider = providerResult.value();
-    config->spreadWidth = _optionalInt(configJson, "spread_width", 0);
-    config->spreadHeight = _optionalInt(configJson, "spread_height", 0);
+    config->spreadWidth = util::json::getInt32Or(configJson, "spread_width", 0);
+    config->spreadHeight = util::json::getInt32Or(configJson, "spread_height", 0);
     if (config->spreadWidth <= 0 || config->spreadHeight <= 0) {
         return Error(ErrorCode::InvalidData, "nether_forest_vegetation spread_width/spread_height must be positive");
     }
@@ -2070,7 +2028,7 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createDisk(const nlohmann::json& 
     }
     config->radius = radiusResult.value();
 
-    config->halfHeight = _optionalInt(configJson, "half_height", 0);
+    config->halfHeight = util::json::getInt32Or(configJson, "half_height", 0);
     return toBase(std::make_unique<ConfiguredDiskFeature>(std::move(config), "disk"));
 }
 
@@ -2090,8 +2048,8 @@ Result<std::unique_ptr<ConfiguredFeatureBase>> createScatteredOre(const nlohmann
     if (!targetsResult.success()) {
         return targetsResult.error();
     }
-    const i32 size = _optionalInt(configJson, "size", 0);
-    const f32 discardChance = _optionalFloat(configJson, "discard_chance_on_air_exposure", 0.0f);
+    const i32 size = util::json::getInt32Or(configJson, "size", 0);
+    const f32 discardChance = util::json::getFloat32Or(configJson, "discard_chance_on_air_exposure", 0.0f);
     auto config = std::make_unique<OreFeatureConfig>(std::move(targetsResult.value()), size, discardChance);
     return toBase(std::make_unique<ConfiguredScatteredOreFeature>(std::move(config), "scattered_ore"));
 }

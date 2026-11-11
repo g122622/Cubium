@@ -28,6 +28,7 @@
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
@@ -727,7 +728,7 @@ bool AbstractFurnaceEntity::load(const nlohmann::json& data)
                 continue;
             }
 
-            const i32 slot = itemJson.value("Slot", -1);
+            const i32 slot = util::json::getInt32Or(itemJson, "Slot", -1);
             if (slot < SLOT_INPUT || slot > SLOT_OUTPUT) {
                 continue;
             }

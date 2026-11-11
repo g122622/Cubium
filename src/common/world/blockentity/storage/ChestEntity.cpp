@@ -26,6 +26,7 @@
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -466,7 +467,7 @@ bool ChestEntity::load(const nlohmann::json& data)
                 continue;
             }
 
-            const i32 slot = itemJson.value("Slot", -1);
+            const i32 slot = util::json::getInt32Or(itemJson, "Slot", -1);
             if (slot < 0 || slot >= CHEST_SIZE) {
                 continue;
             }

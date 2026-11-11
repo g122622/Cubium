@@ -12,7 +12,7 @@ nlohmann-json 在本项目里既是**值类型**也是**解析器**。它的问�
 
 ```
 src/common/util/json/
-├── JsonRead.hpp/cpp  # 非抛出解析与类型化取值（parse / getXxx / findField / hasField）
+├── JsonRead.hpp/cpp  # 非抛出解析与类型化取值（parse / getXxx / getXxxOr / findField / hasField）
 └── README.md         # 本文档
 ```
 
@@ -23,7 +23,9 @@ src/common/util/json/
 - 解析：`util::json::parse(text)` / `util::json::parse(stream)` —— 不要用 `json::parse` / `operator>>` / `file >> json`
 - 取值：`getInt32` / `getInt64` / `getFloat32` / `getFloat64` / `getBool` / `getString` /
   `getObject` / `getArray` —— 不要用 `.get<T>()` / `.at()`
-- 可选字段：`findField`（返回 `const json*`）/ `hasField`，判空后使用
+- 可选字段带默认值：`getInt32Or` / `getInt64Or` / `getFloat32Or` / `getFloat64Or` /
+  `getBoolOr` / `getStringOr` / `getObjectOrEmpty` —— 不要用 `json::value(key, default)`
+- 可选字段无默认值：`findField`（返回 `const json*`）/ `hasField`，判空后使用
 
 **不必**（这些不是"读取外部输入"，nlohmann 直接使用是正常且推荐的）：
 
@@ -70,7 +72,21 @@ src/common/util/json/
 `getInt32/getInt64` 只接受 `is_number_integer()`。`3.0` 会被判为类型不符——这是有意的：
 数据包里本该是整数的字段写成浮点，通常是数据错误，应当报出来而不是静默截断。
 
-### 5. 不要为单点需求加薄封装
+### 5. `is_number_integer()` 拦不住越界
+
+nlohmann 的 `number_integer` 是 **int64**、`number_unsigned` 是 **uint64**，
+`json.get<i32>()` 在数值超出 int32 范围时会抛 `out_of_range`——`is_number_integer()`
+只保证"是整数"，不保证"装得下"。同理 `get<f32>()` 在数值超出 f32 范围时会抛
+`out_of_range`。这正是本层 `getInt32` / `getFloat32` 存在的理由：它们先按宽类型取，
+再自行判定范围并返回 `Error`。
+
+### 6. 非负整数字面量是 `number_unsigned`
+
+`nlohmann::json::parse("42")` 得到的是 `number_unsigned` 而不是 `number_integer`。
+因此**不要**用 `field_value->type() == value_t::number_integer` 这种方式判断"是不是整数"，
+必须用 `is_number_integer()`（它对 `number_unsigned` 同样为真）。
+
+### 7. 不要为单点需求加薄封装
 
 `util::json` 已经是统一入口。若某处只是"少写一行判空"，直接用 `findField` + 判空即可，
 不要再包一个只调用一次的函数（见项目规范「关于配置和传参」与薄封装禁令）。

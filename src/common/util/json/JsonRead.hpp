@@ -87,6 +87,24 @@ namespace mc::util::json {
 [[nodiscard]] Result<std::string> getString(const nlohmann::json& value);
 
 /**
+ * @brief 取可选字段，缺失或类型不符时返回调用方给出的兜底值（不抛异常）
+ *
+ * 用于数据包/存档中"可选但带默认值"的字段：`nlohmann::json::value(key, default)`
+ * 在键缺失时安全，但类型不符时会抛 `type_error`，因此不可用于不可信输入。
+ */
+[[nodiscard]] i32 getInt32Or(const nlohmann::json& value, std::string_view field, i32 fallback);
+[[nodiscard]] i64 getInt64Or(const nlohmann::json& value, std::string_view field, i64 fallback);
+[[nodiscard]] f32 getFloat32Or(const nlohmann::json& value, std::string_view field, f32 fallback);
+[[nodiscard]] f64 getFloat64Or(const nlohmann::json& value, std::string_view field, f64 fallback);
+[[nodiscard]] bool getBoolOr(const nlohmann::json& value, std::string_view field, bool fallback);
+[[nodiscard]] std::string getStringOr(const nlohmann::json& value, std::string_view field, std::string_view fallback);
+
+/**
+ * @brief 取可选对象字段，缺失或不是对象时返回空对象（不抛异常）
+ */
+[[nodiscard]] const nlohmann::json& getObjectOrEmpty(const nlohmann::json& value, std::string_view field);
+
+/**
  * @brief 按下标取数组元素（必须类型匹配）
  *
  * 数组下标越界与类型不符都返回 Error，不抛 `out_of_range` / `type_error`。

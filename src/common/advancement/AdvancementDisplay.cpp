@@ -30,6 +30,7 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -118,7 +119,7 @@ Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& js
         } else if (iconJson.is_object() && iconJson.contains("id") && iconJson["id"].is_string()) {
             auto* item = ItemRegistry::instance().getItem(ResourceLocation(iconJson["id"].get<std::string>()));
             if (item != nullptr) {
-                icon = ItemStack(item, iconJson.value("count", 1));
+                icon = ItemStack(item, util::json::getInt32Or(iconJson, "count", 1));
                 // 组件补丁（`{"minecraft:banner_patterns": [...]}` 等）：与 NBT 共用同一解码路径
                 if (iconJson.contains("components") && iconJson["components"].is_object()) {
                     icon.applyComponentPatch(_parsePatch(iconJson["components"]));
@@ -147,14 +148,14 @@ Result<AdvancementDisplay> AdvancementDisplay::fromJson(const nlohmann::json& js
 
     // 解析框架类型
     AdvancementFrame frame = AdvancementFrame::Task;
-    if (json.contains("frame")) {
+    if (json.contains("frame") && json["frame"].is_string()) {
         frame = parseFrame(json["frame"].get<std::string>());
     }
 
     // 解析标志
-    bool showToast = json.value("show_toast", true);
-    bool announceToChat = json.value("announce_to_chat", true);
-    bool hidden = json.value("hidden", false);
+    bool showToast = util::json::getBoolOr(json, "show_toast", true);
+    bool announceToChat = util::json::getBoolOr(json, "announce_to_chat", true);
+    bool hidden = util::json::getBoolOr(json, "hidden", false);
 
     // 解析背景（仅根成就）
     //

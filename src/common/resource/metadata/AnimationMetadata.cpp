@@ -23,6 +23,7 @@
 
 #include "AnimationMetadata.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <string>
@@ -41,17 +42,17 @@ AnimationMetadata AnimationMetadata::fromJson(const nlohmann::json& json)
     }
 
     // 解析frametime（默认1），如果显式指定必须 >= 1
-    metadata.frametime = json.value("frametime", 1);
+    metadata.frametime = util::json::getInt32Or(json, "frametime", 1);
     if (metadata.frametime < 1) {
         metadata.frametime = 1;
     }
 
     // 解析width和height（-1表示自动检测），如果显式指定必须 >= 1
-    metadata.width = json.value("width", -1);
-    metadata.height = json.value("height", -1);
+    metadata.width = util::json::getInt32Or(json, "width", -1);
+    metadata.height = util::json::getInt32Or(json, "height", -1);
 
     // 解析interpolate标志
-    metadata.interpolate = json.value("interpolate", false);
+    metadata.interpolate = util::json::getBoolOr(json, "interpolate", false);
 
     // 解析frames数组
     if (json.contains("frames") && json["frames"].is_array()) {

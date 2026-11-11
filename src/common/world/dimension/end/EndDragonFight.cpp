@@ -34,6 +34,7 @@
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -78,10 +79,10 @@ namespace mc {
 EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
 {
     Data data;
-    data.needsStateScanning = json.value("NeedsStateScanning", true);
-    data.dragonKilled = json.value("DragonKilled", false);
-    data.previouslyKilled = json.value("PreviouslyKilled", false);
-    data.isRespawning = json.value("IsRespawning", false);
+    data.needsStateScanning = util::json::getBoolOr(json, "NeedsStateScanning", true);
+    data.dragonKilled = util::json::getBoolOr(json, "DragonKilled", false);
+    data.previouslyKilled = util::json::getBoolOr(json, "PreviouslyKilled", false);
+    data.isRespawning = util::json::getBoolOr(json, "IsRespawning", false);
 
     // 反序列化末影龙 UUID（MC Java 中键名为 "Dragon"）
     if (json.contains("Dragon") && json["Dragon"].is_string()) {

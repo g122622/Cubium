@@ -257,6 +257,49 @@ Result<std::string> getString(const nlohmann::json& value, std::string_view fiel
     return getString(*field_value);
 }
 
+i32 getInt32Or(const nlohmann::json& value, std::string_view field, i32 fallback)
+{
+    const auto read = getInt32(value, field);
+    return read.success() ? read.value() : fallback;
+}
+
+i64 getInt64Or(const nlohmann::json& value, std::string_view field, i64 fallback)
+{
+    const auto read = getInt64(value, field);
+    return read.success() ? read.value() : fallback;
+}
+
+f32 getFloat32Or(const nlohmann::json& value, std::string_view field, f32 fallback)
+{
+    const auto read = getFloat32(value, field);
+    return read.success() ? read.value() : fallback;
+}
+
+f64 getFloat64Or(const nlohmann::json& value, std::string_view field, f64 fallback)
+{
+    const auto read = getFloat64(value, field);
+    return read.success() ? read.value() : fallback;
+}
+
+bool getBoolOr(const nlohmann::json& value, std::string_view field, bool fallback)
+{
+    const auto read = getBool(value, field);
+    return read.success() ? read.value() : fallback;
+}
+
+std::string getStringOr(const nlohmann::json& value, std::string_view field, std::string_view fallback)
+{
+    const auto read = getString(value, field);
+    return read.success() ? read.value() : std::string(fallback);
+}
+
+const nlohmann::json& getObjectOrEmpty(const nlohmann::json& value, std::string_view field)
+{
+    static const nlohmann::json empty = nlohmann::json::object();
+    const auto* found = findField(value, field);
+    return (found != nullptr && found->is_object()) ? *found : empty;
+}
+
 Result<i32> getInt32At(const nlohmann::json& value, std::size_t index)
 {
     const auto* element = _arrayElement(value, index);

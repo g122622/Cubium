@@ -26,6 +26,7 @@
 #include "common/entity/inventory/InventoryRef.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -162,7 +163,7 @@ bool HopperEntity::load(const nlohmann::json& data)
                 continue;
             }
 
-            const i32 slot = itemJson.value("Slot", -1);
+            const i32 slot = util::json::getInt32Or(itemJson, "Slot", -1);
             if (slot < 0 || slot >= HOPPER_SIZE) {
                 continue;
             }
