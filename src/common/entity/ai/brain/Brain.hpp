@@ -465,6 +465,26 @@ private:
      * 调用频率：只在 _updateActivity 的 20 tick 节流内调用，避免每 tick
      * 触发 switchTo（它会清空 m_activities 并清理 memoriesToForget）。
      *
+     * TODO(brain-activity-test): 本方法与 _updateActivity 的抢占行为**没有单元测试**。
+     *   曾经写过一个 ActiveEventActivityIsNotOverriddenByTimeline，但那个用例只断言
+     *   hasActivity(FIGHT) 仍为真，根本没经过 _updateActivity——把实现回退它照样通过，
+     *   属于同义反复，已删除。
+     *   要真正覆盖，需要一个能驱动时间线的夹具，配方如下（都在现有测试里能找到）：
+     *     1. Timeline 与属性：tests/unit/common/world/time/timeline/TimelineTest.cpp
+     *        里已有 ActivitySampler 辅助类，直接复用
+     *        `Timelines::VILLAGER_SCHEDULE()` 与
+     *        `attribute::EnvironmentAttributes::VILLAGER_ACTIVITY()`；该类的
+     *        sample() 通过 `applyTimeBased(Activity::IDLE, tick)` 取活动。
+     *     2. 把它接进 Brain：`setTimeline(const Timeline*,
+     *        const EnvironmentAttribute<Activity>&)`，两个参数都要给。
+     *     3. 驱动：tick() 会调 _updateActivity，但需要 IWorld* 与实体实例；
+     *        也可以给 Brain 增加一个仅供测试的入口（或在测试里通过 tick 传 nullptr
+     *        世界并确认 _updateActivity 不依赖 world 参数——它确实不依赖）。
+     *     4. 断言点：注册一个带 ATTACK_TARGET 要求的 FIGHT，写入记忆后连续推进
+     *        gameTime 跨过多个 20 tick 窗口，断言 (a) FIGHT 一直保持激活、
+     *        (b) 期间没有发生 WORK/IDLE 之类的中间切换。
+     *        (b) 是关键——只断言 (a) 无法发现"来回切两次"的抖动。
+     *
      * @return true 表示当前有事件活动在生效（已切换过去或本来就在跑），
      *         此时调用方不应再用时间线活动覆盖它。
      */
