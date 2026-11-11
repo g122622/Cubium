@@ -577,12 +577,16 @@ private:
  * 控制动物进食行为。当动物饥饿时，寻找附近的食物并前往进食。
  * 当前为占位实现，待实体饥饿系统完善后集成。
  *
- * TODO: 实体的饥饿状态（isHungry）系统尚未实现，需要在 AnimalEntity 或
+ * TODO: 动物的饥饿状态（isHungry）尚未实现，需要在 AnimalEntity 或
  * AgeableEntity 中添加饥饿机制后才能完成此任务。补齐时需要改三处：
- *   (1) 本类的 shouldExecute：当前横返 false，应改为"饥饿且附近有可食用物品"；
+ *   (1) 本类的 shouldExecute：当前恒返 false，应改为"饥饿且附近有可食用物品"；
  *   (2) 本类的 updateTask：计到 m_eatDuration 后执行真正的进食（消耗物品 + 回复饥饿值）；
  *   (3) 饥饿状态本身的存储与 tick 递减（AnimalEntity / AgeableEntity）。
  *   在 (3) 完成之前本类无法被触发，因此不要把它注册进任何实体的 Brain。
+ *
+ *   注意 `VillagerEntity::isHungry()` **不能**直接拿来用：它是基于背包食物点数
+ *   （`countFoodPointsInInventory()`）的村民专属判定，与这里要的"动物随时间递减的
+ *   饥饿值"不是同一套机制。AnimalEntity / AgeableEntity 目前对 hunger 零引用。
  */
 template <typename E>
 class EatTask : public Task<E> {
