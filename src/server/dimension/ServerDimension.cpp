@@ -145,6 +145,15 @@ void ServerDimension::shutdown()
     // 先关闭本维度的区域调度器（不再接纳新任务、取消排队任务、等待在途任务结束），再销毁
     // 管理器：构建任务完成回调之前任务体已被调度器释放，所以在途任务是常态；排空后本维度
     // 不再有任何引用管理器的任务在计算池里跑，销毁时机也就完全确定。
+    //
+    // 必须先标记 ChunkTaskScheduler 正在关闭：取消排队任务会同步触发
+    // ChunkProgressionTask::onCancel → cancelGeneration → rescheduleChunk → schedule →
+    // checkNeighbour 的递归。未标记关闭时该链会沿依赖图逐跳递归，深到足以打爆主线程栈
+    // （末地/下界卸载时稳定复现 STACK_OVERFLOW）。ServerChunkManager::shutdown 稍后还会
+    // 再次置位并做完整的 holder 取消，此处置位只是让前面的排空不再尝试重调度。
+    if (server::ChunkTaskScheduler* scheduler = m_world->chunkManager()->getTaskScheduler(); scheduler != nullptr) {
+        scheduler->setShuttingDown();
+    }
     m_world->chunkManager()->areaTasks().shutdown();
     m_chunkSendManager->releaseLifetimeGuard();
     m_chunkSendManager.reset();

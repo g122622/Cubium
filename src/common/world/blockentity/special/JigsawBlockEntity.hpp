@@ -54,7 +54,6 @@ namespace blockentity {
  * 连接类型（joint）、最终态方块（final_state）以及放置/选择优先级。
  * 客户端打开编辑界面时由服务端下发本实体的更新 NBT。
  *
- * 参考：net.minecraft.world.level.block.entity.JigsawBlockEntity
  *
  * @note 未实现（TODO）：`generate`（按目标池拼装结构）依赖 server 模块的 JigsawAssembler，
  *       本项目 common 层方块实体没有访问通道，留待接入。

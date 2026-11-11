@@ -210,7 +210,6 @@ private:
  * - 4个墙上火把
  * - 传送门方块填充圆环内部
  *
- * 参考: net.minecraft.world.level.levelgen.feature.EndPodiumFeature
  */
 class EndTeleporter : public Teleporter {
 public:

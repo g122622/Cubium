@@ -35,7 +35,6 @@ namespace tool {
  * 定义工具的类型，用于判断方块是否可以被特定工具有效挖掘。
  * 方块可以设置其需要的工具类型，工具则声明自己的类型。
  *
- * 参考: net.minecraftforge.common.ToolType
  */
 enum class ToolType : u8 {
     None = 0,    ///< 无需工具或非工具物品

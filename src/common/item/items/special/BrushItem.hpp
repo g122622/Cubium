@@ -59,7 +59,6 @@ namespace item {
  * - 刷扫犰狳时消耗16耐久
  * - 非玩家或未对准方块时取消使用
  *
- * 参考: net.minecraft.world.item.BrushItem
  */
 class BrushItem final : public Item {
 public:

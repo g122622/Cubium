@@ -46,7 +46,6 @@ namespace blocks {
  * - ATTACHED: 是否连接到链条/其他挂牌
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.CeilingHangingSignBlock
  */
 class CeilingHangingSignBlock : public AbstractSignBlock {
 public:
@@ -127,7 +126,6 @@ private:
  * - FACING: 北、南、东、西四个方向
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.WallHangingSignBlock
  */
 class WallHangingSignBlock : public AbstractSignBlock {
 public:

@@ -55,7 +55,6 @@ namespace blockentity {
  * - 玩家用斧头敲击 Unaffected 等级雕像时（removeStatue）生成铜傀儡并转移 CUSTOM_NAME
  * - 物品拾取（getCloneItemStack）通过方块实体将 CUSTOM_NAME 和 POSE 状态写入物品
  *
- * 参考: net.minecraft.world.level.block.entity.CopperGolemStatueBlockEntity (MC 1.21.11)
  */
 class CopperGolemStatueBlockEntity : public BlockEntity {
 public:

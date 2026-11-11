@@ -35,7 +35,6 @@ namespace mc::item::items {
  * @brief 地图物品抽象基类
  *
  * 提供地图物品的公共接口，标记地图为复杂物品（需要特殊网络同步）。
- * 参考: net.minecraft.item.AbstractMapItem
  */
 class AbstractMapItem : public Item {
 public:

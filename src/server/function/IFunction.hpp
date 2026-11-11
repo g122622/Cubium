@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include <optional>
 #include <string>
 
 namespace mc {
@@ -53,6 +54,9 @@ class FunctionManager;
 struct FunctionExecuteResult {
     i32 successCount = 0; ///< 成功执行的命令数
     i32 failureCount = 0; ///< 失败的命令数
+    /// 函数通过 /return 给出的返回值；未 return 时为 nullopt。
+    /// /execute if function 依据它判定（原版语义：返回值 > 0 视为成立）。
+    std::optional<i32> returnValue;
 };
 
 /**

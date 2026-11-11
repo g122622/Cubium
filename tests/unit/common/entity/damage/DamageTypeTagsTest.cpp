@@ -817,3 +817,52 @@ TEST_F(DamageTypeTagLoaderTest, LoadFromResourcePackLoadsAllTags)
     EXPECT_TRUE(tagB->contains(DamageType::OutOfWorld));
     EXPECT_TRUE(tagB->contains(DamageType::GenericKill));
 }
+
+// ============================================================================
+// bypassesArmor() 走标签查询后，数据包扩展标签必须立即生效
+// ============================================================================
+
+namespace {
+
+/// 构造一个环境伤害源
+std::unique_ptr<mc::DamageSource> makeEnv(mc::DamageType type)
+{
+    return std::make_unique<mc::EnvironmentalDamage>(type);
+}
+
+} // namespace
+
+// 标签被 RegistryBootstrap 填充后，默认成员应绕过护甲。
+TEST_F(DamageTypeTagsTest, BypassesArmorFollowsDefaultTagMembers)
+{
+    // OnFire 与 OutOfWorld 是标签默认成员
+    EXPECT_TRUE(makeEnv(mc::DamageType::OnFire)->bypassesArmor());
+    EXPECT_TRUE(makeEnv(mc::DamageType::OutOfWorld)->bypassesArmor());
+    // Cactus 不在 bypasses_armor 标签里
+    EXPECT_FALSE(makeEnv(mc::DamageType::Cactus)->bypassesArmor());
+}
+
+// 关键用例：向标签里加一个本来不在标签里的类型，
+// bypassesArmor() 必须立即对它返回 true。
+// 这直接证明“数据包扩展标签生效”，而不是只读写死列表。
+TEST_F(DamageTypeTagsTest, DatapackExtensionOfBypassesArmorTakesEffect)
+{
+    auto& tag = mc::DamageTypeTags::BYPASSES_ARMOR();
+    // 先备份原成员：标签是全局单例，测试改完必须原样还回去，
+    // 否则会污染同进程内其他依赖默认成员的用例。
+    std::vector<mc::DamageType> saved(tag.getDamageTypes().begin(), tag.getDamageTypes().end());
+
+    // 前提：Cactus 本不绕过护甲
+    ASSERT_FALSE(makeEnv(mc::DamageType::Cactus)->bypassesArmor());
+
+    // 模拟数据包把 minecraft:cactus 加进 #minecraft:bypasses_armor
+    tag.add(mc::DamageType::Cactus);
+
+    EXPECT_TRUE(makeEnv(mc::DamageType::Cactus)->bypassesArmor())
+        << "adding cactus to the tag must make it bypass armor immediately";
+
+    // 还原标签
+    tag.clear();
+    tag.addAll(saved);
+    EXPECT_FALSE(makeEnv(mc::DamageType::Cactus)->bypassesArmor()) << "the tag must be restored";
+}

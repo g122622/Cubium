@@ -271,7 +271,6 @@ public:
      * 3. 玩家手持鞍 → 委托给 SaddleItem::itemInteractionForEntity()（由 Player::interactOn 处理）
      * 4. 其他 → 返回 Pass
      *
-     * 参考: net.minecraft.world.entity.monster.Strider.mobInteract
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 

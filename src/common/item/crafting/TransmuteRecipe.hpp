@@ -70,7 +70,6 @@ namespace crafting {
  * }
  * @endcode
  *
- * 参考: net.minecraft.world.item.crafting.TransmuteRecipe
  */
 class TransmuteRecipe : public CraftingRecipe {
 public:

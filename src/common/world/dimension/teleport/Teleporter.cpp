@@ -249,14 +249,16 @@ PortalInfo NetherTeleporter::createNetherPortal(IWorld& world, const BlockPos& p
 
     placePortalBlocks(world, portalCorner, DEFAULT_WIDTH, DEFAULT_HEIGHT, axis);
 
-    // 返回传送门信息（站在传送门中心）
-    f64 spawnX = static_cast<f64>(pos.x) + 1.5;
-    f64 spawnY = static_cast<f64>(pos.y + 1);
-    f64 spawnZ = static_cast<f64>(pos.z) + 0.5;
-
+    // 返回传送门信息。落点必须落在门内底部方块的中心：
+    // 宽度轴跨过一格黑曜石边框（pos + 1），再取该格中心（+0.5）；另一轴取 pos + 0.5。
+    // 此前两条分支写反，落点被算到门框外侧斜对角，实体到达后不接触传送门方块，
+    // 导致「从下界返回主世界」永远无法触发。
+    const f64 spawnY = static_cast<f64>(pos.y + 1);
+    f64 spawnX = static_cast<f64>(pos.x) + 0.5;
+    f64 spawnZ = static_cast<f64>(pos.z) + 1.5;
     if (axis == Direction::East) {
-        spawnX = static_cast<f64>(pos.x) + 0.5;
-        spawnZ = static_cast<f64>(pos.z) + 1.5;
+        spawnX = static_cast<f64>(pos.x) + 1.5;
+        spawnZ = static_cast<f64>(pos.z) + 0.5;
     }
 
     PortalInfo info;

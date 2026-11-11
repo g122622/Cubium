@@ -39,7 +39,6 @@ namespace loot {
  * @brief 实体分数条件
  *
  * 检查指定实体的记分板分数是否在指定范围内。
- * 参考: net.minecraft.loot.conditions.EntityHasScore
  *
  * JSON 格式示例:
  * @code

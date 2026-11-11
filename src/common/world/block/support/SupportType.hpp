@@ -48,7 +48,6 @@ class IWorld;
  * 判定基于方块的 BlockSupportShape（支撑形状），默认等于碰撞形状。
  * 某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块。
  *
- * 参考: net.minecraft.world.level.block.SupportType (MC 1.21.11)
  */
 class SupportType {
 public:

@@ -66,7 +66,6 @@ namespace blocks {
  * - CHEST_TYPE: 箱子类型（SINGLE/LEFT/RIGHT）
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.CopperChestBlock (MC 1.21.11)
  */
 class CopperChestBlock : public ChestBlock {
 public:
@@ -134,14 +133,12 @@ public:
      * @brief 是否在状态变更时保留方块实体
      *
      * 铜箱子在氧化/涂蜡/除蜡/刮削导致方块类型变化时，需要保留方块实体
-     * （物品内容、自定义名称等不丢失）。返回 true 表示当前方块是铜箱子，
-     * 应当保留方块实体。
+     * （物品内容、自定义名称等不丢失）。
+     *
+     * @param state 变换前的旧方块状态
+     * @return 旧状态同属铜箱子族（全部 8 个变体）时返回 true
      */
-    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override;
 
     // ========== 移除处理 ==========
 
@@ -223,7 +220,6 @@ public:
      * @param pos 放置位置
      * @return 铜箱子方块状态
      *
-     * 参考: net.minecraft.world.level.block.CopperChestBlock.getFromCopperBlock (MC 1.21.11)
      */
     [[nodiscard]] static BlockState getFromCopperBlock(
         const Block* copperBlock, Direction facing, IWorld& world, const BlockPos& pos);
@@ -280,7 +276,6 @@ protected:
  * 氧化链：copper_chest -> exposed_copper_chest ->
  *         weathered_copper_chest -> oxidized_copper_chest
  *
- * 参考: net.minecraft.world.level.block.WeatheringCopperChestBlock (MC 1.21.11)
  */
 class WeatheringCopperChestBlock : public CopperChestBlock, public IOxidizableBlock {
 public:
@@ -379,7 +374,6 @@ private:
  * 涂蜡后的铜箱子不会氧化。重写 isWaxed() 返回 true，
  * 用于双箱合并时判断涂蜡状态。
  *
- * 参考: net.minecraft.world.level.block.CopperChestBlock (MC 1.21.11, 涂蜡变体)
  */
 class WaxedCopperChestBlock : public CopperChestBlock {
 public:

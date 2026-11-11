@@ -142,8 +142,9 @@ function parseStructure(filePath) {
   const layer0 = structure.block_indices[0];
   const layer1 = structure.block_indices[1];
   const [sx, sy, sz] = size;
-  // 索引：x + z*sx + y*sx*sz
-  const at = (layer, x, y, z) => layer[x + z * sx + y * sx * sz];
+  // 索引（Bedrock .mcstructure 扁平布局）：z 变化最快，公式 (x*size_y + y)*size_z + z。
+  // 曾误用 x 最快的 x + z*sx + y*sx*sz，导致普通地板/围墙结构被渲染成对角条纹。
+  const at = (layer, x, y, z) => layer[(x * sy + y) * sz + z];
 
   return { size: [sx, sy, sz], paletteNames, paletteKey, layer0, layer1, at, sx, sy, sz };
 }

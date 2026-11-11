@@ -157,6 +157,14 @@
 
                     ##容易踩的坑
 
+## #外部冲量必须走速度入口
+
+- 爆炸冲击、近战击退、抛飞（`IFlinging::flingTarget`）、气泡柱、载具推挤等外部冲量，必须经
+  `Entity::addVelocity` 或 `LivingEntity::applyKnockback` 写入。这两个方法是虚函数，`ShulkerEntity`
+  将它们重写为空操作——潜影贝速度恒为零，任何外力都不能使其移动。
+- 不要直接写 `m_builtIn.velocity->m_velocity` 施加冲量，否则绕过上述重写，潜影贝会被击飞
+  （`collapsing` GameTest 曾因潜影贝被 zoglin 抛飞出场、失去对场内目标的视线而随机超时）。
+
                     ## #EntityDataManager 槽位数组的两条契约
 
     槽位容器是按 id 稠密索引的 `std::vector<DataEntry>`（替换了原先的 `std::unordered_map<u16, DataEntry>`——

@@ -24,7 +24,11 @@
 #include "SeaPickleBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/property/Properties.hpp"
@@ -109,6 +113,31 @@ BlockState SeaPickleBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState()
         .with(BlockStateProperties::PICKLES_1_4(), 1)
         .with(BlockStateProperties::WATERLOGGED(), waterlogged);
+}
+
+bool SeaPickleBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
+{
+    // 可替换（堆叠）条件：
+    //   !ctx.isSecondaryUseActive() && ctx.getItemInHand().is(this.asItem()) && pickles < 4
+    //     ? true : super.canBeReplaced(state, ctx);
+    // 与 TurtleEggBlock/CandleBlock 的堆叠实现同构：只有手持同类物品、非潜行、未满 4 个时
+    // 才让 placementPos 落在已有海泡菜格，从而进入 getStateForPlacement 的 count+1 分支。
+    Player* player = context.getPlayer();
+    if (player != nullptr && player->isSneaking()) {
+        return Block::isReplaceable(state, context);
+    }
+
+    const ItemStack& heldItem = context.getItemStack();
+    if (heldItem.isEmpty()) {
+        return Block::isReplaceable(state, context);
+    }
+
+    const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*this);
+    if (blockItem == nullptr || heldItem.getItem() != blockItem) {
+        return Block::isReplaceable(state, context);
+    }
+
+    return state.get(BlockStateProperties::PICKLES_1_4()) < 4;
 }
 
 bool SeaPickleBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const

@@ -46,7 +46,6 @@ class TestBlockEntity;
  * 状态属性：
  * - MODE: 测试方块模式
  *
- * 参考: net.minecraft.world.level.block.TestBlock
  */
 class TestBlock : public Block, public GameMasterBlock {
 public:

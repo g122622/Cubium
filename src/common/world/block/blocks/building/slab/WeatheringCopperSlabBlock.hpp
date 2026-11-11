@@ -37,7 +37,6 @@ namespace blocks {
  *
  * 继承SlabBlock的台阶行为，同时具有铜氧化特性。
  *
- * 参考: net.minecraft.block.OxidizableSlabBlock
  */
 class WeatheringCopperSlabBlock : public SlabBlock, public IOxidizableBlock {
 public:

@@ -36,7 +36,6 @@ namespace blocks {
  *
  * 继承StairsBlock的楼梯行为，同时具有铜氧化特性。
  *
- * 参考: net.minecraft.block.OxidizableStairsBlock
  */
 class WeatheringCopperStairBlock : public StairsBlock, public IOxidizableBlock {
 public:
@@ -93,8 +92,6 @@ protected:
  * @brief 涂蜡铜楼梯方块
  *
  * 涂蜡后的铜楼梯不会氧化。
- *
- * 参考: net.minecraft.block.StairsBlock (涂蜡变体不实现Oxidizable)
  */
 class WaxedCopperStairBlock : public StairsBlock {
 public:

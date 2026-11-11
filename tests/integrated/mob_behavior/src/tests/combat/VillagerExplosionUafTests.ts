@@ -80,7 +80,8 @@ const PIT_VOLUME = { x: 7, y: 5, z: 7 };
 //   村民有 AvoidHostileGoal（VillagerEntity::registerGoals priority 1，最高），点燃苦力怕后 fuse
 //   30 tick 内村民会主动逃离苦力怕，跑出 2 格距离躲出爆炸有效伤害范围 → HP 不掉 → HP=20 假通过。
 //   cow 无此 goal（BlastProtectionKnockbackTests 用 cow 距苦力怕 2 格能受伤）。故本测试须约束村民
-//   无法逃离：用玻璃围栏封闭村民所在 1×1×1 空间（除顶部留空让爆炸伤害可达）。
+//   无法逃离：用两格高玻璃围栏封闭村民（除顶部留空让爆炸伤害可达）。一格高围栏会被跳跃越过
+//   （跳跃峰高约 1.23 格），村民会在引信期内跳出逃离。
 //   玻璃爆炸抗性 1.5 会被苦力怕 radius 3 炸碎，但仅爆炸瞬间碎——fuse 30 tick 期间玻璃完整挡住村民
 //   推墙逃离（实体推不动方块），爆炸瞬间玻璃碎、村民仍在原位距苦力怕 1 格受满 seenPercent 伤害。
 //   （同 BlastProtectionKnockbackTests:63-65 玻璃围栏约束苦力怕范式，本测试围村民。）
@@ -108,20 +109,29 @@ function equipDiamondFull(villager: any): void {
 
 // 铺设基底 + 围栏约束村民防逃离。
 //   黑曜石平台（y=1，z=3 整条 x∈[0,6]）：爆炸抗性 1200 不被苦力怕 radius 3 破坏，防爆炸炸毁地板
-//     致村民掉落。y=1 是 creeper_pit air 层（y=0 为 grass_block 地板），黑曜石放 y=1 作平台，实体站 y=2。
-//   玻璃围栏封闭村民 (4,2,3)：村民四面（x=5 东、z=2 北、z=4 南）+ 苦力怕侧（x=3 已被苦力怕占据不堵）
-//     站位层 y=2 放玻璃，堵住村民所有可逃离方向。村民被锁 1×1×1（顶部 y=3 留空不堵，让爆炸伤害可达
-//     且不额外降 seenPercent）。爆炸瞬间玻璃碎，村民仍在原位受满伤害。
+//     致村民掉落。helper y=1 就是 creeper_pit 的 grass_block 地板层（结构 y=0），黑曜石替换该层草地。
+//   玻璃围栏把苦力怕与村民**一起**封在 2×1 的矩形内（x=3..4, z=3），四面全封：
+//     西 x=2、东 x=5、北 z=2（x=3..4）、南 z=4（x=3..4），每面都砌 y=2 与 y=3 两层。
+//     **西侧必须封**：实体会互相穿过（不像方块），村民会直接从苦力怕所在格向西逃出
+//     （实测 tick 10 已跑到 x≈-2.7），爆炸自然伤害不到它。原实现按"苦力怕站位不堵"留了西侧洞，
+//     是该测试 HP=20 假失败的根因。
+//     **围栏必须两格高**：生物跳跃峰高约 1.23 格，一格高的玻璃墙能被直接跳过（改造前的另一条
+//     外逃路径）。顶部 y=4 留空不封，让爆炸伤害射线可达村民。爆炸瞬间玻璃碎，村民仍在原位
+//     距苦力怕 1 格受满 seenPercent 伤害。
 function layPlatformAndEnclosure(test: Test): void {
     // 黑曜石平台（防掉落）。
     for (let x = 0; x <= 6; x++) {
         test.setBlockType("minecraft:obsidian", { x, y: 1, z: 3 });
     }
-    // 玻璃围栏封闭村民 (4,2,3) 防逃离（AvoidHostileGoal）。
-    test.setBlockType("minecraft:glass", { x: 5, y: 2, z: 3 }); // 东侧
-    test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 2 }); // 北侧
-    test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 4 }); // 南侧
-    // 西侧 x=3 是苦力怕站位，不堵（村民不会朝苦力怕逃离）。
+    // 玻璃围栏把苦力怕 (3,2,3) 与村民 (4,2,3) 一起封闭防逃离（AvoidHostileGoal）。
+    for (const y of [2, 3]) {
+        test.setBlockType("minecraft:glass", { x: 2, y, z: 3 }); // 西侧（苦力怕背后）
+        test.setBlockType("minecraft:glass", { x: 5, y, z: 3 }); // 东侧（村民背后）
+        test.setBlockType("minecraft:glass", { x: 3, y, z: 2 }); // 北侧-苦力怕
+        test.setBlockType("minecraft:glass", { x: 4, y, z: 2 }); // 北侧-村民
+        test.setBlockType("minecraft:glass", { x: 3, y, z: 4 }); // 南侧-苦力怕
+        test.setBlockType("minecraft:glass", { x: 4, y, z: 4 }); // 南侧-村民
+    }
 }
 
 // 读取区域内村民当前血量（HP）。实体句柄由闭包持有，规避区域查询污染。

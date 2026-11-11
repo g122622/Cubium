@@ -65,7 +65,6 @@ using StateValueIndices = std::array<StateValueIndex, MAX_STATE_PROPERTIES>;
  *
  * 不可变状态对象的基类，持有属性值并提供类型安全的状态转换。
  *
- * 参考: net.minecraft.state.StateHolder<O, S>
  *
  * @tparam Owner 拥有此状态的类型（如Block）
  * @tparam State 具体状态类型（如BlockState，CRTP模式）

@@ -45,7 +45,6 @@ class LootTable;
  * - 外部引用：通过表 ID 从 LootTableManager 解析（m_tableId）。
  * - 内联表：直接内嵌一个完整 LootTable（m_inlineTable）。
  *
- * 参考: net.minecraft.world.level.storage.loot.entries.NestedLootTable
  */
 class TableLootEntry : public LootEntry {
 public:

@@ -216,7 +216,24 @@ Result<bool> EntityStateQuery::hasComponent(const mc::Entity& entity, const std:
         // 只有 MobEntity 实现了拴绳状态机。
         return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
     }
+    // 以下四项都是"属性表里有对应属性 / 能力接口存在"就等价于组件存在，
+    // 与上面 minecraft:attack / breathable 同一判定口径（LivingEntity 才有属性表）。
+    if (name == "minecraft:movement" || name == "minecraft:knockback_resistance") {
+        return dynamic_cast<const mc::LivingEntity*>(&entity) != nullptr;
+    }
+    if (name == "minecraft:follow_range" || name == "minecraft:despawn" || name == "minecraft:persistent") {
+        // 追击范围、自然消失、持久化都是生物才有的概念。
+        return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
+    }
+    if (name == "minecraft:rideable") {
+        // 与骑乘检查的硬门槛一致（Entity::couldAcceptPassenger）。
+        return entity.couldAcceptPassenger();
+    }
     // TODO: 将其余原版实体组件的存在条件接入统一描述表。
+    //   已接入：physics / collision_box / type_family / nameable / attack / breathable /
+    //   pushable / leashable / movement / knockback_resistance / follow_range / despawn / persistent / rideable。
+    //   尚未接入的主要是需要新能力的那些（inventory / tameable / breedable ?），
+    //   它们在本项目尚无对应实现，不能用"类型判定"代替。
     return Error(ErrorCode::Unsupported, "Native Bedrock component mapping is not implemented: " + name);
 }
 
@@ -348,8 +365,17 @@ std::optional<MolangValue> EntityStateQuery::molangQuery(const mc::Entity& entit
         }
         return MolangValue(static_cast<f32>(count));
     }
-    // TODO: 继续接入 query.* 的其余查询（如 query.has_target、query.is_owner、
-    //   query.ground_speed、query.temperature 等），未实现时调用方按 0 处理并记 warn。
+    if (name == "query.has_target") {
+        // 只有 MobEntity 有攻击目标槽（attackTarget）。
+        // 注意不要去读 Brain 的 ATTACK_TARGET 记忆：项目里 Brain 只挂在
+        // Villager/Frog/Sniffer 上且没有统一的 Entity::brain() 访问器，
+        // 而这三类都是 MobEntity，它们的攻击目标同样反映在 attackTarget() 里。
+        const auto* mob = dynamic_cast<const mc::MobEntity*>(&entity);
+        return flag(mob != nullptr && mob->attackTarget() != nullptr);
+    }
+    // TODO: 继续接入 query.* 的其余查询（如 query.is_owner、query.ground_speed、
+    //   query.temperature 等），未实现时调用方按 0 处理并记 warn。
+    //   query.has_target 已接入（见上）。
     return std::nullopt;
 }
 

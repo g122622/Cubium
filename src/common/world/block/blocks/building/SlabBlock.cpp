@@ -115,7 +115,6 @@ bool SlabBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
 bool SlabBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
 
-    // 参考: net.minecraft.block.SlabBlock#isReplaceable
     // 只有单层台阶可以被替换为双层台阶
     BlockStateProperties::SlabType slabType = state.get(BlockStateProperties::SLAB_TYPE());
     if (slabType == BlockStateProperties::SlabType::Double) {

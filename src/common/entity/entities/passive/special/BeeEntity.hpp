@@ -110,7 +110,6 @@ public:
      * 2. 含水（waterlogged=true）的花朵不吸引蜜蜂
      * 3. 向日葵仅上半部分（DoubleBlockHalf::Upper）吸引蜜蜂
      *
-     * 参考: net.minecraft.world.entity.animal.bee.Bee#attractsBees
      *
      * @param state 待判定的方块状态
      * @return 是否吸引蜜蜂

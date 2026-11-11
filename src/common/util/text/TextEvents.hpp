@@ -35,7 +35,6 @@ namespace mc::text {
 /**
  * @brief 点击事件动作类型
  *
- * 参考: net.minecraft.util.text.event.ClickEvent.Action
  */
 enum class ClickAction : u8 {
     OpenUrl,        // 打开 URL
@@ -49,7 +48,6 @@ enum class ClickAction : u8 {
  * @brief 点击事件
  *
  * 当玩家点击文本时执行的动作。
- * 参考: net.minecraft.util.text.event.ClickEvent
  */
 class ClickEvent {
 public:
@@ -121,7 +119,6 @@ private:
 /**
  * @brief 悬停事件动作类型
  *
- * 参考: net.minecraft.util.text.event.HoverEvent.Action
  */
 enum class HoverAction : u8 {
     ShowText,  // 显示文本
@@ -133,7 +130,6 @@ enum class HoverAction : u8 {
  * @brief 悬停事件
  *
  * 当玩家悬停在文本上时显示的内容。
- * 参考: net.minecraft.util.text.event.HoverEvent
  */
 class HoverEvent {
 public:

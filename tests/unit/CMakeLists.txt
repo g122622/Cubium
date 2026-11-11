@@ -1137,6 +1137,7 @@ add_executable(mc_tests
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
+    server/command/ExecuteBlocksConditionTest.cpp
     server/command/ExecuteCommandTest.cpp
     # 命令系统测试（原 mc_command_tests 并入）
     server/command/CommandStorageTest.cpp
@@ -1152,6 +1153,8 @@ add_executable(mc_tests
     common/command/arguments/FunctionArgumentTest.cpp
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
+    common/command/arguments/SlotRangesTest.cpp
+    common/command/arguments/ItemSlotsArgumentTypeTest.cpp
     common/command/arguments/NbtPathTest.cpp
     # style 参数（SNBT 复合标签 → Style，供 /scoreboard ... numberformat styled 使用）
     common/command/arguments/StyleArgumentTest.cpp
@@ -1373,6 +1376,7 @@ add_executable(mc_tests
     common/world/gen/density/DensityAstCompileTest.cpp
     # 密度求值器 JIT 机器码 vs switch 解释器数值一致性（Win x64 启用，其它平台 SKIP）
     common/world/gen/density/DensityJitBaselineTest.cpp
+    common/world/gen/density/DensityJitClampTest.cpp
     # PerlinNoise / BlendedNoise 采样性能微基准（interleave_count 调参用）
     common/world/gen/PerlinNoisePerfTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
@@ -1390,6 +1394,11 @@ add_executable(mc_tests
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/end/EndFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
+    server/world/gen/feature/template/TemplateLoaderBedrockPaletteTest.cpp
+    server/world/gen/feature/tree/MangroveRootPlacementTest.cpp
+    common/world/biome/BiomeSourceGetBiomesWithinTest.cpp
+    common/mod/bedrock/PackVersionFromStringTest.cpp
+    common/mod/bedrock/EntityHasFamilyTest.cpp
     common/world/gen/feature/template/TemplateEntityPlacementTest.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp

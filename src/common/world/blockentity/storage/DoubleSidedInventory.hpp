@@ -44,7 +44,6 @@ class ChestEntity;
  * 将两个27格箱子合并成54格容器的包装类。
  * 实现委托模式，将操作转发到底层的两个箱子。
  *
- * 参考: net.minecraft.inventory.DoubleSidedInventory
  *
  * 用法示例:
  * @code

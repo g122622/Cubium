@@ -551,6 +551,10 @@ std::optional<ResourceLocation> MobEntity::getAmbientSound() const
     // TODO: 以下实体尚未在 Cubium 实现（VanillaEntities 未注册），待补齐实体类时一并 override
     //       getAmbientSound：
     //   - creaking     嘎枝        CREAKING_AMBIENT（1.21 新实体，声音键 entity.creaking.ambient）
+    //     已核实的现状：VanillaEntityDimensions.cpp 里**已经有** minecraft:creaking 的尺寸条目
+    //     （0.9 宽 × 2.7 高，眼高 2.3），但 VanillaEntityTypeKeys 里**没有** CREAKING 类型键，
+    //     也没有对应的实体类。所以补实现时只需加类型键 + 实体类 + 注册，
+    //     **不要重复添加尺寸条目**；那条尺寸目前无任何代码查询，属于预埋数据。
     // 已实现并各自 override 的实体：allay（AllayEntity，手持物品/空手两套）、
     // armadillo（受惊返回 nullopt）、camel、goat、frog、happy_ghast。
     return makeSoundEventId("ambient");
@@ -1039,7 +1043,6 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
     }
 
     // 5. 剪刀剪切装备（狼铠、快乐恶魂挽具）
-    //    参考: net.minecraft.world.entity.Entity.interact() 中的剪刀分支
     //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + Body 槽装有"可被剪下"的装备
     //    vanilla 用 Equippable.canBeSheared 判定；Cubium 无该数据组件，此前仅接受
     //    ArmorItem，致快乐恶魂挽具（HarnessItem，非护甲）永远剪不下来。
@@ -1222,7 +1225,6 @@ bool MobEntity::canShearEquipment(const Player& /*player*/) const
 bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears)
 {
     // 遍历所有装备槽位，找到第一个有装备的槽位
-    // 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
     // MC 1.21.11 中通过 Equippable.canBeSheared() 判断，本项目通过 Body 槽位有装备判断
     // （目前只有狼铠可被剪切，马铠等后续可扩展）
     const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);
@@ -1296,6 +1298,12 @@ std::string MobEntity::getLootTableId() const
 // 拴绳系统
 // ============================================================================
 
+void MobEntity::onLeashStateChanged(bool leashed)
+{
+    // 基类默认不做任何事：拴绳状态变更对普通实体没有副作用。
+    MC_UNUSED(leashed);
+}
+
 void MobEntity::setLeashedToEntity(const std::string& holderUuid)
 {
     m_isLeashed = true;
@@ -1310,6 +1318,8 @@ void MobEntity::setLeashedToEntity(const std::string& holderUuid)
             m_world->broadcastSetEntityLink(id(), holder->id());
         }
     }
+
+    onLeashStateChanged(true);
 }
 
 void MobEntity::setLeashedToFence(const BlockPos& pos)
@@ -1331,11 +1341,14 @@ void MobEntity::setLeashedToFence(const BlockPos& pos)
                 m_leashDelayInfo.fencePos = std::nullopt;
                 m_leashDelayInfo.targetUuid = std::nullopt;
                 m_leashDelayInfo.resolveTicks = 0;
+                onLeashStateChanged(true);
                 return;
             }
         }
         // 未找到拴绳结实体，保留 fencePos 延迟信息，tickLeash 会重试
     }
+
+    onLeashStateChanged(true);
 }
 
 void MobEntity::clearLeash()
@@ -1350,6 +1363,8 @@ void MobEntity::clearLeash()
     m_leashFencePos = std::nullopt;
     m_leashDelayInfo.targetUuid = std::nullopt;
     m_leashDelayInfo.fencePos = std::nullopt;
+
+    onLeashStateChanged(false);
 }
 
 void MobEntity::dropLeash()

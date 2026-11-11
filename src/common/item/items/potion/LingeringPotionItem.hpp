@@ -44,7 +44,6 @@ namespace item {
  * 持续约30秒，每秒应用一次效果。
  * 继承ThrowablePotionItem以获得药水物品的共享行为。
  *
- * 参考: net.minecraft.item.LingeringPotionItem
  */
 class LingeringPotionItem : public ThrowablePotionItem {
 public:

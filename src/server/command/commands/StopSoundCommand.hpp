@@ -48,7 +48,6 @@ namespace command {
  * - /stopsound <player> <source>
  * - /stopsound <player> <source> <sound>
  *
- * 参考: net.minecraft.server.commands.StopSoundCommand
  */
 class StopSoundCommand {
 public:

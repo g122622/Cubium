@@ -57,7 +57,6 @@ namespace blockentity {
  * - 下方：药水瓶槽 + 材料槽（槽位 0, 1, 2, 3）
  * - 侧面：药水瓶槽 + 燃料槽（槽位 0, 1, 2, 4）
  *
- * 参考: net.minecraft.tileentity.BrewingStandTileEntity
  */
 class BrewingStandEntity : public ContainerBlockEntity, public ISidedInventory {
 public:

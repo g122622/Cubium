@@ -59,7 +59,6 @@ namespace blocks {
  *
  * MC ID: minecraft:pale_moss_carpet
  *
- * 参考: net.minecraft.world.level.block.MossyCarpetBlock
  */
 class MossyCarpetBlock : public Block {
 public:

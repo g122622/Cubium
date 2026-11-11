@@ -51,7 +51,6 @@ namespace blocks {
  * - PERSISTENT: 是否持久（玩家放置的树叶）
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.LeavesBlock
  */
 class LeavesBlock : public Block, public IWaterLoggable {
 public:

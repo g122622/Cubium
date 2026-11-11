@@ -34,7 +34,6 @@ namespace item::items {
  * 右键方块顶面放置一个盔甲架实体，朝向按玩家 yaw 对齐 45 度取整。
  * 放置前检查目标位置的实体碰撞（有实体占据则不放置）。
  *
- * 参考: net.minecraft.world.item.ArmorStandItem
  */
 class ArmorStandItem : public Item {
 public:

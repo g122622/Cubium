@@ -50,7 +50,6 @@ namespace blocks {
  * - 输出持续时间约1秒（20 ticks）
  * - 红石信号输出（0-15）
  *
- * 参考: net.minecraft.block.TargetBlock
  */
 class TargetBlock : public Block {
 public:

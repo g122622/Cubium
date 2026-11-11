@@ -37,7 +37,6 @@ namespace mc {
  *
  * 专门用于表示方向的枚举属性，提供便捷的方向特定功能。
  *
- * 参考: net.minecraft.state.DirectionProperty
  *
  * 用法示例:
  * @code

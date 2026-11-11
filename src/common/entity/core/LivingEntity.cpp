@@ -449,27 +449,23 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         markHurt();
     }
 
-    // 4. 通用击退 + 受伤倾斜（对齐 vanilla LivingEntity.hurtServer:1222-1238 的 NO_KNOCKBACK 分支）。
-    // vanilla：if (!source.is(NO_KNOCKBACK)) {
-    //   if (directEntity instanceof Projectile) { d0/d1 = -projectile.calculateHorizontalHurtKnockbackDirection(); }
-    //   else if (sourcePosition != null) { d0 = srcPos.x - x; d1 = srcPos.z - z; }
-    //   knockback(0.4F, d0, d1);     // 对受害者施加 0.4 强度击退
-    //   if (!flag) indicateDamage(d0, d1);  // flag=格挡标志，格挡时不 indicateDamage
-    // }
-    // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（DamageTypeTags.cpp:654，
-    // 近 30 类型）：这些伤害不产生击退与受击倾斜。
-    // 此前 Cubium 仅对齐 indicateDamage 的 NO_KNOCKBACK 门控，通用 knockback(0.4) 完全缺失（原 TODO:287），
-    // 致玩家近战无附魔攻击零击退（causeExtraKnockback 无附魔时 strength=0 跳过）、mob 攻击及其他非特化
-    // 路径伤害无击退，偏离 vanilla。现补 applyKnockback(0.4, d0, d1) 对齐 vanilla 通用击退。
-    // Projectile 方向：vanilla calculateHorizontalHurtKnockbackDirection 返回投射物 deltaMovement 的 x/z，
-    //   hurtServer 取反（d0=-vx, d1=-vz），即击退方向 = 投射物飞行方向（投射物从A飞向victim，victim被
-    //   推向A的反方向=继续远离投射物来源）。Cubium ProjectileEntity 经 directSource() 取 velocity 对齐。
+    // 4. 通用击退 + 受伤倾斜。
+    // 规则：伤害类型不属于 NO_KNOCKBACK 时，按来源方向对受害者施加 0.4 强度击退；
+    //   若没有格挡（flag=false）再调 indicateDamage 做受击倾斜。
+    // 来源方向 d0/d1 的取法：
+    //   - 直接来源是投射物：取投射物速度的 x/z 并**取反**（d0=-vx, d1=-vz）。
+    //     含义是受害者沿投射物飞行方向被推走，即继续远离发射点。
+    //   - 否则取伤害来源位置与受害者位置之差（srcPos - pos）。
+    // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（见 DamageTypeTags），
+    //   这些伤害既不产生击退也不产生受击倾斜。
+    // 注意：这条通用击退不能省。无附魔近战的 causeExtraKnockback 会因 strength=0 跳过，
+    //   若这里也不做，普通近战与 mob 攻击就完全没有击退。
     if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
         Entity* directEntity = source.directSource();
         if (source.isProjectile() && directEntity != nullptr) {
-            // Projectile：用投射物速度方向取反（对齐 vanilla calculateHorizontalHurtKnockbackDirection 取反）。
+            // 投射物：用投射物速度方向取反，见上方 d0/d1 取法说明。
             const Vector3 projVel = directEntity->velocity();
             d0 = -static_cast<f64>(projVel.x);
             d1 = -static_cast<f64>(projVel.z);
@@ -2358,7 +2354,6 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: LivingEntity.causeFallDamage 先调用 super.causeFallDamage（传播给乘客）
-    // 参考: net.minecraft.world.entity.LivingEntity.causeFallDamage → super.causeFallDamage
     Entity::causeFallDamage(distance, damageMultiplier, source);
 
     // 摔落伤害免疫标签（对齐 vanilla LivingEntity.calculateFallDamage:1755：
@@ -2707,19 +2702,19 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
         m_builtIn.velocity->m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
         m_builtIn.physicsState->m_fallDistance = 0.0f;
-    } else if (!hasNoGravity()) {
-        // 缓降效果处理
-        f32 gravity = GRAVITY;
+    }
 
+    // 普通重力**推迟到移动之后**再扣除（见下方 3.5）：移动必须用当前帧的速度执行，
+    // 之后才扣重力并乘阻尼。若在移动前扣重力，起跳当帧只能位移 0.42-0.08=0.34，
+    // 整次跳跃峰高从约 1.23 格降到约 0.87 格，任何生物都跳不上 1 格高方块。
+    f32 gravityToApply = 0.0f;
+    if (!onLadder && !hasEffect(entity::effect::EffectType::Levitation) && !hasNoGravity()) {
+        gravityToApply = GRAVITY;
         if (hasEffect(entity::effect::EffectType::SlowFalling)) {
-            // 缓降效果下重力大幅降低
-            gravity = physics::SLOW_FALLING_GRAVITY;
-            // 同时重置摔落距离
+            // 缓降效果下重力大幅降低，同时重置摔落距离
+            gravityToApply = physics::SLOW_FALLING_GRAVITY;
             m_builtIn.physicsState->m_fallDistance = 0.0f;
         }
-
-        // 应用重力
-        m_builtIn.velocity->m_velocity.y -= gravity;
     }
 
     // 3. 执行碰撞移动
@@ -2728,6 +2723,11 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         m_builtIn.velocity->m_velocity.z != 0.0f) {
         moveWithCollision(
             m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+    }
+
+    // 3.5 移动后应用重力（vanilla travelInAir: d0 = vec3.y - gravity，随后与阻尼一起写回速度）
+    if (gravityToApply != 0.0f) {
+        m_builtIn.velocity->m_velocity.y -= gravityToApply;
     }
 
     // 4. 应用摩擦/阻力（在移动后）

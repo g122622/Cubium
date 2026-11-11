@@ -41,7 +41,6 @@ namespace mc {
  * 通过重写 getStateForPlacement() 方法，当玩家不具备权限时返回 nullptr，
  * 从而阻止放置。
  *
- * 参考: net.minecraft.item.GameMasterBlockItem
  */
 class GameMasterBlockItem : public BlockItem {
 public:

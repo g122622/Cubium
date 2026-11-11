@@ -31,7 +31,6 @@ namespace mc {
  * @brief 声音事件常量
  *
  * 包含所有 Minecraft 1.16.5 原版声音事件的资源位置。
- * 参考: net.minecraft.util.SoundEvents
  *
  * 使用示例:
  * @code
@@ -588,7 +587,6 @@ extern const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE;
 
 /// 监守者
 /// 完整对齐 MC 1.21.11 SoundEvents 中所有 WARDEN_* 事件（共 21 个）。
-/// 参考: net.minecraft.sounds.SoundEvents
 extern const ResourceLocation ENTITY_WARDEN_AGITATED;
 extern const ResourceLocation ENTITY_WARDEN_AMBIENT;
 extern const ResourceLocation ENTITY_WARDEN_ANGRY;
@@ -1204,7 +1202,6 @@ extern const ResourceLocation ENTITY_SNOW_GOLEM_SHEAR;
 
 /// 铜傀儡（MC 1.21.11）
 /// 完整对齐 MC 1.21.11 SoundEvents 中所有 COPPER_GOLEM_* 与铜傀儡雕像相关事件。
-/// 参考: net.minecraft.sounds.SoundEvents
 // 基础（Unaffected 等级）铜傀儡音效
 extern const ResourceLocation ENTITY_COPPER_GOLEM_STEP;
 extern const ResourceLocation ENTITY_COPPER_GOLEM_HURT;

@@ -60,7 +60,6 @@ struct compound_tag;
  * - 36-39: 护甲 (头盔、胸甲、护腿、靴子)
  * - 40: 副手
  *
- * 参考: net.minecraft.entity.player.PlayerInventory
  */
 class PlayerInventory : public IInventory {
 public:

@@ -48,7 +48,6 @@ namespace blocks {
  * 并额外通过 IOxidizableBlock 提供氧化链支持。
  * 当氧化等级非 Oxidized 时，方块会随机 tick 尝试氧化。
  *
- * 参考: net.minecraft.block.WeatheringLightningRodBlock (MC 1.21+)
  */
 class WeatheringLightningRodBlock : public LightningRodBlock, public IOxidizableBlock {
 public:
@@ -139,7 +138,6 @@ private:
  * 因此不会被氧化系统影响，也不会响应斧头刮削。
  * 蜂巢右键可以涂蜡，斧头右键可以除蜡。
  *
- * 参考: net.minecraft.block.LightningRodBlock (waxed variants, MC 1.21+)
  */
 class WaxedLightningRodBlock : public LightningRodBlock {
 public:

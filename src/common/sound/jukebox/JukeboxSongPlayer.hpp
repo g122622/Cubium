@@ -41,7 +41,6 @@ class IWorld;
  * - 自动检测歌曲播放完毕并停止
  * - 每20tick触发音符粒子和游戏事件
  *
- * 参考: net.minecraft.world.item.JukeboxSongPlayer
  */
 class JukeboxSongPlayer {
 public:

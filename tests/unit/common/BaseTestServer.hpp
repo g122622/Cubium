@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/LootTableManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -12,6 +13,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/data/DataAccessor.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/function/TimerQueue.hpp"
 #include "server/interaction/InventoryManager.hpp"
@@ -492,6 +494,18 @@ protected:
     command::CommandRegistry m_commandRegistry;
     command::CommandStorage m_commandStorage;
     server::ServerScoreboard m_scoreboard;
+
+    // 维度管理器：测试桩原先对 dimensionManager() 直接抛 "unused"，导致任何需要
+    // ServerCommandSource::world() 的用例都无法验证正向路径（/execute if biome、
+    // /spreadplayers 实体移动等）。这里提供一个真实实例，用 nullptr 构造——它只在
+    // 被显式 initialize() 时才会解引用内部 server 指针，测试里不调用 initialize 即安全。
+    // 用例可自行 registerDimension(...) 装入 ServerDimension + 世界。
+    ServerDimensionManager m_dimensionManager{nullptr};
+
+    // 战利品表/谓词管理器：原先 lootTableManager() 直接抛 "unused"，导致任何需要
+    // 战利品谓词的用例（/execute if predicate、/loot）都写不出来。这里给一个真实实例；
+    // 用例可自行 setPredicateManager(...) 挂上谓词来源。
+    loot::LootTableManager m_lootTableManager;
     loot::LootPredicateManager m_predicateManager;
     function::FunctionManager m_functionManager;
     function::TimerQueue m_functionTimerQueue;

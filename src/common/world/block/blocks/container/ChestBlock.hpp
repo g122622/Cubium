@@ -57,7 +57,6 @@ namespace blocks {
  *
  * 实现 IWaterLoggable 接口支持含水功能。
  *
- * 参考: net.minecraft.block.ChestBlock
  *
  * 双箱机制：
  * - 当两个箱子相邻放置时会自动合并
@@ -255,7 +254,6 @@ public:
      * 默认返回普通箱子的 BLOCK_CHEST_OPEN。
      * 铜箱子子类（CopperChestBlock）重写此方法，根据氧化等级返回对应的声音事件。
      *
-     * 参考: net.minecraft.world.level.block.ChestBlock#getOpenChestSound (MC 1.21.11)
      */
     [[nodiscard]] virtual const ResourceLocation& getOpenSound() const;
 
@@ -265,7 +263,6 @@ public:
      * 默认返回普通箱子的 BLOCK_CHEST_CLOSE。
      * 铜箱子子类（CopperChestBlock）重写此方法，根据氧化等级返回对应的声音事件。
      *
-     * 参考: net.minecraft.world.level.block.ChestBlock#getCloseChestSound (MC 1.21.11)
      */
     [[nodiscard]] virtual const ResourceLocation& getCloseSound() const;
 
@@ -278,7 +275,6 @@ public:
      * 铜箱子重写此方法：邻居在 COPPER_CHESTS 标签中且拥有 CHEST_TYPE 属性时返回 true，
      * 允许跨氧化等级与涂蜡状态的双箱合并。
      *
-     * 参考: net.minecraft.world.level.block.ChestBlock#chestCanConnectTo (MC 1.21.11)
      *
      * @param neighborState 相邻方块状态
      * @return 如果可以连接返回 true

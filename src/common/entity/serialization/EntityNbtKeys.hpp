@@ -26,7 +26,6 @@
  * @brief 实体 NBT 序列化键名常量
  *
  * 所有键名与 Java 版保持一致，确保存档兼容性。
- * 参考：net.minecraft.entity.Entity.writeWithoutTypeId()
  */
 
 namespace mc::entity::serialization::nbt_keys {

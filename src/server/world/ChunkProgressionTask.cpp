@@ -102,13 +102,7 @@ bool ChunkProgressionTask::execute(const std::atomic<bool>& abortSignal)
 
 void ChunkProgressionTask::onCancel()
 {
-    // 任务被取消（abortSignal）：清理依赖图并通知等待者，但不 markFailed。
-    // 取消是正常操作（holder 卸载/票据级别下降），不是生成失败——holder 可被重新创建并重新生成。
-    // 取消路径不 markFailed，仅清理依赖图。
-    //
-    // 传递 this 调用任务身份感知的 cancelGeneration(holder, task)：仅当 holder.m_generationTask 仍指向
-    // 本任务时才清理。避免旧任务 A 的 onCancel 在新任务 B 已 setGenerationTask(B) 后误清 B 的依赖图
-    // （cancelActiveWork 清空 m_generationTask 后，submitRequest 可能已调度 B）。
+    // 执行器确认本任务退出后按身份结清；期间新增的需求仍保留，由调度器重新评估。
     if (m_holder != nullptr) {
         m_scheduler.cancelGeneration(*m_holder, this);
     }
@@ -161,7 +155,7 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
             holder.getCurrentChunk() != nullptr, "executeEmptyLoad: a loaded holder must already hold its chunk");
         holder.completeStatusTo(ChunkStatuses::FULL);
         holder.markLoadedFromStorageReady(ChunkStatuses::FULL);
-        m_scheduler.onChunkGenComplete(holder, ChunkStatuses::FULL);
+        m_scheduler.onChunkGenComplete(holder, ChunkStatuses::FULL, *this);
         return true;
     }
 
@@ -170,7 +164,7 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
     holder.setCurrentChunk(std::move(primer));
 
     // 推进 EMPTY 状态（primer 构造时已是 EMPTY，这里推进 holder.currentGenStatus）
-    m_scheduler.onChunkGenComplete(holder, ChunkStatuses::EMPTY);
+    m_scheduler.onChunkGenComplete(holder, ChunkStatuses::EMPTY, *this);
     return true;
 }
 
@@ -275,7 +269,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     }
 
     // 通知调度器完成
-    m_scheduler.onChunkGenComplete(holder, *m_toStatus);
+    m_scheduler.onChunkGenComplete(holder, *m_toStatus, *this);
     return true;
 }
 

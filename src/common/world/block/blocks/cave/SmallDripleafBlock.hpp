@@ -43,7 +43,6 @@ namespace blocks {
  * 有上下两部分组成（通过DOUBLE_BLOCK_HALF属性区分）。
  * 使用骨粉可以生长为大滴叶（1-5格茎+1格叶片）。
  *
- * 参考: net.minecraft.block.SmallDripleafBlock
  */
 class SmallDripleafBlock : public Block, public IWaterLoggable, public IGrowable, public IPlantable {
 public:
@@ -111,7 +110,6 @@ protected:
      * - #minecraft:small_dripleaf_placeable 标签中的方块（黏土、苔藓块）
      * - 下方位置有水源时，#minecraft:dirt 标签中的方块或耕地
      *
-     * 参考: net.minecraft.block.SmallDripleafBlock.mayPlaceOn
      */
     [[nodiscard]] virtual bool mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 

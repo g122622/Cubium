@@ -493,9 +493,20 @@ public:
      * 子类重写示例：WardenEntity 重写返回 5.0F（监守者攻击破盾 100 tick，对齐 Java
      * Warden.getSecondsToDisableBlocking:166-168），不依赖 WEAPON 组件。
      *
-     * Cubium 暂未实现 WEAPON 组件体系，基类默认返回 0（不破盾）；持有破盾武器的攻击者
-     * （如 AxeItem 持有者）经主手武器判定返回 5.0F（见子类重写/工具物品接口）。
-     * TODO: 接入 WEAPON 数据组件体系后，统一走组件 disableBlockingForSeconds 而非硬编码。
+     * 基类默认返回 0（不破盾）；持有破盾武器的攻击者（如持斧的 Player）
+     * 经主手判定返回 5.0F（见 Player::getSecondsToDisableBlocking）。
+     *
+     * TODO: 改用 WEAPON 组件的 disable_blocking_for_seconds。
+     *   注意阻塞点不在类型定义：DataComponentType::Weapon (=29)
+     *   已经存在，看上去"体系未实现"是过时描述。真正缺的是两件事：
+     *   (a) Weapon 没有载荷结构（全仓搜 disableBlockingForSeconds /
+     *       disable_blocking_for_seconds 无结果），DataComponentPayloadCodec 也没有
+     *       Weapon 分支；
+     *   (b) 更根本的：本项目没有"物品类型默认组件"这一层。ItemStack::setComponent
+     *       是按 stack 设置的（战利品函数/配方用），物品本身不携带组件默认值；
+     *       而原版的 Weapon 是挂在物品类型上的静态属性。
+     *   在补上"物品类型默认组件"之前，按 minecraft:axes 物品标签判定
+     *   反而是与现有架构一致的做法（且数据包新增斧类时自动生效）。
      *
      * @return 破盾秒数（0.0 = 不破盾）
      */
@@ -1368,13 +1379,14 @@ public:
     /**
      * @brief 应用击退效果
      *
-     * 击退强度会被击退抗性属性降低。
+     * 击退强度会被击退抗性属性降低。声明为虚函数以支持运动免疫实体：
+     * 潜影贝恒不受击退影响，重写为空操作。
      *
      * @param strength 击退强度（默认为1.0）
      * @param ratioX X方向比例（归一化后会乘以强度）
      * @param ratioZ Z方向比例（归一化后会乘以强度）
      */
-    void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ);
+    virtual void applyKnockback(f32 strength, f64 ratioX, f64 ratioZ);
 
     /**
      * @brief 应用击退效果（带来源实体）

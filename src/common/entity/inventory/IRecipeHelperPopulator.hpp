@@ -40,7 +40,6 @@ class ItemStack;
  * RecipeItemHelper是一个物品计数器，用于快速检查玩家背包
  * 是否有足够的材料制作某个配方。
  *
- * 参考: net.minecraft.inventory.IRecipeHelperPopulator
  */
 class IRecipeHelperPopulator {
 public:
@@ -61,7 +60,6 @@ public:
      * // 然后可以使用itemCounts检查是否有足够材料
      * @endcode
      *
-     * 参考: net.minecraft.inventory.IRecipeHelperPopulator.fillStackedContents
      */
     virtual void fillStackedContents(std::unordered_map<i32, i32>& itemCounts) const = 0;
 };

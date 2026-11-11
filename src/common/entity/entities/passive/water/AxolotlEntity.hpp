@@ -84,7 +84,6 @@ enum class AxolotlVariant : i32 {
  * 注意：BreedGoal 和 FollowParentGoal 需要 AnimalEntity，美西螈继承自
  * WaterMobEntity 而非 AnimalEntity，繁殖通过水桶交互机制实现。
  *
- * 参考: net.minecraft.world.entity.animal.axolotl.Axolotl
  */
 class AxolotlEntity : public AgeableWaterCreatureEntity, public entity::IBucketable {
 public:

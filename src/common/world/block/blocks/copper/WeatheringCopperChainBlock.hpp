@@ -45,7 +45,6 @@ namespace blocks {
  * - 实现 IWaterLoggable 接口支持含水功能
  * - 具有铜氧化特性
  *
- * 参考: net.minecraft.block.OxidizableChainBlock (MC 1.21+)
  */
 class WeatheringCopperChainBlock : public WeatheringCopperBlock, public IWaterLoggable {
 public:
@@ -129,7 +128,6 @@ protected:
  *
  * 涂蜡后的铜锁链不会氧化，支持含水。
  *
- * 参考: net.minecraft.block.WaxedChainBlock (MC 1.21+)
  */
 class WaxedCopperChainBlock : public WaxedCopperBlock, public IWaterLoggable {
 public:

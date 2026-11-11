@@ -43,7 +43,6 @@ class ItemStack;
  * 提供物品使用时的上下文信息，包括世界、玩家、物品堆和射线检测结果。
  * 这是所有物品使用上下文的基类。
  *
- * 参考: net.minecraft.item.ItemUseContext
  */
 class ItemUseContext {
 public:

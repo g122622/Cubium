@@ -37,6 +37,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/item/instrument/InstrumentTags.hpp"
+
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/special/GoatLongJumpGoal.hpp"
@@ -222,6 +224,23 @@ TEST_F(GoatEntityTest, CreateHorn_CarriesInstrumentComponent)
 
 TEST_F(GoatEntityTest, CreateHorn_InstrumentsDifferByScreaming)
 {
+    // 乐器标签是数据驱动的：内置只注册空占位，成员来自数据包
+    // tags/instrument。单测不跑数据包加载器，这里手工把 vanilla 成员填进去，
+    // 等价于数据包已加载完毕。
+    mc::item::instrument::initializeVanillaInstrumentTags();
+    mc::item::instrument::InstrumentTags::REGULAR_GOAT_HORNS().addAll({
+        mc::ResourceLocation("minecraft:ponder_goat_horn"),
+        mc::ResourceLocation("minecraft:sing_goat_horn"),
+        mc::ResourceLocation("minecraft:seek_goat_horn"),
+        mc::ResourceLocation("minecraft:feel_goat_horn"),
+    });
+    mc::item::instrument::InstrumentTags::SCREAMING_GOAT_HORNS().addAll({
+        mc::ResourceLocation("minecraft:admire_goat_horn"),
+        mc::ResourceLocation("minecraft:call_goat_horn"),
+        mc::ResourceLocation("minecraft:yearn_goat_horn"),
+        mc::ResourceLocation("minecraft:dream_goat_horn"),
+    });
+
     GoatEntity regular(EntityInstanceId(1), mc::test::testEcsRegistry());
     GoatEntity screaming(EntityInstanceId(2), mc::test::testEcsRegistry());
     screaming.setScreamingGoat(true);

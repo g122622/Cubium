@@ -125,7 +125,6 @@ private:
  * - tick: 向宝藏位置游泳，如果接近目标则重新规划路径
  * - resetTask: 到达宝藏后清除鱼的标记
  *
- * 参考: net.minecraft.world.entity.animal.dolphin.Dolphin.DolphinSwimToTreasureGoal (MC 1.21.11)
  */
 class SwimToTreasureGoal : public Goal {
 public:

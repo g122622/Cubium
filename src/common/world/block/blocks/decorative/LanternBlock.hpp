@@ -46,7 +46,6 @@ namespace blocks {
  * - 光照等级15（普通灯笼）或10（灵魂灯笼）
  * - 实现 IWaterLoggable 接口支持含水功能
  *
- * 参考: net.minecraft.block.LanternBlock
  */
 class LanternBlock : public Block, public IWaterLoggable {
 public:

@@ -55,7 +55,6 @@ namespace blocks {
  * - 夜间模式需要反转信号
  * - 遮挡会影响输出
  *
- * 参考: net.minecraft.block.DaylightDetectorBlock
  */
 class DaylightDetectorBlock : public Block {
 public:

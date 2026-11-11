@@ -44,7 +44,6 @@ class BlockPos;
  * - ISidedInventory: 方块实体直接实现，状态固定
  * - ISidedInventoryProvider: 根据世界状态动态创建，用于复合方块
  *
- * 参考: net.minecraft.inventory.ISidedInventoryProvider
  */
 class ISidedInventoryProvider {
 public:

@@ -37,7 +37,6 @@ namespace mc::world::tick {
  * 存储待执行的tick信息，包括位置、目标、调度时间和优先级。
  * 支持按(scheduledTick, priority, tickEntryId)排序。
  *
- * 参考: net.minecraft.world.NextTickListEntry
  *
  * @tparam T 目标类型（Block、Fluid等）
  */

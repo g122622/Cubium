@@ -26,6 +26,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/AddonEntityEvents.hpp"
+#include "common/mod/bedrock/addon/pack/PackVersion.hpp"
 #include <memory>
 #include <string>
 #include <nlohmann/json.hpp>
@@ -74,6 +75,14 @@ public:
      * 目前仅暴露该标志供生成逻辑判断；按 is_spawnable 生成自定义刷怪蛋与生成规则关联仍是 TODO。
      */
     [[nodiscard]] bool canSpawn() const;
+
+    /**
+     * @brief 实体定义的 format_version
+     *
+     * 基岩版内容文件里的点分版本号（如 1.21.0）。解析时已校验为合法版本，
+     * 供后续按版本分流组件语义使用。
+     */
+    [[nodiscard]] const PackVersion& formatVersion() const;
     /** @brief 判断实体是否具有火焰免疫组件。 */
     [[nodiscard]] bool fireImmune() const;
 
@@ -92,6 +101,8 @@ private:
     bool m_canSummon;
     /// description.is_spawnable：是否参与自然生成（刷怪蛋生成仍为 TODO）
     bool m_canSpawn;
+    /// 实体定义的 format_version（解析时已校验）
+    PackVersion m_formatVersion;
 };
 
 } // namespace mc::mod::bedrock::addon

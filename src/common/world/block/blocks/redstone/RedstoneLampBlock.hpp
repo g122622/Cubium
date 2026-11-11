@@ -42,7 +42,6 @@ namespace blocks {
  * - 移除信号：熄灭
  * - 无延迟：即时响应红石信号
  *
- * 参考: net.minecraft.block.RedstoneLampBlock
  */
 class RedstoneLampBlock : public Block {
 public:

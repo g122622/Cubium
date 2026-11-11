@@ -65,7 +65,6 @@ namespace blocks {
  * - COPPER_GOLEM_POSE: 姿态
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.CopperGolemStatueBlock (MC 1.21.11)
  */
 class CopperGolemStatueBlock : public Block, public IWaterLoggable {
 public:
@@ -185,18 +184,12 @@ public:
      * @brief 是否在状态变更时保留方块实体
      *
      * 铜傀儡雕像在氧化/涂蜡/除蜡/刮削导致方块类型变化时需要保留方块实体
-     * （CUSTOM_NAME 自定义名称等不丢失）。返回 true 让 ServerWorld::setBlockState
-     * 迁移旧 BlockEntity 至新方块而非创建空实体。
+     * （CUSTOM_NAME 自定义名称等不丢失）。
      *
-     * 注意：基础 CopperGolemStatueBlock（Unaffected 等级）实际不会发生氧化导致的
-     * 方块类型变化（不实现 IOxidizableBlock），但涂蜡变体被斧头除蜡时会变为
-     * 基础变体，此时需要保留 CUSTOM_NAME。返回 true 覆盖所有铜傀儡雕像变体。
+     * @param state 变换前的旧方块状态
+     * @return 旧状态同属铜傀儡雕像族（全部 8 个变体）时返回 true
      */
-    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override
-    {
-        MC_UNUSED(state);
-        return true;
-    }
+    [[nodiscard]] bool shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept override;
 
     // ========== IWaterLoggable 接口实现 ==========
 
@@ -258,7 +251,6 @@ protected:
  * （不实现 WeatheringCopper，不参与氧化 tick），但处于氧化链的 Unaffected 位置。
  * 暴露/锈蚀/氧化等级使用本类，可氧化到下一等级。
  *
- * 参考: net.minecraft.world.level.block.WeatheringCopperGolemStatueBlock (MC 1.21.11)
  */
 class WeatheringCopperGolemStatueBlock : public CopperGolemStatueBlock, public IOxidizableBlock {
 public:

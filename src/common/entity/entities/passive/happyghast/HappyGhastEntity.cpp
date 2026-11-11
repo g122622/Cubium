@@ -450,7 +450,7 @@ void HappyGhastEntity::registerGoals()
     //   3: FloatGoal（幼体持续上浮）——vanilla 的 HappyGhastFloatGoal + FlyingMoveControl(180, true)
     //   4: TemptGoal（TemptGoal.ForNonPathfinders，速度 1.0）
     //   5: Ghast.RandomFloatAroundGoal（16 格半径随机巡游）——此处复用成年随机飞行目标
-    // 本项目无 Brain：拴绳跟随（GhastFollowLeashHolderGoal）与载客/静止超时改由 Goal 与 tick 实现。
+    // 本实体未接入 Brain（仅村民已接入）：拴绳跟随（GhastFollowLeashHolderGoal）与载客/静止超时改由 Goal 与 tick 实现。
     // 幼体没有目标（vanilla babyGhastSetup 清空 goalSelector），只有成体注册上述集合；
     // 幼体 NBT 在构造后才读入，与 vanilla（saveAdditional 读入后由 ageBoundaryReached 处理）等价。
     if (isChild()) {

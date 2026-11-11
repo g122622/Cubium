@@ -37,7 +37,6 @@ namespace item {
  * 可以从水源或炼药锅中装水，变为水瓶。
  * 水瓶是酿造的基础材料。
  *
- * 参考: net.minecraft.item.GlassBottleItem
  */
 class GlassBottleItem : public Item {
 public:

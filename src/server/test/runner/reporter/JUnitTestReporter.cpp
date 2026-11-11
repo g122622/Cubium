@@ -4,9 +4,20 @@
 #include "server/test/framework/instance/BaseGameTestInstance.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <spdlog/spdlog.h>
 
 namespace mc::test {
+
+namespace {
+
+/// 报告发布（临时文件 rename）的最大重试次数与间隔（毫秒）。Windows 上杀毒软件或索引
+/// 服务可能瞬时锁定目标文件，导致 rename 返回 Access denied。
+constexpr i32 MAX_PUBLISH_ATTEMPTS = 10;
+constexpr i32 PUBLISH_RETRY_DELAY_MS = 10;
+
+} // namespace
 
 JUnitTestReporter::JUnitTestReporter(std::filesystem::path reportPath)
     : m_reportPath(std::move(reportPath))
@@ -185,12 +196,19 @@ void JUnitTestReporter::_writeXml()
         spdlog::warn("[GameTest] JUnitTestReporter: io error while writing report");
         return;
     }
+    // Windows 上目标文件可能被杀毒软件或索引服务瞬时打开，rename 报 Access denied。
+    // 报告发布失败会把整轮测试判定为流水线错误（退出码 124），因此做有限重试。
     std::error_code error;
-    std::filesystem::rename(temporaryPath, m_reportPath, error);
-    if (error) {
-        m_ioError = true;
-        spdlog::warn("[GameTest] JUnitTestReporter: failed to publish report: {}", error.message());
+    for (i32 attempt = 0; attempt < MAX_PUBLISH_ATTEMPTS; ++attempt) {
+        error.clear();
+        std::filesystem::rename(temporaryPath, m_reportPath, error);
+        if (!error) {
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(PUBLISH_RETRY_DELAY_MS));
     }
+    m_ioError = true;
+    spdlog::warn("[GameTest] JUnitTestReporter: failed to publish report: {}", error.message());
 }
 
 } // namespace mc::test

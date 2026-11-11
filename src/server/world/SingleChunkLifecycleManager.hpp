@@ -21,6 +21,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/profiler/MemoryTracking.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
@@ -435,6 +436,12 @@ public:
 
     // === 邻居引用计数（防卸载） ===
 
+    /** @brief 为当前生成步骤登记邻居保活；已登记时返回 false。调用者持有调度区域锁。 */
+    bool pinGenerationNeighbour(SingleChunkLifecycleManager& neighbour);
+
+    /** @brief 取出当前步骤的全部邻居保活，交给调度器逐一释放。 */
+    std::vector<SingleChunkLifecycleManager*> takeGenerationNeighbours();
+
     /**
      * @brief 增加邻居引用计数（有邻居正在使用我的快照生成）
      *
@@ -454,7 +461,9 @@ public:
      */
     void removeNeighbourUsingChunk()
     {
-        if (m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order::acq_rel) == 1) {
+        const i32 previous = m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order::acq_rel);
+        MC_ASSERT_RELEASE(previous > 0);
+        if (previous == 1) {
             _notifyUnloadStateChanged();
         }
     }
@@ -569,7 +578,7 @@ public:
     EnqueueDecision noteStorageMissing();
 
     /**
-     * @brief 取消当前所有活跃工作
+     * @brief 请求取消所有活跃工作，保留任务身份直到执行器确认退出
      */
     EnqueueDecision cancelActiveWork();
 
@@ -658,6 +667,7 @@ private:
     // === 双向邻居依赖图 ===
     std::unordered_set<SingleChunkLifecycleManager*> m_blockingNeighbours;                    // 我正在等待的邻居
     std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> m_waitingNeighbours; // 等我的邻居及所需状态
+    std::unordered_set<SingleChunkLifecycleManager*> m_generationNeighbours; // 从依赖扫描至步骤结束保活的邻居
 
     // === 邻居引用计数 ===
     // 原子：worker 线程（scheduleStatusStep add / releaseNeighbourRefCounts remove，持调度锁）

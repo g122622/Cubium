@@ -48,7 +48,6 @@ namespace mc {
  * }
  * @endcode
  *
- * 参考: net.minecraft.tags.DamageTypeTags (MC 1.21.11)
  */
 class DamageTypeTags {
 public:
@@ -71,7 +70,6 @@ public:
     /// （即每次伤害都重置 lastHurt/invulnerableTime 并全额承受，不走差额逻辑）。
     /// 1.21.11 vanilla 数据包中该标签为空，但 LivingEntity.hurtServer:1191-1206 的守卫语义需保留，
     /// 以支持数据包扩展（伤害类型可通过数据包加入此标签以绕过无敌帧冷却）。
-    /// 参考: net.minecraft.tags.DamageTypeTags.BYPASSES_COOLDOWN (MC 1.21.11)
     static DamageTypeTag& BYPASSES_COOLDOWN();
 
     /// 绕过抗性提升标签

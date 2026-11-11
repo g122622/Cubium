@@ -50,7 +50,6 @@ namespace blocks {
  * 状态属性：
  * - HALF: DoubleBlockHalf (UPPER, LOWER)
  *
- * 参考: net.minecraft.block.DoublePlantBlock
  */
 class DoublePlantBlock : public BushBlock {
 public:

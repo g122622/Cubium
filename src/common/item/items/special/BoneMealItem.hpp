@@ -49,7 +49,6 @@ namespace item::items {
  * 1. 对 IGrowable 方块使用：加速生长
  * 2. 在水下使用：生成海草
  *
- * 参考: net.minecraft.item.BoneMealItem
  */
 class BoneMealItem : public Item {
 public:

@@ -836,17 +836,15 @@ void TreeFeature::_placeRootBlocks(WorldGenRegion& world,
             continue;
         }
 
-        // 泥根：根所在方块命中 muddy_roots_in 时改用 muddy_roots_provider（对齐 MangroveRootPlacer.placeRoot）。
-        // muddy_roots_in 目前以方块标签承载；数据包给的是方块列表（mud / muddy_mangrove_roots），
-        // 列表形式尚未建表，此处额外按方块类型判定以保证数据包语义不被丢失。
-        // TODO(mangrove-muddy-roots): 标签加载器支持方块列表后移除下面的方块分支。
+        // 泥根：根所在方块命中 muddy_roots_in 时改用 muddy_roots_provider。
+        // muddy_roots_in 在数据包里是方块列表（mud / muddy_mangrove_roots），
+        // FeatureTypeRegistry 的 parseMangroveRootPlacement 已把列表登记成运行时标签
+        // "mangrove_muddy_roots_in" 并挂到 muddyRootsIn 上，所以这里只查标签即可。
         const BlockState* state = nullptr;
         if (placement != nullptr && placement->muddyRootsProvider != nullptr) {
             const BlockState* current = world.getBlockState(pos.x, pos.y, pos.z);
-            const bool inMuddy = current != nullptr &&
-                ((placement->muddyRootsIn != nullptr && placement->muddyRootsIn->contains(*current)) ||
-                    current->is(VanillaBlocks::MUD) || current->is(VanillaBlocks::MUDDY_MANGROVE_ROOTS));
-            if (inMuddy) {
+            if (current != nullptr && placement->muddyRootsIn != nullptr &&
+                placement->muddyRootsIn->contains(*current)) {
                 state = placement->muddyRootsProvider->getState(world, random, pos.x, pos.y, pos.z);
             }
         }

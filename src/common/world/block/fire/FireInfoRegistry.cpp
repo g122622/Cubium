@@ -83,7 +83,6 @@ void FireInfoRegistry::clear()
 
 // ============================================================================
 // 原版火焰参数常量
-// 参考: net.minecraft.world.level.block.FireBlock.bootStrap()
 //
 // 【重要】火焰蔓延系统架构说明：
 //

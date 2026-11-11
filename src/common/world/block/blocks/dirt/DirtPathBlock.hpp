@@ -50,7 +50,6 @@ namespace blocks {
  * 上方存在固体方块（栅栏门除外）时无法存活：放置时直接改放泥土，
  * 运行中则安排 1 tick 的计划刻把自身转变为泥土（土径被掩埋后消失）。
  *
- * 参考: net.minecraft.block.DirtPathBlock
  */
 class DirtPathBlock : public Block {
 public:

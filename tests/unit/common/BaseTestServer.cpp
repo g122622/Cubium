@@ -72,12 +72,12 @@ BaseTestServer::BaseTestServer()
 
 ServerDimensionManager& BaseTestServer::dimensionManager()
 {
-    throwUnused();
+    return m_dimensionManager;
 }
 
 const ServerDimensionManager& BaseTestServer::dimensionManager() const
 {
-    throwUnused();
+    return m_dimensionManager;
 }
 
 server::ServerWorld* BaseTestServer::getPlayerWorld(PlayerId)
@@ -130,12 +130,12 @@ const resource::DataPackRepository& BaseTestServer::dataPackList() const
 
 loot::LootTableManager& BaseTestServer::lootTableManager()
 {
-    throwUnused();
+    return m_lootTableManager;
 }
 
 const loot::LootTableManager& BaseTestServer::lootTableManager() const
 {
-    throwUnused();
+    return m_lootTableManager;
 }
 
 server::CustomServerBossInfoManager& BaseTestServer::bossBarManager()

@@ -44,9 +44,9 @@
 // 周围4格泥土 (2,1,3)/(4,1,3)/(3,1,2)/(3,1,4)（蔓延目标，3×5×3 范围内）。
 //
 // 测试1 mycelium_spreads_to_dirt_in_light（光照≥9 蔓延）：
-//   菌丝体正上方 (3,2,3) 放 glowstone(15) 提供方块光，opacity=0 不触发退化，菌丝体上方光照=15≥9。
-//   泥土上方距 glowstone 1格水平，光照衰减1→14≥9 且无遮挡。调高 randomTickSpeed 后等待足够 tick，
-//   断言周围4格中至少1格变 mycelium（蔓延成功）。
+//   glowstone 放在菌丝体正上方格的西侧邻位 (2,2,3)（不能直接压在头顶：荧光石是完整实心方块，
+//   会按满遮挡让菌丝体退化成泥土，原版同样如此）。正上方 (3,2,3) 仍是 air，被照亮至 14≥9。
+//   调高 randomTickSpeed 后等待足够 tick，断言周围4格中至少1格变 mycelium（蔓延成功）。
 //
 // 测试2 mycelium_decays_when_covered（被遮挡退化为泥土）：
 //   菌丝体正上方 (3,2,3) 放 stone（opacity=15 完整方块下表面遮挡），isSnowyConditions 判满阻挡返回
@@ -91,8 +91,11 @@ const DIRT_NEIGHBORS = [
     { x: 3, y: 1, z: 2 },
     { x: 3, y: 1, z: 4 },
 ];
-// 菌丝体正上方位置（放光源或遮挡方块）。
+// 菌丝体正上方位置（放遮挡方块或保持 air）。
 const ABOVE = { x: 3, y: 2, z: 3 };
+// 荧光石放在正上方格的水平邻位：荧光石是完整实心方块，直接压在菌丝体头顶会按「满遮挡」
+// 触发退化（原版同样如此），必须让 ABOVE 保持 air，仅借邻位发光照亮 ABOVE。
+const LIGHT = { x: 2, y: 2, z: 3 };
 
 // 调高 randomTickSpeed 使菌丝体格在数 tick 内被随机刻确定性命中。
 // 1000 使单格每 tick 命中概率≈24.4%。light_box 石墙隔离 + 内部仅 mycelium/dirt/glowstone/stone/air，
@@ -131,11 +134,11 @@ function raiseRandomTickSpeed(test: Test): void {
 }
 
 // 光照≥9 时菌丝体向周围泥土蔓延（wiki 扩散：菌丝体上方光照≥9 才蔓延）。
-// 菌丝体正上方放 glowstone(15) 提供方块光，opacity=0 不触发退化，菌丝体上方光照=15≥9。
+// glowstone 放在正上方格的西侧邻位，让 ABOVE 保持 air 同时获得 14 级方块光。
 // 调高 randomTickSpeed 后等待，断言周围4格中至少1格变 mycelium（蔓延成功）。
 function myceliumSpreadsToDirtInLight(test: Test): void {
     placeMyceliumAndDirt(test);
-    test.setBlockType("minecraft:glowstone", ABOVE);
+    test.setBlockType("minecraft:glowstone", LIGHT);
     raiseRandomTickSpeed(test);
 
     pollUntilSucceed(
@@ -153,7 +156,7 @@ function myceliumSpreadsToDirtInLight(test: Test): void {
                 test.assert(
                     false,
                     `mycelium spread in light: expected >=1 neighbor dirt->mycelium, got ${count}/4 ` +
-                        `(mycelium=${getTypeId(test, MYCELIUM)} above=${getTypeId(test, ABOVE)}; ` +
+                        `(mycelium=${getTypeId(test, MYCELIUM)} above=${getTypeId(test, ABOVE)} light=${getTypeId(test, LIGHT)}; ` +
                         `if 0, randomTickSpeed may not be raised or GRASS_SPREAD_LIGHT_THRESHOLD>=9 check missing)`,
                 );
             },

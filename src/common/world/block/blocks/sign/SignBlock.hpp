@@ -62,7 +62,6 @@ namespace blocks {
  * 提供告示牌的通用功能，包括含水支持。
  * 子类：StandingSignBlock（站立告示牌）和 WallSignBlock（墙面告示牌）
  *
- * 参考: net.minecraft.block.AbstractSignBlock
  */
 class AbstractSignBlock : public Block, public IWaterLoggable {
 public:
@@ -172,7 +171,6 @@ protected:
  * - ROTATION: 0-15，表示16个旋转方向
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.StandingSignBlock
  */
 class StandingSignBlock : public AbstractSignBlock {
 public:
@@ -219,7 +217,6 @@ private:
  * - FACING: 北、南、东、西四个方向
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.block.WallSignBlock
  */
 class WallSignBlock : public AbstractSignBlock {
 public:

@@ -32,7 +32,6 @@ namespace mc::sound {
  *
  * 描述声音资源的来源类型。
  *
- * 参考: net.minecraft.client.audio.Sound.Type
  */
 enum class SoundType : u8 {
     File, ///< 直接文件引用（OGG 文件）
@@ -44,7 +43,6 @@ enum class SoundType : u8 {
  *
  * 定义声音如何随距离衰减。
  *
- * 参考: net.minecraft.client.audio.ISound.AttenuationType
  */
 enum class AttenuationType : u8 {
     None,  ///< 无衰减（全局声音，如背景音乐）

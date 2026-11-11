@@ -23,10 +23,24 @@
 
 #pragma once
 
+#include "common/entity/core/Entity.hpp"
 #include <optional>
 #include <string_view>
 
 namespace mc::mod::bedrock::addon {
 /** @brief 查询官方基础定义中的稳定原版家族；缺失或依赖动态组时返回空值。 */
 [[nodiscard]] std::optional<bool> vanillaEntityFamilyMatch(std::string_view typeId, std::string_view family);
+
+/**
+ * @brief 判定实体是否属于某个基岩版家族
+ *
+ * 比 vanillaEntityFamilyMatch 多一层回退：先看 addon
+ * 实体自己声明的 minecraft:type_family，再查原版家族表，
+ * 最后处理 "player" / "mob" 两个通用家族。
+ *
+ * @param entity 待判定的实体
+ * @param family 家族名
+ * @return 是否属于该家族；无法判定时返回 false
+ */
+[[nodiscard]] bool entityHasFamily(const mc::Entity& entity, std::string_view family);
 } // namespace mc::mod::bedrock::addon

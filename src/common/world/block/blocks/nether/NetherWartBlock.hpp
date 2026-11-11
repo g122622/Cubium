@@ -47,7 +47,6 @@ namespace blocks {
  *
  * MC ID: minecraft:nether_wart
  *
- * 参考: net.minecraft.block.NetherWartBlock
  */
 class NetherWartBlock : public Block, public IPlantable {
 public:

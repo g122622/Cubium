@@ -43,7 +43,6 @@ namespace crafting {
  * @brief 熔炼配方基类
  *
  * 用于熔炉、高炉、烟熏炉、营火等熔炼类配方的基类。
- * 参考: net.minecraft.item.cooking.AbstractCookingRecipe
  *
  * 熔炼配方只有一个输入原料，产生一个输出结果。
  * 熔炼过程会产生经验值，并有固定的熔炼时间。
@@ -174,7 +173,6 @@ protected:
  *
  * 与普通熔炼配方类似，但熔炼时间减半（100 tick vs 200 tick）
  * 仅适用于矿石和金属物品。
- * 参考: net.minecraft.item.cooking.BlastingRecipe
  */
 class BlastingRecipe : public SmeltingRecipe {
 public:
@@ -191,7 +189,6 @@ public:
  *
  * 与普通熔炼配方类似，但熔炼时间减半（100 tick vs 200 tick）
  * 仅适用于食物。
- * 参考: net.minecraft.item.cooking.SmokingRecipe
  */
 class SmokingRecipe : public SmeltingRecipe {
 public:
@@ -207,7 +204,6 @@ public:
  * @brief 营火烹饪配方
  *
  * 在营火上烹饪食物的配方。
- * 参考: net.minecraft.item.cooking.CampfireCookingRecipe
  */
 class CampfireCookingRecipe : public SmeltingRecipe {
 public:

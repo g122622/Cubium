@@ -85,7 +85,6 @@ class CopperGolemEntityTestAccessor; // 测试访问器，声明为 friend 以�
  * - getLivingEntity()：返回 this（CopperGolemEntity IS-A LivingEntity）
  * - setOpenedChestPos / clearOpenedChestPos：由 TransportItemsBetweenContainersGoal 调用
  *
- * 参考: net.minecraft.world.entity.animal.golem.CopperGolem (MC 1.21.11)
  */
 class CopperGolemEntity : public GolemEntity, public entity::IShearable, public entity::ContainerUser {
 public:

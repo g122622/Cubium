@@ -211,8 +211,8 @@ TEST_F(LadderAttachmentTest, UpdatePostPlacement_AttachBlockRemovedDropsLadder)
     auto& ladder = *VanillaBlocks::LADDER;
     const BlockPos ladderPos(1, 64, 0);
 
-    // FACING=East 的梯子倚靠西侧 (0,64,0)：位置 (0,64,0) 从梯子看过去的方向就是 East。
-    // 本项目 updatePostPlacement 的 facing 参数是「从自身指向邻居」的方向，故此处传 East。
+    // FACING=East 的梯子倚靠西侧 (0,64,0)：从梯子 (1,64,0) 指向附着方块的方向是 West。
+    // updatePostPlacement 的 facing 参数是「从 currentPos 指向 facingPos」，故此处传 West。
     BlockState state = ladder.defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
     world.set(BlockPos(0, 64, 0), solidBlock());
     // 附着方块被移除
@@ -220,7 +220,7 @@ TEST_F(LadderAttachmentTest, UpdatePostPlacement_AttachBlockRemovedDropsLadder)
 
     const BlockState* airState = &VanillaBlocks::AIR->defaultState();
     BlockState updated =
-        ladder.updatePostPlacement(state, Direction::East, *airState, world, ladderPos, BlockPos(0, 64, 0));
+        ladder.updatePostPlacement(state, Direction::West, *airState, world, ladderPos, BlockPos(0, 64, 0));
     EXPECT_EQ(&updated.getBlock(), VanillaBlocks::AIR);
 }
 

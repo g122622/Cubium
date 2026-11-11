@@ -49,7 +49,6 @@ SlimeBlock::SlimeBlock(const BlockProperties& properties)
 void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 实体落到粘液块上：向下落且非潜行时反弹，否则按普通方块着地（Y 速度归零）。
-    // 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -80,7 +79,6 @@ void SlimeBlock::onFallenUpon(
     // 粘液块免疫摔落伤害：以 damageMultiplier=0.0 调用 causeFallDamage。
     // multiplier=0 使 LivingEntity::causeFallDamage 计算伤害 (distance-3)*0=0，不受伤；
     // 同时仍走 causeFallDamage 以传播摔落给乘客（对齐 Java fallOn 调 causeFallDamage(distance,0.0F,fall)）。
-    // 参考: net.minecraft.world.level.block.SlimeBlock#fallOn
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);

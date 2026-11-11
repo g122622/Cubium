@@ -40,7 +40,6 @@ namespace potion {
  * 定义一种药水的效果组合和属性。
  * 每种药水可以有多个效果，药水物品存储药水ID。
  *
- * 参考: net.minecraft.potion.Potion
  */
 class Potion {
 public:

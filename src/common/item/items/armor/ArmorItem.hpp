@@ -41,7 +41,6 @@ namespace item::items {
  * @brief 盔甲基类
  *
  * 所有盔甲物品的基类。
- * 参考: net.minecraft.item.ArmorItem
  *
  * 用法示例:
  * @code
@@ -92,7 +91,6 @@ public:
      * - 锁链盔甲：铁锭
      * - 海龟壳：鳞甲
      *
-     * 参考: net.minecraft.item.ArmorItem#getIsRepairable
      *
      * @param toRepair 待修复的物品堆
      * @param repair 修复材料物品堆
@@ -167,7 +165,6 @@ public:
      * 返回此盔甲物品在装备槽位上应用的属性修饰符。
      * 包含护甲值、护甲韧性和击退抗性修饰符。
      *
-     * 参考: net.minecraft.item.ArmorItem#getAttributeModifiers
      *
      * @return 属性修饰符管理器
      */

@@ -117,7 +117,6 @@ public:
     // clearContainer 继承自 LootableContainerBlockEntity，会自动触发 _unpackLootTable。
     // 以下 IInventory 方法需要在 m_inventory 操作前调用 _unpackLootTable(nullptr)，
     // 确保战利品表在首次容器内容访问时被正确填充。
-    // 参考: net.minecraft.RandomizableContainerBlockEntity 中的 getItem/setItem/removeItem/removeItemNoUpdate
 
     // isEmpty 委托给基类（会触发 _unpackLootTable）
     [[nodiscard]] bool isEmpty() const override

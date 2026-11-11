@@ -96,6 +96,84 @@ private:
      */
     static bool _evaluateScoreCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 求值 `if data` 条件
+     *
+     * 判定 NBT 路径是否至少命中一个标签。三种数据源由解析期写入的 `executeDataConditionType`
+     * 区分（`block` / `entity` / `storage`）——`entity` 与 `storage` 共用参数名 `source`，
+     * 只看参数无法区分。
+     *
+     * 当前实现了 `storage`；`block` / `entity` 需要方块实体与实体的 NBT 视图，尚未接通，
+     * 一律返回 false。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateDataCondition(const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 求值 `if biome <pos> <biome>` 条件
+     *
+     * 取 pos 处的生物群系，判断它是否等于给定群系；若给的是标签（`#namespace:tag`），
+     * 则判断该群系是否属于这个标签。
+     *
+     * 无世界时返回 false。
+     *
+     * @param target 当前命令源（用于解析相对坐标与取世界）
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    /**
+     * @brief 求值 `if items <block <pos>|entity <entities>> <slots> <item_predicate>` 条件
+     *
+     * 按 SlotRanges 把槽位区间名展开成槽位索引，取出对应 ItemStack，逐个用
+     * ItemPredicateInput::test 判定；任意一个非空且匹配即条件成立。
+     *
+     * 当前支持的槽位来源：方块容器（ContainerBlockEntity 的 IInventory）、
+     * 玩家背包（PlayerInventory，0..40）、任意 LivingEntity 的装备槽（98..106）。
+     * 末影箱/村民/马匹/合成等槽位族需要各自的容器视图，尚无通路，按不匹配处理。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    /**
+     * @brief 求值 if predicate <id> 条件
+     *
+     * 从 LootTableManager 取战利品谓词，按与 /loot 相同的方式构建 LootContext
+     * （世界 + 随机源 + 表/谓词解析器 + THIS_ENTITY + ORIGIN），再调用
+     * LootCondition::test。
+     *
+     * 谓词标签形式（#tag）当前不支持——项目没有谓词标签注册表，按不成立处理并 warn。
+     * 无世界或无 server 时返回 false。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    /**
+     * @brief 求值 if function <name> 条件
+     *
+     * 执行指定函数，取它通过 /return 给出的返回值；返回值 > 0 才算成立。
+     * 函数不存在时 warn 并返回 false；函数没有 return 时也返回 false（与原版一致）。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateFunctionCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    static bool _evaluatePredicateCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    static bool _evaluateItemsCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    static bool _evaluateBiomeCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

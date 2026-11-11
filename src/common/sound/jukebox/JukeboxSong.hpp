@@ -35,7 +35,6 @@ namespace mc {
  * 存储一首唱片机歌曲的元数据，包括声音事件、描述翻译键、
  * 歌曲长度（秒）和比较器输出信号强度。
  *
- * 参考: net.minecraft.world.item.JukeboxSong
  */
 class JukeboxSong {
 public:

@@ -44,9 +44,10 @@
 // 周围4格泥土 (2,1,3)/(4,1,3)/(3,1,2)/(3,1,4)（蔓延目标，3×5×3 范围内）。
 //
 // 测试1 grass_spreads_to_dirt_in_light（光照≥9 蔓延）：
-//   草方块正上方 (3,2,3) 放 glowstone(15) 提供方块光，opacity=0 不触发退化，草方块上方光照=15≥9。
-//   泥土上方距 glowstone 1格水平，光照衰减1→14≥9 且无遮挡。调高 randomTickSpeed 后等待足够 tick，
-//   断言周围4格中至少1格变 grass_block（蔓延成功）。
+//   glowstone 放在草方块正上方格的西侧邻位 (2,2,3)（不能直接压在头顶：荧光石是完整实心方块，
+//   会按满遮挡让草方块退化成泥土，原版同样如此）。草方块正上方 (3,2,3) 仍是 air，被荧光石
+//   照亮至 14≥9。调高 randomTickSpeed 后等待足够 tick，断言周围4格中至少1格变 grass_block
+//   （蔓延成功；被荧光石压住的 (2,1,3) 头顶遮挡，不参与蔓延，其余3格可用）。
 //
 // 测试2 grass_decays_when_covered（被遮挡退化为泥土）：
 //   草方块正上方 (3,2,3) 放 stone（opacity=15 完整方块下表面遮挡），isSnowyConditions 判满阻挡返回
@@ -78,7 +79,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\tech_草方块.txt#转变（被遮挡形状完整方块覆盖退化为泥土）
 // Ref: SpreadableSnowyDirtBlock.cpp:66-111（randomTick 蔓延/退化）、:113-144（isSnowyConditions 退化判定）
 // Ref: LightEngineUtils.cpp:165-180（getLightBlockInto）、:102-143（facesHaveOcclusion 两端 opacity=15 完整遮挡）
-// Ref: BaseBlocks.cpp:207-212（grass_block/dirt 注册，EARTH 材质不透明）、:287-288（glowstone GLASS 材质 lightLevel15 opacity0）
+// Ref: BaseBlocks.cpp:207-212（grass_block/dirt 注册，EARTH 材质不透明）、:357-363（glowstone 完整实心且 lightLevel15）
 // Ref: Constants.hpp:60（GRASS_SPREAD_LIGHT_THRESHOLD=9）、:55（MAX_LIGHT_LEVEL=15）
 // Ref: CropLightThresholdTests.ts（randomTickSpeed 调高确定性方案范式）、WeatherSkyDarkeningTests.ts（chat 执行命令 one-sided）
 
@@ -94,8 +95,11 @@ const DIRT_NEIGHBORS = [
     { x: 3, y: 1, z: 2 },
     { x: 3, y: 1, z: 4 },
 ];
-// 草方块正上方位置（放光源或遮挡方块）。
+// 草方块正上方位置（放遮挡方块或保持 air）。
 const ABOVE = { x: 3, y: 2, z: 3 };
+// 荧光石放在正上方格的水平邻位：荧光石是完整实心方块，直接压在草方块头顶会按「满遮挡」
+// 触发退化（原版同样如此），必须让 ABOVE 保持 air，仅借邻位发光照亮 ABOVE。
+const LIGHT = { x: 2, y: 2, z: 3 };
 
 // 调高 randomTickSpeed 使草方块格在数 tick 内被随机刻确定性命中。
 // 1000 使单格每 tick 命中概率≈24.4%，120 tick 内至少命中一次概率≈100%。light_box 石墙隔离 +
@@ -134,11 +138,13 @@ function raiseRandomTickSpeed(test: Test): void {
 }
 
 // 光照≥9 时草方块向周围泥土蔓延（wiki 扩散：草上方光照≥9 才蔓延）。
-// 草方块正上方放 glowstone(15) 提供方块光，opacity=0 不触发退化，草上方光照=15≥9。调高 randomTickSpeed
+// glowstone 放在正上方格的西侧邻位，让 ABOVE 保持 air 同时获得 14 级方块光。调高 randomTickSpeed
 // 后等待，断言周围4格中至少1格变 grass_block（蔓延成功）。
 function grassSpreadsToDirtInLight(test: Test): void {
     placeGrassAndDirt(test);
-    test.setBlockType("minecraft:glowstone", ABOVE);
+    // 荧光石放在 ABOVE 的西侧邻位，向四周（含 ABOVE）发出 14 级方块光，同时 ABOVE 保持 air，
+    // 草方块不会被判定为「被完整方块覆盖」而退化。
+    test.setBlockType("minecraft:glowstone", LIGHT);
     raiseRandomTickSpeed(test);
 
     pollUntilSucceed(
@@ -156,7 +162,7 @@ function grassSpreadsToDirtInLight(test: Test): void {
                 test.assert(
                     false,
                     `grass spread in light: expected >=1 neighbor dirt->grass, got ${count}/4 ` +
-                        `(grass=${getTypeId(test, GRASS)} above=${getTypeId(test, ABOVE)}; ` +
+                        `(grass=${getTypeId(test, GRASS)} above=${getTypeId(test, ABOVE)} light=${getTypeId(test, LIGHT)}; ` +
                         `if 0, randomTickSpeed may not be raised or GRASS_SPREAD_LIGHT_THRESHOLD>=9 check missing)`,
                 );
             },

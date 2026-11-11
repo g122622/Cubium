@@ -56,7 +56,6 @@ namespace blockentity {
  * - 8 tick传输冷却
  * - 红石信号可禁用
  *
- * 参考: net.minecraft.tileentity.HopperTileEntity
  */
 class HopperEntity : public LockableBlockEntity, public IHopper {
 public:

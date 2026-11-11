@@ -33,6 +33,7 @@ set(MC_SERVER_COMMAND_SOURCES
     command/commands/SummonCommand.cpp
     command/commands/SetBlockCommand.cpp
     command/commands/FillCommand.cpp
+    command/commands/ExecuteBlocksCondition.cpp
     command/commands/ExecuteCommand.cpp
     command/commands/OpCommand.cpp
     command/commands/DeOpCommand.cpp

@@ -25,39 +25,27 @@
 
 /**
  * @file BannerPatternLayers.hpp
- * @brief `minecraft:banner_patterns` 组件的 JSON ↔ 内部表示
+ * @brief `minecraft:banner_patterns` 组件 JSON → 内部载荷转换
  *
- * 组件在数据包 JSON 里是 `[{"pattern": "<图案 ID>", "color": "<染料颜色>"}, ...]`，
- * 内部沿用旗帜方块实体那套 (图案枚举, 颜色索引) 表示——渲染与 NBT 往返都只认后者。
+ * 数据包 JSON 用资源名表达：`[{"pattern": "<图案 ID>", "color": "<染料颜色>"}, ...]`；
+ * 内部载荷（NBT 编解码器与网络编码器共同消费）用
+ * `[{"Pattern": "<图案 hash 名>", "Color": <颜色序号>}, ...]`，
+ * 直挂图案为 `{"DirectPattern": {"asset_id", "translation_key"}, "Pattern": "b", "Color": ...}`。
  */
 
-#include <string>
-#include <vector>
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc::item::component {
 
-/// 一层旗帜图案：图案（枚举）与染料颜色索引
-struct BannerPatternLayer {
-    /// 图案枚举（`BannerPatternType` 的数值）
-    int pattern = 0;
-    /// 染料颜色索引（`_colorNames` 的下标：0 = white … 15 = black）
-    int color = 0;
-};
-
 /**
- * @brief 解析 `banner_patterns` 组件 JSON
+ * @brief 把 `banner_patterns` 组件 JSON 翻译为内部载荷
  *
- * @param json 组件 JSON 值
- * @param out 解析结果（成功时覆盖）
- * @return 结构合法时为 true；图案或颜色无法识别时同样返回 true 并跳过该层（与原版解码失败
- *         时丢弃该层的处理一致），整体结构错误（不是数组、元素不是对象）返回 false
+ * @param json 数据包中的组件 JSON 值
+ * @param out 内部载荷（成功时覆盖）
+ * @return 整体结构合法时为 true；单层图案或颜色无法识别时返回 true 并跳过该层
+ *         （与原版解码失败时丢弃该层的处理一致），结构错误（不是数组、元素不是对象、
+ *         缺少必要字段、pattern 既不是字符串也不是对象）返回 false
  */
-[[nodiscard]] bool readBannerPatternLayers(const nlohmann::json& json, std::vector<BannerPatternLayer>& out);
-
-/**
- * @brief 写出 `banner_patterns` 组件 JSON
- */
-[[nodiscard]] nlohmann::json writeBannerPatternLayers(const std::vector<BannerPatternLayer>& layers);
+[[nodiscard]] bool readBannerPatternsPayload(const nlohmann::json& json, nlohmann::json& out);
 
 } // namespace mc::item::component

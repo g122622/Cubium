@@ -40,7 +40,6 @@ namespace blocks {
  * 与 vanilla VegetationBlock.mayPlaceOn 一致。
  * 可使用剪刀采集，否则掉落小麦种子（概率）。
  *
- * 参考: net.minecraft.block.TallGrassBlock
  */
 class TallGrassBlock : public BushBlock {
 public:
@@ -68,7 +67,6 @@ public:
  *
  * 类似高草，但使用不同的材质。
  *
- * 参考: net.minecraft.block.FernBlock
  */
 class FernBlock : public TallGrassBlock {
 public:

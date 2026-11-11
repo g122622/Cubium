@@ -43,7 +43,6 @@ namespace blocks {
  * 附着在墙上的火把，继承 TorchBlock，增加水平朝向属性。
  * 火把朝向其附着的墙面的反方向。
  *
- * 参考: net.minecraft.world.level.block.WallTorchBlock
  */
 class WallTorchBlock : public TorchBlock {
 public:

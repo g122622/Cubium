@@ -40,7 +40,6 @@ namespace blocks {
  * 骨粉效果：45%概率生长为杜鹃树。
  * isValidBonemealTarget 检查上方无流体。
  *
- * 参考: net.minecraft.world.level.block.AzaleaBlock (MC 1.21.11)
  */
 class AzaleaBlock : public Block, public IGrowable, public IPlantable {
 public:
@@ -128,7 +127,6 @@ private:
  * 与普通杜鹃花丛功能相同，但具有不同的外观。
  * 碰撞箱与 AzaleaBlock 相同。
  *
- * 参考: net.minecraft.world.level.block.FloweringAzaleaBlock (MC 1.21.11)
  */
 class FloweringAzaleaBlock : public AzaleaBlock {
 public:

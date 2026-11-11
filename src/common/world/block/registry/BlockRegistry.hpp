@@ -49,7 +49,6 @@ namespace mc {
  *
  * 单例模式，管理所有方块的注册和查找。
  *
- * 参考: net.minecraft.block.Block.Registry
  *
  * 用法示例:
  * @code

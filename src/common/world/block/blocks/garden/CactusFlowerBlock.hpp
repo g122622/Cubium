@@ -40,7 +40,6 @@ namespace blocks {
  *
  * MC ID: minecraft:cactus_flower
  *
- * 参考: net.minecraft.world.level.block.CactusFlowerBlock
  */
 class CactusFlowerBlock : public FlowerBlock {
 public:

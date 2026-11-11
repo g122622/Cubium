@@ -47,7 +47,6 @@ namespace blocks {
  * - isStraight() 返回 false，支持弯轨形状
  * - 三连接时红石信号可以切换弯轨方向
  *
- * 参考: net.minecraft.block.RailBlock
  */
 class RailBlock : public AbstractRailBlock {
 public:
@@ -72,7 +71,6 @@ public:
      * 普通铁轨在三连接情况下，当邻居信号源变化时会重新计算方向，
      * 实现红石道岔切换功能。
      *
-     * 参考: net.minecraft.block.RailBlock.updateState
      */
     void updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock) override;
 

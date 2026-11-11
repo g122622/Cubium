@@ -62,31 +62,32 @@ void TemplateManagerHostBinding::unbindStructurePackSource()
     const IStructurePackSource* source = m_structurePackSource;
     m_structurePackSource = nullptr;
 
-    if (m_manager._unbindStructurePackSource(source)) {
-        // 来源已摘除，缓存中的模板不再对应任何有效数据包视图，一并作废
-        m_manager._clearTemplateCache();
-    }
+    // 只摘除来源指针，**不清空模板缓存**。
+    // 解绑发生在服务端关闭阶段，此时区块生成 worker 仍在跑（下界化石等结构的后处理会读
+    // 已缓存的 Template*）。清空缓存会把这些 Template 立即析构，worker 随即解引用悬垂指针
+    // （表现为 nextInt bound>0 断言、访问违例或栈溢出）。
+    // 缓存的 Template 是从数据包解析出的自包含数据，不再引用来源对象，因此保留是安全的；
+    // 下一个宿主在 initializeRegistries 里 bind 新仓库时再整体作废旧视图。
+    static_cast<void>(m_manager._unbindStructurePackSource(source));
 }
 
 void TemplateManagerHostBinding::releaseAll()
 {
-    bool released = false;
-
     if (m_structurePackSource != nullptr) {
         const IStructurePackSource* source = m_structurePackSource;
         m_structurePackSource = nullptr;
-        released = m_manager._unbindStructurePackSource(source) || released;
+        static_cast<void>(m_manager._unbindStructurePackSource(source));
     }
 
     if (m_dataPackRepository != nullptr) {
         const resource::DataPackRepository* repository = m_dataPackRepository;
         m_dataPackRepository = nullptr;
-        released = m_manager._unbindDataPackRepository(repository) || released;
+        static_cast<void>(m_manager._unbindDataPackRepository(repository));
     }
 
-    if (released) {
-        m_manager._clearTemplateCache();
-    }
+    // 只解绑非拥有指针，**不清空模板缓存**：本方法在服务端关闭阶段被调用，此时区块生成
+    // worker 可能仍持有缓存中 Template 的裸指针。清理动作留给下一个宿主 bind 新仓库时执行
+    // （见 _bindDataPackRepository），那里发生在任何区块生成之前。
 }
 
 } // namespace template_

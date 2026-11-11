@@ -136,7 +136,7 @@ FunctionManager::ExecuteResult FunctionManager::execute(
     auto* func = getFunctionAny(id);
     if (func == nullptr) {
         spdlog::warn("FunctionManager: Unknown function '{}'", id.toString());
-        return ExecuteResult{0, 0};
+        return ExecuteResult{};
     }
     return func->execute(*this, source, arguments);
 }

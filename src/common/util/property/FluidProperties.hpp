@@ -27,7 +27,6 @@
  * @file FluidProperties.hpp
  * @brief 流体专用属性定义
  *
- * 参考: net.minecraft.state.properties.BlockStateProperties中的流体属性
  *
  * 流体属性不同于方块属性：
  * - LEVEL_1_8: 流体等级(1-8)，用于FlowingFluid

@@ -72,29 +72,24 @@ const BOW = "minecraft:bow";
 const ARROW = "minecraft:arrow";
 const VILLAGER_TYPE = "minecraft:villager";
 
-// creeper_pit 结构尺寸 7×5×7（helper 相对坐标 x,z∈[0,6], y∈[0,4]）。
-const PIT_FROM = { x: 0, y: 0, z: 0 };
-const PIT_VOLUME = { x: 7, y: 5, z: 7 };
-
 // 攻击者 (3,2,3) 默认 yaw=0 朝 +Z。受害者 (3,2,4) 距 1 格正前方（箭矢 1 tick 命中）。
 const ARCHER_POS = { x: 3, y: 2, z: 3 };
 const VICTIM_POS = { x: 3, y: 2, z: 4 };
 
-// 读取 pit 区域内 villager 的当前血量。区域限定排除并行测试污染。
-function readVillagerHp(test: Test): number {
-    const villagers = test.getDimension().getEntities({
-        type: VILLAGER_TYPE,
-        location: test.worldLocation(PIT_FROM),
-        volume: PIT_VOLUME,
-    });
-    if (villagers.length === 0) {
-        return -1;
-    }
-    const health = villagers[0].getComponent("minecraft:health");
+// 读取受害者实体的当前血量。直接用手柄而非区域查询：村民受击后会惊慌跑动，
+// 可能跑出 creeper_pit 的 7×7 平台，区域查询会把它误判为"实体消失"（HP=-1）。
+function readHp(entity: any): number {
+    const health = entity.getComponent("minecraft:health");
     if (health === undefined) {
         return -1;
     }
     return (health as any).currentValue as number;
+}
+
+// 冻结村民移动：其 AI 随机漫步会让 1 格宽的直射击线落空（箭矢沿 +Z 直飞），
+// 表现为 HP 保持 20 的偶发失败。同 BlastProtectionKnockbackTests 范式。
+function freezeMovement(entity: any): void {
+    entity.getComponent("minecraft:movement").setCurrentValue(0);
 }
 
 // 构造物品 ItemStack（Cubium 的 @minecraft/server 与 server-gametest 依赖的 @minecraft/server
@@ -152,11 +147,12 @@ function setupArcher(test: Test): any {
 function noProjectileProtectionTakesFullArrowDamage(test: Test): void {
     (test as any).killAllEntities();
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    freezeMovement(victim);
     equipLeatherArmor(victim, false);
     setupArcher(test);
 
     pollUntilSucceed(test, () => {
-        const hp = readVillagerHp(test);
+        const hp = readHp(victim);
         return hp >= 10 && hp <= 15;
     }, {
         startTick: 30,
@@ -164,7 +160,7 @@ function noProjectileProtectionTakesFullArrowDamage(test: Test): void {
         maxTick: 100,
         onTimeout: () => test.assert(false,
             `no-projectile-protection villager should take full arrow dmg (leather armor, HP 20→~13), `
-            + `but villager HP=${readVillagerHp(test)} (if HP=20 bow chain broken [arrow not fired/missed]; `
+            + `but villager HP=${readHp(victim)} (if HP=20 bow chain broken [arrow not fired/missed]; `
             + `if HP~13 correct; if HP<10 abnormal overkill/crit)`),
     });
 }
@@ -183,11 +179,12 @@ function noProjectileProtectionTakesFullArrowDamage(test: Test): void {
 function projectileProtectionIvReducesArrowDamage(test: Test): void {
     (test as any).killAllEntities();
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    freezeMovement(victim);
     equipLeatherArmor(victim, true);
     setupArcher(test);
 
     pollUntilSucceed(test, () => {
-        const hp = readVillagerHp(test);
+        const hp = readHp(victim);
         return hp >= 17.5 && hp <= 19.5;
     }, {
         startTick: 30,
@@ -195,7 +192,7 @@ function projectileProtectionIvReducesArrowDamage(test: Test): void {
         maxTick: 100,
         onTimeout: () => test.assert(false,
             `projectile protection IV villager should take 80% reduced arrow dmg (EPF=20, HP 20→~18.5), `
-            + `but villager HP=${readVillagerHp(test)} (if HP~13 PP EPF not applied `
+            + `but villager HP=${readHp(victim)} (if HP~13 PP EPF not applied `
             + `[getDamageProtection PROJECTILE flag / Type::Projectile / DamageFlags::PROJECTILE defect]; `
             + `if HP~18.5 correct; if HP=20 bow chain broken [arrow missed])`),
     });

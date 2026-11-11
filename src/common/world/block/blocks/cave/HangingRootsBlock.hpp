@@ -43,7 +43,6 @@ namespace blocks {
  * 悬挂于方块下方的植物装饰，支持含水。
  * 必须附着在上方的固体方块上才能存活。
  *
- * 参考: net.minecraft.block.HangingRootsBlock
  */
 class HangingRootsBlock : public Block, public IWaterLoggable {
 public:

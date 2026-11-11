@@ -30,18 +30,47 @@
 
 #include <gtest/gtest.h>
 
+#include <spdlog/sinks/callback_sink.h>
+#include <spdlog/spdlog.h>
+
+#include <memory>
+#include <string>
+
 #include "common/BaseTestServer.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/registry/VanillaEntities.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteCommand.hpp"
 #include "server/command/commands/HelpCommand.hpp"
 #include "server/command/commands/ListCommand.hpp"
+#include "server/command/data/DataAccessor.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 namespace mc::command {
 
@@ -345,6 +374,74 @@ TEST_F(ExecuteCommandTest, ExecuteIfScoreWithMissingObjectiveFails)
     EXPECT_EQ(result.value(), 0);
 }
 
+// ============================================================================
+// if|unless data 条件（当前实现 storage 变体）
+// ============================================================================
+
+namespace {
+
+/// 往命令存储的指定 id 写入一个 compound，供 if data 用例使用。
+void seedCommandStorage(mc::server::IServer& server, const std::string& id, mc::nbt::tags::compound_tag data)
+{
+    mc::ResourceLocation location(id);
+    mc::command::StorageDataAccessor accessor(&server.commandStorage(), location);
+    accessor.mergeData(data);
+}
+
+} // namespace
+
+// storage 里存在该路径 → 条件成立，嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageHoldsWhenPathExists)
+{
+    mc::nbt::tags::compound_tag data;
+    data.put("hp", 20);
+    seedCommandStorage(m_server, "test:ifdata_hit", data);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:ifdata_hit hp run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "the path exists, so the nested command must run";
+}
+
+// storage 里没有该路径 → 条件不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageFailsWhenPathMissing)
+{
+    mc::nbt::tags::compound_tag data;
+    data.put("hp", 20);
+    seedCommandStorage(m_server, "test:ifdata_miss", data);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:ifdata_miss nope run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0) << "the path does not exist, so the nested command must not run";
+}
+
+// 完全没写过的 storage id → 条件不成立（不能顺手创建空存储）。
+TEST_F(ExecuteCommandTest, ExecuteIfDataStorageUnknownIdFails)
+{
+    const auto result =
+        m_server.commandRegistry().execute("execute if data storage test:never_written hp run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+// block / entity 变体尚未实现，必须按不成立处理，不能误让嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfDataUnimplementedVariantsAreUnmet)
+{
+    const auto blockResult =
+        m_server.commandRegistry().execute("execute if data block 0 0 0 Items run help", m_console);
+    EXPECT_TRUE(blockResult.success());
+    EXPECT_EQ(blockResult.value(), 0);
+
+    const auto entityResult = m_server.commandRegistry().execute(
+        "execute if data entity @e[type=minecraft:pig,limit=1] CustomName run help", m_console);
+    EXPECT_TRUE(entityResult.success());
+    EXPECT_EQ(entityResult.value(), 0);
+}
+
 TEST_F(ExecuteCommandTest, UnsupportedConditionsNeverExecuteFollowingCommand)
 {
     mc::i32 executions = 0;
@@ -646,3 +743,385 @@ TEST_F(DimensionArgumentTypeTest, GetExamples)
 // 2. ServerCommandSource::withDimension(DimensionId) 创建新源并更新 m_dimensionId（ServerCommandSource.cpp:192-197）
 // 3. _executeAt 调用 modifiedSource.withDimension(entity->dimension()) 对齐 MC Java 行为
 // ============================================================================
+
+// ============================================================================
+// if biome 的正向路径
+//
+// 需要命令源能解析到真实世界。BaseTestServer 的 dimensionManager() 敏感之前直接
+// 抛 "unused"，所以这类用例根本写不出来。现在它返回一个真实的
+// ServerDimensionManager，用例可以自己装入维度与世界。
+// ============================================================================
+
+namespace {
+
+std::unique_ptr<mc::server::ServerWorld> createBiomeTestWorld(const mc::server::ServerWorldConfig& config)
+{
+    auto world = std::make_unique<mc::server::ServerWorld>(config);
+    auto settings = mc::DimensionSettings::overworld();
+    auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+    auto generator =
+        std::make_unique<mc::NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+    auto chunkManager = std::make_unique<mc::server::ServerChunkManager>(*world, std::move(generator));
+    world->setChunkManager(std::move(chunkManager));
+    return world;
+}
+
+} // namespace
+
+class ExecuteCommandBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+
+        mc::command::ExecuteCommand::registerTo(m_server.commandRegistry().dispatcher());
+        mc::command::HelpCommand::registerTo(m_server.commandRegistry().dispatcher());
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        dimension->setWorld(createBiomeTestWorld(config));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+    }
+
+    mc::test::BaseTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+};
+
+// 不假设具体群系名：先从世界直接读出该坐标的真实群系，再断言命令的结果
+// 与之一致。这样一来，“恒返回 false”与“恒返回 true”两种错误实现都会被捕获。
+TEST_F(ExecuteCommandBiomeTest, ExecuteIfBiomeAgreesWithWorld)
+{
+    mc::server::ServerWorld* world = m_server.dimensionManager().getDimension(0)->world();
+    ASSERT_NE(world, nullptr);
+
+    // ServerWorld 自己的 getBiome 是私有的，走 IWorld 接口。
+    const auto* reader = static_cast<const mc::IWorld*>(world);
+    const mc::BiomeId actualId = reader->getBiome(0, 64, 0);
+
+    const auto& registry = mc::world::biome::BiomeRegistry::instance();
+    ASSERT_TRUE(registry.hasBiome(actualId));
+    const std::string actualName = "minecraft:" + registry.get(actualId).name();
+
+    // 命中：用真实群系名去问。
+    const auto hit =
+        m_server.commandRegistry().execute("execute if biome 0 64 0 " + actualName + " run help", m_console);
+    ASSERT_TRUE(hit.success());
+    EXPECT_EQ(hit.value(), 1) << "biome at 0,64,0 is " << actualName;
+
+    // 不存在的群系必定不成立。
+    const auto miss =
+        m_server.commandRegistry().execute("execute if biome 0 64 0 minecraft:not_a_real_biome run help", m_console);
+    ASSERT_TRUE(miss.success());
+    EXPECT_EQ(miss.value(), 0);
+}
+
+// ============================================================================
+// if data entity 的正向路径
+// ============================================================================
+
+class ExecuteCommandDataEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+        mc::entity::VanillaEntities::registerAll();
+
+        mc::command::ExecuteCommand::registerTo(m_server.commandRegistry().dispatcher());
+        mc::command::HelpCommand::registerTo(m_server.commandRegistry().dispatcher());
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto world = std::make_unique<mc::server::ServerWorld>(config);
+        auto settings = mc::DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+        auto generator = std::make_unique<mc::NoiseChunkGenerator>(
+            std::move(settings), std::move(biomeSource), std::move(randomState));
+        auto chunkManager = std::make_unique<mc::server::ServerChunkManager>(*world, std::move(generator));
+        world->setChunkManager(std::move(chunkManager));
+
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        m_world = world.get();
+        dimension->setWorld(std::move(world));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+
+        auto zombie = std::make_unique<mc::ZombieEntity>(mc::EntityInstanceId(1), mc::test::testEcsRegistry());
+        zombie->setWorld(m_world);
+        m_zombie = zombie.get();
+        m_world->entityManager().addEntity(std::move(zombie));
+    }
+
+    /// 执行命令并返回期间收集到的日志（命令反馈走 sendMessage/sendError → spdlog）。
+    std::pair<mc::Result<mc::i32>, std::string> _run(const std::string& command)
+    {
+        std::string captured;
+        auto sink = std::make_shared<spdlog::sinks::callback_sink_mt>([&captured](const spdlog::details::log_msg& msg) {
+            captured.append(msg.payload.data(), msg.payload.size());
+            captured.push_back('\n');
+        });
+        auto logger = std::make_shared<spdlog::logger>("data-capture", sink);
+        auto previous = spdlog::default_logger();
+        spdlog::set_default_logger(logger);
+
+        auto result = m_server.commandRegistry().execute(command, m_console);
+
+        spdlog::set_default_logger(previous);
+        return {std::move(result), captured};
+    }
+
+    mc::test::BaseTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+    mc::server::ServerWorld* m_world = nullptr;
+    mc::ZombieEntity* m_zombie = nullptr;
+};
+
+// Pos 是每个实体 writeToNBT 都会写的键。命中与未命两个方向都要验：
+// 只验命中无法发现“恒真”，只验未命中无法发现“恒假”。
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataEntityHoldsWhenPathExists)
+{
+    auto [hit, hitLog] = _run("execute if data entity @e[limit=1] Pos run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "Pos exists on the entity, condition must hold. log:\n" << hitLog;
+
+    auto [miss, missLog] = _run("execute if data entity @e[limit=1] NoSuchKeyHere run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "a missing path must not satisfy the condition. log:\n" << missLog;
+}
+
+// ============================================================================
+// if data block 的正向路径
+//
+// 用命令方块实体：它的 NBT 里有确定存在的 "Command" 键，且构造成本低。
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataBlockHoldsWhenPathExists)
+{
+    const mc::BlockPos pos(4, 64, 4);
+    auto commandBlock =
+        std::make_unique<mc::blockentity::CommandBlockEntity>(pos, mc::blockentity::CommandBlockMode::Redstone);
+    commandBlock->setCommand("say hello");
+    m_world->setBlockEntity(pos, std::move(commandBlock));
+
+    auto [hit, hitLog] = _run("execute if data block 4 64 4 Command run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "the command block stores a Command tag. log:\n" << hitLog;
+
+    auto [miss, missLog] = _run("execute if data block 4 64 4 NoSuchKeyHere run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "a missing path must not satisfy the condition. log:\n" << missLog;
+
+    // 该位置没有方块实体时，条件应当不成立而不是报错。
+    auto [empty, emptyLog] = _run("execute if data block 0 0 0 Command run help");
+    ASSERT_TRUE(empty.success()) << "missing block entity must not error out. log:\n" << emptyLog;
+    EXPECT_EQ(empty.value(), 0);
+}
+
+// ============================================================================
+// if items 的正向路径（方块容器）
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsBlockMatchesContainerContents)
+{
+    const mc::BlockPos pos(4, 64, 4);
+    auto chest = std::make_unique<mc::blockentity::ChestEntity>(pos);
+    auto* inventory = chest->getInventory();
+    ASSERT_NE(inventory, nullptr);
+
+    const auto* stone = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr) << "stone must be registered for this test";
+    inventory->setItem(0, mc::ItemStack(*stone, 1));
+
+    m_world->setBlockEntity(pos, std::move(chest));
+
+    // container.0 里是石头 → 命中
+    auto [hit, hitLog] = _run("execute if items block 4 64 4 container.0 minecraft:stone run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "slot 0 holds stone. log:\n" << hitLog;
+
+    // 同一槽位问盾牌 → 不命中
+    auto [miss, missLog] = _run("execute if items block 4 64 4 container.0 minecraft:shield run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "slot 0 holds stone, not shield. log:\n" << missLog;
+
+    // 空槽位 → 不命中（空栈不能匹配 "*" 之外的任何谓词）
+    auto [empty, emptyLog] = _run("execute if items block 4 64 4 container.5 minecraft:stone run help");
+    ASSERT_TRUE(empty.success()) << "log:\n" << emptyLog;
+    EXPECT_EQ(empty.value(), 0) << "slot 5 is empty. log:\n" << emptyLog;
+
+    // container.* 扫全容器 → 命中
+    auto [all, allLog] = _run("execute if items block 4 64 4 container.* minecraft:stone run help");
+    ASSERT_TRUE(all.success()) << "log:\n" << allLog;
+    EXPECT_EQ(all.value(), 1) << "container.* must cover slot 0. log:\n" << allLog;
+}
+
+// ============================================================================
+// if items 的正向路径（实体装备槽）
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsEntityMatchesEquipment)
+{
+    ASSERT_NE(m_zombie, nullptr);
+
+    const auto* stone = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+    // 直接给夹具在 SetUp 里建的那个僵尸装备：它是世界里唯一的实体，
+    // @e[limit=1] 一定选到它。若另建一个，选中的可能是前者。
+    m_zombie->setEquipment(mc::EquipmentSlot::MainHand, mc::ItemStack(*stone, 1));
+
+    // weapon.mainhand 里是石头 → 命中
+    auto [hit, hitLog] = _run("execute if items entity @e[limit=1] weapon.mainhand minecraft:stone run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "main hand holds stone. log:\n" << hitLog;
+
+    // 同一槽位问盾牌 → 不命中
+    auto [miss, missLog] = _run("execute if items entity @e[limit=1] weapon.mainhand minecraft:shield run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "log:\n" << missLog;
+
+    // 空的副手 → 不命中
+    auto [offhand, offhandLog] = _run("execute if items entity @e[limit=1] weapon.offhand minecraft:stone run help");
+    ASSERT_TRUE(offhand.success()) << "log:\n" << offhandLog;
+    EXPECT_EQ(offhand.value(), 0) << "off hand is empty. log:\n" << offhandLog;
+}
+
+// ============================================================================
+// if predicate 的正向与负向路径
+//
+// 谓词需要先注册到 LootPredicateManager。这里用一个本地的恒真/恒假
+// LootCondition 子类注册两个谓词，避免依赖数据包内容。
+// ============================================================================
+
+namespace {
+
+/// 无条件成立的战利品谓词（仅供测试）
+class AlwaysTrueCondition final : public mc::loot::LootCondition {
+public:
+    bool test(mc::loot::LootContext& /*context*/) const override
+    {
+        return true;
+    }
+
+    std::unique_ptr<mc::loot::LootCondition> clone() const noexcept override
+    {
+        return std::make_unique<AlwaysTrueCondition>(*this);
+    }
+
+    std::string getType() const override
+    {
+        return "test:always_true";
+    }
+};
+
+/// 无条件不成立的战利品谓词（仅供测试）
+class AlwaysFalseCondition final : public mc::loot::LootCondition {
+public:
+    bool test(mc::loot::LootContext& /*context*/) const override
+    {
+        return false;
+    }
+
+    std::unique_ptr<mc::loot::LootCondition> clone() const noexcept override
+    {
+        return std::make_unique<AlwaysFalseCondition>(*this);
+    }
+
+    std::string getType() const override
+    {
+        return "test:always_false";
+    }
+};
+
+} // namespace
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfPredicateFollowsRegisteredCondition)
+{
+    // 谓词注册在独立的 LootPredicateManager 上，LootTableManager 只持有它的 const 指针，
+    // 所以测试里自建一个 manager 再挂上去。
+    mc::loot::LootPredicateManager predicateManager;
+    predicateManager.registerPredicate("test:always_true", std::make_unique<AlwaysTrueCondition>());
+    predicateManager.registerPredicate("test:always_false", std::make_unique<AlwaysFalseCondition>());
+    m_server.lootTableManager().setPredicateManager(&predicateManager);
+
+    // 注册为恒真 → 命中
+    auto [hit, hitLog] = _run("execute if predicate test:always_true run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "log:\n" << hitLog;
+
+    // 注册为恒假 → 不命中
+    auto [miss, missLog] = _run("execute if predicate test:always_false run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "log:\n" << missLog;
+
+    // 未注册的谓词 → 不命中且有 warn
+    auto [unknown, unknownLog] = _run("execute if predicate test:does_not_exist run help");
+    ASSERT_TRUE(unknown.success()) << "log:\n" << unknownLog;
+    EXPECT_EQ(unknown.value(), 0);
+    EXPECT_NE(unknownLog.find("unknown loot predicate"), std::string::npos)
+        << "an unregistered predicate must be reported, not silently false; log:\n"
+        << unknownLog;
+}
+
+// ============================================================================
+// if function 的正向与负向路径
+//
+// 依赖 /return 把值写进 ServerCommandSource 的函数返回通道，
+// 由 CommandFunction::execute 捕获并带出来。
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfFunctionFollowsReturnValue)
+{
+    auto& functions = m_server.functionManager();
+    functions.registerFunction(mc::ResourceLocation("test:returns_positive"), {"/return 7"});
+    functions.registerFunction(mc::ResourceLocation("test:returns_zero"), {"/return 0"});
+    functions.registerFunction(mc::ResourceLocation("test:returns_nothing"), {"/help"});
+
+    // 返回值 7 > 0 → 命中
+    auto [hit, hitLog] = _run("execute if function test:returns_positive run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "return value 7 must satisfy the condition. log:\n" << hitLog;
+
+    // 返回值 0 不 > 0 → 不命中
+    auto [zero, zeroLog] = _run("execute if function test:returns_zero run help");
+    ASSERT_TRUE(zero.success()) << "log:\n" << zeroLog;
+    EXPECT_EQ(zero.value(), 0) << "return value 0 must not satisfy the condition. log:\n" << zeroLog;
+
+    // 没有 return 的函数 → 不命中
+    auto [none, noneLog] = _run("execute if function test:returns_nothing run help");
+    ASSERT_TRUE(none.success()) << "log:\n" << noneLog;
+    EXPECT_EQ(none.value(), 0) << "a function without return must not satisfy it. log:\n" << noneLog;
+
+    // 不存在的函数 → 不命中且 warn
+    auto [unknown, unknownLog] = _run("execute if function test:no_such_function run help");
+    ASSERT_TRUE(unknown.success()) << "log:\n" << unknownLog;
+    EXPECT_EQ(unknown.value(), 0);
+    EXPECT_NE(unknownLog.find("unknown function"), std::string::npos) << "an unknown function must be reported; log:\n"
+                                                                      << unknownLog;
+}
+
+// /return 应该终止函数后续命令：第二条命令不应被执行。
+TEST_F(ExecuteCommandDataEntityTest, ReturnStopsFollowingFunctionCommands)
+{
+    auto& functions = m_server.functionManager();
+    // 先 return 5，后面跟一条会失败的命令：若 /return 没有截断函数，
+    // 这条会被执行并计入 failureCount。
+    functions.registerFunction(
+        mc::ResourceLocation("test:return_then_fail"), {"/return 5", "/this_command_does_not_exist"});
+
+    const auto result = functions.execute(mc::ResourceLocation("test:return_then_fail"), m_console);
+
+    EXPECT_EQ(result.failureCount, 0) << "/return must stop the remaining commands";
+    ASSERT_TRUE(result.returnValue.has_value());
+    EXPECT_EQ(*result.returnValue, 5);
+}

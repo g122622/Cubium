@@ -56,7 +56,6 @@ namespace item::items {
  * - BundleContents 为不可变值类型，修改操作通过 Mutable 完成
  * - EMPTY 为静态空实例
  *
- * 参考: net.minecraft.world.item.component.BundleContents
  */
 class BundleContents {
 public:
@@ -235,7 +234,6 @@ private:
  * 对应 MC 1.21.11 的 BundleContents.Mutable。所有修改操作通过此类完成，
  * 完成后调用 toImmutable() 生成不可变 BundleContents。
  *
- * 参考: net.minecraft.world.item.component.BundleContents.Mutable
  */
 class BundleContents::Mutable {
 public:

@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mc::mod::bedrock::addon {
@@ -46,6 +47,19 @@ struct PackVersion {
      * @return 解析后的版本号
      */
     static PackVersion fromVector(const std::vector<i32>& v);
+
+    /**
+     * @brief 从点分字符串解析版本号（如 "1.21.0"）
+     *
+     * 基岩版内容文件（实体/方块定义 JSON）的 `format_version` 是字符串形式，
+     * 与 manifest 里的数组形式不同，故单独提供入口。
+     * 只接受纯数字分段，出现空段、负号或非数字字符即视为无效。
+     *
+     * @param text 版本字符串
+     * @param out 解析结果（仅在返回 true 时被写入）
+     * @return 解析是否成功
+     */
+    [[nodiscard]] static bool fromString(std::string_view text, PackVersion& out) noexcept;
 
     /**
      * @brief 转换为整数数组

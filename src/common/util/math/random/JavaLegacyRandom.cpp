@@ -98,16 +98,13 @@ f32 JavaLegacyRandom::nextFloat()
 
 f64 JavaLegacyRandom::nextDouble()
 {
-    // MC: LegacyRandomSource 实现 BitRandomSource，使用其默认 nextDouble：
-    //   (((long) next(26) << 27) + next(27)) * 1.110223E-16F
-    // 修约顺序与 java.util.Random 不同：乘数是 f32 字面量，Java 的 long * float
-    // 先提升为 float 再相乘，结果只有 24 位精度。按 f64 相乘会多出 29 位有效位，
-    // 与参照实现的逐位黄金值分叉。
+    // Java: LegacyRandomSource.nextDouble()（java.util.Random 的原版公式）
+    //   (((long) next(26) << 27) + next(27)) * 0x1.0p-53
+    // next(b) 的结果非负（state >>> (48 - b)），所以拼接后是 [0, 2^53) 的 53 位整数；
+    // 乘数 2^-53 是 f64 精确值，中间**不**经过 f32（与 BitRandomSource 的写法不同）。
     const u64 high = static_cast<u32>(next(26));
     const u64 low = static_cast<u32>(next(27));
-    const u64 k = (high << 27) | low;
-    const f32 scaled = static_cast<f32>(k) * 1.1102230246251565E-16f;
-    return static_cast<f64>(scaled);
+    return static_cast<f64>((high << 27) | low) * 1.1102230246251565E-16;
 }
 
 i64 JavaLegacyRandom::nextLong()

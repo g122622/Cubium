@@ -37,6 +37,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -1405,6 +1406,8 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_HealsEveryTenTicksWhileNotFull)
     dragon.setHealth(100.0f);
 
     auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    // 直接构造绕过实体工厂，typeId 需显式补齐；龙按 entityType()==END_CRYSTAL 识别水晶。
+    crystal->setTypeId(entity::EntityTypeKeys::END_CRYSTAL);
     crystal->setWorld(m_world.get());
     crystal->setPosition(dragon.x() + 4.0f, dragon.y(), dragon.z());
     m_world->spawnEntity(std::move(crystal));
@@ -1435,6 +1438,8 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_NoHealWhenFullHealth)
     dragon.setHealth(dragon.maxHealth());
 
     auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    // 直接构造绕过实体工厂，typeId 需显式补齐；龙按 entityType()==END_CRYSTAL 识别水晶。
+    crystal->setTypeId(entity::EntityTypeKeys::END_CRYSTAL);
     crystal->setWorld(m_world.get());
     crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());
     m_world->spawnEntity(std::move(crystal));
@@ -1458,6 +1463,8 @@ TEST_F(EnderDragonEntityTest, CheckCrystals_ClearsRemovedCrystal)
     dragon.setHealth(100.0f);
 
     auto crystal = std::make_unique<entity::EnderCrystalEntity>(mc::test::testEcsRegistry());
+    // 直接构造绕过实体工厂，typeId 需显式补齐；龙按 entityType()==END_CRYSTAL 识别水晶。
+    crystal->setTypeId(entity::EntityTypeKeys::END_CRYSTAL);
     auto* crystalPtr = crystal.get();
     crystal->setWorld(m_world.get());
     crystal->setPosition(dragon.x() + 2.0f, dragon.y(), dragon.z());

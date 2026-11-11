@@ -84,6 +84,8 @@ function setupArcherAndVictim(test: Test, arrowItemId: string): { player: any; v
     player.setItem(arrow as unknown as Parameters<typeof player.setItem>[0], 40, false); // 副手 slot 40
 
     const victim = test.spawn(VILLAGER_TYPE, VICTIM_POS);
+    // 冻结村民移动：随机游荡会让 1 格宽的直射击线落空（箭矢沿固定方向飞）。
+    (victim.getComponent("minecraft:movement") as any).setCurrentValue(0);
 
     // tick 5 useItem(弓) → setActiveHand 拉弓（useDuration=72000）。
     test.runAtTickTime(5, () => {

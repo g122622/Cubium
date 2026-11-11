@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandSource.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/SlotRanges.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/command/coordinates/LocalCoordinates.hpp"
 #include "common/command/coordinates/WorldCoordinate.hpp"
@@ -1649,6 +1650,13 @@ public:
         if (text.empty()) {
             reader.setCursor(start);
             return CommandError(CommandErrorType::StringExpected, "Expected item slots", start);
+        }
+        // 槽位区间名必须在 SlotRanges 表内。原版 SlotsArgument 遇到未知名字直接报
+        // slot.unknown；不校验会让 `/execute if items ... container.99` 这类笔误
+        // 一路解析成功、在执行期静默变成"空槽位集合"。
+        if (!SlotRanges::isKnownName(text)) {
+            reader.setCursor(start);
+            return CommandError(CommandErrorType::DispatcherUnknownArgument, "Unknown slot '" + text + "'", start);
         }
         return text;
     }

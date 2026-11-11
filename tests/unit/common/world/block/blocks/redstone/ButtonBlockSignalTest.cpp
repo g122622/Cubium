@@ -149,9 +149,10 @@ TEST_F(ButtonBlockSignalTest, OutputDirectionForEachAttachFace)
 {
     const auto& button = static_cast<const AbstractButtonBlock&>(*VanillaBlocks::STONE_BUTTON);
 
-    // 墙按钮：输出到 FACING 的反方向（背靠附着方块）
-    EXPECT_EQ(button.getOutputDirection(_button(Direction::North, AttachFace::Wall, false)), Direction::South);
-    EXPECT_EQ(button.getOutputDirection(_button(Direction::East, AttachFace::Wall, false)), Direction::West);
+    // 墙按钮：getConnectedDirection 即 FACING（支撑方块在 FACING 的反方向，
+    // 支撑向按钮查询时传入的 side 正是 FACING，因此强充能只落在支撑上）。
+    EXPECT_EQ(button.getOutputDirection(_button(Direction::North, AttachFace::Wall, false)), Direction::North);
+    EXPECT_EQ(button.getOutputDirection(_button(Direction::East, AttachFace::Wall, false)), Direction::East);
 
     // 地板按钮：向上输出；天花板按钮：向下输出
     EXPECT_EQ(button.getOutputDirection(_button(Direction::North, AttachFace::Floor, false)), Direction::Up);
@@ -168,7 +169,7 @@ TEST_F(ButtonBlockSignalTest, PressedButtonOnlyPowersOutputSide)
     const BlockPos pos(0, 64, 0);
     const auto& button = *VanillaBlocks::STONE_BUTTON;
 
-    // 墙按钮朝北：输出方向为南，但弱信号不分方向
+    // 墙按钮朝北：强信号输出方向为北，但弱信号不分方向
     const BlockState state = _button(Direction::North, AttachFace::Wall, true);
 
     for (const Direction dir : Directions::all()) {
@@ -210,11 +211,11 @@ TEST_F(ButtonBlockSignalTest, ButtonNeverProvidesStrongPower)
     ButtonTestWorld world;
     const BlockPos pos(0, 64, 0);
     const auto& button = *VanillaBlocks::STONE_BUTTON;
-    // 墙按钮朝北 → 输出方向为南
+    // 墙按钮朝北（支撑在南侧）→ 支撑向按钮查询时传入的 side 为北，强信号仅在北侧返回 15
     const BlockState state = _button(Direction::North, AttachFace::Wall, true);
 
-    EXPECT_EQ(button.getStrongPower(state, world, pos, Direction::South), 15);
-    for (const Direction dir : {Direction::North, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
+    EXPECT_EQ(button.getStrongPower(state, world, pos, Direction::North), 15);
+    for (const Direction dir : {Direction::South, Direction::East, Direction::West, Direction::Up, Direction::Down}) {
         EXPECT_EQ(button.getStrongPower(state, world, pos, dir), 0) << "side=" << static_cast<int>(dir);
     }
 }
@@ -226,7 +227,7 @@ TEST_F(ButtonBlockSignalTest, PoweredButtonPowersBlockOnOutputSideOnly)
     ButtonTestWorld world;
     const BlockPos buttonPos(0, 64, 0);
 
-    // 墙按钮朝北，输出到南侧 (0,64,z+1)。
+    // 墙按钮朝北，支撑在南侧 (0,64,z+1)，强信号查询方向为北。
     const BlockState pressedButton = _button(Direction::North, AttachFace::Wall, true);
     world.setBlockAt(buttonPos, &pressedButton);
 

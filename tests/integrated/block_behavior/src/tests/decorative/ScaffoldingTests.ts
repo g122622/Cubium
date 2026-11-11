@@ -90,10 +90,14 @@ function scaffoldingDistanceZeroOnSolidSupport(test: Test): void {
 }
 
 // 脚手架空悬（下方 air，无邻居脚手架）→ distance=7 → 自毁消失。
-// calculateDistance：下方 air（非脚手架、isSolidSide(Up) false）→ minDistance=7；下方水平邻居无脚手架
+// calculateDistance：下方 air（非脚手架、isFaceSturdy(Up) false）→ minDistance=7；下方水平邻居无脚手架
 // → distance=7。tick 里 previousDistance==7（default）→ 直接破坏掉物品分支 → scaffolding 变 air。
 // Ref: tech_脚手架.txt#下落的方块（延展距离 >6 即 =7 直接破坏掉落）
 function scaffoldingFallsWhenNoSupport(test: Test): void {
+    // 结构在 helper y=1 这一层是玻璃地板，玻璃顶面是完整实心面，若不先挖空，
+    // 脚手架会把玻璃算作 distance=0 的支撑而永不下落。
+    test.setBlockType("minecraft:air", { x: 3, y: 1, z: 1 });
+
     // (3,2,1) 放脚手架（下方 (3,1,1) air，无水平邻居脚手架，强放绕过 isValidPosition，default distance=7）。
     // onBlockAdded → tick(1) → calculateDistance：下方 air → 7；水平邻居 air → 7 → distance=7。
     // previousDistance==7（default）→ 直接破坏掉物品分支 → scaffolding 变 air。

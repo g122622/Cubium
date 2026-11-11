@@ -322,6 +322,18 @@ public:
      * 在设置攻击目标时同步更新愤怒状态。
      * 通过MobEntity*指针调用时也能正确派发到子类的override。
      */
+    /** @brief 设置攻击目标 */
+    // TODO(attack-target-dual-store): 攻击目标目前有**两个互不同步的存储**：
+    //   1) 本类的 m_attackTarget —— setAttackTarget 写它，attackTarget() 读它，
+    //      Goal 系统的目标选择器也用它；
+    //   2) Brain 的 ATTACK_TARGET 记忆（MemoryModuleType<EntityInstanceId>）——
+    //      Brain 任务（AttackTask / ChaseTask / LookAtEntityTask 的优先级分支）读它，
+    //      但**全仓库没有任何生产代码写它**（唯一的 setMemory 在
+    //      ProtectOwnerTask 里，而该类目前零实例化）。
+    //   后果：村民等 Brain 实体注册了 AttackTask/ChaseTask，却永远等不到 ATTACK_TARGET，
+    //   攻击行为静默失效；而 Goal 实体一切正常（它们走 m_attackTarget）。
+    //   要修需二选一：让 setAttackTarget 同步写 Brain 记忆（前提是该实体持有 Brain），
+    //   或让 Brain 任务改读 attackTarget()。前者更贴近原版（原版 Brain 实体以记忆为单一源）。
     virtual void setAttackTarget(LivingEntity* target)
     {
         m_attackTarget = target;
@@ -1016,7 +1028,6 @@ public:
      * @brief 获取身体护甲槽位的物品堆
      *
      * 用于狼铠、鹦鹉螺铠甲、马铠等非玩家实体的身体护甲。
-     * 参考: net.minecraft.world.entity.Mob.getBodyArmorItem()
      *
      * @return 身体护甲槽位的物品堆引用
      */
@@ -1029,7 +1040,6 @@ public:
      * @brief 检查是否穿戴了身体护甲
      *
      * 检查 Body 槽位是否有有效（非空）的护甲物品。
-     * 参考: net.minecraft.world.entity.Mob.isWearingBodyArmor()
      *
      * @return 如果穿戴了身体护甲返回 true
      */
@@ -1043,7 +1053,6 @@ public:
      *
      * 同时设置该槽位为保整掉落（确保死亡时掉落护甲），
      * 并启用实体持久化（防止穿戴护甲的实体自然消失）。
-     * 参考: net.minecraft.world.entity.Mob.setBodyArmorItem()
      *
      * @param stack 要装备的物品堆
      */
@@ -1056,7 +1065,6 @@ public:
      *
      * 默认行为：实体未被骑乘时允许剪切。
      * 子类可重写此方法添加额外条件（如狼仅允许主人剪切）。
-     * 参考: net.minecraft.world.entity.Mob.canShearEquipment()
      *
      * @param player 尝试剪切的玩家
      * @return 如果允许剪切返回 true
@@ -1068,7 +1076,6 @@ public:
      *
      * 当玩家手持剪刀右键实体时，如果实体穿着可剪切的装备（如狼铠），
      * 则将装备从实体身上剪下并掉落为物品实体。
-     * 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
      *
      * 流程：
      * 1. 遍历所有装备槽位
@@ -1598,6 +1605,19 @@ public:
      * @return 如果此生物可以被拴住返回 true
      */
     [[nodiscard]] virtual bool canBeLeashed() const;
+
+    /**
+     * @brief 拴绳状态变更回调
+     *
+     * 在 setLeashedToEntity / setLeashedToFence / clearLeash 真正改完状态之后调用，
+     * 为行为包提供一个统一的"被拴/解拴"事件源（对应基岩版
+     * minecraft:leashable 的 on_leash / on_unleash）。
+     *
+     * 基类默认空实现；需要响应的子类才重写。
+     *
+     * @param leashed 变更后的拴绳状态
+     */
+    virtual void onLeashStateChanged(bool leashed);
 
     /**
      * @brief 尝试用玩家手持物品治疗本实体

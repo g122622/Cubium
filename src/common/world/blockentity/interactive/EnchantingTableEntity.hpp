@@ -50,7 +50,6 @@ namespace blockentity {
  * - 书架与附魔台之间必须有空气
  * - 每个有效书架增加0.5附魔力量（最大15书架 = 7.5力量）
  *
- * 参考: net.minecraft.tileentity.EnchantingTableTileEntity
  */
 class EnchantingTableEntity : public BlockEntity {
 public:

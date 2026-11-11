@@ -321,11 +321,10 @@ bool Explosion::_shouldAffectBlocklikeEntities() const
     const bool mobGriefing = m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
     // flag1：风弹作为爆源时不波及其他方块类实体（风弹靠专门的风爆逻辑处理）。
-    // 项目目前只有一种风弹实体（minecraft:wind_charge）；旋风人的
-    // minecraft:breeze_wind_charge 尚未注册实体类型（BreezeShootGoal 还未真正发射投射物），
-    // 因此这里只列已存在的类型。
-    // TODO: 注册 minecraft:breeze_wind_charge 后，需把该类型一并加入此判定，
-    //   否则旋风人的风弹会错误地波及方块类实体。
+    // 注意"旋风人风弹"也属于这里：项目没有独立的 breeze_wind_charge 实体类型，
+    // 旋风人发射的也是 entity::WindChargeEntity（只是射手为 BREEZE，见
+    // WindChargeEntity 里的 isBreeze 判定与 BreezeEntity 的环弹逻辑）。
+    // 所以只比对 WIND_CHARGE 一个类型就足够，不存在"漏掉旋风人风弹"的情况。
     const bool nonWindChargeSource =
         m_source == nullptr || m_source->getTypeId() != entity::EntityTypeKeys::WIND_CHARGE;
 

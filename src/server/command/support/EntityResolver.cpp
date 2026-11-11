@@ -44,7 +44,6 @@
 #include "server/command/ServerCommandSource.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/player/lifecycle/PlayerManager.hpp"
-#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
@@ -465,7 +464,10 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
 /**
  * @brief 收集所有符合条件的玩家实体。
  *
- * 仅从 PlayerManager 中收集在线玩家，应用选择器的所有过滤条件。
+ * 玩家列表合并 PlayerManager（真实玩家）与 ServerPlayerEntityManager（含不进
+ * PlayerManager 的模拟玩家），去重后按选择器过滤。只遍历 PlayerManager 会让
+ * GameTest 里 `@a` 之类的玩家选择器选不到 SimulatedPlayer，/spreadplayers 等命令
+ * 因此对它们完全失效。
  */
 [[nodiscard]] std::vector<Entity*> collectPlayers(
     const ServerCommandSource& source, const EntitySelector& selector, f32 refX, f32 refY, f32 refZ)
@@ -478,32 +480,36 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
         return {};
     }
 
+    // 合并两类玩家来源并去重：真实玩家同时存在于两者中。
+    std::vector<PlayerId> playerIds = server->playerManager().getPlayerIds();
+    auto entityPlayerIds = server->playerEntityManager().getPlayerIds();
+    playerIds.insert(playerIds.end(), entityPlayerIds.begin(), entityPlayerIds.end());
+    std::sort(playerIds.begin(), playerIds.end());
+    playerIds.erase(std::unique(playerIds.begin(), playerIds.end()), playerIds.end());
+
     std::vector<Entity*> result;
 
     // 按用户名精确匹配
     if (selector.hasUsername()) {
-        auto* playerManager = &server->playerManager();
-        playerManager->forEachPlayer([&](const server::ServerPlayerData& playerData) {
-            if (playerData.username == selector.username()) {
-                Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
-                if (player != nullptr && player->isAlive()) {
-                    result.push_back(player);
-                }
+        for (const PlayerId playerId : playerIds) {
+            Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
+            if (player != nullptr && player->isAlive() && player->username() == selector.username()) {
+                result.push_back(player);
             }
-        });
+        }
         return result;
     }
 
     // 收集所有在线玩家
     auto selectorAabb = createSelectorAabb(selector, refX, refY, refZ);
 
-    server->playerManager().forEachPlayer([&](const server::ServerPlayerData& playerData) {
-        Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
+    for (const PlayerId playerId : playerIds) {
+        Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
         if (player == nullptr) {
-            return;
+            continue;
         }
         if (!player->isAlive()) {
-            return;
+            continue;
         }
 
         auto* entity = static_cast<Entity*>(player);
@@ -512,42 +518,42 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
         if (!selector.distance().isUnbounded()) {
             f32 distSq = entityDistanceSq(*entity, refX, refY, refZ);
             if (!selector.distance().testSquared(distSq)) {
-                return;
+                continue;
             }
         }
 
         // 体积过滤（MC 原版行为：使用实体碰撞箱与选择 AABB 的相交检查）
         if (selectorAabb.has_value() && !matchesVolume(*entity, selectorAabb.value())) {
-            return;
+            continue;
         }
 
         // 名称过滤
         if (!matchesName(*entity, selector)) {
-            return;
+            continue;
         }
 
         // 实体类型过滤
         if (!matchesEntityType(*entity, selector)) {
-            return;
+            continue;
         }
 
         // 标签过滤
         if (!matchesEntityTags(*entity, selector)) {
-            return;
+            continue;
         }
 
         // 队伍过滤
         if (!matchesTeam(*entity, selector)) {
-            return;
+            continue;
         }
 
         // 玩家特有条件（等级、游戏模式、角度、记分板、进度）
         if (!matchesPlayerConditions(*entity, selector, server, world)) {
-            return;
+            continue;
         }
 
         result.push_back(entity);
-    });
+    }
 
     return result;
 }

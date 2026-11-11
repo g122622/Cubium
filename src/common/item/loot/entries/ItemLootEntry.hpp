@@ -40,7 +40,6 @@ namespace loot {
  * @brief 物品掉落条目
  *
  * 生成特定物品。
- * 参考: net.minecraft.loot.ItemLootEntry
  */
 class ItemLootEntry : public LootEntry {
 public:

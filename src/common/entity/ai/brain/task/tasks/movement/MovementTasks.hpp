@@ -371,8 +371,16 @@ private:
 /**
  * @brief 看向实体任务（对应 MC SetEntityLookTarget / LookAtTargetSink）
  *
- * 概率触发时，在附近寻找实体并设置 LOOK_TARGET 记忆。
- * 如果目标仍可见，则持续看向目标。
+ * 概率触发时，在附近寻找实体并让实体看向它（经 LookController 直接驱动朝向）。
+ * 目标优先级：先看 ATTACK_TARGET，没有再在 VISIBLE_MOBS 里按距离与概率挑一个。
+ *
+ * 注意本任务**不写** LOOK_TARGET 记忆。原文档曾声称"设置 LOOK_TARGET 记忆"，
+ * 与实现不符——而且也不能那么写：本任务的门槛正是
+ * `LOOK_TARGET == VALUE_ABSENT`，一旦自己写入就会自锁
+ * （同 FindHiddenBlockTask 曾经的自锁缺陷）。
+ * 因此 LOOK_TARGET 全仓仍无写入方，凡是把它当依赖声明的任务（如 AttackTask 的
+ * REGISTERED 依赖）都不会因此被满足。补齐需要另设一个真正的写入方（例如
+ * 某个传感器），并同步调整本任务的门槛语义。
  */
 template <typename E>
 class LookAtEntityTask : public Task<E> {
@@ -528,15 +536,36 @@ private:
  *
  * 当需要隐蔽时，搜索附近的床或安全区域，设置 HIDING_PLACE 和 WALK_TARGET 记忆。
  * 实际移动由 MoveToTargetTask 执行。
+ *
+ * 曾经存在一个自锁缺陷（已修复，记录在此以免回归）：门槛原本还要求 HIDING_PLACE 为
+ * VALUE_ABSENT，而本任务执行时**自己写入** HIDING_PLACE；全仓又没有代码清除它，
+ * 于是首次执行成功后门槛永久为 false，任务此后再也不会运行。
+ * 门槛的强制点在 Task.hpp 的 `_hasRequiredMemories(owner) && shouldExecute(...)`
+ * ——声明的要求先于 shouldExecute 检查，因此当时的症状是：本类 shouldExecute 里那套
+ * "被伤害/听到铃声"的判断只在第一次生效，之后成了永不执行的死代码。
+ *
+ * 修复方式：把 HIDING_PLACE 从门槛中移除，只保留 WALK_TARGET 缺席作为门槛。
+ * HIDING_PLACE 仍然照写（供将来真正需要它的消费方使用）。
+ *
+ * TODO(hiding-place-consumer): HIDING_PLACE 目前**仍然没有消费方**——写入后没有任何
+ * 代码读取或清除它。补齐时应由消费方在抵达隐蔽点或危险解除后 removeMemory，
+ * 否则该记忆会一直残留着上一次的隐蔽坐标。
+ *
+ * 已做过一次全目录系统扫描（条件：任务自己 setMemory 的某个记忆同时出现在它自己的
+ * VALUE_ABSENT 门槛里）：命中的只有 HIDING_PLACE、WALK_TARGET、BREED_TARGET 三项。
+ * 后两者各有 removeMemory（WALK_TARGET 8 处、BREED_TARGET 1 处）会正常清除，
+ * HIDING_PLACE 是其中唯一 0 处清除的，也是唯一需要修复的。
  */
 template <typename E>
 class FindHiddenBlockTask : public Task<E> {
 public:
     FindHiddenBlockTask(f32 speed = 1.0f)
-        : Task<E>({{MemoryModuleTypes::HIDING_PLACE, MemoryModuleStatus::VALUE_ABSENT},
-                      {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}},
-              60,
-              120)
+        // 注意门槛里**不能**再放 HIDING_PLACE：本任务自己会写它，而全仓没有
+        // 任何地方清除它，一旦放进门槛就会自锁（首次执行后永久不可再触发）。
+        // 现在只以 WALK_TARGET 缺席为门槛——本任务设置 WALK_TARGET 后自然被挡住，
+        // 等 MoveToTargetTask 抵达并清除 WALK_TARGET，下次遇险可再次触发。
+        // HIDING_PLACE 仍然照写，供将来真正需要它的消费方使用。
+        : Task<E>({{MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}}, 60, 120)
         , m_speed(speed)
     {}
 

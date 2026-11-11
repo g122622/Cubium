@@ -217,9 +217,8 @@ void ServerChunkManager::shutdown()
         scheduler->setShuttingDown();
     }
 
-    // 收集所有 holder 的 shared_ptr（保持存活），在 m_lifecycleManagersMutex 锁外执行 cancelGeneration。
-    // cancelGeneration 持调度锁并调用 findHolder（获取 m_lifecycleManagersMutex），若在遍历 m_lifecycleManagers
-    // 时持锁调用会死锁。shared_ptr 保证 worker 线程的 ChunkProgressionTask（持有 holder 引用）期间 holder 不被销毁。
+    // 在表锁外逐持有者发出取消通知，避免表锁与调度区域锁反向嵌套。
+    // 共享所有权持续到任务和依赖清理结束。
     std::vector<std::shared_ptr<SingleChunkLifecycleManager>> lifecycleManagers;
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -232,20 +231,14 @@ void ServerChunkManager::shutdown()
         }
     }
 
-    // 对每个 holder 执行 cancelGeneration + cancelActiveWork（顺序与 unloadChunkSync 一致）：
-    //   - cancelGeneration 持调度锁清理依赖图、补偿释放邻居引用计数、通知等待者失败。
-    //     isShuttingDown=true 时不重新调度被解除阻塞的邻居（避免无限循环）。
-    //   - cancelActiveWork 设置 abortSignal、清空 m_generationTask/m_scheduledStatus、重置请求优先级。
-    // 旧实现仅调用 cancelActiveWork：m_generationTask 被清空后 onCancel 的 cancelGeneration(holder, task)
-    // 因 generationTask()!=task 为 no-op，依赖图与邻居引用计数永不清理 → holder 泄漏 → waitForCompletion 卡死。
+    // 先只发取消信号，保留任务身份和邻居引用；由执行器确认完成/取消后结清任务。
     for (auto& lifecycleManager : lifecycleManagers) {
-        if (lifecycleManager == nullptr) {
-            continue;
-        }
         if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
-            scheduler->cancelGeneration(*lifecycleManager);
+            auto lock = scheduler->schedulingLockArea().lock(lifecycleManager->x(), lifecycleManager->z(), 0);
+            lifecycleManager->cancelActiveWork();
+        } else {
+            lifecycleManager->cancelActiveWork();
         }
-        lifecycleManager->cancelActiveWork();
     }
 
     // 第二步：排空 worker 池，确保所有正在执行/排队的生成任务完成后再销毁 holder 与 chunk 数据。
@@ -261,6 +254,13 @@ void ServerChunkManager::shutdown()
         MC_TRACE_SCOPED_EVENT(
             TraceEvents.Server.Initialization, "ServerChunkManager::shutdown::WaitForWorkerCompletion");
         pool->waitForCompletion();
+    }
+
+    // 所有任务已退出，才可双向摘除未满足的依赖边并失败剩余请求。
+    if (auto* scheduler = getTaskScheduler()) {
+        for (const auto& holder : lifecycleManagers) {
+            scheduler->cancelGeneration(*holder);
+        }
     }
 
     // 第三步：所有生成任务已结束，安全移除 holder。移到本地 vector 在锁外完成等待者失败通知。
@@ -438,10 +438,24 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
         return;
     }
 
-    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
+    // 请求登记与最终卸载串行；跨越锁外状态推进时保留共享所有权。
+    // 仅持裸引用会在查找后、登记等待者前被卸载线程回收。
+    auto* scheduler = ensureTaskScheduler();
+    auto lock = scheduler->schedulingLockArea().lock(x, z, 0);
+    if (m_shuttingDown.load(std::memory_order::acquire)) {
+        lock.reset();
+        std::vector<SingleChunkLifecycleManager::Waiter> waiters;
+        waiters.push_back({std::move(callback), std::move(promise), &targetStatus});
+        _failWaiters(std::move(waiters));
+        return;
+    }
+    (void)_getOrCreateLifecycleManager(x, z);
+    auto lifecycleManager = _findLifecycleManagerShared(x, z);
+    MC_ASSERT_RELEASE(lifecycleManager != nullptr);
     const i32 priority = _computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
-    auto decision = lifecycleManager.submitRequest(targetStatus, priority, std::move(callback), std::move(promise));
-    _advanceChunkState(lifecycleManager, decision);
+    auto decision = lifecycleManager->submitRequest(targetStatus, priority, std::move(callback), std::move(promise));
+    lock.reset();
+    _advanceChunkState(*lifecycleManager, decision);
 }
 
 // ============================================================================
@@ -451,6 +465,10 @@ void ServerChunkManager::_submitChunkRequest(ChunkCoord x,
 void ServerChunkManager::_advanceChunkState(
     SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
 {
+    if (lifecycleManager.hasFailedGeneration()) {
+        _failWaiters(lifecycleManager.takeAllWaiters());
+        return;
+    }
     if (decision.shouldWakeReadyWaiters) {
         _completeReadyWaiters(lifecycleManager);
     }
@@ -1386,6 +1404,7 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
                     item.z = z;
                     item.dimension = dimension;
                     item.lifecycleHolder = std::move(holderCopy);
+                    item.saveSucceeded = result.success();
                     {
                         std::lock_guard<std::mutex> lock(self->m_pendingUnloadFinishesMutex);
                         self->m_pendingUnloadFinishes.push_back(std::move(item));
@@ -1415,14 +1434,31 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
     }
 }
 
-void ServerChunkManager::_finalizeUnloadAfterSave(
-    ChunkCoord x, ChunkCoord z, mc::DimensionId dimension, std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder)
+void ServerChunkManager::_finalizeUnloadAfterSave(ChunkCoord x,
+    ChunkCoord z,
+    mc::DimensionId dimension,
+    std::shared_ptr<SingleChunkLifecycleManager> lifecycleHolder,
+    bool saveSucceeded)
 {
     const u64 key = posToKey(x, z);
     const auto retry = [&] {
         std::lock_guard lock(m_pendingUnloadFinishesMutex);
-        m_pendingUnloadFinishes.push_back({x, z, dimension, lifecycleHolder});
+        m_pendingUnloadFinishes.push_back({x, z, dimension, lifecycleHolder, saveSucceeded});
     };
+    if (!saveSucceeded) {
+        // 保存失败时保留内存中的修改，恢复脏标记并退避，不能把失败当成已落盘继续卸载。
+        if (auto* chunk = tryToGetChunkInMem(x, z)) {
+            chunk->setDirty(true);
+        }
+        {
+            std::lock_guard lock(m_pendingUnloadFinishesMutex);
+            m_unloadSaveInProgress.erase(key);
+            m_unloadCooldownChunks.insert(key);
+        }
+        m_ticketManager.registerTicket(
+            world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{});
+        return;
+    }
     if (m_deferredTicketLevels.contains(key)) {
         retry();
         return;
@@ -1443,6 +1479,31 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
     }
 
     std::shared_ptr<SingleChunkLifecycleManager> lifecycleManager = lifecycleHolder;
+    util::ReentrantAreaLock::LockHandle schedLock;
+    if (auto* scheduler = getTaskScheduler()) {
+        schedLock = scheduler->schedulingLockArea().tryLock(x, z, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        if (!schedLock) {
+            retry();
+            return;
+        }
+    }
+    if (_findLifecycleManagerShared(x, z) != lifecycleManager ||
+        (lifecycleManager && _isUnloadSuppressed(*lifecycleManager))) {
+        std::lock_guard lock(m_pendingUnloadFinishesMutex);
+        m_unloadSaveInProgress.erase(key);
+        return;
+    }
+    if (auto* chunk = tryToGetChunkInMem(x, z); chunk != nullptr && chunk->isDirty()) {
+        // 快照捕获后主线程可能继续修改区块，须重新保存这些修改后才能卸载。
+        {
+            std::lock_guard lock(m_pendingUnloadFinishesMutex);
+            m_unloadSaveInProgress.erase(key);
+        }
+        if (lifecycleManager) {
+            _updateUnloadCandidate(*lifecycleManager);
+        }
+        return;
+    }
 
     if (lifecycleManager == nullptr) {
         // holder 已不存在（可能被并发 unload 或从未创建），仅清理 m_chunks。
@@ -1458,16 +1519,8 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
     }
 
     if (ChunkTaskScheduler* scheduler = getTaskScheduler(); scheduler != nullptr) {
-        const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
-        auto schedLock = scheduler->schedulingLockArea().tryLock(x, z, lockRadius);
-        if (!schedLock) {
-            retry();
-            return;
-        }
-
-        scheduler->cancelGeneration(*lifecycleManager);
-        lifecycleManager->cancelActiveWork();
-
+        // stage1 与保存结束之间可能新增请求或生成任务，复检必须先于任何破坏性清理。
+        // 保留重新建立的任务、依赖和等待者，由其自然完成后再次尝试卸载。
         if (!lifecycleManager->isSafeToUnload()) {
             // 仍有邻居引用时，只用最弱生成级别保留持有者，避免 Border 级冷却重新触发生成。
             // 冷却票据存在期间禁止再次卸载，到期后票级变化重新评估候选资格。
@@ -1483,6 +1536,9 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
             return;
         }
 
+        scheduler->cancelGeneration(*lifecycleManager);
+        lifecycleManager->cancelActiveWork();
+
         {
             std::lock_guard<std::mutex> lmLock(m_lifecycleManagersMutex);
             auto it = m_lifecycleManagers.find(key);
@@ -1493,7 +1549,6 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         _failWaiters(lifecycleManager->takeAllWaiters());
     } else {
         // 无调度器（独立/测试模式）：直接检查并移除；不安全时同样转入冷却退避
-        lifecycleManager->cancelActiveWork();
         if (!lifecycleManager->isSafeToUnload()) {
             {
                 std::lock_guard<std::mutex> lock(m_pendingUnloadFinishesMutex);
@@ -1504,6 +1559,7 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
                 world::chunk::TicketTypes::UNLOAD_COOLDOWN, x, z, ChunkPyramid::maxLevel(), world::chunk::Unit{});
             return;
         }
+        lifecycleManager->cancelActiveWork();
         {
             std::lock_guard<std::mutex> lmLock(m_lifecycleManagersMutex);
             auto it = m_lifecycleManagers.find(key);
@@ -1531,19 +1587,18 @@ void ServerChunkManager::_finalizeUnloadAfterSave(
         std::lock_guard<std::mutex> lock(m_pendingLoadTasksMutex);
         auto it = m_pendingLoadTasks.find(key);
         if (it != m_pendingLoadTasks.end()) {
-            // TODO: 此处只摘除被卸载 holder 作为"附加等待者"的身份，未失效它作为"owner"的条目。
-            // owner 条目会存活到该次加载完成回调到达为止；期间同坐标新建的 holder 会被附加到这条
-            // 属于已卸载实例的加载上，而 _onChunkLoadComplete 在 ownerAlive==false 时恒以 hit=false
-            // 扇出，导致刚读出的存档数据被整体丢弃、新 holder 重新走一遍生成。需要让卸载按身份
-            // 失效 owner 条目（或让完成回调把命中的区块交给当前 holder 复用），改动涉及 holder 重建
-            // 语义与 m_chunks 复用，需单独设计。
-            auto& waiters = it->second.attachedWaiters;
-            waiters.erase(std::remove_if(waiters.begin(),
-                              waiters.end(),
-                              [&lifecycleManager](const PendingLoadEntry::AttachedWaiter& w) {
-                                  return w.lifecycle.get() == lifecycleManager.get();
-                              }),
-                waiters.end());
+            if (it->second.ownerLifecycle.get() == lifecycleManager.get()) {
+                // 旧 owner 的完成回调会按身份丢弃，后继 holder 独立发起存档读取。
+                m_pendingLoadTasks.erase(it);
+            } else {
+                auto& waiters = it->second.attachedWaiters;
+                waiters.erase(std::remove_if(waiters.begin(),
+                                  waiters.end(),
+                                  [&lifecycleManager](const PendingLoadEntry::AttachedWaiter& w) {
+                                      return w.lifecycle.get() == lifecycleManager.get();
+                                  }),
+                    waiters.end());
+            }
         }
     }
     {
@@ -1557,7 +1612,8 @@ void ServerChunkManager::_drainPendingUnloadFinishes()
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainPendingUnloadFinishes");
     _drainQueue(
         m_pendingUnloadFinishes, m_pendingUnloadFinishesMutex, std::chrono::milliseconds(1), [this](auto& item) {
-            _finalizeUnloadAfterSave(item.x, item.z, item.dimension, std::move(item.lifecycleHolder));
+            _finalizeUnloadAfterSave(
+                item.x, item.z, item.dimension, std::move(item.lifecycleHolder), item.saveSucceeded);
         });
 }
 
@@ -2040,6 +2096,10 @@ void ServerChunkManager::_debugDumpStuckHolders()
     spdlog::info("[stuck] m_unloadSaveInProgress={} m_pendingUnloadFinishes={}",
         m_unloadSaveInProgress.size(),
         m_pendingUnloadFinishes.size());
+    // 区域调度器内态：pending 含「等待区域」与「已提交到计算池」两类，waiting 仅前者。
+    // 二者之差说明任务是卡在区域内互斥（同区域的运行任务未结束），而非计算池丢失任务。
+    spdlog::info(
+        "[stuck] areaTasks pending={} waiting={}", m_areaTasks.pendingTaskCount(), m_areaTasks.waitingTaskCount());
     std::vector<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> lifecycleManagersCopy;
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -2092,13 +2152,16 @@ void ServerChunkManager::_debugDumpStuckHolders()
         }
         // 仅打印前 30 个卡住的 holder，避免日志爆炸
         if (stuckCount <= 30) {
-            spdlog::info("[stuck] ({}, {}) gen={} req={} genTask={} blocking={} waiting={} neighboursUsing={} "
-                         "failed={} source={} shouldLoad={} level={}",
+            const auto signal = lifecycleManager->abortSignal();
+            spdlog::info("[stuck] ({}, {}) gen={} req={} genTask={} scheduled={} aborted={} blocking={} waiting={} "
+                         "neighboursUsing={} failed={} source={} shouldLoad={} level={}",
                 lifecycleManager->x(),
                 lifecycleManager->z(),
                 lifecycleManager->getCurrentGenStatus().name(),
                 lifecycleManager->requestedGenStatus().name(),
                 genTask,
+                lifecycleManager->scheduledStatus() ? lifecycleManager->scheduledStatus()->name() : "null",
+                signal ? signal->load(std::memory_order::acquire) : false,
                 lifecycleManager->blockingNeighbourCount(),
                 isWaiting,
                 neighboursUsing,

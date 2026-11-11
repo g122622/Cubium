@@ -471,6 +471,27 @@ public:
     // ========== NBT ==========
 
 public:
+    /**
+     * @brief 设置攻击目标，并同步到 Brain 的 ATTACK_TARGET 记忆
+     *
+     * 基类 MobEntity 只写 m_attackTarget 成员，而 Brain 侧的任务
+     * （AttackTask / ChaseTask）以及 FIGHT / RAID 活动的门槛读的是
+     * ATTACK_TARGET 记忆。两套存储不同步时，村民虽然被设了目标却永远不会攻击。
+     * 本重写把两处一起写，读侧仍然各自工作（Goal 系统读成员，Brain 读记忆）。
+     *
+     * TODO(villager-retaliation): 本重写只解决了"写入侧"，**攻击行为仍不可达**。
+     *   全仓没有任何代码对村民调用 setAttackTarget——非 nullptr 的调用方全是
+     *   蜜蜂/青蛙/铁傀儡/幻翼/羊驼/猪灵/末影人/僵尸增援/熊猫/北极熊/可驯服生物，
+     *   没有村民。Brain 侧唯一的写入点在被伤害反击的 ProtectOwnerTask 里，
+     *   而那个类目前零实例化。
+     *   所以 FIGHT / RAID 活动虽然门槛已可满足，实际仍进不去。
+     *   补齐需要接入村民的"被袭击时反击"来源（原版由袭击系统在 Raider 接近时
+     *   给村民设目标），属于袭击子系统的工作。
+     *
+     * @param target 新的攻击目标，nullptr 表示清除
+     */
+    void setAttackTarget(LivingEntity* target) override;
+
     /// 该村民的声誉流言（治愈后由僵尸村民交还，随 NBT 持久化）
     [[nodiscard]] const world::village::VillageGossipManager& gossips() const
     {

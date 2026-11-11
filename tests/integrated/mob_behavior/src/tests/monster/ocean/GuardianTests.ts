@@ -285,12 +285,13 @@ function guardianLaserDamagesAxolotl(test: Test): void {
 //   注册 SwimGoal，MonsterEntity.cpp:129-144 注释明确"守卫者等不反击被攻击"），守卫者被攻击后不会
 //   主动伤害玩家（尖刺除外）。
 //
-// isMoving()=false 可靠性保障——1×1 玻璃笼困住守卫者：
-//   守卫者 (3,2,3) 四面 (2,2,3)(4,2,3)(3,2,2)(3,2,4) 玻璃 + 脚下 (3,1,3) 玻璃围成 1×1 笼。守卫者碰撞箱
-//   0.85×0.85×0.85，1×1 笼内无寻路空间，PathNavigator 找不到路径（任何方向皆玻璃阻挡）→ moveController
-//   不进入 MoveTo → isUpdating()=false → isMoving()=false。RandomWalkingGoal 即便激活，getRandomPosition
-//   在全玻璃包围下返回无效位置，shouldExecute 不通过；即便侥幸通过算出路径，_followPath 撞玻璃立即
-//   noPath。故测试窗口内 isMoving() 稳定为 false，尖刺 100% 触发。
+// isMoving()=false 可靠性保障——完全封闭的 1×1×2 玻璃笼困住守卫者：
+//   守卫者 (3,2,3) 站立层 (3,1,3) 玻璃 + 立柱四周上下两层（y=2 与 y=3）玻璃 + 顶部 (3,4,3) 玻璃，
+//   把守卫者锁死在 1×1×2 内腔。**只围一层（y=2）不够**：寻路器允许向上跳一格，会把墙顶上方
+//   （y=3 的邻格）当作可达节点，RandomWalkingGoal 因此能算出「翻出笼子」的路径，isMoving() 恒为
+//   true，尖刺反伤门控被永久跳过（此前 29 次攻击无反伤的根因）。把 y=3 一周也砌上玻璃后，
+//   向上跳的目标格本身是玻璃（Blocked），路径必然为空 → GuardianMoveControl 每 tick 走 else 分支
+//   setMoving(false) → moveController 不进入 MoveTo → isMoving()=false → 尖刺稳定触发。
 //   守卫者脚下玻璃同时承担重力支撑（MonsterEntity 受重力下落，见 LivingEntity::tick 重力递减）。
 //
 // 判定手段：Survival 玩家每 20 tick attackEntity(守卫者)（满冷却~12.5 tick，每 20 tick 保证满冷却伤害，
@@ -304,14 +305,18 @@ function guardianLaserDamagesAxolotl(test: Test): void {
 function guardianThornsReflectsMeleeDamage(test: Test): void {
   const guardianType = "guardian";
 
-  // 1×1 玻璃笼：守卫者 (3,2,3)，四面玻璃 + 脚下玻璃支撑。
-  // 四面玻璃把守卫者困在 1×1 空间内，PathNavigator 无路径→isMoving()=false→尖刺 100% 触发。
-  // 脚下 (3,1,3) 玻璃承担重力支撑（守卫者受重力下落）。
+  // 1×1×2 封闭玻璃笼：守卫者 (3,2,3)。
+  // 脚下 (3,1,3) 玻璃承担重力支撑（守卫者受重力下落）；
+  // 站立层 y=2 与上方 y=3 的四面玻璃挡住所有水平与跳跃出口；
+  // 顶部 (3,4,3) 玻璃封顶，杜绝任何向上逃逸路径。
   test.setBlockType("minecraft:glass", { x: 3, y: 1, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 2, y: 2, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 4, y: 2, z: 3 });
-  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 2 });
-  test.setBlockType("minecraft:glass", { x: 3, y: 2, z: 4 });
+  for (const y of [2, 3]) {
+    test.setBlockType("minecraft:glass", { x: 2, y, z: 3 });
+    test.setBlockType("minecraft:glass", { x: 4, y, z: 3 });
+    test.setBlockType("minecraft:glass", { x: 3, y, z: 2 });
+    test.setBlockType("minecraft:glass", { x: 3, y, z: 4 });
+  }
+  test.setBlockType("minecraft:glass", { x: 3, y: 4, z: 3 });
   const guardian = test.spawn(guardianType, { x: 3, y: 2, z: 3 });
 
   // Survival 玩家 (5,2,3) 距守卫者 2 格（distSq=4<9 被谓词距离筛选拒绝，守卫者不激光玩家）。

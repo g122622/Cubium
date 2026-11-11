@@ -796,6 +796,7 @@ add_library(mc_common STATIC
     command/arguments/ItemArgument.cpp
     command/arguments/NbtPath.cpp
     command/arguments/NbtPathArgumentType.cpp
+    command/arguments/SlotRanges.cpp
 
     # World - Block System
     world/block/base/material/Material.cpp

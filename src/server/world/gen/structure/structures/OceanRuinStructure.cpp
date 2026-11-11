@@ -45,6 +45,7 @@
 #include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
+#include "common/world/blockentity/interactive/BrushableBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -441,9 +442,8 @@ void OceanRuinPiece::generate(IWorldWriter& world,
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
 
     // 原版 `COLD/WARM_SUSPICIOUS_BLOCK_PROCESSOR`：每座废墟最多把 5 个沙砾（冷）或
-    // 沙子（暖）替换成可疑方块。
-    // TODO: 原版通过 `AppendLoot` 给可疑方块挂上考古战利品表，本项目尚未把战利品表写入
-    //       方块实体 NBT；当前只对齐方块状态。
+    // 沙子（暖）替换成可疑方块。战利品表在原版由 `AppendLoot` 方块实体修饰器写入
+    // （LootTable + LootTableSeed），本结构在放置完成后统一补挂（见下方 _attachArchaeologyLoot）。
     {
         const Block* sourceBlock = m_type == OceanRuinType::Cold ? VanillaBlocks::GRAVEL : VanillaBlocks::SAND;
         const Block* outputBlock =
@@ -464,12 +464,60 @@ void OceanRuinPiece::generate(IWorldWriter& world,
         return;
     }
 
+    // 给刚被替换出来的可疑方块补挂考古战利品表。
+    _attachArchaeologyLoot(*reader, rng, settings);
+
     // 原版 `TemplateStructurePiece#postProcess`：放完模板后再处理 DATA 标记，最后把拼图
     // 方块按 `final_state` 覆盖。
     for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
         handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
     }
     m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
+}
+
+void OceanRuinPiece::_attachArchaeologyLoot(
+    IWorld& world, math::IRandom& rng, const feature::template_::PlacementSettings& settings)
+{
+    // 原版用 `AppendLoot` 方块实体修饰器在放置期给可疑方块写 LootTable/LootTableSeed。
+    // 本项目没有方块实体修饰器层（IWorld::setBlockEntity 是显式调用，不会随
+    // setBlockState 自动创建），所以在模板放置完成后扫一遍模板包围盒，
+    // 给其中的可疑方块建 BrushableBlockEntity 并挂表。
+    // 海洋废墟单个片段很小，扫描范围就是模板自身的包围盒，代价可忽略。
+    const StructureBoundingBox box = m_template->getBoundingBox(settings, m_templatePosition);
+
+    const Block* suspiciousGravel = VanillaBlocks::SUSPICIOUS_GRAVEL;
+    const Block* suspiciousSand = VanillaBlocks::SUSPICIOUS_SAND;
+    if (suspiciousGravel == nullptr || suspiciousSand == nullptr) {
+        spdlog::warn("OceanRuinPiece: suspicious blocks are not registered; archaeology loot skipped");
+        return;
+    }
+
+    // 冷废墟的沙砾换成可疑沙砾、暖废墟的沙子换成可疑沙子，两者战利品表不同。
+    static const ResourceLocation coldLoot("minecraft:archaeology/ocean_ruin_cold");
+    static const ResourceLocation warmLoot("minecraft:archaeology/ocean_ruin_warm");
+    const ResourceLocation& lootTable = m_type == OceanRuinType::Cold ? coldLoot : warmLoot;
+
+    for (i32 y = box.minY(); y <= box.maxY(); ++y) {
+        for (i32 z = box.minZ(); z <= box.maxZ(); ++z) {
+            for (i32 x = box.minX(); x <= box.maxX(); ++x) {
+                const BlockState* state = world.getBlockState(x, y, z);
+                if (state == nullptr) {
+                    continue;
+                }
+                if (!state->is(suspiciousGravel) && !state->is(suspiciousSand)) {
+                    continue;
+                }
+                const BlockPos pos(x, y, z);
+                // 已有方块实体就跳过（重复放置同一片段时不覆盖既有内容）。
+                if (world.getBlockEntity(pos) != nullptr) {
+                    continue;
+                }
+                auto entity = std::make_unique<blockentity::BrushableBlockEntity>(pos);
+                entity->setLootTable(lootTable, rng.nextLong());
+                world.setBlockEntity(pos, std::move(entity));
+            }
+        }
+    }
 }
 
 void OceanRuinPiece::handleDataMarker(const std::string& metadata,

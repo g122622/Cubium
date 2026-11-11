@@ -35,7 +35,6 @@ namespace blocks {
  * 一种特殊的泥土变体，表面有根系纹理。
  * 使用骨粉可以在其下方生成垂根。
  *
- * 参考: net.minecraft.block.RootedDirtBlock
  */
 class RootedDirtBlock : public Block, public IGrowable {
 public:

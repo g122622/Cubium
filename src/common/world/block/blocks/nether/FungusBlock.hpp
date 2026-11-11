@@ -43,7 +43,6 @@ namespace blocks {
  * wiki tech_下界菌.txt#骨粉：
  *   对种植在对应菌岩上的下界菌使用骨粉，可使其长成巨型真菌。
  *
- * 参考: net.minecraft.world.level.block.FungusBlock
  */
 class FungusBlock : public SimpleBlock, public IGrowable {
 public:

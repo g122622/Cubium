@@ -68,7 +68,6 @@ namespace entity {
  * - 怒气等级（WardenAngerLevel）：根据 m_anger 切换 Calmed/Agitated/Angry，
  *   影响环境音效（getAmbientSound）和客户端同步（CLIENT_ANGER_LEVEL）
  *
- * MC 源码参考：net.minecraft.world.entity.monster.warden.Warden
  *
  * @note 当前实现包含基础战斗行为（近战 + 攻击玩家）与简化版怒气系统
  *       （单一聚合 m_anger + WardenAngerLevel 枚举）。完整的监守者行为系统

@@ -67,7 +67,6 @@ namespace blockentity {
  * - JSON（区块存档）：LootTable / LootTableSeed / item / hit_direction
  * - NBT（结构模板 / 客户端同步）：同上，键名一致
  *
- * 参考: net.minecraft.world.level.block.entity.BrushableBlockEntity
  */
 class BrushableBlockEntity : public BlockEntity {
 public:

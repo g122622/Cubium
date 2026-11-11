@@ -36,7 +36,6 @@ namespace mc::text {
  * @brief 文本格式化类型
  *
  * 对应 Minecraft 的 § 代码格式。
- * 参考: net.minecraft.util.text.TextFormatting
  */
 enum class TextFormatting : u8 {
     // 颜色代码 (§0-§f)
@@ -214,7 +213,6 @@ private:
  * @brief 文本样式
  *
  * 包含颜色、样式标志和事件。
- * 参考: net.minecraft.util.text.Style
  */
 class Style {
 public:

@@ -58,11 +58,11 @@ class DamageSource;
  * - 繁殖：用火把花种子/瓶草荚果繁殖，繁殖后掉落嗅探兽蛋物品（非直接幼体）
  * - 幼体：幼年期 48000 tick（40 分钟），是普通动物的两倍
  *
- * 参考：net.minecraft.world.entity.animal.sniffer.Sniffer
  *
  * @note 原版使用 Brain + MemoryModuleType（SNIFFER_SNIFFING_TARGET / SNIFFER_DIGGING /
- *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本项目无 Brain
- *       系统，改以 GoalSelector 上的 SnifferSniffGoal（嗅探）→ SnifferSearchGoal（搜索）→
+ *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本实体未接入
+ *       Brain（本项目 Brain 仅接入了村民 VillagerEntity），改以 GoalSelector 上的
+ *       SnifferSniffGoal（嗅探）→ SnifferSearchGoal（搜索）→
  *       SnifferDigGoal（挖掘）→ SnifferHappyGoal（开心）链式衔接，并以实体字段承载上述记忆语义
  *       （hasSniffingTarget / isHappy / isSniffCoolingDown / 已探索位置列表）。
  */

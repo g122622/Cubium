@@ -40,7 +40,6 @@ namespace blockentity {
  * @brief 简单背包实现
  *
  * 提供通用的物品存储功能，可用于箱子、漏斗等容器方块实体。
- * 参考: net.minecraft.inventory.Inventory
  *
  * 用法示例:
  * @code
@@ -169,7 +168,6 @@ public:
      * @brief 添加容器变更监听器
      *
      * 监听器在容器内容变更时通过 containerChanged() 被通知。
-     * 参考: net.minecraft.world.SimpleContainer.addListener()
      *
      * @param listener 监听器指针（调用方负责确保指针在移除前有效）
      */
@@ -178,7 +176,6 @@ public:
     /**
      * @brief 移除容器变更监听器
      *
-     * 参考: net.minecraft.world.SimpleContainer.removeListener()
      *
      * @param listener 要移除的监听器指针
      */

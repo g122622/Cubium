@@ -45,7 +45,7 @@ class BlockState;
 /**
  * @brief 青蛙实体
  *
- * MC 1.19 引入的两栖动物，由蝌蚪变态而来。本项目无 Brain 系统，原版的
+ * MC 1.19 引入的两栖动物，由蝌蚪变态而来。本项目 Brain 仅接入了村民（VillagerEntity），本实体未接入，原版的
  * FrogAi（长跳、突舌捕食、蛙明灯产卵）尚未移植，此类当前覆盖：
  * - 实体与同步数据（变体 Holder<FrogVariant>、舌击目标 OptionalInt）；
  * - 按生成位置气候选择变体（temperate / warm / cold）；

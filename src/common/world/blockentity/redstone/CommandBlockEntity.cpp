@@ -43,6 +43,7 @@
 #include <sstream>
 #include <string>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace blockentity {
@@ -241,7 +242,14 @@ bool CommandBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
     // TODO: LPCondionalMode（条件模式开关）无法在此落地：conditional 存在方块状态的
     //   CONDITIONAL 属性里（见 isConditional），而 load/loadFromNBT 都没有世界参数，
     //   加载期改不了方块状态。要支持需让方块实体加载流程在写入世界后回调一次，按该字段
-    //   更新 CONDITIONAL。在此之前该字段读进来会被丢弃。
+    //   更新 CONDITIONAL（例如把 BlockEntity::setWorld 改成虚函数，由本类 override）。
+    //   在接通之前该字段会被丢弃——所以不能静默：读一次并 warn，否则玩家改过的条件模式
+    //   会在读档后无声丢失，排查时完全看不到线索。
+    if (auto v = nh::tryGetByte(tag, "LPCondionalMode"); v.has_value() && *v != 0) {
+        spdlog::warn("CommandBlockEntity::loadFromNBT: LPCondionalMode={} dropped (no world during load); "
+                     "the block state CONDITIONAL property keeps its previous value",
+            *v);
+    }
 
     return true;
 }

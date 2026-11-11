@@ -561,6 +561,21 @@ void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
     AbstractVillagerEntity::setLastHurtBy(attacker);
 }
 
+void VillagerEntity::setAttackTarget(LivingEntity* target)
+{
+    // 先写基类成员：Goal 系统与 attackTarget() 读的是它。
+    MobEntity::setAttackTarget(target);
+
+    // 再同步 Brain 记忆：Brain 侧任务与 FIGHT/RAID 活动的门槛读的是它。
+    // 两套存储不同步的话，下面那些 Brain 任务永远不会被触发。
+    auto& brain = this->brain();
+    if (target == nullptr) {
+        brain.removeMemory(ai::brain::memory::MemoryModuleTypes::ATTACK_TARGET);
+    } else {
+        brain.setMemory(ai::brain::memory::MemoryModuleTypes::ATTACK_TARGET, target->id());
+    }
+}
+
 void VillagerEntity::initializeBrain()
 {
     if (!m_brain) {
@@ -579,6 +594,13 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_BED);
     m_brain->registerMemory(MemoryModuleTypes::WALK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::LOOK_TARGET);
+    // TODO(brain-memory-writers): 上面几条记忆里有两条目前没有对应的写入方，已逐文件核实：
+    //   - LOOK_TARGET：被 LookAtEntityTask 当门槛（VALUE_ABSENT，因此不阻塞执行）、
+    //     被 AttackTask 当 REGISTERED 依赖，但**全仓无 setMemory**。而 LookAtEntityTask
+    //     自己的文档写的是"概率触发时…设置 LOOK_TARGET 记忆"——代码并未这么做，
+    //     属于文档与实现不符。补齐后它才能记住"正在看谁"，避免每 tick 重选目标。
+    //   - LAST_WORKED_AT_POI：只在此处注册，全仓既不读也不写，属于为将来
+    //     村民工作冷却预留的槽位；在补上读写之前它可以删掉，或就地标注保留意图。
     m_brain->registerMemory(MemoryModuleTypes::VISIBLE_MOBS);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_HOSTILE);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_PLAYERS);
@@ -683,6 +705,12 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
+    // TODO(meet-activity): MEET 活动目前不会真正触发交互。
+    //   VillagerInteractTask 的门槛是 INTERACTION_TARGET == VALUE_PRESENT，但全仓库
+    //   只有 registerMemory 与读取，**没有任何写入点**（已逐文件核实），所以该任务
+    //   永远过不了 shouldExecute，MEET 活动实际上只剩走位与游荡。
+    //   要补齐需要先确定"村民之间何时建立交互"的触发点（如靠近另一村民且双方空闲），
+    //   再由某个传感器或任务写入该记忆；具体触发时机需对照原版村民社交逻辑确定。
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
         makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(),
@@ -720,6 +748,11 @@ void VillagerEntity::initializeBrain()
         {});
 
     // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、近战攻击、移动到目标
+    // 注意：这两个活动目前**不可达**。门槛是 ATTACK_TARGET 记忆，而该记忆没有任何
+    // 写入点（详见 MobEntity::setAttackTarget 上的文档注释：攻击目标存在
+    // m_attackTarget 与 Brain 记忆两套互不同步的存储）；同时也没有任何代码
+    // 对村民调用 setAttackTarget（村民本身是和平生物）。这两处注册属于为将来
+    // 袭击/反击行为预留的脚手架。
     m_brain->registerActivity(ai::brain::schedule::Activity::FIGHT,
         0,
         makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
@@ -737,6 +770,30 @@ void VillagerEntity::initializeBrain()
         {});
 
     // AVOID 活动：逃跑、移动到目标
+    // 注意：本活动目前**不可达**。门槛是 AVOID_TARGET 记忆，而该记忆的唯一写入方是
+    // ---- 关于下面这批"非时间线活动"的重要前提 ----
+    // 本实体注册了 9 个活动：AVOID / FIGHT / HIDE / IDLE / MEET / PANIC / RAID / REST / WORK。
+    // 而时间线（common/world/time/timeline/Timelines.cpp）只激活其中 4 个：
+    // IDLE / WORK / MEET / REST。
+    //
+    // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
+    // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
+    // 要启用它们，需要在这些活动对应的触发条件出现时显式切换活动
+    // （例如被袭击时切到 FIGHT/RAID，遇险时切到 AVOID/HIDE），
+    // 而不是只把任务注册进活动。
+    //
+    // 下面几处注释里提到的"活动不可达"都以此为大前提：先把活动激活，
+    // 再谈门槛、传感器、记忆写入方是否齐全。
+    // ----------------------------------------------------
+
+    // AvoidEntitySensor —— 本实体的 registerSensor 列表里没有它（见 initializeBrain
+    // 末尾那批注册）。所以村民永远不会"因看到威胁而逃跑"，
+    // 该行为目前由 Goal 系统完整承担、且是另一条独立路径：
+    //   下方 addGoal 里注册了 1 个 PanicGoal 与 8 个 AvoidEntityGoal
+    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽）。
+    //   所以这不是"功能缺失"，而是同一行为存在 Brain 版与 Goal 版两套实现，
+    //   而 Brain 版因缺传感器未接通。要启用需在下面注册 AvoidEntitySensor<VillagerEntity>；
+    //   若认定 Goal 版足够，则应删除此 AVOID 活动注册以免误导。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(

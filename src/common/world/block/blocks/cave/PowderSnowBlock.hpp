@@ -35,7 +35,6 @@ namespace blocks {
  * 没有碰撞箱，玩家和生物可以穿过。
  * 空桶可以从细雪方块中提取细雪，返回细雪桶。
  *
- * 参考: net.minecraft.block.PowderSnowBlock
  */
 class PowderSnowBlock : public Block, public IBucketPickupHandler {
 public:

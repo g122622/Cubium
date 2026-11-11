@@ -40,7 +40,6 @@ namespace item::items {
  * 唱片放入/取出唱片机的逻辑由 JukeboxBlock::useItemOn() 处理，
  * MusicDiscItem 主要提供唱片元数据（信号强度、声音事件ID）和身份识别。
  *
- * 参考: net.minecraft.item.MusicDiscItem
  */
 class MusicDiscItem : public Item {
 public:

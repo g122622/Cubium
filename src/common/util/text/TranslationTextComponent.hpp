@@ -43,7 +43,6 @@ namespace text {
  * @brief 翻译键文本组件
  *
  * 表示一个翻译键，在渲染时根据语言设置替换为对应的翻译文本。
- * 参考: net.minecraft.util.text.TranslationTextComponent
  *
  * ## 使用示例
  *

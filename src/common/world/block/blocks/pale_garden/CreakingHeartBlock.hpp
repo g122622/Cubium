@@ -41,7 +41,6 @@ namespace blocks {
  * 苍白橡木中的核心方块，具有AXIS、CREAKING_HEART_STATE和NATURAL属性。
  * 支持红石比较器输出。
  *
- * 参考: net.minecraft.block.CreakingHeartBlock
  */
 class CreakingHeartBlock : public RotatedPillarBlock {
 public:

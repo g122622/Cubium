@@ -387,5 +387,156 @@ TEST_F(ChunkGenerationDemandTest, SharedNeighbourKeepsOtherCentresDemand)
     EXPECT_TRUE(active.isSafeToUnload());
 }
 
+TEST_F(ChunkGenerationDemandTest, RetiredHolderCannotScheduleTaskForCurrentInstance)
+{
+    blockWorker();
+    auto retired = std::make_unique<SingleChunkLifecycleManager>(0, 0);
+    auto& current = m_scheduler->getOrCreateHolder(0, 0);
+    retired->setLevel(33);
+    retired->prepareGeneration(0);
+    retired->noteStorageMissing();
+    auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+    EXPECT_EQ(m_scheduler->schedule(0, 0, *retired), nullptr);
+    EXPECT_FALSE(retired->hasGenerationTask());
+    EXPECT_FALSE(current.hasGenerationTask());
+    lock.reset();
+    release();
+    m_pool.waitForCompletion();
+    EXPECT_EQ(m_generator->starts.load(), 0);
+}
+
+TEST_F(ChunkGenerationDemandTest, UnloadFinishPreservesNewRequestAndTask)
+{
+    blockWorker();
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    m_manager->unloadChunkSync(0, 0);
+    auto requested = m_manager->requestChunkAsync(0, 0, ChunkStatuses::STRUCTURE_STARTS);
+    {
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        m_scheduler->schedule(0, 0, holder);
+    }
+    m_manager->tick();
+    EXPECT_EQ(requested.wait_for(std::chrono::seconds(0)), std::future_status::timeout);
+    EXPECT_TRUE(holder.hasGenerationTask());
+    release();
+    ASSERT_EQ(requested.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_NE(requested.get(), nullptr);
+    m_pool.waitForCompletion();
+    EXPECT_FALSE(holder.hasGenerationTask());
+    EXPECT_FALSE(holder.hasFailedGeneration());
+}
+
+TEST_F(ChunkGenerationDemandTest, CancelActiveWorkKeepsIdentityUntilExecutorAcknowledges)
+{
+    blockWorker();
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    scheduleFromTicket(holder);
+    auto* task = holder.generationTask();
+    ASSERT_NE(task, nullptr);
+    {
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 0);
+        holder.setLevel(UNLOADED);
+        holder.cancelActiveWork();
+        EXPECT_EQ(holder.generationTask(), task);
+        EXPECT_NE(holder.scheduledStatus(), nullptr);
+        EXPECT_FALSE(holder.isSafeToUnload());
+    }
+    release();
+    m_pool.waitForCompletion();
+    EXPECT_FALSE(holder.hasGenerationTask());
+    EXPECT_TRUE(holder.isSafeToUnload());
+}
+
+TEST_F(ChunkGenerationDemandTest, DependencyFailureCompletesAllUpstreamRequests)
+{
+    blockWorker();
+    auto& failed = m_scheduler->getOrCreateHolder(0, 0);
+    auto& upstream = m_scheduler->getOrCreateHolder(1, 0);
+    auto& root = m_scheduler->getOrCreateHolder(2, 0);
+    auto promise = std::make_shared<std::promise<ChunkData*>>();
+    auto result = promise->get_future();
+    root.submitRequest(ChunkStatuses::FULL, 0, {}, promise);
+    root.addBlockingNeighbour(&upstream);
+    upstream.addWaitingNeighbour(&root, &ChunkStatuses::BIOMES);
+    upstream.addBlockingNeighbour(&failed);
+    failed.addWaitingNeighbour(&upstream, &ChunkStatuses::STRUCTURE_STARTS);
+    m_scheduler->onChunkGenFailed(failed);
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(0)), std::future_status::ready);
+    EXPECT_EQ(result.get(), nullptr);
+    EXPECT_TRUE(root.hasFailedGeneration());
+    EXPECT_TRUE(upstream.hasFailedGeneration());
+    EXPECT_TRUE(root.isSafeToUnload());
+    EXPECT_TRUE(upstream.isSafeToUnload());
+    EXPECT_TRUE(failed.isSafeToUnload());
+}
+
+TEST_F(ChunkGenerationDemandTest, ReadyNeighbourStaysPinnedWhileOtherDependencyIsPending)
+{
+    blockWorker();
+    auto& centre = m_scheduler->getOrCreateHolder(0, 0);
+    auto& ready = m_scheduler->getOrCreateHolder(1, 0);
+    auto& pending = m_scheduler->getOrCreateHolder(0, 1);
+    ready.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(1, 0));
+    ready.completeStatusTo(ChunkStatuses::STRUCTURE_STARTS);
+    {
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        EXPECT_FALSE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
+        EXPECT_TRUE(m_scheduler->checkNeighbour(0, 1, ChunkStatuses::STRUCTURE_STARTS, centre));
+        EXPECT_FALSE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
+    }
+    EXPECT_EQ(ready.neighboursUsingThisChunkCount(), 1);
+    EXPECT_EQ(pending.neighboursUsingThisChunkCount(), 1);
+    EXPECT_FALSE(ready.isSafeToUnload());
+    leave(centre);
+    EXPECT_EQ(ready.neighboursUsingThisChunkCount(), 0);
+    EXPECT_EQ(pending.neighboursUsingThisChunkCount(), 0);
+    EXPECT_TRUE(ready.isSafeToUnload());
+    release();
+    m_pool.waitForCompletion();
+}
+
+TEST_F(ChunkGenerationDemandTest, ReadyRequestDoesNotWaitForQueuedHigherStage)
+{
+    blockWorker();
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    holder.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(0, 0));
+    holder.completeStatusTo(ChunkStatuses::EMPTY);
+    holder.setLevel(33);
+    holder.prepareGeneration(0);
+    holder.noteStorageMissing();
+    scheduleFromTicket(holder);
+    ASSERT_TRUE(holder.hasGenerationTask());
+    auto result = m_manager->requestChunkAsync(0, 0, ChunkStatuses::EMPTY);
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(0)), std::future_status::ready);
+    EXPECT_NE(result.get(), nullptr);
+    leave(holder);
+    release();
+    m_pool.waitForCompletion();
+}
+
+TEST_F(ChunkGenerationDemandTest, CancellationAcknowledgementCompletesAlreadyReadyWaiter)
+{
+    blockWorker();
+    auto& holder = m_scheduler->getOrCreateHolder(0, 0);
+    holder.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(0, 0));
+    holder.completeStatusTo(ChunkStatuses::EMPTY);
+    holder.setLevel(33);
+    holder.prepareGeneration(0);
+    holder.noteStorageMissing();
+    scheduleFromTicket(holder);
+    auto promise = std::make_shared<std::promise<ChunkData*>>();
+    auto result = promise->get_future();
+    // 模拟请求已登记、入口还没消费决策时，高阶段任务收到取消确认。
+    holder.submitRequest(ChunkStatuses::EMPTY, 0, {}, promise);
+    leave(holder);
+    release();
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    EXPECT_NE(result.get(), nullptr);
+    m_pool.waitForCompletion();
+    EXPECT_EQ(m_generator->starts.load(), 0);
+    EXPECT_FALSE(holder.hasGenerationTask());
+    EXPECT_EQ(holder.waiterCount(), 0);
+}
+
 } // namespace demand_test
 } // namespace mc::server

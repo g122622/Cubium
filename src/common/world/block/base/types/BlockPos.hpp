@@ -47,7 +47,6 @@ namespace mc {
  *
  * 用于精确定位方块在世界中的位置
  *
- * 参考: net.minecraft.util.math.BlockPos
  */
 class BlockPos {
 public:
@@ -528,7 +527,6 @@ public:
  * 用于迭代和遍历时避免频繁创建新的 BlockPos 对象。
  * 可以原地修改坐标值。
  *
- * 参考: net.minecraft.util.math.BlockPos.Mutable
  *
  * 用法示例:
  * @code

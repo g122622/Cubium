@@ -47,7 +47,6 @@ namespace mc {
  * 本类提供从 `ActionResultType` 的隐式转换构造函数。这样旧代码无需修改即可继续工作，
  * 只有需要传递 `heldItemTransformedTo` 的方块（如 `ShelfBlock`）才使用新的工厂方法。
  *
- * 参考: net.minecraft.world.InteractionResult (MC 1.21.11)
  */
 class BlockActionResult {
 public:

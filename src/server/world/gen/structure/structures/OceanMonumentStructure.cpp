@@ -49,17 +49,16 @@ std::unique_ptr<StructureStart> OceanMonumentStructure::generate(
     // 原版先按「区块内第 9 格 + 海平面」为中心取 29 半径内的群系，要求全部落在
     // `required_ocean_monument_surrounding` 标签内；再在候选生成点（区块中心、海底高度）
     // 校验本结构自身的群系标签。
-    // TODO: 原版按 `getBiomesWithin` 的四分格方框采样，这里仍按 16 格步长近似，
-    //       换成精确的方框采样后再去掉这个近似。
     const i32 centerX = chunkX * CHUNK_WIDTH + 9;
     const i32 centerZ = chunkZ * CHUNK_WIDTH + 9;
     constexpr i32 outerRadius = 29;
-    for (i32 dx = -outerRadius; dx <= outerRadius; dx += world::CHUNK_WIDTH) {
-        for (i32 dz = -outerRadius; dz <= outerRadius; dz += world::CHUNK_WIDTH) {
-            const BiomeId biome = generator.getBiome(centerX + dx, generator.seaLevel(), centerZ + dz);
-            if (!biome::BiomeTags::REQUIRED_OCEAN_MONUMENT_SURROUNDING().contains(biome)) {
-                return start;
-            }
+    const auto* biomeSource = generator.getBiomeSource();
+    MC_ASSERT_RELEASE_MSG(biomeSource != nullptr, "OceanMonumentStructure requires a biome source");
+    // getBiomesWithin 内部按 4 格（一个 quart）为步长遍历方框，与这边原版
+    // BiomeSource.getBiomesWithin 的采样完全一致，不再需要自己按区块步长近似。
+    for (const BiomeId biome : biomeSource->getBiomesWithin(centerX, generator.seaLevel(), centerZ, outerRadius)) {
+        if (!biome::BiomeTags::REQUIRED_OCEAN_MONUMENT_SURROUNDING().contains(biome)) {
+            return start;
         }
     }
     if (!isValidBiomeAt(generator, onTopOfChunkCenter(generator, chunkX, chunkZ, HeightmapType::OceanFloorWG))) {

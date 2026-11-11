@@ -82,7 +82,7 @@ SingleChunkLifecycleManager::GenerationSnapshot SingleChunkLifecycleManager::gen
 bool SingleChunkLifecycleManager::hasCompletedStatus(const ChunkStatus& status) const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_currentGenStatus->isAtLeast(status);
+    return m_currentChunk != nullptr && m_currentGenStatus->isAtLeast(status);
 }
 
 ChunkPrimer* SingleChunkLifecycleManager::getCurrentChunk() const
@@ -306,6 +306,25 @@ void SingleChunkLifecycleManager::clearGenerationTask()
     }
 }
 
+bool SingleChunkLifecycleManager::pinGenerationNeighbour(SingleChunkLifecycleManager& neighbour)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    const bool inserted = m_generationNeighbours.insert(&neighbour).second;
+    if (inserted) {
+        _notifyUnloadStateChanged();
+    }
+    return inserted;
+}
+
+std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::takeGenerationNeighbours()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<SingleChunkLifecycleManager*> neighbours(m_generationNeighbours.begin(), m_generationNeighbours.end());
+    m_generationNeighbours.clear();
+    _notifyUnloadStateChanged();
+    return neighbours;
+}
+
 bool SingleChunkLifecycleManager::isSafeToUnload() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
@@ -324,7 +343,8 @@ bool SingleChunkLifecycleManager::isSafeToUnload() const
     // （交付/失败/取消都会取走它们），此刻回收区块会以 (false, nullptr) 失败这些请求，
     // 让调用方拿到空指针。故"有未完成请求者"等价于"区块仍被需要"。
     return m_neighboursUsingThisChunk.load(std::memory_order::acquire) == 0 && m_generationTask == nullptr &&
-        m_blockingNeighbours.empty() && m_waitingNeighbours.empty() && m_waiters.empty();
+        m_blockingNeighbours.empty() && m_waitingNeighbours.empty() && m_generationNeighbours.empty() &&
+        m_waiters.empty();
 }
 
 void SingleChunkLifecycleManager::_notifyUnloadStateChanged()
@@ -481,22 +501,13 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteSt
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    // 设置取消标志（运行中/排队中的任务持有此 shared_ptr，检测到 true 后 onCancel→cancelGeneration 清理）。
-    // 不清除 m_abortSignal 为 null：保留 true 状态，使 cancelActiveWork 之后 onChunkGenComplete 的自重调度
-    // （schedule→submitTask→holder.abortSignal()）捕获到此 true 标志，新任务立即被取消，
-    // 避免"cancelActiveWork 清空 abortSignal 后自重调度提交不可取消任务"的竞态。
-    // 重新请求（submitRequest）时若发现 m_abortSignal 为 true，会分配新的 false 令牌。
+    // 取消请求只置位令牌。任务身份及邻居引用必须保留到执行器确认退出，
+    // 否则新需求可能在旧任务仍访问区块时排上另一个任务。
     if (m_abortSignal) {
         m_abortSignal->store(true, std::memory_order::release);
     }
     ++m_requestGeneration;
-    const bool hadTask = (m_generationTask != nullptr);
-    m_generationTask = nullptr;
-    m_scheduledStatus = nullptr;
     m_requestPriority = std::numeric_limits<i32>::max();
-    if (hadTask) {
-        _notifyUnloadStateChanged();
-    }
     return _buildDecisionLocked();
 }
 
@@ -601,7 +612,8 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_build
     if (m_requestedGenStatus == nullptr) {
         return decision;
     }
-    if (m_currentChunk != nullptr && (m_generationTask == nullptr || m_sourceState == SourceState::Ready)) {
+    // 已完成的阶段始终可以交付，不能因更高阶段仍在排队或即将取消而延迟通知。
+    if (m_currentChunk != nullptr) {
         decision.shouldWakeReadyWaiters = std::any_of(m_waiters.begin(), m_waiters.end(), [this](const Waiter& waiter) {
             return m_currentGenStatus->isAtLeast(*waiter.targetStatus);
         });

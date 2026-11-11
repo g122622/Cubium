@@ -32,7 +32,6 @@ namespace mc {
  *
  * 定义两种光照类型：天空光照和方块光照。
  *
- * 参考: net.minecraft.world.LightType
  *
  * 光照说明:
  * - SKY (天空光照): 从天空传播的自然光，露天位置为15级

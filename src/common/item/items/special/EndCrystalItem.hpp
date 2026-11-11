@@ -34,7 +34,6 @@ namespace item::items {
  * 右键黑曜石或基岩顶面放置一个末影水晶实体（不显示底座）。目标位置上方必须为空气，
  * 且该位置无其他实体占据。放置后尝试唤醒末影龙战斗（tryRespawn）。
  *
- * 参考: net.minecraft.world.item.EndCrystalItem
  */
 class EndCrystalItem : public Item {
 public:

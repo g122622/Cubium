@@ -50,7 +50,6 @@ namespace loot {
  * 当 predicate 为空（nullopt）时，仅检查上下文中是否存在工具（非空 ItemStack）。
  * 对应 MC Java: MatchTool.test() 中 predicate.isEmpty() 时只检查 TOOL 参数是否存在。
  *
- * 参考: net.minecraft.world.level.storage.loot.predicates.MatchTool
  */
 class MatchToolCondition : public LootCondition {
 public:

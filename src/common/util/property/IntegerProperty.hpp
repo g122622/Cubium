@@ -45,7 +45,6 @@ namespace mc {
  *
  * 表示一个整数范围的方块状态属性，如 age, power, level 等。
  *
- * 参考: net.minecraft.state.IntegerProperty
  *
  * 用法示例:
  * @code

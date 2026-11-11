@@ -34,7 +34,6 @@ namespace mc {
  * 对应的放置权限由 GameMasterBlockItem 控制（重写 getStateForPlacement），
  * 而破坏权限则通过此接口在破坏逻辑中检查。
  *
- * 参考: net.minecraft.world.level.block.GameMasterBlock
  */
 class GameMasterBlock {
 public:

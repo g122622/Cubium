@@ -57,7 +57,6 @@ namespace blocks {
  * - 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
  * - 离开水不发光
  *
- * 参考: net.minecraft.block.SeaPickleBlock
  */
 class SeaPickleBlock : public Block, public IWaterLoggable {
 public:
@@ -83,6 +82,15 @@ public:
     // ========== 放置逻辑 ==========
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    /**
+     * @brief 判断已有海泡菜能否被手持海泡菜「替换」（即堆叠）
+     *
+     * 手持海泡菜物品 + 非潜行 + pickles<4 时返回 true，
+     * 使 BlockItemUseContext 的 placementPos 落在已有海泡菜格，
+     * getStateForPlacement 的堆叠分支才可达。否则回退基类（注册未开 replaceable，恒 false）。
+     */
+    [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
 
     [[nodiscard]] bool isValidPosition(
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;

@@ -64,6 +64,22 @@ using mc::entity::ai::goal::constants::BREED_DETECTION_RANGE;
 using mc::entity::ai::goal::constants::BREED_DISTANCE_SQ;
 using mc::entity::ai::goal::constants::SPAWN_BABY_DELAY;
 
+// ============================================================================
+// 本文件各 Brain 任务的当前实例化情况
+//
+// 这些都是模板类，**只有被 make_unique<Task<X>> 实例化过才会进二进制**。
+// 核实结果（唯一起作用方是 VillagerEntity，因为只有它有 brain()）：
+//   - AttackTask     —— 已实例化（VillagerEntity 的 fight 活动）
+//   - BreedTask      —— 未实例化，等动物实体接入 Brain
+//   - EatTask        —— 未实例化，且 shouldExecute 恒返 false，等饥饿系统
+//   - PlayDeadTask   —— 未实例化，等美西螈等接入 Brain
+//   - JumpTask       —— 未实例化（依赖 JUMP_COOLDOWN 记忆，目前没有实体写入该记忆）
+//   - KickTask       —— 未实例化（马等实体的踢击，这些实体仍走 Goal 系统）
+//
+// 因此本文件里"类存在 + 有测试"不等于"运行时生效"。要给某个实体启用这些任务，
+// 除了注册进它的 Brain，还要先补上各类文档注释中写明的前置依赖。
+// ============================================================================
+
 /**
  * @brief 近战攻击任务（对应 MC MeleeAttack）
  *
@@ -561,7 +577,11 @@ private:
  * 当前为占位实现，待实体饥饿系统完善后集成。
  *
  * TODO: 实体的饥饿状态（isHungry）系统尚未实现，需要在 AnimalEntity 或
- * AgeableEntity 中添加饥饿机制后才能完成此任务。
+ * AgeableEntity 中添加饥饿机制后才能完成此任务。补齐时需要改三处：
+ *   (1) 本类的 shouldExecute：当前横返 false，应改为"饥饿且附近有可食用物品"；
+ *   (2) 本类的 updateTask：计到 m_eatDuration 后执行真正的进食（消耗物品 + 回复饥饿值）；
+ *   (3) 饥饿状态本身的存储与 tick 递减（AnimalEntity / AgeableEntity）。
+ *   在 (3) 完成之前本类无法被触发，因此不要把它注册进任何实体的 Brain。
  */
 template <typename E>
 class EatTask : public Task<E> {
@@ -584,7 +604,7 @@ protected:
             return false;
         }
 
-        // TODO: 实体的饥饿状态系统尚未实现，当前无法判断是否需要进食
+        // 饥饿状态未实现，恒不需要进食（见本类文档注释的 TODO）。
         return false;
     }
 
@@ -596,7 +616,7 @@ protected:
     void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         m_eatTimer++;
-        // TODO: 当饥饿系统实现后，在此处执行进食逻辑
+        // 同上：进食逻辑在饥饿系统实现后补入（见本类文档注释的 TODO）。
     }
 
     void resetTask(IWorld* world, E* owner, i64 gameTime) override

@@ -38,7 +38,6 @@ namespace loot {
  * @brief 空掉落条目
  *
  * 不生成任何物品。
- * 参考: net.minecraft.loot.EmptyLootEntry
  */
 class EmptyLootEntry : public LootEntry {
 public:

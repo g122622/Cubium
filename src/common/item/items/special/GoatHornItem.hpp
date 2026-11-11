@@ -38,7 +38,6 @@ namespace item::items {
  *
  * 乐器定义由数据包 `instrument/` 目录提供（`InstrumentLoader`），组件值即乐器资源名。
  *
- * 参考: net.minecraft.world.item.InstrumentItem
  */
 class GoatHornItem : public Item {
 public:

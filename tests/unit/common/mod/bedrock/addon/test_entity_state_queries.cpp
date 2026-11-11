@@ -26,6 +26,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/ecs/context/EntityRegistry.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
@@ -543,6 +544,77 @@ TEST_F(AddonEntityStateQueryTest, MolangQuerySeparatesUnimplementedFromNotApplic
     Entity plain(EntityInstanceId(1), nullptr, registry);
     EXPECT_TRUE(EntityStateQuery::molangQuery(plain, "query.health").has_value())
         << "an implemented query must resolve even when the entity does not support it";
-    EXPECT_FALSE(EntityStateQuery::molangQuery(plain, "query.has_target").has_value())
+    // query.temperature 目前仍未接入（见 EntityStateQuery::molangQuery 末尾的 TODO 清单），
+    // 因此是"未实现 -> nullopt"这一契约的当前样本。若将来接入，请改用清单里仍未实现的那一个。
+    EXPECT_FALSE(EntityStateQuery::molangQuery(plain, "query.temperature").has_value())
         << "an unimplemented query must report nullopt";
+}
+
+// 按能力推导的组件（movement / knockback_resistance / follow_range /
+// despawn / persistent / rideable）必须跟着实体能力走，而不是一律报 Unsupported。
+TEST_F(AddonEntityStateQueryTest, CapabilityDerivedComponentsFollowLivingAndMobSplit)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+    LivingEntity living(EntityInstanceId(2), nullptr, registry);
+    ZombieEntity mob(EntityInstanceId(3), registry);
+
+    // 生物属性表相关：只有 LivingEntity 有属性表。
+    for (const char* livingOnly : {"minecraft:movement", "minecraft:knockback_resistance"}) {
+        const auto onPlain = EntityStateQuery::hasComponent(plain, livingOnly);
+        ASSERT_TRUE(onPlain.success()) << livingOnly;
+        EXPECT_FALSE(onPlain.value()) << livingOnly << " must not appear on a non-living entity";
+
+        const auto onLiving = EntityStateQuery::hasComponent(living, livingOnly);
+        ASSERT_TRUE(onLiving.success()) << livingOnly;
+        EXPECT_TRUE(onLiving.value()) << livingOnly << " must appear on a living entity";
+    }
+
+    // 生物行为相关（追击范围 / 自然消失 / 持久化）：只有 MobEntity 有。
+    for (const char* mobOnly : {"minecraft:follow_range", "minecraft:despawn", "minecraft:persistent"}) {
+        const auto onLiving = EntityStateQuery::hasComponent(living, mobOnly);
+        ASSERT_TRUE(onLiving.success()) << mobOnly;
+        EXPECT_FALSE(onLiving.value()) << mobOnly << " must not appear on a plain living entity";
+
+        const auto onMob = EntityStateQuery::hasComponent(mob, mobOnly);
+        ASSERT_TRUE(onMob.success()) << mobOnly;
+        EXPECT_TRUE(onMob.value()) << mobOnly << " must appear on a mob";
+    }
+}
+
+// rideable 必须与骑乘硬门槛 Entity::couldAcceptPassenger() 保持一致。
+// 不能写死 true，否则脚本会对本来拒绝乘客的实体报"可骑"。
+TEST_F(AddonEntityStateQueryTest, RideableMirrorsCouldAcceptPassenger)
+{
+    Entity plain(EntityInstanceId(1), nullptr, registry);
+
+    const auto onPlain = EntityStateQuery::hasComponent(plain, "minecraft:rideable");
+    ASSERT_TRUE(onPlain.success()) << onPlain.error().message();
+    EXPECT_EQ(onPlain.value(), plain.couldAcceptPassenger()) << "rideable must mirror Entity::couldAcceptPassenger()";
+}
+
+// query.has_target 必须跟着 MobEntity::attackTarget() 走：没目标为 0，
+// 设了目标为 1；非生物没有目标槽，恒为 0。
+TEST_F(AddonEntityStateQueryTest, HasTargetFollowsMobAttackTarget)
+{
+    ZombieEntity mob(EntityInstanceId(1), registry);
+    Entity plain(EntityInstanceId(2), nullptr, registry);
+
+    // 无目标
+    const auto before = EntityStateQuery::molangQuery(mob, "query.has_target");
+    ASSERT_TRUE(before.has_value());
+    EXPECT_FLOAT_EQ(_molangNumber(before), 0.0f);
+
+    // 设置目标后变为 1
+    LivingEntity target(EntityInstanceId(3), nullptr, registry);
+    mob.setAttackTarget(&target);
+    ASSERT_NE(mob.attackTarget(), nullptr);
+
+    const auto after = EntityStateQuery::molangQuery(mob, "query.has_target");
+    ASSERT_TRUE(after.has_value());
+    EXPECT_FLOAT_EQ(_molangNumber(after), 1.0f);
+
+    // 非生物实体没有目标槽
+    const auto onPlain = EntityStateQuery::molangQuery(plain, "query.has_target");
+    ASSERT_TRUE(onPlain.has_value());
+    EXPECT_FLOAT_EQ(_molangNumber(onPlain), 0.0f);
 }

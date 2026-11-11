@@ -22,6 +22,7 @@
  */
 
 #include "WoodlandMansionStructure.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -78,6 +79,41 @@ constexpr i32 ENTRANCE_OFFSET_Y = 4;
 constexpr i32 FLOOR_HEIGHT = 8;
 
 } // namespace
+
+void WoodlandMansionPiece::_handleDataMarker(const std::string& metadata,
+    const BlockPos& pos,
+    IWorld& world,
+    math::IRandom& rng,
+    const StructureBoundingBox& chunkBounds)
+{
+    // 林地府邸模板里实际存在的数据标记（从数据包 .nbt 解压后扫描得到）：
+    // ChestNorth / ChestSouth / ChestEast / ChestWest / Mage / Warrior。
+    if (metadata.rfind("Chest", 0) == 0) {
+        // 战利品容器挂在标记方块**下方**一格，且必须落在本次生成的区块范围内。
+        const BlockPos below(pos.x, pos.y - 1, pos.z);
+        if (!chunkBounds.contains(below.x, below.y, below.z)) {
+            return;
+        }
+        BlockEntity* blockEntity = world.getBlockEntity(below);
+        auto* container = dynamic_cast<mc::blockentity::LootableContainerBlockEntity*>(blockEntity);
+        if (container != nullptr) {
+            // 战利品表名可从数据包验证：data/minecraft/loot_table/chests/woodland_mansion.json
+            static const ResourceLocation mansionLoot("minecraft:chests/woodland_mansion");
+            container->setLootTable(mansionLoot, rng.nextLong());
+        }
+        return;
+    }
+
+    // TODO: Mage / Warrior 两个标记要在对应位置生成灾厄村民（原版分别是 Evoker 与 Vindicator）。
+    //   这两者的对应关系无法从本仓库可用的原版来源核实：
+    //   - Minecraft1.21.11源码 的 WoodlandMansionPieces.java 反编译失败
+    //     （Vineflower OOM，只剩 23 行错误说明），拿不到 handleDataMarker 原文；
+    //   - LeviLamina 逆向头文件里没有 WoodlandMansion；
+    //   - 数据包只提供模板与战利品表，标记到实体的映射是代码侧逻辑。
+    //   标记名（Mage/Warrior）强烈暗示 Evoker/Vindicator，但“暗示”不足以作为实现依据。
+    //   拿到可靠来源后在此按标记名生成对应实体（可参考 EndCityStructure::handleDataMarker
+    //   的 EntityRegistry::getType(...)->create(&world, *registry) + world.spawnEntity 写法）。
+}
 
 // ============================================================================
 // WoodlandMansionStructure 实现
@@ -231,14 +267,15 @@ void WoodlandMansionPiece::generate(IWorldWriter& world,
     processors.addProcessor(std::make_unique<feature::template_::BlockIgnoreStructureProcessor>(blocksToIgnore));
     settings.setProcessors(&processors);
 
-    // TODO: 处理模板数据标记（ChestWest/ChestEast/ChestSouth/ChestNorth 宝箱、Mage/Warrior
-    //       生成灾厄村民）——需要战利品表与实体生成接口，当前只保证方块几何一致。
-    //       它们需要排在下方 jigsaw 覆盖之前（与原版 postProcess 的顺序一致）。
     IWorld* reader = dynamic_cast<IWorld*>(&world);
     MC_ASSERT_RELEASE_MSG(reader != nullptr, "WoodlandMansionPiece::generate requires an IWorld");
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
-    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
+    // 原版 `TemplateStructurePiece.postProcess`：放完模板后先按 DATA 标记生成宝箱 / 灾厄村民，
+    // 最后把拼图方块按 `final_state` 覆盖。
+    for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
+        _handleDataMarker(marker.metadata, marker.pos, *reader, rng, chunkBounds);
+    }
     m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 }
 

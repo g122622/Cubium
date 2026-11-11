@@ -45,6 +45,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/instrument/InstrumentRegistry.hpp"
+#include "common/item/instrument/InstrumentTags.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -225,26 +226,24 @@ ResourceLocation GoatEntity::pickHornInstrument() const
     item::instrument::InstrumentRegistry& registry = item::instrument::InstrumentRegistry::instance();
     registry.initialize();
 
-    // 乐器标签（对齐 InstrumentTagsProvider.REGULAR_GOAT_HORNS / SCREAMING_GOAT_HORNS）。
-    static const std::array<const char*, 4> REGULAR = {
-        "minecraft:ponder_goat_horn",
-        "minecraft:sing_goat_horn",
-        "minecraft:seek_goat_horn",
-        "minecraft:feel_goat_horn",
-    };
-    static const std::array<const char*, 4> SCREAMING = {
-        "minecraft:admire_goat_horn",
-        "minecraft:call_goat_horn",
-        "minecraft:yearn_goat_horn",
-        "minecraft:dream_goat_horn",
-    };
-    const auto& candidates = isScreamingGoat() ? SCREAMING : REGULAR;
+    // 候选乐器来自乐器标签（数据包 `tags/instrument/regular_goat_horns.json` /
+    // `screaming_goat_horns.json`），不要在这里写死名单——写死会与数据包内容漂移，
+    // 而且第三方数据包增删山羊角乐器时这里不会跟着变。
+    const ResourceLocation tagId(isScreamingGoat() ? "minecraft:screaming_goat_horns" : "minecraft:regular_goat_horns");
+    const auto& tags = item::instrument::InstrumentTags::instance();
+    const item::instrument::InstrumentTag* tag = tags.getTag(tagId);
+    if (tag == nullptr || tag->size() == 0) {
+        // 标签缺失或为空：不猜，交由调用方按"没有可掉落的乐器"处理。
+        return ResourceLocation();
+    }
 
     // 种子 = UUID 字符串的 Java String.hashCode（对齐 vanilla RandomSource.create(uuid.hashCode())）。
     math::JavaLegacyRandom random;
     random.setSeed(static_cast<u64>(static_cast<u32>(_javaStringHashCode(uuid()))));
+    const auto& candidates = tag->members();
     const i32 index = random.nextInt(static_cast<i32>(candidates.size()));
-    const ResourceLocation candidate(candidates[static_cast<std::size_t>(index)]);
+    const ResourceLocation& candidate = candidates[static_cast<std::size_t>(index)];
+
     if (registry.get(candidate) == nullptr) {
         return ResourceLocation();
     }

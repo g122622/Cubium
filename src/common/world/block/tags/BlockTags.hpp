@@ -483,12 +483,10 @@ public:
     static BlockTag& COPPER();
 
     /// 铜傀儡雕像标签（所有 8 个变体：未涂蜡/涂蜡 × 4 个氧化等级）
-    /// 参考: net.minecraft.tags.BlockTags.COPPER_GOLEM_STATUES (MC 1.21.11)
     /// 用于 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体
     static BlockTag& COPPER_GOLEM_STATUES();
 
     /// 铜箱子标签（所有 8 个变体：未涂蜡/涂蜡 × 4 个氧化等级）
-    /// 参考: net.minecraft.tags.BlockTags.COPPER_CHESTS (MC 1.21.11)
     /// 用于 chestCanConnectTo 判断：双箱合并允许跨氧化等级与涂蜡状态连接
     /// 以及 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体
     static BlockTag& COPPER_CHESTS();
@@ -641,25 +639,20 @@ public:
     // ========== 滴叶标签 ==========
 
     /// 小滴叶可放置标签（黏土、苔藓块）
-    /// 参考: net.minecraft.tags.BlockTags.SMALL_DRIPLEAF_PLACEABLE
     static BlockTag& SMALL_DRIPLEAF_PLACEABLE();
 
     /// 大滴叶可放置标签（黏土、泥土、砂土、灰化土、耕地、苔藓块、缠根泥土、泥巴、泥泞红树林根、草方块、菌丝、沙子、小滴叶等）
-    /// 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
     static BlockTag& BIG_DRIPLEAF_PLACEABLE();
 
     // ========== 建筑方块形状标签 ==========
 
     /// 楼梯方块标签（所有楼梯方块）
-    /// 参考: net.minecraft.tags.BlockTags.STAIRS
     static BlockTag& STAIRS();
 
     /// 台阶方块标签（所有台阶方块）
-    /// 参考: net.minecraft.tags.BlockTags.SLABS
     static BlockTag& SLABS();
 
     /// 墙壁方块标签（所有墙壁方块，不含墙上的告示牌/旗帜等）
-    /// 参考: net.minecraft.tags.BlockTags.WALLS
     static BlockTag& WALLS();
 
     /// 猪灵守护的方块标签（破坏时激怒附近猪灵）
@@ -669,7 +662,6 @@ public:
     static BlockTag& BARS();
 
     /// 锁链方块标签（铁锁链和铜锁链，含氧化和涂蜡变种）
-    /// 参考: net.minecraft.tags.BlockTags.CHAINS
     static BlockTag& CHAINS();
 
     /// 潜影盒标签（所有潜影盒变体，用于连接例外判断）
@@ -679,29 +671,24 @@ public:
     static BlockTag& WALL_POST_OVERRIDE();
 
     /// 炼药锅标签（所有炼药锅变体：空炼药锅、水炼药锅、岩浆炼药锅、细雪炼药锅）
-    /// 参考: net.minecraft.tags.BlockTags.CAULDRONS
     static BlockTag& CAULDRONS();
 
     /// 木门方块标签（所有木门方块）
     /// 包含所有材质的木门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
     /// 绯红木、诡异木、红树木、竹木、樱花木）。
-    /// 参考: net.minecraft.tags.BlockTags.WOODEN_DOORS
     static BlockTag& WOODEN_DOORS();
 
     /// 门方块标签（所有门方块）
     /// 包含所有木门 + 铁门 + 铜门（含氧化和涂蜡变种）。
-    /// 参考: net.minecraft.tags.BlockTags.DOORS
     static BlockTag& DOORS();
 
     /// 木活板门方块标签（所有木活板门方块）
     /// 包含所有材质的木活板门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
     /// 绯红木、诡异木、红树木、竹木、樱花木）。
-    /// 参考: net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS
     static BlockTag& WOODEN_TRAPDOORS();
 
     /// 活板门方块标签（所有活板门方块）
     /// 包含所有木活板门 + 铁活板门 + 铜活板门（含氧化和涂蜡变种）。
-    /// 参考: net.minecraft.tags.BlockTags.TRAPDOORS
     static BlockTag& TRAPDOORS();
 
     /**

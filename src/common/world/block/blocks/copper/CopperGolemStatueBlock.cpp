@@ -49,6 +49,7 @@
 #include "common/world/block/capability/WaterLoggableHelpers.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
+#include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/interactive/CopperGolemStatueBlockEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -252,6 +253,13 @@ i32 CopperGolemStatueBlock::getComparatorInputOverride(
 std::unique_ptr<BlockEntity> CopperGolemStatueBlock::createBlockEntity(const BlockPos& pos)
 {
     return std::make_unique<blockentity::CopperGolemStatueBlockEntity>(pos);
+}
+
+bool CopperGolemStatueBlock::shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept
+{
+    // 只有旧状态也属于铜傀儡雕像族时才保留实体：氧化/涂蜡/除蜡都发生在族内。
+    // 若无条件返回 true，任意带方块实体的旧方块被本方块替换时会被误迁移。
+    return BlockTags::COPPER_GOLEM_STATUES().contains(state);
 }
 
 const fluid::FluidState* CopperGolemStatueBlock::getFluidState(const BlockState& state) const

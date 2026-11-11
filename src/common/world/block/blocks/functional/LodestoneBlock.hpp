@@ -43,7 +43,6 @@ namespace blocks {
  * 可以让指南针指向它的功能方块。
  * 用于在下界和末地设置指南针指向。
  *
- * 参考: net.minecraft.block.LodestoneBlock
  */
 class LodestoneBlock : public Block {
 public:

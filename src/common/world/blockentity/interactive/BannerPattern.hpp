@@ -38,7 +38,6 @@ namespace blockentity {
  * - 基础图案（SQUARE_*, STRIPE_*, 等）：可通过织布机制作
  * - 特殊图案（GLOBE, CREEPER, SKULL, FLOWER, MOJANG, PIGLIN）：需要特殊图案卷
  *
- * 参考: net.minecraft.tileentity.BannerPattern
  */
 enum class BannerPatternType : u8 {
     // 底色图案（特殊）

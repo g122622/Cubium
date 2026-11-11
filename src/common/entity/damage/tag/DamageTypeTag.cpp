@@ -23,6 +23,7 @@
 
 #include "DamageTypeTag.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
 #include <optional>
@@ -41,6 +42,44 @@ namespace mc {
 bool DamageSource::is(const DamageTypeTag& tag) const
 {
     return tag.contains(*this);
+}
+
+bool DamageSource::_bypassesArmorTag() const
+{
+    // 标签由 DamageTypeTags::initialize() 填充（服务端 RegistryBootstrap / 客户端 Bootstrap）。
+    // 单元测试若没跑引导，标签是空的，此时回退到与标签默认填充一致的内置列表，
+    // 避免"标签空 ⇒ 无伤害绕过护甲"这种静默行为变化。
+    // TODO: 想要彻底去掉这份内置列表，需要让 DamageTypeTag 在构造时自带默认成员，
+    //       但那样会与数据包 replace 语义纠缠，暂不处理。
+    const auto& tag = DamageTypeTags::BYPASSES_ARMOR();
+    if (!tag.getDamageTypes().empty()) {
+        return is(tag);
+    }
+
+    switch (type()) {
+        case DamageType::OnFire:
+        case DamageType::OutOfWorld:
+        case DamageType::Starve:
+        case DamageType::Drown:
+        case DamageType::Fall:
+        case DamageType::FlyIntoWall:
+        case DamageType::InWall:
+        case DamageType::Cramming:
+        case DamageType::Generic:
+        case DamageType::Magic:
+        case DamageType::Wither:
+        case DamageType::DragonBreath:
+        case DamageType::Stalagmite:
+        case DamageType::Freeze:
+        case DamageType::EnderPearl:
+        case DamageType::IndirectMagic:
+        case DamageType::GenericKill:
+        case DamageType::SonicBoom:
+        case DamageType::OutsideBorder:
+            return true;
+        default:
+            return false;
+    }
 }
 
 // ============================================================================
@@ -110,7 +149,6 @@ struct DamageTypeEntry {
 };
 
 // 与 MC 1.21.11 DamageTypes.java 注册表保持一致的完整映射表
-// 参考: net.minecraft.world.damagesource.DamageTypes.bootstrap()
 constexpr DamageTypeEntry kEntries[] = {
     {DamageType::InFire, "minecraft:in_fire"},
     {DamageType::Campfire, "minecraft:campfire"},

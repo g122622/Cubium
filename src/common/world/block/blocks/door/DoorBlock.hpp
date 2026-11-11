@@ -63,7 +63,6 @@ namespace blocks {
  *
  * 木门可以手动开关，铁门只能通过红石控制。
  *
- * 参考: net.minecraft.block.DoorBlock
  */
 class DoorBlock : public Block {
 public:

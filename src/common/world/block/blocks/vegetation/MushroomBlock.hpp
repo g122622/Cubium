@@ -56,7 +56,6 @@ namespace blocks {
  *     或在任意亮度等级下种植在菌丝体、灰化土或菌岩上。
  *   - 生长空间充足（长宽各7格，高6-8格）。
  *
- * 参考: net.minecraft.block.MushroomBlock
  */
 class MushroomBlock : public Block, public IPlantable, public IGrowable {
 public:
@@ -183,7 +182,6 @@ protected:
  * 状态属性：
  * - DOWN/UP/NORTH/SOUTH/EAST/WEST: 各面的纹理类型
  *
- * 参考: net.minecraft.block.HugeMushroomBlock
  */
 class HugeMushroomBlock : public Block {
 public:

@@ -44,7 +44,6 @@ namespace item::items {
  * 涂蜡映射表 WAXABLES 将未涂蜡的铜方块映射到对应的涂蜡变种。
  * 反向映射 WAX_OFF_MAP 供 AxeItem 除蜡使用。
  *
- * 参考: net.minecraft.world.item.HoneycombItem
  */
 class HoneycombItem : public Item {
 public:

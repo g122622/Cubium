@@ -53,10 +53,9 @@ class Goal;
  * 1.21 新增的被动飞行生物，由干燥恶魂方块在水中孵化（幼年个体）或通过幼体成长获得。
  * 成体会自动远离地面悬浮巡游，可载多名乘客。
  *
- * 参考：net.minecraft.world.entity.animal.happyghast.HappyGhast
  *
- * @note 本项目无 Brain 系统，vanilla HappyGhastAi 的 IDLE 活动改以 GoalSelector 的
- *       GhastHappyFloatGoal（幼体漂浮）+ GhastRandomFlyGoal（成年随机飞行）实现，
+ * @note 本项目 Brain 仅接入了村民（VillagerEntity），本实体未接入，vanilla HappyGhastAi 的 IDLE 活动改以 GoalSelector
+ * 的 GhastHappyFloatGoal（幼体漂浮）+ GhastRandomFlyGoal（成年随机飞行）实现，
  *       与恶魂共用同一套飞行移动控制器与飞行物理（travelFlying）。
  * @note 已实现：挽具（HARNESS）装备槽语义（右键装备、剪刀剪下、必须装备挽具才能骑乘）、
  *       多人载客上限 4、挽具驱动的载客/离座音效、静止超时（serverStillTimeout，

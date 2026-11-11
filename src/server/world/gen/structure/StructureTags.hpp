@@ -59,7 +59,6 @@ namespace mc::world::gen::structure {
  * StructureTag* tag = StructureTags::getTag(ResourceLocation("minecraft", "dolphin_located"));
  * @endcode
  *
- * 参考: net.minecraft.tags.StructureTags (MC 1.21.11)
  */
 class StructureTags {
 public:

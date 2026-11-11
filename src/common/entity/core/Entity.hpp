@@ -856,11 +856,15 @@ public:
 
     /**
      * @brief 添加速度增量
+     *
+     * 外部冲量（爆炸冲击、近战击退、抛飞、气泡柱、载具推挤等）统一经此入口写入速度。
+     * 声明为虚函数以支持运动免疫实体：潜影贝恒不受外部冲量影响，重写为空操作。
+     *
      * @param dx X方向增量
      * @param dy Y方向增量
      * @param dz Z方向增量
      */
-    void addVelocity(f32 dx, f32 dy, f32 dz)
+    virtual void addVelocity(f32 dx, f32 dy, f32 dz)
     {
         m_builtIn.velocity->m_velocity.x += dx;
         m_builtIn.velocity->m_velocity.y += dy;
@@ -1654,10 +1658,14 @@ public:
      * @param targetDim 目标维度 ID
      * @param pos 目标坐标（世界绝对坐标）
      * @param rot 目标朝向（yaw/pitch）
-     * @return true 如果传送成功；基类默认 false（非玩家实体当前不支持跨维度）
+     * @return true 如果传送成功；基类默认 false
      *
-     * @todo 非玩家实体的跨维度传送（vanilla 矿车/掉落物等 /tp 跨维度也传送）暂未实现，
-     *       基类返回 false。后续如需支持，应在 ServerWorld 层实现通用实体迁移（同 changeDimension）。
+     * @note 基类对**非玩家实体**返回 false 是刻意的：这条虚函数走的是"玩家迁移"语义
+     *       （连接、区块票据、背包同步等副作用由 ServerPlayer 承担）。非玩家实体的跨维度
+     *       由世界层 `IWorld::transferEntityToDimension(Entity&, DimensionId)` 负责，
+     *       它明确拒绝玩家、对任意非玩家实体可用（会按传送门语义自行重算目标坐标）。
+     *       `/tp` 命令层已同时接了两条路径：玩家经本虚函数，非玩家经世界层迁移后再覆写坐标
+     *       （见 TeleportCommand 的 teleportPlayers / teleportNonPlayerEntities）。
      */
     virtual bool teleportToDimension(DimensionId targetDim, const Vector3d& pos, const Vector2f& rot)
     {
@@ -3442,7 +3450,6 @@ public:
      *
      * 基类默认返回 false。Player 类重写此方法返回实际的旁观者模式状态。
      * 旁观者模式下的实体不可被弹射物命中、不可冰冻、不可被推挤等。
-     * 参考: net.minecraft.world.entity.Entity.isSpectator()
      *
      * @return 如果实体处于旁观者模式返回 true
      */
@@ -3468,7 +3475,6 @@ public:
      *
      * 阻尼振动的实体不会触发振动信号。
      * 监守者始终阻尼振动，掉落的羊毛物品也阻尼振动。
-     * 参考: net.minecraft.world.entity.Entity.dampensVibrations()
      *
      * @return 如果实体阻尼振动返回true
      */

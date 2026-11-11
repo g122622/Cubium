@@ -46,7 +46,7 @@ data/
 ### 上游依赖（本模块依赖的外部模块）
 
 - `common/command/arguments/NbtPath.hpp` - NBT 路径解析
-- `common/command/exceptions/CommandExceptions.hpp` - 命令异常类型
+- `common/command/errors/CommandErrors.hpp` - 命令异常类型
 - `common/resource/ResourceLocation.hpp` - 资源位置标识符
 - `common/util/nbt/Nbt.hpp` - NBT 标签系统
 - `common/world/block/base/types/BlockPos.hpp` - 方块位置

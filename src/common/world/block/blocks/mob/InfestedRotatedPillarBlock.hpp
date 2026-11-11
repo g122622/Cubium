@@ -46,7 +46,6 @@ namespace blocks {
  *
  * MC ID: minecraft:infested_deepslate
  *
- * 参考: net.minecraft.world.level.block.InfestedRotatedPillarBlock
  */
 class InfestedRotatedPillarBlock : public InfestedBlock {
 public:

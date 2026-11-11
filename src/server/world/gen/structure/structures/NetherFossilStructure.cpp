@@ -168,8 +168,57 @@ void NetherFossilPiece::generate(IWorldWriter& world,
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
     // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
-    // TODO: 下界化石的数据标记尚未实现，届时需排在 jigsaw 覆盖之前。
     m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
+
+    // 原版 NetherFossilPiece.placeDriedGhast：50% 概率在化石底部放一个随机朝向的干燥恶魂方块。
+    // 注意原版 `handleDataMarker` 对本结构是**空实现**（NetherFossilPieces 里没有任何数据标记），
+    // 所以这里不存在"数据标记需排在 jigsaw 覆盖之前"的问题。
+    _placeDriedGhast(*reader, world, rng, chunkBounds);
+}
+
+void NetherFossilPiece::_placeDriedGhast(
+    IWorld& world, IWorldWriter& writer, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
+{
+    // 原版用 level.getSeed() 派生的位置随机源，保证同一化石每次生成结果一致。
+    // 这里用独立的 Random，种子由结构原点与模板名派生，避免与传入的 rng 相互影响。
+    const u64 seed = static_cast<u64>(m_templatePosition.x) * 341873128712ULL ^
+        static_cast<u64>(m_templatePosition.y) * 132897987541ULL ^ static_cast<u64>(m_templatePosition.z);
+    math::Random ghastRandom(seed);
+
+    if (ghastRandom.nextFloat() >= 0.5f) {
+        return;
+    }
+
+    const i32 spanX = m_maxX - m_minX + 1;
+    const i32 spanZ = m_maxZ - m_minZ + 1;
+    if (spanX <= 0 || spanZ <= 0) {
+        return;
+    }
+
+    const i32 x = m_minX + ghastRandom.nextInt(0, spanX - 1);
+    const i32 y = m_minY;
+    const i32 z = m_minZ + ghastRandom.nextInt(0, spanZ - 1);
+    const BlockPos pos(x, y, z);
+
+    // 只放在空气里，且必须在本次生成的区块包围盒内（避免写到尚未生成的邻居区块）。
+    const BlockState* current = world.getBlockState(pos);
+    if (current == nullptr || !current->is(VanillaBlocks::AIR)) {
+        return;
+    }
+    if (pos.x < chunkBounds.minX() || pos.x > chunkBounds.maxX() || pos.z < chunkBounds.minZ() ||
+        pos.z > chunkBounds.maxZ()) {
+        return;
+    }
+
+    const BlockState* driedGhast = VanillaBlocks::getState(VanillaBlocks::DRIED_GHAST);
+    if (driedGhast == nullptr) {
+        spdlog::warn("NetherFossilPiece: dried_ghast state is unavailable; skipping placeDriedGhast");
+        return;
+    }
+    // TODO: 原版这里用 `defaultBlockState().rotate(Rotation.getRandom(random))` 让干燥恶魂朝向随机；
+    //   项目当前没有"按 Rotation 旋转方块状态"的工具（BlockState 无 rotate，Rotations 只有
+    //   角度/组合运算），因此暂时用默认状态，朝向恒为默认。补出状态旋转工具后在此应用随机朝向。
+    writer.setBlockState(pos.x, pos.y, pos.z, driedGhast, static_cast<i32>(world::BlockUpdateFlags::UPDATE_CLIENTS));
 }
 
 // ============================================================================
