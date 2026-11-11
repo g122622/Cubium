@@ -470,6 +470,11 @@ private:
      * 否则退回 m_fallbackActivity（默认 IDLE）。两者叠加的后果是：
      * 时间线上那些没有配置记忆要求的活动（WORK / MEET / REST 等）永远进不去，
      * 每次切换都退回 IDLE，村民行为实际上退化成只有 IDLE。
+     *
+     * 佐证这条判断是对的：同名同用途的 Task::_hasRequiredMemories(E*)（Task.hpp）
+     * 对空要求集合是返回 true 的（for 循环不执行，直接落到 return true）。
+     * 也就是说 Task 层早就用了正确语义，只有 Brain 层这一份写反了，
+     * 两个同名函数的行为此前并不一致。
      */
     [[nodiscard]] bool _hasRequiredMemories(const schedule::Activity& activity) const noexcept
     {

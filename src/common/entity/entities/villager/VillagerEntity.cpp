@@ -782,6 +782,11 @@ void VillagerEntity::initializeBrain()
     //                + MoveToTargetTask + StrollTask + LookAtEntityTask，均可达；
     //   MEET：同一批 task，外加 VillagerInteractTask——后者门槛 INTERACTION_TARGET
     //         无写入方，所以 MEET 里它不跑，但同级的走位与游荡仍工作。
+    //
+    // 时间线共引用 5 个活动（IDLE / MEET / PLAY / REST / WORK），本实体现已全部注册
+    // 且各自的任务门槛均可满足。其中 PLAY 曾是缺口——幼年作息轨道
+    // （由 BABY_VILLAGER_ACTIVITY 属性选出）会切到 Activity::PLAY，
+    // 而本实体当时从未注册它，导致幼年村民在玩耍时段被切进零任务活动。
     // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
     // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
     //
@@ -822,6 +827,30 @@ void VillagerEntity::initializeBrain()
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
             std::make_unique<StrollTask<VillagerEntity>>(0.3f, 120)),
+        {},
+        {});
+
+    // PLAY 活动：幼年村民的作息（Timelines::VILLAGER_SCHEDULE 里由
+    // BABY_VILLAGER_ACTIVITY 属性轨道选出，在 3000 与 10000 tick 切到 PLAY）。
+    // 之前本实体从未注册这个活动，于是幼年村民在玩耍时段被切进一个零任务的
+    // 活动里——什么都不做。这里用与 REST/IDLE 相同的漫游+张望组合，
+    // 让幼年村民在玩耍时段四处走动、四下张望。
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        1,
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::PLAY,
+        2,
+        makeTasks(std::make_unique<LookAtEntityTask<VillagerEntity>>()),
         {},
         {});
 }
