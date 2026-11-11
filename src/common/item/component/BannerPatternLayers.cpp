@@ -27,14 +27,13 @@
 #include <array>
 #include <string>
 #include <string_view>
-#include <vector>
 #include <nlohmann/json.hpp>
 
 namespace mc::item::component {
 
 namespace {
 
-/// 16 种染料颜色，索引即 `banner_patterns` 的 color 排序（与 NBT 侧 `color` 字符串一一对应）
+/// 16 种染料颜色，索引即 `banner_patterns` 的 Color 序号（与 NBT 侧 `color` 字符串一一对应）
 constexpr std::array<std::string_view, 16> COLOR_NAMES{"white",
     "orange",
     "magenta",
@@ -53,27 +52,28 @@ constexpr std::array<std::string_view, 16> COLOR_NAMES{"white",
     "black"};
 
 /// 图案 ID（`minecraft:stripe_bottom`）→ 枚举；只接受 minecraft 命名空间
-bool _patternFromId(const std::string& id, int& out)
+bool _patternFromId(const std::string& id, blockentity::BannerPatternType& out)
 {
     constexpr std::string_view PREFIX = "minecraft:";
     if (id.rfind(PREFIX, 0) != 0) {
         return false;
     }
     const std::string name = id.substr(PREFIX.size());
-    for (int i = 0; i < static_cast<int>(blockentity::BannerPatternType::Count); ++i) {
-        if (blockentity::BannerPatterns::getFileName(static_cast<blockentity::BannerPatternType>(i)) == name) {
-            out = i;
+    for (i32 i = 0; i < static_cast<i32>(blockentity::BannerPatternType::Count); ++i) {
+        const auto type = static_cast<blockentity::BannerPatternType>(i);
+        if (blockentity::BannerPatterns::getFileName(type) == name) {
+            out = type;
             return true;
         }
     }
     return false;
 }
 
-bool _colorFromName(const std::string& name, int& out)
+bool _colorFromName(const std::string& name, i32& out)
 {
     for (std::size_t i = 0; i < COLOR_NAMES.size(); ++i) {
         if (COLOR_NAMES[i] == name) {
-            out = static_cast<int>(i);
+            out = static_cast<i32>(i);
             return true;
         }
     }
@@ -82,49 +82,52 @@ bool _colorFromName(const std::string& name, int& out)
 
 } // namespace
 
-bool readBannerPatternLayers(const nlohmann::json& json, std::vector<BannerPatternLayer>& out)
+bool readBannerPatternsPayload(const nlohmann::json& json, nlohmann::json& out)
 {
     if (!json.is_array()) {
         return false;
     }
-    std::vector<BannerPatternLayer> layers;
-    layers.reserve(json.size());
+
+    nlohmann::json payload = nlohmann::json::array();
     for (const auto& entry : json) {
         if (!entry.is_object() || !entry.contains("pattern") || !entry.contains("color") ||
-            !entry["pattern"].is_string() || !entry["color"].is_string()) {
+            !entry["color"].is_string()) {
             return false;
         }
-        BannerPatternLayer layer;
-        // 原版对单个无法识别的层是「丢弃该层」而非整条失败，这里同样跳过
-        if (!_patternFromId(entry["pattern"].get<std::string>(), layer.pattern)) {
-            continue;
-        }
-        if (!_colorFromName(entry["color"].get<std::string>(), layer.color)) {
-            continue;
-        }
-        layers.push_back(layer);
-    }
-    out = std::move(layers);
-    return true;
-}
 
-nlohmann::json writeBannerPatternLayers(const std::vector<BannerPatternLayer>& layers)
-{
-    nlohmann::json json = nlohmann::json::array();
-    for (const auto& layer : layers) {
-        if (layer.pattern < 0 || layer.pattern >= static_cast<int>(blockentity::BannerPatternType::Count) ||
-            layer.color < 0 || layer.color >= static_cast<int>(COLOR_NAMES.size())) {
+        const auto& pattern = entry.at("pattern");
+        nlohmann::json layer = nlohmann::json::object();
+        if (pattern.is_object()) {
+            // 直挂图案（数据包自定义图案）：原样保留资源路径与翻译键，Pattern 固定占位 "b"——
+            // 与 NBT 读取路径（DataComponentPayloadCodec::nbtToComponentPayload）保持一致，
+            // 有 DirectPattern 时 Pattern 不被任何消费方使用。
+            if (!pattern.contains("asset_id") || !pattern["asset_id"].is_string() ||
+                !pattern.contains("translation_key") || !pattern["translation_key"].is_string()) {
+                return false;
+            }
+            layer["DirectPattern"] = pattern;
+            layer["Pattern"] = "b";
+        } else if (pattern.is_string()) {
+            blockentity::BannerPatternType type = blockentity::BannerPatternType::Base;
+            // 原版对单个无法识别的层是「丢弃该层」而非整条失败，这里同样跳过
+            if (!_patternFromId(pattern.get<std::string>(), type)) {
+                continue;
+            }
+            layer["Pattern"] = blockentity::BannerPatterns::getHashName(type);
+        } else {
+            return false;
+        }
+
+        i32 color = 0;
+        if (!_colorFromName(entry.at("color").get<std::string>(), color)) {
             continue;
         }
-        json.push_back(nlohmann::json{
-            {"pattern",
-                "minecraft:" +
-                    blockentity::BannerPatterns::getFileName(
-                        static_cast<blockentity::BannerPatternType>(layer.pattern))},
-            {"color", std::string(COLOR_NAMES[static_cast<std::size_t>(layer.color)])},
-        });
+        layer["Color"] = color;
+        payload.push_back(std::move(layer));
     }
-    return json;
+
+    out = std::move(payload);
+    return true;
 }
 
 } // namespace mc::item::component

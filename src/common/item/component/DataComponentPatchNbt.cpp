@@ -277,14 +277,14 @@ bool jsonToComponentPayload(DataComponentType type, const nlohmann::json& json, 
         case DataComponentType::Instrument:
             return _readInstrument(json, out);
         case DataComponentType::BannerPatterns: {
-            // [{"pattern": "<图案 ID>", "color": "<染料颜色>"}, ...]：JSON 里的资源名
-            // 与内部 (图案枚举, 颜色索引) 不是同一套字面量，需先翻译。
-            std::vector<BannerPatternLayer> layers;
-            if (!readBannerPatternLayers(json, layers)) {
+            // 数据包 JSON 用资源名（如 "minecraft:stripe_bottom"/"red"），而内部载荷使用
+            // {"Pattern": hash 名, "Color": 颜色序号}——NBT 编解码器与网络编码器都按后者读取，
+            // 未翻译的载荷会在存档或装备同步时因缺 "Pattern"/"Color" 抛异常。
+            nlohmann::json payload;
+            if (!readBannerPatternsPayload(json, payload)) {
                 return false;
             }
-            out = DataComponentPayload{
-                std::in_place_index<ComponentPayloadIndex::Json>, writeBannerPatternLayers(layers)};
+            out = DataComponentPayload{std::in_place_index<ComponentPayloadIndex::Json>, std::move(payload)};
             return true;
         }
         case DataComponentType::ItemModel:

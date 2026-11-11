@@ -33,8 +33,10 @@
 #include "common/item/component/DataComponentMap.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -104,16 +106,24 @@ void PatrollerEntity::finalizeSpawn(
 
 void PatrollerEntity::equipOminousBanner()
 {
-    // 对齐 MC 1.21.11 `Raid.getOminousBannerInstance`：白底旗帜 + 固定 7 层图案。
+    // 白底旗帜 + 固定 8 层图案。
+    // 内存中的 banner_patterns 载荷使用规范格式（NBT 编解码器与网络编码器都按此读取）：
+    // 每层 {"Pattern": <图案 hash 名>, "Color": <DyeColor 序号>}。
+    // 早期实现写成小写 "pattern"/"color" 字符串，装备同步与存档序列化时 at("Pattern")
+    // 会抛 nlohmann 异常并终止进程。
+    const auto layer = [](blockentity::BannerPatternType pattern, DyeColor color) {
+        return nlohmann::json{
+            {"Pattern", blockentity::BannerPatterns::getHashName(pattern)}, {"Color", static_cast<i32>(color)}};
+    };
     const nlohmann::json layers = nlohmann::json::array({
-        {{"pattern", "minecraft:rhombus"}, {"color", "cyan"}},
-        {{"pattern", "minecraft:stripe_bottom"}, {"color", "light_gray"}},
-        {{"pattern", "minecraft:stripe_center"}, {"color", "gray"}},
-        {{"pattern", "minecraft:border"}, {"color", "light_gray"}},
-        {{"pattern", "minecraft:stripe_middle"}, {"color", "black"}},
-        {{"pattern", "minecraft:half_horizontal"}, {"color", "light_gray"}},
-        {{"pattern", "minecraft:circle"}, {"color", "light_gray"}},
-        {{"pattern", "minecraft:border"}, {"color", "black"}},
+        layer(blockentity::BannerPatternType::RhombusMiddle, DyeColor::Cyan),
+        layer(blockentity::BannerPatternType::StripeBottom, DyeColor::LightGray),
+        layer(blockentity::BannerPatternType::StripeCenter, DyeColor::Gray),
+        layer(blockentity::BannerPatternType::Border, DyeColor::LightGray),
+        layer(blockentity::BannerPatternType::StripeMiddle, DyeColor::Black),
+        layer(blockentity::BannerPatternType::HalfHorizontal, DyeColor::LightGray),
+        layer(blockentity::BannerPatternType::CircleMiddle, DyeColor::LightGray),
+        layer(blockentity::BannerPatternType::Border, DyeColor::Black),
     });
 
     ItemStack banner(Items::WHITE_BANNER, 1);
