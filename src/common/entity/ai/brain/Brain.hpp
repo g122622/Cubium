@@ -425,29 +425,9 @@ private:
      * 每 20 ticks 查询一次时间线。采样器按 tick 缓存采样结果，
      * 同一 tick 内的多次查询会复用该结果。
      *
-     * TODO(event-activity-scheduling): 本方法目前**只做时间驱动**，
-     *   而全仓 switchTo() 也只有这里的唯一一处调用，所以"事件活动"
-     *   （注册时传了非空 requirements 的那些，如 Villager 的
-     *   FIGHT / RAID / AVOID / HIDE / PANIC）永远不会被选中——
-     *   无论它们依赖的记忆是否已就绪。
-     *
-     *   补齐需要在时间采样之后再加一段按优先级的条件选择，大致形态：
-     *     1. 按 m_tasks 的既有顺序遍历（它是 PriorityTaskMap，key 是 priority，
-     *        已按数值有序，全类里多处 `for (auto& [priority, activityMap] : m_tasks)`
-     *        就是这么用的）；
-     *     2. 对每个 activity 检查 m_requiredMemoryStates 里是否有非空 requirements
-     *        （没有的属于时间线活动，跳过）；
-     *     3. 取第一个 _hasRequiredMemories(activity) 为真的，switchTo 它；
-     *     4. 都不满足则保持时间线选出的活动。
-     *
-     *   这样**不需要额外存一份 activity → priority 映射**——优先级顺序可以直接从
-     *   m_tasks 的迭代顺序拿到。
-     *
-     *   落地前还需先定两个语义问题（这也是本轮没有直接实现的原因）：
-     *     a. **抢占语义**：事件活动结束后要不要退回时间线活动？
-     *        原版 Brain 是按 schedule 整体重算，不是"压栈再弹出"；
-     *     b. **切换频率**：这段检查不能每 tick 做（switchTo 会清空
-     *        m_activities 并触发 memoriesToForget），需与 20 tick 节流对齐。
+     * 时间采样之后再由 _tryEventActivity() 叠加一层条件选择：注册时带非空
+     * requirements 的活动（如 Villager 的 FIGHT / RAID / AVOID / HIDE / PANIC）
+     * 只要依赖的记忆就绪，就会按优先级压过时间线活动。
      */
     void _updateActivity(i32 dayTime, i64 gameTime)
     {
@@ -457,6 +437,40 @@ private:
             auto scheduledActivity = m_activitySampler->applyTimeBased(schedule::Activity::IDLE, gameTime);
             if (!hasActivity(scheduledActivity)) {
                 switchTo(scheduledActivity);
+            }
+            _tryEventActivity();
+        }
+    }
+
+    /**
+     * @brief 按优先级检查"事件活动"（注册时带非空 requirements 的那些），有满足的就切过去
+     *
+     * 时间线只能表达"什么时候做什么"，表达不了"被攻击了就反击"这类条件触发。
+     * 本方法补上这一半：遍历已注册活动，跳过没有配置记忆要求的（那些属于时间线活动），
+     * 取优先级最高且 _hasRequiredMemories 为真的一个切换过去。
+     *
+     * 优先级顺序直接取自 m_tasks 的迭代顺序（它是 PriorityTaskMap，key 是 priority，
+     * 已按数值有序），不需要另存映射。
+     *
+     * 抢占语义：事件活动一旦满足就压过时间线活动；等它的记忆不再满足时，
+     * 下一次时间线采样会重新把时间线活动切回来（见 _updateActivity 的前半段）。
+     * 这与原版"按 schedule 整体重算"的方向一致，不是压栈-弹栈模型。
+     *
+     * 调用频率：只在 _updateActivity 的 20 tick 节流内调用，避免每 tick
+     * 触发 switchTo（它会清空 m_activities 并清理 memoriesToForget）。
+     */
+    void _tryEventActivity()
+    {
+        for (const auto& [priority, activityMap] : m_tasks) {
+            for (const auto& [activity, taskSet] : activityMap) {
+                // 没有配置记忆要求的属于时间线活动，不在这里处理。
+                if (m_requiredMemoryStates.find(activity) == m_requiredMemoryStates.end()) {
+                    continue;
+                }
+                if (!hasActivity(activity) && _hasRequiredMemories(activity)) {
+                    switchTo(activity);
+                    return;
+                }
             }
         }
     }

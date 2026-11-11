@@ -472,6 +472,30 @@ TEST(BrainActivityTest, SwitchToActivatesActivityWithoutMemoryRequirements)
     EXPECT_TRUE(brain.hasActivity(schedule::Activity::WORK)) << "无记忆要求的活动应当可以进入";
 }
 
+// 回归用例：带记忆要求的"事件活动"在要求满足时应被选中。
+// 修复前 Brain 只做时间驱动切换，这类活动永远进不去。
+TEST(BrainActivityTest, EventActivityTakesOverWhenRequirementsMet)
+{
+    memory::MemoryModuleTypes::initialize();
+
+    Brain<MockTestEntity> brain;
+    // FIGHT 需要 ATTACK_TARGET 为 VALUE_PRESENT。
+    brain.registerActivity(schedule::Activity::FIGHT,
+        0,
+        std::vector<std::unique_ptr<task::Task<MockTestEntity>>>{},
+        {{memory::MemoryModuleTypes::ATTACK_TARGET, memory::MemoryModuleStatus::VALUE_PRESENT}},
+        {});
+
+    // 记忆未就绪时，不应切到 FIGHT。
+    brain.switchTo(schedule::Activity::IDLE);
+    EXPECT_FALSE(brain.hasActivity(schedule::Activity::FIGHT)) << "记忆缺失时不能进入事件活动";
+
+    // 记忆就绪后，同一个切换入口应选中 FIGHT。
+    brain.setMemory<EntityInstanceId>(memory::MemoryModuleTypes::ATTACK_TARGET, 42);
+    brain.switchTo(schedule::Activity::FIGHT);
+    EXPECT_TRUE(brain.hasActivity(schedule::Activity::FIGHT));
+}
+
 TEST(BrainActivityTest, HasActivity)
 {
     memory::MemoryModuleTypes::initialize();
