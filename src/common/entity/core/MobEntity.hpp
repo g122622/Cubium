@@ -1595,6 +1595,19 @@ public:
     [[nodiscard]] virtual bool canBeLeashed() const;
 
     /**
+     * @brief 拴绳状态变更回调
+     *
+     * 在 setLeashedToEntity / setLeashedToFence / clearLeash 真正改完状态之后调用，
+     * 为行为包提供一个统一的"被拴/解拴"事件源（对应基岩版
+     * minecraft:leashable 的 on_leash / on_unleash）。
+     *
+     * 基类默认空实现；需要响应的子类才重写。
+     *
+     * @param leashed 变更后的拴绳状态
+     */
+    virtual void onLeashStateChanged(bool leashed);
+
+    /**
      * @brief 尝试用玩家手持物品治疗本实体
      *
      * 数据驱动的生物（addon `minecraft:healable`）覆写此方法；基类默认不治疗，

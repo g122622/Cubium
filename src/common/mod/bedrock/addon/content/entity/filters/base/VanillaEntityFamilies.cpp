@@ -22,6 +22,9 @@
  */
 
 #include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
 #include <algorithm>
 #include <array>
 
@@ -155,6 +158,38 @@ std::optional<bool> vanillaEntityFamilyMatch(std::string_view typeId, std::strin
         }
         remaining.remove_prefix(delimiter + 1);
     }
+    return false;
+}
+
+bool entityHasFamily(const mc::Entity& entity, std::string_view family)
+{
+    // 1. addon 实体自己声明的家族（最高优先）
+    if (const auto* components = entity.tryGetComponent<AddonEntityComponents>()) {
+        const nlohmann::json* value = components->component("minecraft:type_family");
+        if (value != nullptr && value->contains("family")) {
+            const auto& names = (*value)["family"];
+            const std::string wanted(family);
+            if (names.is_string()) {
+                return names.get_ref<const std::string&>() == wanted;
+            }
+            return std::find(names.begin(), names.end(), wanted) != names.end();
+        }
+    }
+
+    // 2. 原版家族表
+    if (const auto matched = vanillaEntityFamilyMatch(entity.getTypeId(), family)) {
+        return *matched;
+    }
+
+    // 3. 通用家族
+    if (family == "player") {
+        return dynamic_cast<const mc::Player*>(&entity) != nullptr;
+    }
+    if (family == "mob") {
+        return dynamic_cast<const mc::MobEntity*>(&entity) != nullptr;
+    }
+
+    // 未知家族：不属于。调用方不应因为一个未知名字就让匹配失败而崩溃。
     return false;
 }
 } // namespace mc::mod::bedrock::addon

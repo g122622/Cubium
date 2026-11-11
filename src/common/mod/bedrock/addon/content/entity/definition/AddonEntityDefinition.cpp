@@ -34,6 +34,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/mod/bedrock/addon/content/entity/events/EntityEventProgram.hpp"
 #include "common/mod/bedrock/addon/content/entity/filters/EntityFilter.hpp"
+#include "common/mod/bedrock/addon/content/entity/filters/base/VanillaEntityFamilies.hpp"
 #include "common/mod/bedrock/addon/content/entity/properties/EntityPropertyDefinitions.hpp"
 #include "common/mod/bedrock/addon/content/entity/query/EntityStateQuery.hpp"
 #include "common/mod/bedrock/addon/content/entity/state/AddonEntityComponents.hpp"
@@ -520,6 +521,37 @@ public:
         return components != nullptr && components->has("minecraft:rideable");
     }
 
+    /**
+     * @brief 判定某个实体能否作为本实体的乘客
+     *
+     * 在基类"座位未满"的基础上，额外执行
+     * `minecraft:rideable.family_types` 白名单：声明了非空列表时，
+     * 只有属于其中某个家族的实体才能上去。
+     */
+    [[nodiscard]] bool canAddPassenger(const Entity& passenger) const override
+    {
+        if (!mc::AgeableEntity::canAddPassenger(passenger)) {
+            return false;
+        }
+
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* rideable = components != nullptr ? components->component("minecraft:rideable") : nullptr;
+        if (rideable == nullptr) {
+            return true;
+        }
+        const auto types = rideable->find("family_types");
+        if (types == rideable->end() || !types->is_array() || types->empty()) {
+            return true;
+        }
+
+        for (const auto& entry : *types) {
+            if (entry.is_string() && entityHasFamily(passenger, entry.get_ref<const std::string&>())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     [[nodiscard]] bool tryHealFromItem(ItemStack& stack, Player& player) override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -696,6 +728,39 @@ public:
             return true;
         }
         return mc::AgeableEntity::canBeLeashed();
+    }
+
+    /**
+     * @brief 拴绳状态变更时派发行为包事件
+     *
+     * 对应 minecraft:leashable 的 on_leash / on_unleash。事件名为空时不派发。
+     * 注意：只在状态真正变化时触发，重复拴到同一目标不会重复派发，
+     * 因为底层每次调用都会通知。
+     */
+    void onLeashStateChanged(bool leashed) override
+    {
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* leashable =
+            components != nullptr ? components->component("minecraft:leashable") : nullptr;
+        if (leashable == nullptr) {
+            return;
+        }
+        const char* field = leashed ? "on_leash" : "on_unleash";
+        const auto event = leashable->find(field);
+        if (event == leashable->end() || !event->is_string()) {
+            return;
+        }
+        auto* events = tryGetComponent<AddonEntityEvents>();
+        if (events == nullptr) {
+            return;
+        }
+        const Result<void> triggered = events->trigger(*this, event->get<std::string>());
+        if (triggered.failed()) {
+            spdlog::warn("minecraft:leashable {} event '{}' failed: {}",
+                field,
+                event->get<std::string>(),
+                triggered.error().message());
+        }
     }
 
     bool isNameableByTag() const override
@@ -923,7 +988,13 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
         !document.contains("minecraft:entity") || !document["minecraft:entity"].is_object()) {
         return Error(ErrorCode::InvalidData, "Entity definition requires format_version and minecraft:entity");
     }
-    // TODO: 按实体 format_version 接入完整版本语义矩阵。
+    // format_version 是点分字符串（如 "1.21.0"）。之前只校验了 is_string()，
+    // 垃圾串能直接通过；这里真正解析并保存，供后续版本语义矩阵使用。
+    PackVersion formatVersion;
+    if (!PackVersion::fromString(document["format_version"].get_ref<const std::string&>(), formatVersion)) {
+        return Error(ErrorCode::InvalidData,
+            "Entity definition format_version must be a dotted numeric version such as \"1.21.0\"");
+    }
     const auto& entity = document["minecraft:entity"];
     MC_TRY(_members(entity, {"description", "components", "component_groups", "events"}));
     if (!entity.contains("description") || !entity["description"].is_object()) {
@@ -948,6 +1019,7 @@ Result<AddonEntityDefinition> AddonEntityDefinition::parse(const nlohmann::json&
     }
 
     AddonEntityDefinition result;
+    result.m_formatVersion = formatVersion;
     result.m_document = document;
     result.m_identifier = id;
     result.m_canSummon = description.value("is_summonable", false);
@@ -1082,7 +1154,7 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
         } else if (name == "minecraft:nameable") {
             // allow_name_tag_renaming 由 _AddonMob::isNameableByTag 消费（NameTagItem 查询）。
             // always_show 是纯客户端展示（名字常显），客户端已停止维护，因此只校验不落地。
-            // default_trigger / name_actions 需要"命名时触发事件"的挂接点，见下方 TODO。
+            // default_trigger / name_actions 的派发缺失与挂接点，见下方 TODO。
             MC_TRY(_members(component, {"allow_name_tag_renaming", "always_show", "default_trigger", "name_actions"}));
             MC_TRY(_boolean(component, "allow_name_tag_renaming"));
             MC_TRY(_boolean(component, "always_show"));
@@ -1090,8 +1162,13 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 (!trigger->is_string() || trigger->get_ref<const std::string&>().empty())) {
                 return Error(ErrorCode::InvalidData, "minecraft:nameable default_trigger must be a nonempty string");
             }
-            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 需要"实体获得名字"这一
-            //       事件源。目前 NameTagItem 直接写名字，没有统一的命名事件派发点，待补。
+            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 尚未派发。
+            //   挂接点其实是现成的：Entity::setCustomNameComponent 是虚函数，且所有命名路径
+            //   （含 NameTagItem）都经由它（见 Entity.hpp 的注释与 Entity.cpp 的实现），
+            //   _AddonMob 只要覆写它，就能在命名变更时调 AddonEntityEvents::trigger。
+            //   真正卡住的是 **name_actions 的 JSON 形状**：仓库内（含 LeviLamina 逆向头文件）
+            //   找不到该字段的官方 schema，只有 _members 白名单里那个键名。
+            //   不凭猜测写解析，否则会把错误结构固化下来。拿到 official schema 后按上面方式补。
         } else if (name == "minecraft:leashable") {
             // 官方 schema 的字段分三类：
             //   - can_be_cut / can_be_stolen / unleash_on_removal / on_unleash_interact_only：布尔，校验；
@@ -1130,9 +1207,11 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData, "minecraft:leashable presets must be an array");
             }
             // TODO: presets 的弹簧参数（soft/hard/max_distance、spring_type、rotation_adjustment）
-            //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型；on_leash / on_unleash 需要
-            //   "实体被拴/解拴"这一事件派发点，当前 LeadItem 直接改状态、无统一事件源。
-            //   在此之前这些字段只做类型校验，不生效。
+            //   需要拴绳弹簧物理，目前拴绳只做位置跟随，没有弹簧模型（检索 leashSpring /
+            //   LeashPhysics / springForce 均无实现）。在此之前这些字段只做类型校验，不生效。
+            //   on_leash / on_unleash 已经生效：MobEntity 新增虚钩子 onLeashStateChanged(bool)，
+            //   在 setLeashedToEntity / setLeashedToFence / clearLeash 改完状态后调用，
+            //   _AddonMob 覆写它并派发对应行为包事件。
         } else if (name == "minecraft:can_fly") {
             // 纯标记组件，没有任何字段：存在即表示该实体可飞行寻路（走 FlyNodeEvaluator）。
             // 消费点在 AddonEntityComponents::_apply（组件安装后替换导航器）。
@@ -1187,8 +1266,6 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData,
                     std::string("minecraft:experience_reward must be a number, string or object: ") + field);
             }
-            // TODO: on_bred（成功繁殖时的经验）尚无消费点——BreedGoal 的经验链路当前只走
-            //   固定的繁殖经验常量，没有接入实体级配置。
         } else if (name == "minecraft:burns_in_daylight") {
             // 唯一字段 protection_slot：该装备槽里有物品时不会燃烧（默认头盔位）。
             // 取值形如 slot.armor.head，与项目 EquipmentSlotNames 的裸名（head/chest）差一个前缀。
@@ -1254,10 +1331,14 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData, "minecraft:rideable interact_text must be a nonempty string");
             }
             // TODO: seats 的每座位坐标（position）与旋转（rotate_rider_by 等 Molang）、
-            //   family_types 的白名单过滤、pull_in_entities 的吸附、dismount_mode 的下马落点、
+            //   pull_in_entities 的吸附、dismount_mode 的下马落点、
             //   on_rider_enter/exit_event 的事件派发均未接入。这些都需要骑乘座位点的运行时表达，
-            //   而项目当前只有"乘客挂在载具上"这一个整体关系、没有多座位概念。
-            //   目前已生效的只有 seat_count（见 _AddonMob::getMaxPassengers）。
+            //   而项目当前只有"乘客挂在载具上"这一个整体关系、没有多座位概念
+            //   （检索 seatIndex / getSeat / passengerIndex / seat_position 均无结果）。
+            //   目前已生效：seat_count（_AddonMob::getMaxPassengers）与
+            //   family_types 白名单（_AddonMob::canAddPassenger 经 entityHasFamily 判定）。
+            //   controlling_seat 仍只校验未消费——它要选中"由哪个座位控制移动"，
+            //   同样依赖多座位模型。
         } else if (name == "minecraft:healable") {
             // 三个字段：filters（交互前置条件）、force_use（满血也能用）、items（物品 → 治疗量）。
             // items 每项含 item（必填资源位置）、heal_amount（默认 1）、effects（可选效果列表）。
@@ -1295,9 +1376,9 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                     }
                 }
             }
-            // TODO: filters（过滤器组）尚未接入：需要把 EntityFilter 接到"玩家对生物使用物品"这条
-            //   交互上下文上；目前生效的是"物品 → 治疗量"与"effects → 状态效果"两条
-            //   （见 _AddonMob::tryHealFromItem）。
+            // filters（交互前置条件）在 _AddonMob::tryHealFromItem 里已实际生效：
+            //   组件级 filters 编译成 EntityFilter 并求值，不满足则整次喂食作废。
+            //   交互参与者映射为 self=本生物、player/other=使用物品的玩家。
         } else if (name == "minecraft:breathable") {
             // 官方 schema 同时给了 snake_case 与 camelCase 两套键（suffocate_time/suffocateTime、
             // total_supply/totalSupply），原版实体定义里两种都出现过，必须都接受。
@@ -1346,16 +1427,24 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                         ErrorCode::InvalidData, std::string("minecraft:breathable requires a number: ") + field);
                 }
             }
-            // TODO: breathe_blocks / non_breathe_blocks 是按方块白/黑名单改写呼吸环境，
-            //   需要"实体所在方块"逐类判定；当前 canBreatheUnderwater 只区分水/非水，
-            //   无法表达任意方块名单。inhale_time 与 suffocate_time 也还需要接入空气恢复
-            //   与窒息计时，当前沿用基类的固定速率与固定间隔。
+            // TODO: 该组件还有两处未落地。
+            //   (a) breathe_blocks / non_breathe_blocks 是按方块白/黑名单改写呼吸环境。
+            //       卡点是**基岩方块名到 Block* 的解析**：bedrock 模块里没有任何
+            //       block descriptor / 方块名 -> Block* 的映射（检索 resolveBlock / blockByName /
+            //       BlockDescriptor / parseBlockName / findBlock 均无结果），而名单元素用的是基岩
+            //       自己的方块标识，与项目的 Java 侧方块 ID 不同源。没有这层映射就无法把名单
+            //       落到具体方块上，所以先不做，避免写死一套错误的对应关系。
+            //       注意 canBreatheUnderwater() 本身已不只是"水/非水"：它已消费
+            //       breathes_water（见下方 override），缺的是"当前所在方块是否在名单内"这一维度。
+            //   (b) inhale_time 与 suffocate_time 需要按实体覆盖空气恢复/消耗速率。
+            //       LivingEntity::decreaseAirSupply 目前固定每 tick -1（只受 oxygen_bonus 属性影响），
+            //       increaseAirSupply 同理；要落地得先把这两个速率做成可覆写点。
         } else if (name == "minecraft:inventory") {
             // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
             // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包
             //   需要 IInventory 实例 + NBT 序列化 + 死亡掉落 + 容器菜单接入，属独立特性。
-            //   在此之前脚本 query.has_component("minecraft:inventory") 会返回 false（见
-            //   EntityStateQuery），与"组件已声明但查不到"的自洽性由该处一并维持。
+            //   在此之前 EntityStateQuery::hasComponent("minecraft:inventory") 返回的是
+            //   ErrorCode::Unsupported（不是 false），脚本 query.has_component 会把这个错误传上去。
             MC_TRY(_members(component,
                 {"additional_slots_per_strength",
                     "can_be_siphoned_from",
@@ -1642,6 +1731,11 @@ bool AddonEntityDefinition::canSummon() const
 bool AddonEntityDefinition::canSpawn() const
 {
     return m_canSpawn;
+}
+
+const PackVersion& AddonEntityDefinition::formatVersion() const
+{
+    return m_formatVersion;
 }
 
 bool AddonEntityDefinition::fireImmune() const

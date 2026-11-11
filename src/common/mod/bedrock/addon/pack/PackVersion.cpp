@@ -28,6 +28,56 @@
 
 namespace mc::mod::bedrock::addon {
 
+bool PackVersion::fromString(std::string_view text, PackVersion& out) noexcept
+{
+    if (text.empty()) {
+        return false;
+    }
+
+    std::vector<i32> parts;
+    i64 current = 0;
+    bool hasDigit = false;
+
+    for (const char ch : text) {
+        if (ch >= '0' && ch <= '9') {
+            current = current * 10 + static_cast<i64>(ch - '0');
+            // 防止超长数字溢出 i32；版本号分段不可能接近这个量级。
+            if (current > 0x7FFFFFFFLL) {
+                return false;
+            }
+            hasDigit = true;
+            continue;
+        }
+        if (ch == '.') {
+            if (!hasDigit) {
+                return false;
+            }
+            // 最多三段 major.minor.patch；出现第三个点就意味着第四段，直接拒绝。
+            if (parts.size() >= 3) {
+                return false;
+            }
+            parts.push_back(static_cast<i32>(current));
+            current = 0;
+            hasDigit = false;
+            continue;
+        }
+        // 不允许任何其他字符（含负号、空格、预发布后缀等）。
+        return false;
+    }
+
+    if (!hasDigit) {
+        return false;
+    }
+    // 已经收下三段时，尾随的数字就是第四段，拒绝。
+    if (parts.size() >= 3) {
+        return false;
+    }
+    parts.push_back(static_cast<i32>(current));
+
+    out = fromVector(parts);
+    return true;
+}
+
 PackVersion PackVersion::fromVector(const std::vector<i32>& v)
 {
     PackVersion version;
