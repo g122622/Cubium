@@ -59,13 +59,31 @@ std::string_view trimWhitespace(std::string_view text) noexcept
     return text;
 }
 
+namespace {
+
+/**
+ * @brief 去掉整数文本的前导 '+'（`std::from_chars` 对整数不接受 '+'）
+ *
+ * Java 的 `Integer.parseInt` / `Long.parseLong` 从 7 起接受前导 '+'，项目对齐 Java 语义，
+ * 因此这里统一剥掉。只剥「后面还有字符」的那个 '+'，避免把单独的 "+" 变成空串后误判。
+ */
+std::string_view stripLeadingPlus(std::string_view text) noexcept
+{
+    if (text.size() > 1 && text.front() == '+') {
+        text.remove_prefix(1);
+    }
+    return text;
+}
+
+} // namespace
+
 Result<u64> parseUint64Base(std::string_view text, i32 base)
 {
     if (base < 2 || base > 36) {
         return Error(ErrorCode::InvalidArgument, "parseUint64Base: base must be within [2, 36]");
     }
 
-    const std::string_view trimmed = trimWhitespace(text);
+    const std::string_view trimmed = stripLeadingPlus(trimWhitespace(text));
     if (trimmed.empty()) {
         return _invalidNumber(text);
     }
@@ -101,7 +119,7 @@ Result<u32> parseUint32(std::string_view text)
 
 Result<i64> parseInt64(std::string_view text)
 {
-    const std::string_view trimmed = trimWhitespace(text);
+    const std::string_view trimmed = stripLeadingPlus(trimWhitespace(text));
     if (trimmed.empty()) {
         return _invalidNumber(text);
     }

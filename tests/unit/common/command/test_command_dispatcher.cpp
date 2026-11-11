@@ -325,10 +325,10 @@ TEST_F(ArgumentTypeTest, BoolArgument)
     auto boolArg = BoolArgumentType::boolArg();
 
     StringReader reader1("true");
-    EXPECT_TRUE(boolArg->parse(reader1));
+    EXPECT_TRUE(boolArg->parse(reader1).value());
 
     StringReader reader2("false");
-    EXPECT_FALSE(boolArg->parse(reader2));
+    EXPECT_FALSE(boolArg->parse(reader2).value());
 
     StringReader reader3("invalid");
     EXPECT_TRUE(boolArg->parse(reader3).failed());
