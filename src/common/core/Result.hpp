@@ -266,22 +266,37 @@ private:
  * }
  * @endcode
  */
-template <typename T>
+template <typename T, typename E = Error>
 class Result {
 public:
     // 构造函数
     Result() = delete;
 
     template <typename U,
-        typename = std::enable_if_t<std::is_constructible_v<T, U&&> && !std::is_same_v<std::decay_t<U>, Result> &&
-            !std::is_same_v<std::decay_t<U>, Error>>>
+        typename = std::enable_if_t<std::is_constructible_v<T, U&&> &&
+            !std::is_same_v<std::decay_t<U>, Result> && !std::is_same_v<std::decay_t<U>, E> &&
+            !std::is_convertible_v<U, E>>>
     Result(U&& value) // NOLINT: 允许隐式转换
         : m_value(std::in_place, std::forward<U>(value))
         , m_success(true)
     {}
 
-    Result(Error error) // NOLINT: 允许隐式转换
+    Result(E error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
+        , m_success(false)
+    {}
+
+    /**
+     * @brief 由「可转换为 E 的错误类型」构造失败结果
+     *
+     * 用于跨子系统传播：命令子系统返回 `Result<T, CommandError>`，内部调用返回
+     * `Result<U>`(E=Error) 的函数时，`MC_TRY` 会把 `Error` 隐式转成 `CommandError`。
+     */
+    template <typename E2,
+        typename = void,
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<E2>, E> && std::is_convertible_v<E2, E>>>
+    Result(E2&& error) // NOLINT: 允许隐式转换
+        : m_error(std::forward<E2>(error))
         , m_success(false)
     {}
 
@@ -340,14 +355,14 @@ public:
     }
 
     // 获取错误
-    [[nodiscard]] const Error& error() const noexcept
+    [[nodiscard]] const E& error() const noexcept
     {
         return m_success ? m_successError : m_error;
     }
 
     // 转换操作
     template <typename U>
-    [[nodiscard]] Result<U> map(std::function<U(const T&)> f) const&
+    [[nodiscard]] Result<U, E> map(std::function<U(const T&)> f) const&
     {
         if (success()) {
             return f(value());
@@ -356,7 +371,7 @@ public:
     }
 
     template <typename U>
-    [[nodiscard]] Result<U> map(std::function<U(T)> f) &&
+    [[nodiscard]] Result<U, E> map(std::function<U(T)> f) &&
     {
         if (success()) {
             return f(std::move(value()));
@@ -365,26 +380,56 @@ public:
     }
 
 private:
-    Error m_error;
+    E m_error{};
     std::optional<T> m_value;
     bool m_success = false;
-    static inline Error m_successError{ErrorCode::Success};
+    static inline E m_successError{};
 };
 
 // ============================================================================
 // Result<void> 特化
 // ============================================================================
 
-template <>
-class Result<void> {
+template <typename E>
+class Result<void, E> {
 public:
     Result()
         : m_success(true)
     {}
 
-    Result(Error error) // NOLINT: 允许隐式转换
+    Result(E error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
         , m_success(false)
+    {}
+
+    template <typename E2,
+        typename = void,
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<E2>, E> && std::is_convertible_v<E2, E>>>
+    Result(E2&& error) // NOLINT: 允许隐式转换
+        : m_error(std::forward<E2>(error))
+        , m_success(false)
+    {}
+
+    /**
+     * @brief 由另一种错误类型的 `Result<void>` 转换
+     *
+     * 使得返回 `Result<void, 自定义错误>` 的函数里可以直接 `return Result<void>::ok();`
+     * 或透传内层失败结果；错误类型按 `E2 -> E` 隐式转换。
+     */
+    template <typename E2,
+        typename = void,
+        typename = std::enable_if_t<!std::is_same_v<E2, E> && std::is_convertible_v<const E2&, E>>>
+    Result(Result<void, E2>&& other) // NOLINT: 允许隐式转换
+        : m_error(other.success() ? E{} : E(other.error()))
+        , m_success(other.success())
+    {}
+
+    template <typename E2,
+        typename = void,
+        typename = std::enable_if_t<!std::is_same_v<E2, E> && std::is_convertible_v<const E2&, E>>>
+    Result(const Result<void, E2>& other) // NOLINT: 允许隐式转换
+        : m_error(other.success() ? E{} : E(other.error()))
+        , m_success(other.success())
     {}
 
     // 拷贝和移动
@@ -410,7 +455,7 @@ public:
     }
 
     // 获取错误
-    [[nodiscard]] const Error& error() const noexcept
+    [[nodiscard]] const E& error() const noexcept
     {
         return m_error;
     }
@@ -422,7 +467,7 @@ public:
     }
 
 private:
-    Error m_error;
+    E m_error{};
     bool m_success;
 };
 
@@ -430,8 +475,8 @@ private:
 // Result<std::unique_ptr<T>> 特化
 // ============================================================================
 
-template <typename T, typename Deleter>
-class Result<std::unique_ptr<T, Deleter>> {
+template <typename T, typename Deleter, typename E>
+class Result<std::unique_ptr<T, Deleter>, E> {
 public:
     Result() = delete;
 
@@ -441,8 +486,16 @@ public:
         , m_success(true)
     {}
 
-    Result(Error error) // NOLINT: 允许隐式转换
+    Result(E error) // NOLINT: 允许隐式转换
         : m_error(std::move(error))
+        , m_success(false)
+    {}
+
+    template <typename E2,
+        typename = void,
+        typename = std::enable_if_t<!std::is_same_v<std::decay_t<E2>, E> && std::is_convertible_v<E2, E>>>
+    Result(E2&& error) // NOLINT: 允许隐式转换
+        : m_error(std::forward<E2>(error))
         , m_success(false)
     {}
 
@@ -526,7 +579,7 @@ public:
         return takeValue();
     }
 
-    [[nodiscard]] const Error& error() const noexcept
+    [[nodiscard]] const E& error() const noexcept
     {
         return m_success ? m_successError : m_error;
     }
@@ -539,11 +592,11 @@ private:
         return std::unique_ptr<T, Deleter>(value, m_deleter);
     }
 
-    Error m_error;
+    E m_error{};
     T* m_value = nullptr;
     Deleter m_deleter{};
     bool m_success = false;
-    static inline Error m_successError{ErrorCode::Success};
+    static inline E m_successError{};
 };
 
 // ============================================================================
@@ -580,5 +633,20 @@ private:
         }                                 \
         var = std::move(_result).value(); \
     } while (0)
+
+/**
+ * @brief 声明变量并以表达式的值初始化；失败则向上传播错误
+ *
+ * 与 MC_TRY_ASSIGN 的区别：本宏**声明**变量，因此不需要先写一遍类型与初值。
+ *
+ * @warning 展开为两条语句（`auto` 声明 + `if`），只能写在语句序列里，
+ *          不能放进 `if (...) MC_TRY_DECLARE(...);` 这类单语句体。
+ */
+#define MC_TRY_DECLARE(var, expr)             \
+    auto _mc_try_result_##var = (expr);      \
+    if (_mc_try_result_##var.failed()) {     \
+        return _mc_try_result_##var.error(); \
+    }                                        \
+    auto var = std::move(_mc_try_result_##var).value()
 
 } // namespace mc
