@@ -145,9 +145,15 @@
 | 2 + 3. NBT | ✅ 完成（合并实施） | 直接对 NBT 库 Result 化，未采用"薄封装"过渡：`NbtInternal`/`Nbt.hpp`/`Nbt.cpp` 内 `throw` 归零，`operator>>(compound_tag&)` 改为 `readCompoundInto`，`parseMojangson` 返回 `Result`；22 处读取调用点全部改为检查 `failed()` |
 | 4. 函数/宏 | ✅ 完成 | `StringTemplate`/`MacroFunction` 改 `Result`，删除 `FunctionInstantiationException` |
 | 5. 隐式异常源 | 🟡 部分完成 | `std::sto*`（18 文件）全部换为 `util::parseXxx`（from_chars）；`std::regex` 全部移除（改逐字符判定 + `util::isValidIpv4`）；`std::any_cast` 全部改指针形式。**未做**：`.at()`（libc++ 在 `-fno-exceptions` 下已退化为 abort，不阻塞编译）、`filesystem` 抛异常重载、`dynamic_cast<T&>`、`std::future` |
-| 6. 第三方隔离 | 🟡 部分完成 | **已完成**：新增 `util::json` 非抛出访问层；39 处 `catch(json::parse_error)` 全部消除；地图/旗帜/变体注册表等 8 处 `catch(json::exception)` 改为解析失败回退。**剩余（实测清点，已按 6 行窗口扣除同行/近行的类型守卫）**：`.get<T>()` 共约 1112 处，其中 **50 个文件 / 198 处既没有类型守卫也没有 try 边界**（坏数据直接终止进程），最集中：`EntityMetadataSerializer`(24)、`JavaLevelDatReader`(19)、`BedrockLevelDatReader`(19)、`EntityFilter`(16)、`Village`(13)、`CopyCustomDataFunction`(9)、`PointOfInterest`(8)、`JavaColumnReader`(7)、`TreeDecorator`(6)；另有 19 处 `catch(json::exception)` 靠异常兜底。spdlog/asio/simdjson 配置未动 |
+| 6. 第三方隔离 | 🟡 进行中 | **已完成**：新增 `util::json` 非抛出访问层（`parse` / `getXxx` / `getXxxOr` / `getInt32FromNumber` / `getXxxAt` / `findField`），39 处 `catch(json::parse_error)` 全部消除，8 处 `catch(json::exception)` 改为解析失败回退；NBT 库 Result 化 + `compound_tag::findAs`；全库 `json::value(key, default)` 归零。**读取点已改造**：Java/Bedrock `level.dat`、`Village`/`POI`/`VillageGossip`、`TreeDecorator`、`FeatureTypeRegistry`、`PlacedFeatureLoader`、`LootSerializers`（53 处）、`AdvancementDisplay`、`EndDragonFight`、`AnimationMetadata`、三个方块实体的 `Slot` 读取。**剩余（实测）**：`.get<T>()` 共 1014 处 / 174 文件，其中 **358 处 / 101 文件是「整数或浮点取值」**（`is_number_integer()` 拦不住 i32 越界、`get<f32>()` 拦不住 f32 越界，坏数据仍会抛 `out_of_range`）；服务端与 common 占 299 处，最集中：`IntProviderParser`(13)、`ItemStack`(13)、`StructureSetLoader`(12)、`BlockStateProviderParser`(11)、`EntityTimerState`(11)、`StructureDefinitionLoader`(7)、`TrialSpawnerBlockEntity`/`MobSpawnerBlockEntity`/`SpawnerLogic`/`DataComponentPatchNbt`/`EntityAddonState`(各 7)；其余约 656 处是 `get<std::string>` 等「紧邻 `is_string()` 守卫」的形态，属可接受的既有写法，不做无谓改动。spdlog/asio/simdjson 配置未动 |
 
-> 阶段 6 剩余工作**必须逐文件改造**，禁止批量脚本替换：每个 `.get<T>()` 都要先确定「字段缺失/类型错」的语义——必填字段返回 `Error`；可选字段用 `util::json::findField` 判空后取默认值。**不要用 `json::value(key, default)`**：键缺失时安全，但类型不符时仍会抛 `type_error`。用法与易踩点见 `common/util/json/README.md`。
+> 阶段 6 剩余工作**必须逐文件改造**，禁止批量脚本替换：每个 `.get<T>()` 都要先确定「字段缺失/类型错」的语义——必填字段返回 `Error`；可选字段用 `util::json::getXxxOr` 取默认值，或用 `util::json::findField` 判空。**不要用 `json::value(key, default)`**（本库已归零）：键缺失时安全，但类型不符时仍会抛 `type_error`。用法与易踩点见 `common/util/json/README.md`。
+
+**已核实为「误报」的文件**（读取点有类型校验或运行在已校验数据上，不需要改动）：
+- `EntityMetadataSerializer`：`value.get<T>()` 的接收者是 `EntityMetadataValue`，不是 JSON
+- `EntityFilter`：`compile()` 先跑 `_validate()` 做类型校验与字段归一化，`matches()` 只在已校验的 `m_filter` 上取值
+- `TreeDecorator` / `FeatureTypeRegistry` / `PlacedFeatureLoader` 的 `get<std::string>`：紧邻 `is_string()` 守卫
+- `CopyCustomDataFunction` 的 `context.get<Entity>()`：`LootContext::get` 是 `noexcept` 且返回 `nullptr`
 
 | 7. 开关就绪 | 🟡 部分完成 | 已加 `MC_ENABLE_NO_EXCEPTIONS` 选项（只作用于生产 target，测试保留异常）；`AssertException`/`throwAssertHandler` 已按 `__cpp_exceptions` 条件编译。**未做**：清空头文件剩余 throw（几乎全在命令子系统） |
 | 8. 命令子系统 | ⬜ 未开始 | 剩余头文件 `throw` 约 66 处全部集中在这里（`GameModeArgument` 24、`StringReader` 14、`ArgumentType` 12 等） |
