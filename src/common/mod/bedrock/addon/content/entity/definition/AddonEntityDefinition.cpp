@@ -1082,7 +1082,7 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
         } else if (name == "minecraft:nameable") {
             // allow_name_tag_renaming 由 _AddonMob::isNameableByTag 消费（NameTagItem 查询）。
             // always_show 是纯客户端展示（名字常显），客户端已停止维护，因此只校验不落地。
-            // default_trigger / name_actions 需要"命名时触发事件"的挂接点，见下方 TODO。
+            // default_trigger / name_actions 的派发缺失与挂接点，见下方 TODO。
             MC_TRY(_members(component, {"allow_name_tag_renaming", "always_show", "default_trigger", "name_actions"}));
             MC_TRY(_boolean(component, "allow_name_tag_renaming"));
             MC_TRY(_boolean(component, "always_show"));
@@ -1090,8 +1090,13 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 (!trigger->is_string() || trigger->get_ref<const std::string&>().empty())) {
                 return Error(ErrorCode::InvalidData, "minecraft:nameable default_trigger must be a nonempty string");
             }
-            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 需要"实体获得名字"这一
-            //       事件源。目前 NameTagItem 直接写名字，没有统一的命名事件派发点，待补。
+            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 尚未派发。
+            //   挂接点其实是现成的：Entity::setCustomNameComponent 是虚函数，且所有命名路径
+            //   （含 NameTagItem）都经由它（见 Entity.hpp 的注释与 Entity.cpp 的实现），
+            //   _AddonMob 只要覆写它，就能在命名变更时调 AddonEntityEvents::trigger。
+            //   真正卡住的是 **name_actions 的 JSON 形状**：仓库内（含 LeviLamina 逆向头文件）
+            //   找不到该字段的官方 schema，只有 _members 白名单里那个键名。
+            //   不凭猜测写解析，否则会把错误结构固化下来。拿到 official schema 后按上面方式补。
         } else if (name == "minecraft:leashable") {
             // 官方 schema 的字段分三类：
             //   - can_be_cut / can_be_stolen / unleash_on_removal / on_unleash_interact_only：布尔，校验；
