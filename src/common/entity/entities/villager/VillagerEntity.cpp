@@ -776,6 +776,12 @@ void VillagerEntity::initializeBrain()
     // 而时间线（common/world/time/timeline/Timelines.cpp）只激活其中 4 个：
     // IDLE / WORK / MEET / REST。
     //
+    // 已核实这 4 个活动内部的 task 门槛都可满足，所以修复 Brain::_hasRequiredMemories
+    // 的"无要求应视为可进入"之后，村民会真正按时段切换：
+    //   WORK / REST：InteractWithDoorTask（INTERACTABLE_DOORS 由 InteractableDoorsSensor 写）
+    //                + MoveToTargetTask + StrollTask + LookAtEntityTask，均可达；
+    //   MEET：同一批 task，外加 VillagerInteractTask——后者门槛 INTERACTION_TARGET
+    //         无写入方，所以 MEET 里它不跑，但同级的走位与游荡仍工作。
     // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
     // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
     //
