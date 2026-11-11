@@ -40,6 +40,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/command/support/SpreadAlgorithm.hpp"
 #include "server/network/sync/player/TeleportManager.hpp"
@@ -62,6 +63,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -199,6 +201,21 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     if (playerIds.empty()) {
         source.sendError("No players matched the selector");
         return 0;
+    }
+
+    // 非玩家实体目前仍不被本命令处理（见 _getNumberOfTeams/_setPlayerPositions 上的 TODO）。
+    // 但"静默丢弃"是错的：选择器写成 @e 且其中只有一部分是玩家时，命令会照常成功，
+    // 非玩家实体却一动不动，现场没有任何线索。这里把差额 warn 出来。
+    {
+        const auto matchedEntities = support::EntityResolver::resolve(source, selector);
+        const usize dropped = matchedEntities.size() > playerIds.size() ? matchedEntities.size() - playerIds.size() : 0;
+        if (dropped > 0) {
+            spdlog::warn("/spreadplayers matched {} entities but only {} are players; {} non-player "
+                         "entit(y/ies) are not moved (not yet supported)",
+                matchedEntities.size(),
+                playerIds.size(),
+                dropped);
+        }
     }
 
     // 获取世界
