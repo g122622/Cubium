@@ -2707,19 +2707,19 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         const i32 level = getEffectLevel(entity::effect::EffectType::Levitation);
         m_builtIn.velocity->m_velocity.y += physics::LEVITATION_LIFT_PER_LEVEL * static_cast<f32>(level);
         m_builtIn.physicsState->m_fallDistance = 0.0f;
-    } else if (!hasNoGravity()) {
-        // 缓降效果处理
-        f32 gravity = GRAVITY;
+    }
 
+    // 普通重力**推迟到移动之后**再扣除（见下方 3.5）：移动必须用当前帧的速度执行，
+    // 之后才扣重力并乘阻尼。若在移动前扣重力，起跳当帧只能位移 0.42-0.08=0.34，
+    // 整次跳跃峰高从约 1.23 格降到约 0.87 格，任何生物都跳不上 1 格高方块。
+    f32 gravityToApply = 0.0f;
+    if (!onLadder && !hasEffect(entity::effect::EffectType::Levitation) && !hasNoGravity()) {
+        gravityToApply = GRAVITY;
         if (hasEffect(entity::effect::EffectType::SlowFalling)) {
-            // 缓降效果下重力大幅降低
-            gravity = physics::SLOW_FALLING_GRAVITY;
-            // 同时重置摔落距离
+            // 缓降效果下重力大幅降低，同时重置摔落距离
+            gravityToApply = physics::SLOW_FALLING_GRAVITY;
             m_builtIn.physicsState->m_fallDistance = 0.0f;
         }
-
-        // 应用重力
-        m_builtIn.velocity->m_velocity.y -= gravity;
     }
 
     // 3. 执行碰撞移动
@@ -2728,6 +2728,11 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         m_builtIn.velocity->m_velocity.z != 0.0f) {
         moveWithCollision(
             m_builtIn.velocity->m_velocity.x, m_builtIn.velocity->m_velocity.y, m_builtIn.velocity->m_velocity.z);
+    }
+
+    // 3.5 移动后应用重力（vanilla travelInAir: d0 = vec3.y - gravity，随后与阻尼一起写回速度）
+    if (gravityToApply != 0.0f) {
+        m_builtIn.velocity->m_velocity.y -= gravityToApply;
     }
 
     // 4. 应用摩擦/阻力（在移动后）
