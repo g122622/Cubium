@@ -255,7 +255,7 @@
 | 子目录 | 处数 | 例如 |
 |---|---|---|
 | `brain/sensor` | 6 | `Sensor(i32 interval = 20)` |
-| `goal/goals/target` | 2 | `NearestAttackableTargetGoal(..., i32 chance = 0)` |
+| `goal/goals/target` | 2 | ⚠ `NearestAttackableTargetGoal` 有约 100 处调用点，`HurtByTargetGoal` 约 60 处 |
 | `goal/goals/special` | 2 | `PandaLookAtPlayerGoal(f32 lookDistance = 6.0f)` |
 | `goal/goals` | 3 | `MeleeAttackGoal(..., bool useLongMemory = false)` |
 | `brain/memory` | 1 | `Memory(const T& value, i64 ttl = ...)` |
@@ -263,6 +263,13 @@
 
 `brain/task/tasks/{action,movement,interact}` 下的 15 处已于
 `033a60556` / `fa54c564d` / `5b715d96d` / `424d5afe8` 全部清理，可作为参考写法。
+
+**注意“影响面”不能按子目录下的次数排**：上表里 `goal/goals/target` 只有 2 处声明，
+但 `NearestAttackableTargetGoal` 作为模板基类被几乎每个敌对生物实体实例化（约 100 处），
+`HurtByTargetGoal` 约 60 处。它们是**被广泛使用的基类**，不是叶子类。
+真正影响面小的是那些只在一两个实体里用到的子类（如
+`PandaLookAtPlayerGoal`、`IronGolemNearestAttackableTargetGoal`）。
+修改前应先数一遍实际调用点，而不是看子目录里有几行声明。
 
 **去掉默认值时最容易出的错是“部分传参的调用点”**：它们只传了前靠前的参数，
 其余静默取默认值，去掉默认值时**不会报编译错误，行为会静默改变**。
