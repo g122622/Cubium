@@ -844,18 +844,28 @@ void VillagerEntity::initializeBrain()
     //      （如 VillagerHostilesSensor），而不是修改此通用传感器"。
     //
     //   【结论：正确路径】
-    //   走 (a)，但**不要动 `AvoidEntitySensor`**。缺的是"转写"这一步：
-    //   `FleeTask`（本活动用的任务）在自己的 `Task` 构造里硬编码了
-    //   `{AVOID_TARGET, VALUE_PRESENT}` 作为门槛，`shouldExecute` 里也直接
-    //   `getMemory<EntityInstanceId>(AVOID_TARGET)` 取值——
-    //   **所以只改活动的 requiredMemory 不会生效**，必须真的存在 `AVOID_TARGET`。
+    //   `AVOID_TARGET` 的写入方**已经存在**——`AvoidEntitySensor::update`
+    //   （`Sensors.cpp:612`）用 `setMemoryWithTTL(AVOID_TARGET, id, 100)` 写入，
+    //   并在无目标时 `removeMemory` 清除。它功能完整，**只是没有为村民注册**。
     //
-    //   实际要做的是新增一个把 `NEAREST_HOSTILE` 转写成 `AVOID_TARGET` 的 task
-    //   （或一个专用 sensor），挂在本活动优先级 -1；转写存续期间两套记忆同时有效。
-    //   做完再删那 8 个 Goal。
-    //   注意转写需要有生命周期：目标离开范围或死亡时必须清掉 `AVOID_TARGET`，
-    //   否则 FleeTask 会朝一个已消失的实体逃跑（它只校验 id != INVALID_ENTITY_ID，
-    //   不校验目标是否还存在）。
+    //   所以最小改动是：
+    //     1. 注册 `AvoidEntitySensor<VillagerEntity>`（它写 AVOID_TARGET，正好是
+    //        AVOID 活动 + FleeTask 需要的那个记忆）；
+    //     2. 删掉那 8 个 `AvoidEntityGoal` 与 `PanicGoal`；
+    //     3. 同步删掉 `VillagerHostilesSensor` 的注册——它写的是 `NEAREST_HOSTILE`，
+    //        而全仓没有 task 读那个记忆，留着只是空转（若确认后续要用可保留）。
+    //
+    //   【必须接受的语义差异】
+    //   `AvoidEntitySensor` 的判定是通用的（`MobFlagComponent`，即所有 MonsterEntity），
+    //   而村民那 8 个 Goal 是按精确白名单逐个配置的（僵尸/僵尸村民/劫掠兽/掠夺者/
+    //   唤魔者/卫道士/恼鬼/幻术师/疣猪兽，各带不同检测距离）。
+    //   换成通用传感器后，村民会开始躲避**所有**怪物，包括原版不躲的
+    //   （苦力怕/蜘蛛/骷髅等），且丢失"按距离分级"的差异。
+    //
+    //   若要保持原版语义，正确做法是让 `VillagerHostilesSensor` 在写
+    //   `NEAREST_HOSTILE` 的同时也写 `AVOID_TARGET`（两处 set/remove 对称即可，
+    //   见该传感器 update 的 if/else 结构），这样既保留精确白名单，
+    //   又让 FleeTask 拿到它认识的记忆。**这条路比注册通用传感器更正确。**
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
