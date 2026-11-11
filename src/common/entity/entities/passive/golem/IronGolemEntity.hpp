@@ -234,7 +234,6 @@ public:
      * Item::itemInteractionForEntity——而 IronIngotItem 未 override itemInteractionForEntity，
      * 致铁锭右键铁傀儡完全不治疗（对齐缺陷）。此处补全实体侧治疗链路。
      *
-     * 参考: net.minecraft.world.entity.animal.golem.IronGolem#mobInteract(Player, InteractionHand)
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 

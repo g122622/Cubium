@@ -1053,7 +1053,6 @@ public:
      * 使用方块的掉落表生成物品，不携带工具和玩家上下文（因此无时运/精准采集加成）。
      * 仅在服务端（lootTableManager 非空时）生效。
      *
-     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
      *
      * @param world 世界引用
      * @param pos 方块位置
@@ -1068,7 +1067,6 @@ public:
      * `copy_components` / `copy_custom_data` 等掉落函数复制容器名称与组件。
      * 必须在方块实体被移除之前调用。
      *
-     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
      *
      * @param world 世界引用
      * @param pos 方块位置
@@ -2109,7 +2107,6 @@ public:
      *
      * 用于判断遮挡形状是否完全覆盖面，影响邻居方块的渲染。
      *
-     * 参考: net.minecraft.block.Block#doesSideFillSquare (旧名)
      * 等价于 net.minecraft.block.Block#isFaceFull (1.21.11)
      *
      * @param shape 面的遮挡形状

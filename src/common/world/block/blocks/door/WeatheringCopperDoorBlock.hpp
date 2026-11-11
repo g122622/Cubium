@@ -128,8 +128,6 @@ protected:
  * @brief 涂蜡铜门方块
  *
  * 涂蜡后的铜门不会氧化。
- *
- * 参考: net.minecraft.block.DoorBlock (涂蜡变体不实现Oxidizable)
  */
 class WaxedCopperDoorBlock : public DoorBlock {
 public:

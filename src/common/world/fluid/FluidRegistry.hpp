@@ -39,7 +39,6 @@ namespace mc::fluid {
  * 管理所有流体的注册和查找。
  * 单例模式，类似于BlockRegistry。
  *
- * 参考: net.minecraft.fluid.Fluids (注册)
  *       net.minecraftforge.registries.ForgeRegistry (注册表)
  *
  * 用法示例:

@@ -491,7 +491,6 @@ public:
      * 用于判断方块面是否足够坚固以支撑其他方块放置（如雪层放置判断）。
      * 提取碰撞形状在指定方向的面投影，然后判断投影是否覆盖整个单位方块面。
      *
-     * 参考: net.minecraft.block.BlockStateBase#isFaceSturdy(Direction, SupportType.FULL)
      *
      * @param direction 要检查的面方向
      * @return 如果面的投影覆盖整个 1x1 区域返回 true
@@ -509,7 +508,6 @@ public:
      * - SupportType::Center：方块面投影必须包含中心 2×2 像素到 10×10 像素的"中心柱"区域
      * - SupportType::Rigid：方块面投影必须覆盖 1×1 面除中心 12×12 像素柱以外的外环区域
      *
-     * 参考: net.minecraft.block.BlockStateBase#isFaceSturdy(BlockGetter, BlockPos, Direction, SupportType)
      *
      * @param world 世界接口
      * @param pos 方块位置

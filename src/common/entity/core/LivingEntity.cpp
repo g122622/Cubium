@@ -2354,7 +2354,6 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: LivingEntity.causeFallDamage 先调用 super.causeFallDamage（传播给乘客）
-    // 参考: net.minecraft.world.entity.LivingEntity.causeFallDamage → super.causeFallDamage
     Entity::causeFallDamage(distance, damageMultiplier, source);
 
     // 摔落伤害免疫标签（对齐 vanilla LivingEntity.calculateFallDamage:1755：

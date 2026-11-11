@@ -174,7 +174,6 @@ public:
      * - SINGLE_WALL/DOUBLE_WALL 附着：点击方向轴 != 朝向轴 为有效
      * - CEILING 附着：任意水平方向点击都为有效
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#useWithoutItem, onHit, isProperHit
      */
     [[nodiscard]] BlockActionResult useWithoutItem(const BlockState& state,
         IWorld& world,
@@ -205,7 +204,6 @@ public:
     /**
      * @brief 尝试敲响钟（无方向参数，使用方块的 HORIZONTAL_FACING）
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#attemptToRing(Level, BlockPos, Direction)
      *
      * @param world 世界引用
      * @param pos 钟方块位置
@@ -217,7 +215,6 @@ public:
     /**
      * @brief 尝试敲响钟（指定玩家，用于统计 BELL_RING）
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#attemptToRing(Entity, Level, BlockPos, Direction)
      *
      * @param player 敲钟玩家（可为 nullptr）
      * @param world 世界引用
@@ -270,7 +267,6 @@ protected:
      * 构建 4 类附着形状（Floor/Ceiling/SingleWall/DoubleWall），
      * 并将它们按 HORIZONTAL_FACING + ATTACHMENT 组合填入 m_shapesByState。
      *
-     * 参考: net.minecraft.world.level.block.BellBlock#BELL_SHAPE, SHAPE_CEILING,
      *       SHAPE_FLOOR, SHAPE_DOUBLE_WALL, SHAPE_SINGLE_WALL
      */
     void _initializeShapes();

@@ -34,7 +34,6 @@ namespace item::items {
  * 右键方块侧面时在该面外侧放置一个物品展示框实体。仅可放置在水平面上
  * （不可贴地/贴顶）。荧光变体额外设置 glowing 标记。
  *
- * 参考: net.minecraft.world.item.HangingEntityItem / ItemFrameItem
  */
 class ItemFrameItem : public Item {
 public:

@@ -152,7 +152,7 @@ public:
  *
  * MC ID: minecraft:large_fern
  *
- * 参考: net.minecraft.block.DoublePlantBlock (LARGE_FERN 注册为 DoublePlantBlock)
+ * LARGE_FERN 注册为 DoublePlantBlock。
  */
 class LargeFernBlock : public DoublePlantBlock {
 public:

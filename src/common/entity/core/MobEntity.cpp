@@ -1039,7 +1039,6 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
     }
 
     // 5. 剪刀剪切装备（狼铠、快乐恶魂挽具）
-    //    参考: net.minecraft.world.entity.Entity.interact() 中的剪刀分支
     //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + Body 槽装有"可被剪下"的装备
     //    vanilla 用 Equippable.canBeSheared 判定；Cubium 无该数据组件，此前仅接受
     //    ArmorItem，致快乐恶魂挽具（HarnessItem，非护甲）永远剪不下来。

@@ -49,7 +49,6 @@ SlimeBlock::SlimeBlock(const BlockProperties& properties)
 void SlimeBlock::onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 实体落到粘液块上：向下落且非潜行时反弹，否则按普通方块着地（Y 速度归零）。
-    // 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
     MC_UNUSED(state);
     MC_UNUSED(world);
     MC_UNUSED(pos);

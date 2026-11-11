@@ -227,7 +227,6 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         }
 
         // 优先级2: 狼铠装备（狼铠 + 未装备 + 主人 + 非幼年）
-        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 装备分支
         if (item != nullptr && item == Items::WOLF_ARMOR && !isWearingBodyArmor() && isOwner(player.uuidBytes()) &&
             !isChild()) {
             // 装备狼铠：复制一份（数量1）放入身体槽位
@@ -241,7 +240,6 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
         }
 
         // 优先级3: 狼铠修复（犰狳鳞甲 + 坐下 + 已装备 + 狼铠受损 + 主人）
-        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 修复分支
         if (isSitting() && isWearingBodyArmor() && isOwner(player.uuidBytes())) {
             ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
             if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR && bodyArmor.isDamaged()) {
@@ -713,7 +711,6 @@ void WolfEntity::damageArmor(DamageSource& source, f32 amount)
     // 当狼未穿戴狼铠或伤害绕过护甲时，走父类默认逻辑（空实现）
     // 当狼穿戴狼铠且伤害不绕过护甲时，伤害已在 actuallyHurt 中由狼铠吸收，
     // 此处不再额外调用 doHurtEquipment（避免双重耐久损耗）
-    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.hurtArmor() 调用 doHurtEquipment
     // 在 MC 1.21.11 中，Wolf.hurtArmor 始终调用 doHurtEquipment，但 actuallyHurt 在
     // canArmorAbsorb 时会跳过 super.actuallyHurt（不再触发 damageArmor）。
     // 本项目的 LivingEntity::actuallyHurt 在 !bypassesArmor 时调用 damageArmor，

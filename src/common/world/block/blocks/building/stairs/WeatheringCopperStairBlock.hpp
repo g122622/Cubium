@@ -92,8 +92,6 @@ protected:
  * @brief 涂蜡铜楼梯方块
  *
  * 涂蜡后的铜楼梯不会氧化。
- *
- * 参考: net.minecraft.block.StairsBlock (涂蜡变体不实现Oxidizable)
  */
 class WaxedCopperStairBlock : public StairsBlock {
 public:

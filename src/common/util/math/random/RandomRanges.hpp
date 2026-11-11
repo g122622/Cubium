@@ -26,7 +26,6 @@
  * @brief 随机值范围工具类
  *
  * 提供不同类型的随机值生成器，用于掉落表、实体属性等场景。
- * 参考: net.minecraft.loot.RandomValueRange, BinomialRange, ConstantRange
  */
 
 #pragma once

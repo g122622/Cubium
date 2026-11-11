@@ -221,7 +221,6 @@ void Block::onFallenUpon(IWorld& world, const BlockPos& pos, const BlockState& s
     MC_UNUSED(state);
 
     // 默认实现：施加普通摔落伤害
-    // 参考: net.minecraft.block.Block#fallOn — 调用 entity.causeFallDamage(fallDistance, 1.0F, damageSources().fall())
     // 子类可重写此方法以自定义摔落行为：
     // - 石笋方块：施加增大伤害，不调用父类（替代普通摔落伤害）
     // - 海龟蛋方块：不调用父类（取消摔落伤害）
@@ -352,7 +351,6 @@ const CollisionShape& Block::getEntityInsideCollisionShape(const BlockState& sta
     // 默认返回完整方块形状，即只要实体 AABB 与方块网格重叠就认为实体在方块内部。
     // 炼药锅、细雪等方块重写此方法返回更精确的形状，使 onEntityCollision
     // 只在实体实际进入方块内容区域时触发。
-    // 参考: net.minecraft.block.BlockBehaviour#getEntityInsideCollisionShape 默认返回 Shapes.block()
     return CollisionShape::fullBlockShape();
 }
 
@@ -1083,7 +1081,6 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
 bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
 {
     // 提取面投影并检查是否覆盖整个面
-    // 参考: net.minecraft.block.Block#isFaceFull(VoxelShape, Direction)
     CollisionShape faceShape = shape.getFaceShape(direction);
     return faceShape.coversFullBlock();
 }

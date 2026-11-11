@@ -1409,7 +1409,6 @@ void Entity::_checkFallDamageResettingBlocks(const Vector3& actualMovement)
 void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: Entity.causeFallDamage 首先传播摔落伤害给所有乘客，基类不处理自身伤害
-    // 参考: net.minecraft.world.entity.Entity.causeFallDamage → propagateFallToPassengers
     // LivingEntity.causeFallDamage 调用 super.causeFallDamage（传播给乘客）后自行计算伤害
     propagateFallToPassengers(distance, damageMultiplier, source);
 }
@@ -2969,7 +2968,6 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     addAdditionalSaveData(tag);
 
     // Passengers (乘客列表)
-    // 参考: net.minecraft.world.entity.Entity.saveWithoutId → 若 isVehicle 则写 Passengers 列表。
     // 每个 passenger 通过 saveAsPassenger 递归保存：写 "id" 后调用 saveWithoutId，
     // 从而支持多层骑乘（Boat → Zombie → BabyZombie）的嵌套序列化。
     // 注意：passenger 的 Pos 取 vehicle 的 x/z 与 passenger 的 y（MC Java 行为），

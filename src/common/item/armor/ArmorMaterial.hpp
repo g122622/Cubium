@@ -45,7 +45,6 @@ namespace item::armor {
  * 定义盔甲的装备槽位。
  * Head/Chest/Legs/Feet 用于玩家护甲（对应 EquipmentSlot::Head/Chest/Legs/Feet）。
  * Body 用于非玩家实体护甲（狼铠、鹦鹉螺铠甲、马铠），对应 EquipmentSlot::Body。
- * 参考: net.minecraft.world.entity.EquipmentSlot 和 net.minecraft.world.item.equipment.ArmorType
  */
 enum class ArmorSlot : u8 {
     Head = 0,  ///< 头盔

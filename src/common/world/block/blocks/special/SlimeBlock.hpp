@@ -58,7 +58,6 @@ public:
      * 弹跳系数：LivingEntity 使用 1.0（完全反弹），其他实体使用 0.8（每次损失 20%）。
      * 潜行实体（isSteppingCarefully）不弹跳，按普通方块着地处理。
      *
-     * 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

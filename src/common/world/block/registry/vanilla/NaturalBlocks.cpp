@@ -238,7 +238,6 @@ void registerNaturalBlocks()
     // 不透明（isOpaque=false）。此前误注册为 SimpleBlock 致上述虚函数分发到 Block 基类默认实现
     // （onFallenUpon multiplier=1.0 完整摔落伤害、isStickyBlock/isOpaque 返回 false 碰巧部分一致但
     // 行为语义错误、getCollisionShape 返回满方块），HoneyBlock 子类沦为死代码——与红石块/粘液块
-    // 同模式缺陷。参考: net.minecraft.world.level.block.HoneyBlock
     NaturalBlocks::HONEY_BLOCK = &registry.registerBlock<blocks::HoneyBlock>(ResourceLocation("minecraft:honey_block"),
         BlockProperties(Material::HONEY).hardness(0.0f).notSolid().soundType(BlockSoundTypes::HONEY).noOcclusion());
 

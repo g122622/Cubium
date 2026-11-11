@@ -137,7 +137,6 @@ void LootableContainerBlockEntity::openContainer(Player* player)
     }
 
     // 触发战利品表填充（带玩家上下文，包含幸运值等信息）
-    // 参考: net.minecraft.RandomizableContainerBlockEntity.createMenu() 中 unpackLootTable(player)
     _unpackLootTable(player);
 
     LockableBlockEntity::openContainer(player);
