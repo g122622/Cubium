@@ -30,6 +30,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp" // Player::setPosition/setRotation/teleportToDimension（实体旁路传送）
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -39,11 +40,13 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/dimension/ServerDimensionManager.hpp" // getPlayerDimension/getDimension（跨维度判定 + 实体当前维度世界）
 #include "server/network/sync/player/TeleportManager.hpp"
 #include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/player/runtime/ServerPlayerData.hpp"
+#include "server/world/ServerWorld.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <cmath>
@@ -199,23 +202,9 @@ struct DestinationInfo {
                 continue;
             }
             // teleportToDimension 是 Entity 虚函数，ServerPlayer（含 SimulatedPlayer）override 做真实迁移。
-            // TODO: 非玩家实体目前进不了本函数——`/tp` 的 targets 虽然用的是
-            //   `EntityArgumentType::entities()`（能匹配非玩家实体），但调用方取的是
-            //   `support::resolvePlayerIds(source, targets)`，只解析玩家，非玩家被静默丢弃。
-            //   要做非玩家跨维度，需把 targetPlayerIds 换成实体引用（或 id + 类型），并对非玩家走
-            //   `ServerWorld::transferEntityToDimension(entity, targetDim)`（已实现的通用迁移，
-            //   自行按维度重算目标坐标）之后再写入 `/tp` 显式指定的位置与朝向——
-            //   注意它与玩家路径的语义差异：本函数用的是命令给定的坐标，不是传送门搜索出的坐标。
-            //   同维度分支当前也仅走 TeleportManager（按 PlayerId），同样需要一条实体路径。
-            //
-            // 已核实可复用的现成东西（下次动手时直接用，不要重写）：
-            //   - 选择器 -> 实体：`support::EntityResolver::resolve(source, selector)` 返回
-            //     `std::vector<Entity*>`（已支持 @e / nbt= / predicate= 过滤），
-            //     ReplaceItemCommand 与 RotateCommand 就是这么用的；
-            //   - 跨维度搬迁：`IWorld::transferEntityToDimension(Entity&, DimensionId)`
-            //     已实现，且 EndPortalBlock 已在用它搬非玩家实体（猪等）。
-            //     注意它会自己按维度重算目标坐标，而 `/tp` 要的是命令给定坐标，
-            //     所以搬完之后还要再 setPosition/setRotation 一次。
+            // 本函数只处理玩家（入参是 PlayerId 集合）；非玩家实体不进这里，
+            // 由 teleportNonPlayerEntities 单独处理（走 IWorld::transferEntityToDimension +
+            // 覆写坐标），两条路径互斥，不会重复传送同一个实体。
             if (playerEntity->teleportToDimension(targetDim, position, rotation)) {
                 ++teleportedCount;
             }
@@ -417,6 +406,57 @@ i32 TeleportCommand::_teleportToPosition(CommandContext<ServerCommandSource>& co
  * @param context 命令上下文。
  * @return 成功传送的玩家数量。
  */
+/**
+ * @brief 将目标集合中的**非玩家实体**传送到指定坐标/朝向
+ *
+ * 玩家路径由 teleportPlayers 负责（要发传送包、等客户端回应）；
+ * 非玩家实体没有这套协议，直接改实体状态即可（与 vanilla 服务端同步语义一致）。
+ *
+ * 跨维度时先走 IWorld::transferEntityToDimension 把实体搬过去，
+ * 但那个方法是**传送门语义**（自己按维度重算目标坐标），
+ * 而 /tp 要的是命令给定的坐标，所以搬完必须再覆写一次位置与朝向。
+ *
+ * @param source 命令源（取服务器、当前维度与世界）
+ * @param targets 目标选择器
+ * @param position 目标坐标
+ * @param rotation 目标朝向
+ * @return 成功传送的非玩家实体数量
+ */
+i32 teleportNonPlayerEntities(
+    ServerCommandSource& source, const EntitySelector& targets, const Vector3d& position, const Vector2f& rotation)
+{
+    const std::vector<mc::Entity*> resolved = support::EntityResolver::resolve(source, targets);
+    const DimensionId targetDim = source.dimensionId();
+    i32 teleportedCount = 0;
+
+    for (mc::Entity* entity : resolved) {
+        if (entity == nullptr || entity->isRemoved() || !entity->isAlive()) {
+            continue;
+        }
+        // 玩家走 teleportPlayers 那条路，这里只处理非玩家。
+        if (dynamic_cast<mc::Player*>(entity) != nullptr) {
+            continue;
+        }
+
+        // 跨维度：先搬过去（会自己算目标坐标），再覆写成命令给定值。
+        if (entity->dimension() != targetDim) {
+            if (!entity->teleportToDimension(targetDim, position, rotation)) {
+                // 基类 Entity::teleportToDimension 对非玩家返回 false，
+                // 改走 IWorld::transferEntityToDimension（它明确拒绝玩家，非玩家可用）。
+                if (source.world() == nullptr || !source.world()->transferEntityToDimension(*entity, targetDim)) {
+                    continue;
+                }
+            }
+        }
+
+        entity->setPosition(static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z));
+        entity->setRotation(rotation.x, rotation.y);
+        ++teleportedCount;
+    }
+
+    return teleportedCount;
+}
+
 i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
@@ -433,14 +473,17 @@ i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>
         return 0;
     }
 
-    const i32 teleportedCount = teleportPlayers(source, targetPlayerIds, destination.position, destination.rotation);
+    // 玩家走 teleportPlayers（要发传送包并等客户端回应）；
+    // 非玩家实体走直接改状态的旁路，两边互斥不会重复传送。
+    i32 teleportedCount = teleportPlayers(source, targetPlayerIds, destination.position, destination.rotation);
+    teleportedCount += teleportNonPlayerEntities(source, targets, destination.position, destination.rotation);
     if (teleportedCount == 0) {
-        source.sendError("No matching players were found");
+        source.sendError("No matching entities were found");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << teleportedCount << " player(s) to " << destination.username;
+    ss << "Teleported " << teleportedCount << " entity(s) to " << destination.username;
     source.sendMessage(ss.str());
     return teleportedCount;
 }
@@ -458,14 +501,15 @@ i32 TeleportCommand::_teleportTargetToPosition(CommandContext<ServerCommandSourc
     const auto targetPlayerIds = support::resolvePlayerIds(source, targets);
     const Vector3d position = readTargetPosition(context);
 
-    const i32 teleportedCount = teleportPlayers(source, targetPlayerIds, position, source.rotation());
+    i32 teleportedCount = teleportPlayers(source, targetPlayerIds, position, source.rotation());
+    teleportedCount += teleportNonPlayerEntities(source, targets, position, source.rotation());
     if (teleportedCount == 0) {
-        source.sendError("No matching players were found");
+        source.sendError("No matching entities were found");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Teleported " << teleportedCount << " player(s) to " << position.x << ", " << position.y << ", "
+    ss << "Teleported " << teleportedCount << " entity(s) to " << position.x << ", " << position.y << ", "
        << position.z;
     source.sendMessage(ss.str());
     return teleportedCount;
