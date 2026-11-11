@@ -449,27 +449,23 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         markHurt();
     }
 
-    // 4. 通用击退 + 受伤倾斜（对齐 vanilla LivingEntity.hurtServer:1222-1238 的 NO_KNOCKBACK 分支）。
-    // vanilla：if (!source.is(NO_KNOCKBACK)) {
-    //   if (directEntity instanceof Projectile) { d0/d1 = -projectile.calculateHorizontalHurtKnockbackDirection(); }
-    //   else if (sourcePosition != null) { d0 = srcPos.x - x; d1 = srcPos.z - z; }
-    //   knockback(0.4F, d0, d1);     // 对受害者施加 0.4 强度击退
-    //   if (!flag) indicateDamage(d0, d1);  // flag=格挡标志，格挡时不 indicateDamage
-    // }
-    // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（DamageTypeTags.cpp:654，
-    // 近 30 类型）：这些伤害不产生击退与受击倾斜。
-    // 此前 Cubium 仅对齐 indicateDamage 的 NO_KNOCKBACK 门控，通用 knockback(0.4) 完全缺失（原 TODO:287），
-    // 致玩家近战无附魔攻击零击退（causeExtraKnockback 无附魔时 strength=0 跳过）、mob 攻击及其他非特化
-    // 路径伤害无击退，偏离 vanilla。现补 applyKnockback(0.4, d0, d1) 对齐 vanilla 通用击退。
-    // Projectile 方向：vanilla calculateHorizontalHurtKnockbackDirection 返回投射物 deltaMovement 的 x/z，
-    //   hurtServer 取反（d0=-vx, d1=-vz），即击退方向 = 投射物飞行方向（投射物从A飞向victim，victim被
-    //   推向A的反方向=继续远离投射物来源）。Cubium ProjectileEntity 经 directSource() 取 velocity 对齐。
+    // 4. 通用击退 + 受伤倾斜。
+    // 规则：伤害类型不属于 NO_KNOCKBACK 时，按来源方向对受害者施加 0.4 强度击退；
+    //   若没有格挡（flag=false）再调 indicateDamage 做受击倾斜。
+    // 来源方向 d0/d1 的取法：
+    //   - 直接来源是投射物：取投射物速度的 x/z 并**取反**（d0=-vx, d1=-vz）。
+    //     含义是受害者沿投射物飞行方向被推走，即继续远离发射点。
+    //   - 否则取伤害来源位置与受害者位置之差（srcPos - pos）。
+    // NO_KNOCKBACK = {Explosion, InFire, OnFire, Lava, Fall, Magic, Drown, ...}（见 DamageTypeTags），
+    //   这些伤害既不产生击退也不产生受击倾斜。
+    // 注意：这条通用击退不能省。无附魔近战的 causeExtraKnockback 会因 strength=0 跳过，
+    //   若这里也不做，普通近战与 mob 攻击就完全没有击退。
     if (m_world != nullptr && amount > 0.0f && !source.is(DamageTypeTags::NO_KNOCKBACK())) {
         f64 d0 = 0.0;
         f64 d1 = 0.0;
         Entity* directEntity = source.directSource();
         if (source.isProjectile() && directEntity != nullptr) {
-            // Projectile：用投射物速度方向取反（对齐 vanilla calculateHorizontalHurtKnockbackDirection 取反）。
+            // 投射物：用投射物速度方向取反，见上方 d0/d1 取法说明。
             const Vector3 projVel = directEntity->velocity();
             d0 = -static_cast<f64>(projVel.x);
             d1 = -static_cast<f64>(projVel.z);
