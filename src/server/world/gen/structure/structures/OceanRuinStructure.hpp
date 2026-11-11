@@ -102,6 +102,21 @@ public:
         const StructureBoundingBox& chunkBounds) override;
 
     /**
+     * @brief 给已放置的可疑方块补挂考古战利品表
+     *
+     * 原版用 `AppendLoot` 方块实体修饰器在放置期写 LootTable/LootTableSeed。
+     * 项目没有方块实体修饰器层，故在模板放置完成后扫一遍模板包围盒，
+     * 给其中的可疑方块建 BrushableBlockEntity 并挂表（冷废墟：ocean_ruin_cold；
+     * 暖废墟：ocean_ruin_warm）。
+     *
+     * @param world 世界
+     * @param rng 随机源（战利品表种子）
+     * @param settings 放置设置（用于算模板包围盒）
+     */
+    void _attachArchaeologyLoot(
+        IWorld& world, math::IRandom& rng, const feature::template_::PlacementSettings& settings);
+
+    /**
      * @brief 设置模板管理器
      *
      * 必须在 generate 之前调用
