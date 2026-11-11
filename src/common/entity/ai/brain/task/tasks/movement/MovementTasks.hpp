@@ -371,8 +371,16 @@ private:
 /**
  * @brief 看向实体任务（对应 MC SetEntityLookTarget / LookAtTargetSink）
  *
- * 概率触发时，在附近寻找实体并设置 LOOK_TARGET 记忆。
- * 如果目标仍可见，则持续看向目标。
+ * 概率触发时，在附近寻找实体并让实体看向它（经 LookController 直接驱动朝向）。
+ * 目标优先级：先看 ATTACK_TARGET，没有再在 VISIBLE_MOBS 里按距离与概率挑一个。
+ *
+ * 注意本任务**不写** LOOK_TARGET 记忆。原文档曾声称"设置 LOOK_TARGET 记忆"，
+ * 与实现不符——而且也不能那么写：本任务的门槛正是
+ * `LOOK_TARGET == VALUE_ABSENT`，一旦自己写入就会自锁
+ * （同 FindHiddenBlockTask 曾经的自锁缺陷）。
+ * 因此 LOOK_TARGET 全仓仍无写入方，凡是把它当依赖声明的任务（如 AttackTask 的
+ * REGISTERED 依赖）都不会因此被满足。补齐需要另设一个真正的写入方（例如
+ * 某个传感器），并同步调整本任务的门槛语义。
  */
 template <typename E>
 class LookAtEntityTask : public Task<E> {
