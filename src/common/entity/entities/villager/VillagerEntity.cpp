@@ -844,10 +844,18 @@ void VillagerEntity::initializeBrain()
     //      （如 VillagerHostilesSensor），而不是修改此通用传感器"。
     //
     //   【结论：正确路径】
-    //   走 (a)，但**不要动 `AvoidEntitySensor`**：改用 `VillagerHostilesSensor`
-    //   写入的 `NEAREST_HOSTILE` 作为触发源——要么把 AVOID 活动的 requiredMemory
-    //   从 `AVOID_TARGET` 改为 `NEAREST_HOSTILE`，要么新增一个把
-    //   `NEAREST_HOSTILE` 转写成 `AVOID_TARGET` 的 task。做完再删那 8 个 Goal。
+    //   走 (a)，但**不要动 `AvoidEntitySensor`**。缺的是"转写"这一步：
+    //   `FleeTask`（本活动用的任务）在自己的 `Task` 构造里硬编码了
+    //   `{AVOID_TARGET, VALUE_PRESENT}` 作为门槛，`shouldExecute` 里也直接
+    //   `getMemory<EntityInstanceId>(AVOID_TARGET)` 取值——
+    //   **所以只改活动的 requiredMemory 不会生效**，必须真的存在 `AVOID_TARGET`。
+    //
+    //   实际要做的是新增一个把 `NEAREST_HOSTILE` 转写成 `AVOID_TARGET` 的 task
+    //   （或一个专用 sensor），挂在本活动优先级 -1；转写存续期间两套记忆同时有效。
+    //   做完再删那 8 个 Goal。
+    //   注意转写需要有生命周期：目标离开范围或死亡时必须清掉 `AVOID_TARGET`，
+    //   否则 FleeTask 会朝一个已消失的实体逃跑（它只校验 id != INVALID_ENTITY_ID，
+    //   不校验目标是否还存在）。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
