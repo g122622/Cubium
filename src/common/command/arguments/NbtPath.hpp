@@ -241,8 +241,7 @@ public:
      * @param tag 复合标签
      * @return 匹配的单个标签；路径未找到或匹配到多个时返回错误
      */
-    [[nodiscard]] Result<const nbt::tags::tag*, CommandError> getSingle(
-        const nbt::tags::compound_tag& tag) const;
+    [[nodiscard]] Result<const nbt::tags::tag*, CommandError> getSingle(const nbt::tags::compound_tag& tag) const;
 
     /**
      * @brief 计算路径匹配的数量

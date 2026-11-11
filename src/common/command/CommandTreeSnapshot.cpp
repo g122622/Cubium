@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <exception>
@@ -42,35 +43,81 @@ namespace mc::command {
 
 namespace {
 
-[[nodiscard]] CommandTreeNodeSnapshot parseNodeSnapshot(const nlohmann::json& json)
+/// 读取字符串数组字段；缺失或类型不符时返回空数组
+[[nodiscard]] std::vector<std::string> _readStringArray(const nlohmann::json& json, std::string_view field)
+{
+    std::vector<std::string> result;
+    const auto* array = util::json::findField(json, field);
+    if (array == nullptr || !array->is_array()) {
+        return result;
+    }
+    result.reserve(array->size());
+    for (const auto& entry : *array) {
+        const auto text = util::json::getString(entry);
+        if (text.failed()) {
+            continue;
+        }
+        result.push_back(text.value());
+    }
+    return result;
+}
+
+/// 读取无符号 32 位整数数组字段；缺失或类型不符时返回空数组
+[[nodiscard]] std::vector<u32> _readU32Array(const nlohmann::json& json, std::string_view field)
+{
+    std::vector<u32> result;
+    const auto* array = util::json::findField(json, field);
+    if (array == nullptr || !array->is_array()) {
+        return result;
+    }
+    result.reserve(array->size());
+    for (const auto& entry : *array) {
+        const auto number = util::json::getInt64(entry);
+        if (number.failed()) {
+            continue;
+        }
+        result.push_back(static_cast<u32>(number.value()));
+    }
+    return result;
+}
+
+[[nodiscard]] Result<CommandTreeNodeSnapshot> parseNodeSnapshot(const nlohmann::json& json)
 {
     CommandTreeNodeSnapshot snapshot;
 
-    snapshot.id = json.at("id").get<u32>();
-    snapshot.type = detail::parseNodeType(json.at("type").get<std::string>());
-    snapshot.name = json.value("name", std::string{});
-    snapshot.typeName = json.value("typeName", snapshot.name);
-    snapshot.metadata = json.value("metadata", nlohmann::json::object());
-    snapshot.examples = json.value("examples", std::vector<std::string>{});
-    snapshot.children = json.value("children", std::vector<u32>{});
-    snapshot.redirectModifier = detail::parseRedirectModifier(json.value("redirectModifier", std::string{"none"}));
-    snapshot.executable = json.value("executable", false);
-    snapshot.suggestionKind = detail::parseSuggestionKind(json.value("suggestionKind", std::string{"none"}));
-    snapshot.suggestionCandidates = json.value("suggestionCandidates", std::vector<std::string>{});
+    MC_TRY_ASSIGN(snapshot.id, util::json::getInt64(json, "id").map<u32>([](i64 id) {
+        return static_cast<u32>(id);
+    }));
+    MC_TRY_DECLARE(typeName, util::json::getString(json, "type"));
+    snapshot.type = detail::parseNodeType(typeName);
+    snapshot.name = util::json::getStringOr(json, "name", std::string_view{});
+    snapshot.typeName = util::json::getStringOr(json, "typeName", snapshot.name);
+    snapshot.metadata = util::json::getObjectOrEmpty(json, "metadata");
+    snapshot.examples = _readStringArray(json, "examples");
+    snapshot.children = _readU32Array(json, "children");
+    snapshot.redirectModifier =
+        detail::parseRedirectModifier(util::json::getStringOr(json, "redirectModifier", "none"));
+    snapshot.executable = util::json::getBoolOr(json, "executable", false);
+    snapshot.suggestionKind = detail::parseSuggestionKind(util::json::getStringOr(json, "suggestionKind", "none"));
+    snapshot.suggestionCandidates = _readStringArray(json, "suggestionCandidates");
 
-    if (json.contains("redirect") && !json.at("redirect").is_null()) {
-        snapshot.redirect = json.at("redirect").get<u32>();
+    if (const auto* redirect = util::json::findField(json, "redirect"); redirect != nullptr && !redirect->is_null()) {
+        MC_TRY_ASSIGN(snapshot.redirect, util::json::getInt64(*redirect).map<u32>([](i64 id) {
+            return static_cast<u32>(id);
+        }));
     }
 
     // 二进制 CommandNode 编码字段（向后兼容：缺失时取默认值）。
-    if (json.contains("argumentNetworkId") && !json.at("argumentNetworkId").is_null()) {
-        snapshot.argumentNetworkId = json.at("argumentNetworkId").get<i32>();
+    if (const auto* networkId = util::json::findField(json, "argumentNetworkId");
+        networkId != nullptr && !networkId->is_null()) {
+        MC_TRY_ASSIGN(snapshot.argumentNetworkId, util::json::getInt32(*networkId));
     }
-    snapshot.argumentProperties = json.value("argumentProperties", nlohmann::json::object());
-    if (json.contains("suggestionProviderId") && !json.at("suggestionProviderId").is_null()) {
-        snapshot.suggestionProviderId = json.at("suggestionProviderId").get<std::string>();
+    snapshot.argumentProperties = util::json::getObjectOrEmpty(json, "argumentProperties");
+    if (const auto* providerId = util::json::findField(json, "suggestionProviderId");
+        providerId != nullptr && !providerId->is_null()) {
+        MC_TRY_ASSIGN(snapshot.suggestionProviderId, util::json::getString(*providerId));
     }
-    snapshot.restricted = json.value("restricted", false);
+    snapshot.restricted = util::json::getBoolOr(json, "restricted", false);
 
     return snapshot;
 }
@@ -124,12 +171,12 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
         return Error(ErrorCode::InvalidData, "Command tree snapshot must be a JSON object");
     }
 
-    if (!json.contains("nodes") || !json.at("nodes").is_array()) {
+    if (!json.contains("nodes") || !json["nodes"].is_array()) {
         return Error(ErrorCode::InvalidData, "Command tree snapshot is missing nodes");
     }
 
     CommandTreeSnapshot snapshot;
-    const auto& nodeArray = json.at("nodes");
+    const auto& nodeArray = json["nodes"];
     snapshot.nodes.reserve(nodeArray.size());
 
     for (const auto& nodeJson : nodeArray) {
@@ -137,12 +184,11 @@ Result<CommandTreeSnapshot> CommandTreeSnapshot::fromJson(const nlohmann::json& 
             return Error(ErrorCode::InvalidData, "Command tree node must be a JSON object");
         }
 
-        try {
-            snapshot.nodes.push_back(parseNodeSnapshot(nodeJson));
+        auto nodeSnapshot = parseNodeSnapshot(nodeJson);
+        if (nodeSnapshot.failed()) {
+            return nodeSnapshot.error();
         }
-        catch (const std::exception& e) {
-            return Error(ErrorCode::InvalidData, e.what());
-        }
+        snapshot.nodes.push_back(std::move(nodeSnapshot).value());
     }
 
     std::sort(snapshot.nodes.begin(), snapshot.nodes.end(), [](const auto& left, const auto& right) {

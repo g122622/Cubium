@@ -657,8 +657,7 @@ Result<i32, CommandError> NbtPath::insert(
     i32 count = 0;
     for (nbt::tags::tag* target : targets) {
         if (target->id() != nbt::TagId::List) {
-            return CommandError(
-                CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
+            return CommandError(CommandErrorType::NbtPathInvalidType, "Expected list at path '" + m_rawText + "'", 0);
         }
 
         auto* tagList = dynamic_cast<nbt::tags::tag_list_tag*>(target);
@@ -697,8 +696,7 @@ Result<i32, CommandError> NbtPath::prepend(
     return insert(tag, 0, values);
 }
 
-Result<i32, CommandError> NbtPath::merge(
-    nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const
+Result<i32, CommandError> NbtPath::merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const
 {
     if (m_nodes.empty()) {
         return 0;

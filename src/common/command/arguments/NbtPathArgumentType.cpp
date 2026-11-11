@@ -72,8 +72,7 @@ Result<NbtPath, CommandError> NbtPathArgumentType::parse(StringReader& reader)
     return NbtPath(std::move(rawText), std::move(nodes));
 }
 
-Result<std::unique_ptr<NbtPathNode>, CommandError> NbtPathArgumentType::_parseNode(
-    StringReader& reader, bool isFirst)
+Result<std::unique_ptr<NbtPathNode>, CommandError> NbtPathArgumentType::_parseNode(StringReader& reader, bool isFirst)
 {
     char c = reader.peek();
 
@@ -164,8 +163,7 @@ Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> NbtPathArgumentTy
         }
 
         if (key.empty()) {
-            return CommandError(
-                CommandErrorType::InvalidNbtPath, "Empty key in compound filter", reader.getCursor());
+            return CommandError(CommandErrorType::InvalidNbtPath, "Empty key in compound filter", reader.getCursor());
         }
 
         reader.skipWhitespace();
@@ -312,8 +310,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::parse
                     case 'B': {
                         auto parsed = util::parseInt8(numStr);
                         if (parsed.failed()) {
-                            return CommandError(
-                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                            return CommandError(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                         }
                         return std::make_unique<nbt::tags::byte_tag>(parsed.value());
                     }
@@ -321,8 +318,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::parse
                     case 'S': {
                         auto parsed = util::parseInt16(numStr);
                         if (parsed.failed()) {
-                            return CommandError(
-                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                            return CommandError(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                         }
                         return std::make_unique<nbt::tags::short_tag>(parsed.value());
                     }
@@ -330,8 +326,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::parse
                     case 'L': {
                         auto parsed = util::parseInt64(numStr);
                         if (parsed.failed()) {
-                            return CommandError(
-                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                            return CommandError(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                         }
                         return std::make_unique<nbt::tags::long_tag>(parsed.value());
                     }
@@ -339,8 +334,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::parse
                     case 'F': {
                         auto parsed = util::parseFloat32(numStr);
                         if (parsed.failed()) {
-                            return CommandError(
-                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                            return CommandError(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                         }
                         return std::make_unique<nbt::tags::float_tag>(parsed.value());
                     }
@@ -348,8 +342,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::parse
                     case 'D': {
                         auto parsed = util::parseFloat64(numStr);
                         if (parsed.failed()) {
-                            return CommandError(
-                                CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
+                            return CommandError(CommandErrorType::InvalidNbtPath, "Invalid number: " + numStr, start);
                         }
                         return std::make_unique<nbt::tags::double_tag>(parsed.value());
                     }
@@ -405,8 +398,7 @@ std::string NbtPathArgumentType::_readNbtUnquotedValue(StringReader& reader)
     return result;
 }
 
-Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::_parseListContent(
-    StringReader& reader)
+Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::_parseListContent(StringReader& reader)
 {
     MC_TRY(reader.expect('['));
 
@@ -508,8 +500,7 @@ Result<std::unique_ptr<nbt::tags::tag>, CommandError> NbtPathArgumentType::_pars
 
 // ========== NbtCompoundArgumentType 实现 ==========
 
-Result<std::shared_ptr<nbt::tags::compound_tag>, CommandError> NbtCompoundArgumentType::parse(
-    StringReader& reader)
+Result<std::shared_ptr<nbt::tags::compound_tag>, CommandError> NbtCompoundArgumentType::parse(StringReader& reader)
 {
     if (reader.peek() != '{') {
         return CommandError(CommandErrorType::InvalidNbtPath,

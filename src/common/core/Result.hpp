@@ -273,9 +273,8 @@ public:
     Result() = delete;
 
     template <typename U,
-        typename = std::enable_if_t<std::is_constructible_v<T, U&&> &&
-            !std::is_same_v<std::decay_t<U>, Result> && !std::is_same_v<std::decay_t<U>, E> &&
-            !std::is_convertible_v<U, E>>>
+        typename = std::enable_if_t<std::is_constructible_v<T, U&&> && !std::is_same_v<std::decay_t<U>, Result> &&
+            !std::is_same_v<std::decay_t<U>, E> && !std::is_convertible_v<U, E>>>
     Result(U&& value) // NOLINT: 允许隐式转换
         : m_value(std::in_place, std::forward<U>(value))
         , m_success(true)
@@ -658,7 +657,7 @@ private:
  * @warning 展开为两条语句（`auto` 声明 + `if`），只能写在语句序列里，
  *          不能放进 `if (...) MC_TRY_DECLARE(...);` 这类单语句体。
  */
-#define MC_TRY_DECLARE(var, expr)             \
+#define MC_TRY_DECLARE(var, expr)            \
     auto _mc_try_result_##var = (expr);      \
     if (_mc_try_result_##var.failed()) {     \
         return _mc_try_result_##var.error(); \

@@ -105,8 +105,7 @@ public:
      * @param reader 字符串读取器
      * @return NBT 标签
      */
-    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> parseNbtValue(
-        StringReader& reader);
+    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> parseNbtValue(StringReader& reader);
 
     /**
      * @brief 按原版 {@code StringTagReader.readTag} 语义解析一段完整的 SNBT 标签
@@ -118,8 +117,7 @@ public:
      * @param reader 字符串读取器（游标推进到标签之后）
      * @return NBT 标签；输入为空或不是合法标签时抛出命令异常
      */
-    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> readNbtValue(
-        StringReader& reader);
+    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> readNbtValue(StringReader& reader);
 
 private:
     /**
@@ -128,8 +126,7 @@ private:
      * @param isFirst 是否是第一个节点
      * @return 路径节点
      */
-    [[nodiscard]] Result<std::unique_ptr<NbtPathNode>, CommandError> _parseNode(
-        StringReader& reader, bool isFirst);
+    [[nodiscard]] Result<std::unique_ptr<NbtPathNode>, CommandError> _parseNode(StringReader& reader, bool isFirst);
 
     /**
      * @brief 解析键名
@@ -143,8 +140,7 @@ private:
      * @param reader 字符串读取器
      * @return 列表标签
      */
-    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> _parseListContent(
-        StringReader& reader);
+    [[nodiscard]] static Result<std::unique_ptr<nbt::tags::tag>, CommandError> _parseListContent(StringReader& reader);
 
     /**
      * @brief 读取 NBT 未引用键名

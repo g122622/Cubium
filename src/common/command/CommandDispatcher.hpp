@@ -424,8 +424,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
             }
             return ParseResults<S>(
-                CommandError(
-                    CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
+                CommandError(CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
                     .withInput(currentContext->getInput()),
                 currentReader.getCursor());
         }
@@ -512,8 +511,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             {
                 auto childParse = child->parse(childReader, *childContext);
                 if (childParse.failed()) {
-                    consider(ParseResults<S>(childParse.error().withInput(currentContext->getInput()),
-                                 childParse.error().cursor()),
+                    consider(ParseResults<S>(
+                                 childParse.error().withInput(currentContext->getInput()), childParse.error().cursor()),
                         nullptr);
                     return;
                 }
@@ -608,7 +607,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
 
         return ParseResults<S>(
             CommandError(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
-                                                                      : CommandErrorType::DispatcherUnknownArgument,
+                                                                  : CommandErrorType::DispatcherUnknownArgument,
                 currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
                 currentReader.getCursor())
                 .withInput(currentContext->getInput()),

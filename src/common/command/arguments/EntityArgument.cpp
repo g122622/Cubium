@@ -130,7 +130,8 @@ Result<EntitySelector, CommandError> EntityArgumentTypeBase::_parseSelector(Stri
     return selector;
 }
 
-Result<void, CommandError> EntityArgumentTypeBase::_parseSelectorArguments(StringReader& reader, EntitySelector& selector)
+Result<void, CommandError> EntityArgumentTypeBase::_parseSelectorArguments(
+    StringReader& reader, EntitySelector& selector)
 {
     reader.skip();
 
@@ -476,8 +477,7 @@ Result<void, CommandError> EntityArgumentTypeBase::_applySelectorArgument(
                     // 读取准则名称（遇到 = 时停止）
                     const std::string criteriaName = _readCriteriaKey(valueReader);
                     if (criteriaName.empty()) {
-                        return CommandError(
-                            CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
+                        return CommandError(CommandErrorType::EntitySelectorInvalid, "Expected criteria name", cursor);
                     }
 
                     valueReader.skipWhitespace();
@@ -523,8 +523,7 @@ Result<void, CommandError> EntityArgumentTypeBase::_applySelectorArgument(
                     } else if (boolValue == "false" || boolValue == "FALSE" || boolValue == "False") {
                         condition.isComplete = false;
                     } else {
-                        return CommandError(
-                            CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
+                        return CommandError(CommandErrorType::EntitySelectorInvalid, "Expected true or false", cursor);
                     }
                 }
             }
@@ -539,8 +538,7 @@ Result<void, CommandError> EntityArgumentTypeBase::_applySelectorArgument(
         }
 
         if (!valueReader.canRead() || valueReader.peek() != '}') {
-            return CommandError(
-                CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
+            return CommandError(CommandErrorType::EntitySelectorInvalid, "Expected '}' to close advancements", cursor);
         }
         valueReader.skip(); // skip '}'
 
@@ -568,8 +566,7 @@ Result<void, CommandError> EntityArgumentTypeBase::_applySelectorArgument(
     return CommandError(CommandErrorType::EntitySelectorInvalid, "Unknown selector argument: " + name, cursor);
 }
 
-Result<void, CommandError> EntityArgumentTypeBase::_validateSelector(
-    const EntitySelector& selector, i32 start)
+Result<void, CommandError> EntityArgumentTypeBase::_validateSelector(const EntitySelector& selector, i32 start)
 {
     if (isPlayersOnly() && selector.includesNonPlayers() && !selector.isSelf()) {
         return CommandError(CommandErrorType::EntitySelectorNotAllowed, "Only players can be selected here", start);

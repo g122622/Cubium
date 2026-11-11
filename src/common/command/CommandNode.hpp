@@ -440,7 +440,8 @@ public:
         return "";
     }
 
-    [[nodiscard]] Result<void, CommandError> parse(StringReader& /*reader*/, CommandContext<S>& /*context*/) const override
+    [[nodiscard]] Result<void, CommandError> parse(
+        StringReader& /*reader*/, CommandContext<S>& /*context*/) const override
     {
         return Result<void, CommandError>::ok();
     }
