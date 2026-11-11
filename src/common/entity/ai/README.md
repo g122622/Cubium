@@ -274,3 +274,44 @@
 - **子类调用不能一起改**：例如 `TestableHurtByTargetGoal(pig.get())` 是子类构造，
   参数个数由子类自己定；只改父类那一行会弄坏子类调用。
   只能改「基类初始化列表」（`: Base(args)`）与直接构造父类的地方。
+
+### 12. 一条 Brain 行为链路有四层，必须整条核对
+
+判断"某个活动/任务为什么不生效"或"改动是否等价"时，**只看 1–2 层必然得出错误结论**。
+完整链路是：
+
+```text
+① 活动声明  Brain::registerActivity(A, prio, tasks, requiredMemory, memoriesToForget)
+② 任务门槛  该任务 Task<E> 构造里的 requiredMemoryState 集合
+③ 任务取值  shouldExecute / tick 里 getMemory<...>(X) 实际读哪个记忆
+④ 传感器    谁 setMemory / removeMemory 写入它，写入方是否已为该实体注册
+```
+
+本会话在村民躲避（`TODO(villager-avoid-duplication)`）上连续踩了 4 次，
+每次都是少看一层：
+
+| 少看了哪层 | 得出的错误结论 |
+|---|---|
+| ④ 传感器类上方的设计文档 | "要给通用 `AvoidEntitySensor` 加筛选谓词"（其实专用版早已存在且已注册） |
+| ③ 任务取值 | "把活动 requiredMemory 改名即可"（`FleeTask` 三处硬编码 `AVOID_TARGET`） |
+| ④ 写入点具体行号 | "全仓没有代码写 `AVOID_TARGET`"（`AvoidEntitySensor::update:612` 就在写） |
+| ② 任务门槛完整性 | 只看了被截断的谓词，误判各 Goal 覆盖的怪物集合 |
+
+**核对方法**：
+1. 先 `grep` 记忆名，把结果按「声明 / 注册 / 写入 / 读取 / 清除」分好类，
+   **不要因为某个文件已出现在结果里就认为相关内容都看过了**——
+   同一个文件里写入点可能在几百行之后；
+2. 对每个"读取方"，打开它的 `Task` 构造确认门槛是否同一个记忆；
+3. 对每个"写入方"，确认它是否真的为该实体 `registerSensor` / `registerActivity`；
+4. 读到谓词/清单被 `grep` 截断时，用 `read` 看完整范围，不要凭片段下结论。
+
+**另外两个高频陷阱**：
+- **两个名字相似但不相通的记忆**很容易各缺一半。例如村民的
+  `VillagerHostilesSensor` 写 `NEAREST_HOSTILE`（无任何 task 读），
+  而 AVOID 活动经 `FleeTask` 读 `AVOID_TARGET`（`AvoidEntitySensor` 才写，
+  但该传感器未给村民注册）。两边各自空转，看起来都"实现了"。
+- **一个 TODO 里的"要删的 N 项"未必同质**。例如躲避 TODO 把 8 个
+  `AvoidEntityGoal` 与 `PanicGoal` 并列为 9 项，但前者按敌对怪物白名单触发，
+  后者按 `lastDamageSource`（任意伤害）触发，Brain 侧对应的分别是
+  `NEAREST_HOSTILE` 与 `HURT_BY`（类型还是 `DamageSource*` 而非实体 id）。
+  删之前必须逐项确认各自的替代路径。
