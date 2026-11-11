@@ -143,9 +143,6 @@ private:
      */
     [[nodiscard]] bool _unbindStructurePackSource(const IStructurePackSource* structurePackSource);
 
-    /** @brief 清空模板缓存（丢弃上一宿主数据包视图下加载的全部模板） */
-    void _clearTemplateCache();
-
     std::unordered_map<ResourceLocation, std::unique_ptr<Template>> m_templates;
     mutable std::mutex m_mutex;
     std::unique_ptr<Template> m_emptyTemplate;

@@ -101,12 +101,6 @@ bool TemplateManager::_unbindStructurePackSource(const IStructurePackSource* str
     return true;
 }
 
-void TemplateManager::_clearTemplateCache()
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_templates.clear();
-}
-
 const Template* TemplateManager::getTemplate(const ResourceLocation& location)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
