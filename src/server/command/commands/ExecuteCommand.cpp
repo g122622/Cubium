@@ -57,7 +57,9 @@
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <charconv>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -189,6 +191,10 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* n
 {
     return std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
 }
+
+/// 上下文键：`if score` 用了哪个比较运算符（`<`/`<=`/`=`/`>`/`>=`）。
+/// 运算符是字面量，执行链里没有痕迹，靠 LiteralRecordingCommandNode 在解析期写进来。
+inline constexpr const char* kScoreConditionOpKey = "executeScoreConditionOp";
 
 /**
  * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
@@ -333,7 +339,9 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         attachCommandSuggestions(target);
         auto objective = conditionArg("targetObjective", ObjectiveNameArgumentType::objective(), false);
         for (const char* op : {"<", "<=", "=", ">", ">="}) {
-            auto opNode = conditionLiteral(op);
+            // 运算符是字面量，执行链拿不到，用会记录自身字面量的节点写进上下文，
+            // 执行期从 kScoreConditionOpKey 读出走了哪个比较符。
+            auto opNode = std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(op, kScoreConditionOpKey);
             auto source = conditionArg("source", ScoreHolderArgumentType::scoreHolder(false), false);
             attachCommandSuggestions(source);
             source->addChild(conditionArg("sourceObjective", ObjectiveNameArgumentType::objective(), true));
@@ -893,6 +901,107 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
     return runChain(source, 0);
 }
 
+bool ExecuteCommand::_evaluateScoreCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    const std::string targetHolder = context.getArgumentOr<std::string>("target", std::string());
+    const std::string targetObjectiveName = context.getArgumentOr<std::string>("targetObjective", std::string());
+    if (targetHolder.empty() || targetObjectiveName.empty()) {
+        return false;
+    }
+
+    auto& scoreboard = server->scoreboard();
+    auto* targetObjective = scoreboard.getObjective(targetObjectiveName);
+    if (targetObjective == nullptr) {
+        return false;
+    }
+
+    // 取目标侧的值。计分项不存在时条件不成立（不要顺手创建 0 分项）。
+    const auto* targetScore = scoreboard.getScore(targetHolder, *targetObjective);
+    if (targetScore == nullptr) {
+        return false;
+    }
+    const i32 targetValue = targetScore->getScorePoints();
+
+    // matches <range>：单侧区间判断。参数类型产出的是字符串形式（`5` / `5..` / `..5` / `5..10`），
+    // 这里就地解析成上下界，避免为一次比较引入额外的解析依赖。
+    if (context.hasArgument("range")) {
+        const std::string rangeText = context.getArgumentOr<std::string>("range", std::string());
+        if (rangeText.empty()) {
+            return false;
+        }
+        const size_t dots = rangeText.find("..");
+        auto parseBound = [](const std::string& text, i32& out) -> bool {
+            if (text.empty()) {
+                return false;
+            }
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), out);
+            return error == std::errc{} && end == text.data() + text.size();
+        };
+        if (dots == std::string::npos) {
+            // 精确值
+            i32 exact = 0;
+            return parseBound(rangeText, exact) && targetValue == exact;
+        }
+        const std::string minText = rangeText.substr(0, dots);
+        const std::string maxText = rangeText.substr(dots + 2);
+        if (!minText.empty()) {
+            i32 minValue = 0;
+            if (!parseBound(minText, minValue) || targetValue < minValue) {
+                return false;
+            }
+        }
+        if (!maxText.empty()) {
+            i32 maxValue = 0;
+            if (!parseBound(maxText, maxValue) || targetValue > maxValue) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // score 比较：需要另一侧的持有者与计分项。
+    const std::string sourceHolder = context.getArgumentOr<std::string>("source", std::string());
+    const std::string sourceObjectiveName = context.getArgumentOr<std::string>("sourceObjective", std::string());
+    if (sourceHolder.empty() || sourceObjectiveName.empty()) {
+        return false;
+    }
+
+    auto* sourceObjective = scoreboard.getObjective(sourceObjectiveName);
+    if (sourceObjective == nullptr) {
+        return false;
+    }
+    const auto* sourceScore = scoreboard.getScore(sourceHolder, *sourceObjective);
+    if (sourceScore == nullptr) {
+        return false;
+    }
+    const i32 sourceValue = sourceScore->getScorePoints();
+
+    const std::string op = context.getArgumentOr<std::string>(kScoreConditionOpKey, std::string());
+    if (op == "<") {
+        return targetValue < sourceValue;
+    }
+    if (op == "<=") {
+        return targetValue <= sourceValue;
+    }
+    if (op == "=") {
+        return targetValue == sourceValue;
+    }
+    if (op == ">") {
+        return targetValue > sourceValue;
+    }
+    if (op == ">=") {
+        return targetValue >= sourceValue;
+    }
+    // 运算符没记上（解析路径异常）：按不成立处理，不要猜。
+    return false;
+}
+
 bool ExecuteCommand::_evaluateBlockCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -915,6 +1024,9 @@ bool ExecuteCommand::_evaluateBlockCondition(
         const auto entities = support::EntityResolver::resolve(
             target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
         return !entities.empty() && entities.front() != nullptr;
+    } else if (context.hasArgument("target")) {
+        // score <target> <targetObjective> <op> <source> <sourceObjective> | matches <range>
+        return _evaluateScoreCondition(target, context);
     } else if (context.hasArgument("pos")) {
         // loaded <pos>：pos 所在区块是否已加载
         auto* world = target.world();

@@ -79,6 +79,23 @@ private:
      */
     static bool _evaluateBlockCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 求值 `if score` 条件
+     *
+     * 两种形态：
+     * - `score <target> <targetObjective> <op> <source> <sourceObjective>`：比较两侧计分板值
+     * - `score <target> <targetObjective> matches <range>`：判断左侧值是否落在区间内
+     *
+     * 比较运算符是字面量节点，执行期从上下文键 `executeScoreConditionOp` 读出
+     * （见 LiteralRecordingCommandNode）。任一侧计分板或目标值不存在时返回 false。
+     *
+     * @param target 当前命令源（用于取计分板）
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateScoreCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

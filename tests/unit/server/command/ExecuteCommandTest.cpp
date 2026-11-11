@@ -33,12 +33,15 @@
 #include "common/BaseTestServer.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
+#include "common/scoreboard/core/Score.hpp"
+#include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteCommand.hpp"
 #include "server/command/commands/HelpCommand.hpp"
 #include "server/command/commands/ListCommand.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 
 namespace mc::command {
 
@@ -226,6 +229,117 @@ TEST_F(ExecuteCommandTest, ExecuteIfBiomeIsTreatedAsUnmet)
 {
     const auto result =
         m_server.commandRegistry().execute("execute if biome 0 0 0 minecraft:plains run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0);
+}
+
+// ============================================================================
+// if|unless score 条件
+// ============================================================================
+
+namespace {
+
+/// 建一个 dummy 判据的计分项并写入分数，供 if score 用例使用。
+void seedScore(mc::server::IServer& server, const std::string& holder, const std::string& objectiveName, mc::i32 value)
+{
+    mc::scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+    auto& scoreboard = server.scoreboard();
+    auto* objective = scoreboard.getObjective(objectiveName);
+    if (objective == nullptr) {
+        objective = scoreboard.addObjective(
+            objectiveName, *mc::scoreboard::ScoreCriteriaRegistry::instance().getCriteria("dummy"));
+    }
+    scoreboard.getOrCreateScore(holder, *objective)->setScorePoints(value);
+}
+
+} // namespace
+
+// 左侧大于右侧 → `>` 成立，嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreGreaterHolds)
+{
+    seedScore(m_server, "alice", "objA", 10);
+    seedScore(m_server, "bob", "objB", 3);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if score alice objA > bob objB run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "10 > 3, so the nested command must run";
+}
+
+// 同一个比较在方向相反时不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreGreaterFailsWhenReversed)
+{
+    seedScore(m_server, "alice", "objA", 10);
+    seedScore(m_server, "bob", "objB", 3);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if score bob objB > alice objA run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0) << "3 > 10 is false, so the nested command must not run";
+}
+
+// 相等比较：`=` 与 `<=` 都应在两侧相等时成立。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreEqualityHoldsWhenBothSidesEqual)
+{
+    seedScore(m_server, "alice", "objA", 7);
+    seedScore(m_server, "bob", "objB", 7);
+
+    const auto eqResult =
+        m_server.commandRegistry().execute("execute if score alice objA = bob objB run help", m_console);
+    EXPECT_TRUE(eqResult.success());
+    EXPECT_EQ(eqResult.value(), 1);
+
+    const auto leResult =
+        m_server.commandRegistry().execute("execute if score alice objA <= bob objB run help", m_console);
+    EXPECT_TRUE(leResult.success());
+    EXPECT_EQ(leResult.value(), 1);
+}
+
+// unless 取反：比较不成立时嵌套命令执行。
+TEST_F(ExecuteCommandTest, ExecuteUnlessScoreRunsWhenComparisonFails)
+{
+    seedScore(m_server, "alice", "objA", 1);
+    seedScore(m_server, "bob", "objB", 99);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute unless score alice objA > bob objB run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "unless inverts if, so a failing comparison must run the nested command";
+}
+
+// matches <range>：落在区间内成立。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreMatchesRangeHolds)
+{
+    seedScore(m_server, "alice", "objA", 5);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if score alice objA matches 3..8 run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 1) << "5 is inside 3..8";
+}
+
+// matches <range>：落在区间外不成立。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreMatchesRangeFailsOutside)
+{
+    seedScore(m_server, "alice", "objA", 20);
+
+    const auto result =
+        m_server.commandRegistry().execute("execute if score alice objA matches 3..8 run help", m_console);
+
+    EXPECT_TRUE(result.success());
+    EXPECT_EQ(result.value(), 0) << "20 is outside 3..8";
+}
+
+// 计分项不存在时条件不成立（不能顺手创建 0 分项）。
+TEST_F(ExecuteCommandTest, ExecuteIfScoreWithMissingObjectiveFails)
+{
+    const auto result = m_server.commandRegistry().execute(
+        "execute if score alice noSuchObjective = bob noSuchObjective run help", m_console);
 
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 0);
