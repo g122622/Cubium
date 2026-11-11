@@ -46,7 +46,7 @@ public:
      * @param value 记忆值
      * @param ttl 存活时间(ticks)，Long.MAX_VALUE表示永不过期
      */
-    Memory(const T& value, i64 ttl = std::numeric_limits<i64>::max())
+    Memory(const T& value, i64 ttl)
         : m_value(value)
         , m_ttl(ttl)
     {}
