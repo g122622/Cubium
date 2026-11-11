@@ -156,9 +156,66 @@
 - `CopyCustomDataFunction` 的 `context.get<Entity>()`：`LootContext::get` 是 `noexcept` 且返回 `nullptr`
 
 | 7. 开关就绪 | 🟡 部分完成 | 已加 `MC_ENABLE_NO_EXCEPTIONS` 选项（只作用于生产 target，测试保留异常）；`AssertException`/`throwAssertHandler` 已按 `__cpp_exceptions` 条件编译。**未做**：清空头文件剩余 throw（几乎全在命令子系统） |
-| 8. 命令子系统 | ⬜ 未开始 | 剩余头文件 `throw` 约 66 处全部集中在这里（`GameModeArgument` 24、`StringReader` 14、`ArgumentType` 12 等） |
+| 8. 命令子系统 | 🟡 进行中 | 方案已定（`Result<T, E>` 泛化 + `CommandError` 值类型），`Result` 泛化已落地；实测 126 处 throw 集中在 18 个文件、命令函数签名无需改动。半成品见 `git stash`（详见下节） |
 
-### 阶段 8 待决的设计问题
+### 阶段 8 已定的设计（✅ 方案已选）
+
+**错误载体**：`mc::Result<T, E = Error>` 泛化（已完成，见提交 `Result` 泛化）。命令子系统
+统一用 `Result<T, CommandError>`，`CommandError` 是**纯值类型**（不再继承
+`std::runtime_error`、不再被 throw），携带 `CommandErrorType` + `message`(翻译键) +
+`cursor` + `input`。跨子系统传播靠 `CommandError(const Error&)` 隐式转换——但注意
+`return e;` 涉及两次用户自定义转换时不合法，所以 `Result` 额外提供了「可转换为 E 的错误
+类型」构造函数，使 `MC_TRY` / `return someError;` 都能用。
+
+**StringReader**：`read()` / `readQuotedString()` / `readString()` / `readWord()` /
+`readBool()` / `readInt()` / `readInt(min,max)` / `readDouble()` / `readFloat()` /
+`readDouble(min,max)` / `expect()` 全部返回 `Result<T, CommandError>`。
+
+**实测规模（比原估算小得多，重要）**：
+- 命令子系统共 **126 处 `throw CommandError`**，集中在 **18 个文件**，而**不在** 163 个
+  `server/command/commands/*.cpp` 里——那些命令早已是「`source.sendError(...) + return 0`」
+  的非异常风格，命令函数签名 `std::function<i32(CommandContext<S>&)>` **不需要改**。
+- 只有 5 处例外：`ExecuteCommand`（2 处条件占位节点）、`ReturnCommand`（1 处）、
+  `ScheduleCommand`（2 处 `ERROR_SAME_TICK`/`ERROR_CANT_REMOVE`）。它们应改成
+  `source.sendError(...) + return 0`，与其余命令一致。
+- `StringReader` 的读方法在命令子系统里只有 **47 处调用点**（此前的 338 是全库 `.read*`
+  匹配，含大量文件读取）。
+
+**改造配方（逐文件，按依赖顺序）**：
+1. `errors/CommandErrors.hpp`：`CommandException`→`CommandError`（去 `runtime_error` 化）、
+   `Simple/DynamicCommandException`→`Simple/DynamicCommandError`、补 `toString()`（因为
+   `Result::value()` 断言要用它）与默认构造。
+2. `StringReader.hpp`：11 个方法返回 `Result<T, CommandError>`；循环内部已确认 `canRead()`
+   的地方改用 `peek()` + `skip()`，避免每个字符走一次 Result。
+3. `arguments/ArgumentType.hpp`：`virtual Result<T, CommandError> parse(StringReader&)`；
+   7 个内置实现 + `getString/getInteger/getFloat/getDouble/getBool` 静态取值方法同步改。
+4. `arguments/*.hpp` 的各参数类型 `parse` 覆盖（`GameModeArgument.hpp` 最大，1658 行 /
+   20+ 个 parse 覆盖；另有 `EntityArgument` / `NbtPathArgumentType` / `FunctionArgument` /
+   `ItemArgument` / `BlockStateArgument` / `DimensionArgument` / `ItemSlotArgument` /
+   `StyleArgument` / `TimeArgument` / `ResourceOrTagArgumentType`）。
+   高效流程：先 `perl -pi -e 's/\bthrow (CommandError\()/return $1/g'`，再让编译器逐个报
+   「返回类型不符」，按报错行改签名与 `reader.readX()` 调用点（用 `MC_TRY_DECLARE`）。
+5. `CommandNode.hpp`：`Parser` 改为 `std::function<Result<T, CommandError>(std::string_view, i32&)>`
+   （去掉原来的 `CommandError&` 出参）；`parse(StringReader&, context)` 改为返回
+   `Result<void, CommandError>`（Root/Literal/LiteralRecording/Argument 四处覆盖）。
+6. `CommandDispatcher.hpp`：解析循环里的 `try/catch` 改为检查返回值；`execute()` 里两处
+   `try/catch` 可直接去掉（命令函数不再抛）。
+7. 5 处命令内 throw 改为 `sendError + return 0`。
+8. 测试（42 个文件）改为断言 `Result` 失败而不是 `EXPECT_THROW`；测试 target 保留异常，
+   但调用点必须改，否则编译不过。
+
+**语法校验手段（本轮新增，强烈建议沿用）**：`/tmp/dsh_syn.cxx.sh <file.cpp>` 会从
+`build/compile_commands.json` 取该文件的真实编译参数、去掉 `-o/-c/-Xclang -include-pch`
+等（注意 `-Xclang -include` 要跳 4 个 token，跳 3 个会把 pch 路径当成输入文件）后加
+`-fsyntax-only` 编译单文件。**不需要整项目构建**就能拿到真实类型错误，非常适合这种
+「不能构建但要保证正确性」的迁移。
+
+**WIP 位置**：已把完成到第 6 步的半成品（`errors/CommandErrors.*`、`StringReader`、
+`ArgumentType`、`CommandNode`、`CommandDispatcher` 以及全局重命名）存入
+`git stash`（条目：`wip(command): 命令子系统去异常化…`）。继续时先 `git stash pop`，
+再从第 4 步（`arguments/*.hpp` 的 parse 覆盖）往下做。
+
+### 阶段 8 待决的设计问题（已解决，保留备查）
 
 命令子系统不能用现有 `Error` 直接替代 `CommandException`：解析错误需要携带
 `CommandErrorType`（决定翻译键/客户端提示）与**游标位置**（客户端高亮出错处），
