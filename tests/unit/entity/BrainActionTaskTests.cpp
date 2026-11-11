@@ -137,7 +137,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWithoutAttackTarget)
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
 
     // 没有 ATTACK_TARGET → shouldExecute 不满足 → start() 返回 false
@@ -166,7 +166,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenCoolingDown)
     // 设置冷却记忆
     brain.setMemoryWithTTL<bool>(MemoryModuleTypes::ATTACK_COOLING_DOWN, true, 20);
 
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
 
     // ATTACK_COOLING_DOWN 存在 → _hasRequiredMemories 检查失败 → start() 返回 false
@@ -192,7 +192,7 @@ TEST_F(AttackTaskTest, ShouldExecuteWhenAllConditionsMet)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
 
     // ATTACK_TARGET 存在 + ATTACK_COOLING_DOWN 不存在 + LOOK_TARGET 已注册 + 在攻击范围内 → 应执行
@@ -281,7 +281,7 @@ TEST_F(AttackTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
 
     // 超出攻击范围 → shouldExecute 返回 false
@@ -316,7 +316,7 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
         m_world->registerEntityForLookup(&zombie);
         brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-        action::AttackTask<VillagerEntity> task;
+        action::AttackTask<VillagerEntity> task(20);
         mc::math::Random rng(42);
         EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
     }
@@ -332,7 +332,7 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
         m_world->registerEntityForLookup(&zombie3);
         brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie3.id());
 
-        action::AttackTask<VillagerEntity> task;
+        action::AttackTask<VillagerEntity> task(20);
         mc::math::Random rng(42);
         EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
     }
@@ -341,7 +341,7 @@ TEST_F(AttackTaskTest, AttackRangeCalculation)
 // 测试：AttackTask getName 返回正确名称
 TEST_F(AttackTaskTest, GetNameReturnsCorrectName)
 {
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     EXPECT_EQ(task.getName(), "AttackTask");
 }
 
@@ -349,8 +349,8 @@ TEST_F(AttackTaskTest, GetNameReturnsCorrectName)
 TEST_F(AttackTaskTest, CustomCooldownTicks)
 {
     // 默认冷却 20 tick
-    action::AttackTask<VillagerEntity> taskDefault;
-    EXPECT_EQ(taskDefault.getName(), "AttackTask"); // 验证构造成功
+    action::AttackTask<VillagerEntity> taskStandard(20);
+    EXPECT_EQ(taskStandard.getName(), "AttackTask"); // 验证构造成功
 
     // 自定义冷却 40 tick
     action::AttackTask<VillagerEntity> taskCustom(40);
@@ -408,7 +408,7 @@ TEST_F(AttackTaskIntegrationTest, AttackTaskWithVillagerBrain)
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
     // AttackTask 应可以启动（VillagerEntity 的 Brain 已注册所有需要的记忆模块）
-    action::AttackTask<VillagerEntity> task;
+    action::AttackTask<VillagerEntity> task(20);
     mc::math::Random rng(42);
 
     EXPECT_TRUE(task.start(&world, &villager, 0, rng));

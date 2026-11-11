@@ -130,7 +130,7 @@ TEST_F(BreedTaskTest, ShouldNotExecuteWithoutVisibleMobs)
     brain.registerMemory(MemoryModuleTypes::WALK_TARGET);
     brain.registerMemory(MemoryModuleTypes::LOOK_TARGET);
 
-    action::BreedTask<VillagerEntity> task;
+    action::BreedTask<VillagerEntity> task(1.0f, 2);
     mc::math::Random rng(42);
 
     // VISIBLE_MOBS 缺失 → _hasRequiredMemories 检查失败 → start() 返回 false
@@ -153,7 +153,7 @@ TEST_F(BreedTaskTest, ShouldNotExecuteWithEmptyVisibleMobs)
     // 设置空的可见实体列表
     brain.setMemory<std::vector<EntityInstanceId>>(MemoryModuleTypes::VISIBLE_MOBS, {});
 
-    action::BreedTask<VillagerEntity> task;
+    action::BreedTask<VillagerEntity> task(1.0f, 2);
     mc::math::Random rng(42);
 
     // VillagerEntity 不是 AnimalEntity，isInLove() 返回 false → shouldExecute 失败
@@ -163,15 +163,15 @@ TEST_F(BreedTaskTest, ShouldNotExecuteWithEmptyVisibleMobs)
 // 测试：BreedTask getName 返回正确名称
 TEST_F(BreedTaskTest, GetNameReturnsCorrectName)
 {
-    action::BreedTask<VillagerEntity> task;
+    action::BreedTask<VillagerEntity> task(1.0f, 2);
     EXPECT_EQ(task.getName(), "BreedTask");
 }
 
 // 测试：BreedTask 构造函数接受自定义速度和距离参数
 TEST_F(BreedTaskTest, CustomSpeedAndDistance)
 {
-    action::BreedTask<VillagerEntity> taskDefault;
-    EXPECT_EQ(taskDefault.getName(), "BreedTask");
+    action::BreedTask<VillagerEntity> taskStandard(1.0f, 2);
+    EXPECT_EQ(taskStandard.getName(), "BreedTask");
 
     action::BreedTask<VillagerEntity> taskCustom(1.5f, 3);
     EXPECT_EQ(taskCustom.getName(), "BreedTask");
@@ -199,7 +199,7 @@ TEST_F(BreedTaskTest, ResetTaskClearsMemories)
     EXPECT_TRUE(brain.hasMemory(MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_PRESENT));
 
     // 手动创建任务并调用 resetTask
-    action::BreedTask<VillagerEntity> task;
+    action::BreedTask<VillagerEntity> task(1.0f, 2);
     mc::math::Random rng(42);
     // 不需要 start，直接调用 resetTask
     task.stop(m_world.get(), &villager, 0);
@@ -261,7 +261,7 @@ TEST_F(PlayDeadTaskTest, ShouldNotExecuteWithoutPlayDeadTicks)
     brain.registerMemory(MemoryModuleTypes::ATTACK_TARGET);
     brain.registerMemory(MemoryModuleTypes::PACIFIED);
 
-    action::PlayDeadTask<VillagerEntity> task;
+    action::PlayDeadTask<VillagerEntity> task(200);
     mc::math::Random rng(42);
 
     // PLAY_DEAD_TICKS 缺失 → _hasRequiredMemories 检查失败 → start() 返回 false
@@ -283,7 +283,7 @@ TEST_F(PlayDeadTaskTest, ShouldExecuteWithPlayDeadTicks)
     // 设置 PLAY_DEAD_TICKS 记忆
     brain.setMemory<mc::i32>(MemoryModuleTypes::PLAY_DEAD_TICKS, 200);
 
-    action::PlayDeadTask<VillagerEntity> task;
+    action::PlayDeadTask<VillagerEntity> task(200);
     mc::math::Random rng(42);
 
     EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
@@ -306,7 +306,7 @@ TEST_F(PlayDeadTaskTest, SetsPacifiedAndClearsAttackTarget)
     brain.setMemory<mc::i32>(MemoryModuleTypes::PLAY_DEAD_TICKS, 200);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, EntityInstanceId(9));
 
-    action::PlayDeadTask<VillagerEntity> task;
+    action::PlayDeadTask<VillagerEntity> task(200);
     mc::math::Random rng(42);
 
     EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
@@ -324,7 +324,7 @@ TEST_F(PlayDeadTaskTest, SetsPacifiedAndClearsAttackTarget)
 // 测试：PlayDeadTask getName 返回正确名称
 TEST_F(PlayDeadTaskTest, GetNameReturnsCorrectName)
 {
-    action::PlayDeadTask<VillagerEntity> task;
+    action::PlayDeadTask<VillagerEntity> task(200);
     EXPECT_EQ(task.getName(), "PlayDeadTask");
 }
 
@@ -344,7 +344,7 @@ TEST_F(PlayDeadTaskTest, ShouldNotExecuteWhenAlreadyPacified)
     brain.setMemory<mc::i32>(MemoryModuleTypes::PLAY_DEAD_TICKS, 200);
     brain.setMemory<bool>(MemoryModuleTypes::PACIFIED, true);
 
-    action::PlayDeadTask<VillagerEntity> task;
+    action::PlayDeadTask<VillagerEntity> task(200);
     mc::math::Random rng(42);
 
     // PACIFIED 已存在 → shouldExecute 返回 false
@@ -435,7 +435,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWithoutAttackTarget)
     brain.registerMemory(MemoryModuleTypes::ATTACK_TARGET);
     brain.registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     // 没有 ATTACK_TARGET → shouldExecute 不满足 → start() 返回 false
@@ -463,7 +463,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenCoolingDown)
     // 设置冷却记忆
     brain.setMemoryWithTTL<bool>(MemoryModuleTypes::ATTACK_COOLING_DOWN, true, 20);
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     // ATTACK_COOLING_DOWN 存在 → _hasRequiredMemories 检查失败 → start() 返回 false
@@ -488,7 +488,7 @@ TEST_F(KickTaskTest, ShouldExecuteWhenTargetInRangeAndNoCooldown)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     // ATTACK_TARGET 存在 + ATTACK_COOLING_DOWN 不存在 + 在范围内 → 应执行
@@ -514,7 +514,7 @@ TEST_F(KickTaskTest, ShouldNotExecuteWhenTargetOutOfRange)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     // 超出踢击范围 → shouldExecute 返回 false
@@ -539,7 +539,7 @@ TEST_F(KickTaskTest, SetsCoolingDownAfterKick)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
@@ -570,7 +570,7 @@ TEST_F(KickTaskTest, IsSingleShotTask)
     m_world->registerEntityForLookup(&zombie);
     brain.setMemory<EntityInstanceId>(MemoryModuleTypes::ATTACK_TARGET, zombie.id());
 
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     mc::math::Random rng(42);
 
     EXPECT_TRUE(task.start(m_world.get(), &villager, 0, rng));
@@ -583,15 +583,15 @@ TEST_F(KickTaskTest, IsSingleShotTask)
 // 测试：KickTask getName 返回正确名称
 TEST_F(KickTaskTest, GetNameReturnsCorrectName)
 {
-    action::KickTask<VillagerEntity> task;
+    action::KickTask<VillagerEntity> task(2.0f, 20);
     EXPECT_EQ(task.getName(), "KickTask");
 }
 
 // 测试：KickTask 构造函数接受自定义范围和冷却时间
 TEST_F(KickTaskTest, CustomRangeAndCooldown)
 {
-    action::KickTask<VillagerEntity> taskDefault;
-    EXPECT_EQ(taskDefault.getName(), "KickTask");
+    action::KickTask<VillagerEntity> taskStandard(2.0f, 20);
+    EXPECT_EQ(taskStandard.getName(), "KickTask");
 
     action::KickTask<VillagerEntity> taskCustom(3.0f, 30);
     EXPECT_EQ(taskCustom.getName(), "KickTask");
@@ -651,7 +651,7 @@ TEST_F(EatTaskTest, ShouldNotExecuteWhenHungrySystemNotImplemented)
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    action::EatTask<VillagerEntity> task;
+    action::EatTask<VillagerEntity> task(40);
     mc::math::Random rng(42);
 
     // 饥饿系统未实现，shouldExecute 始终返回 false
@@ -661,15 +661,15 @@ TEST_F(EatTaskTest, ShouldNotExecuteWhenHungrySystemNotImplemented)
 // 测试：EatTask getName 返回正确名称
 TEST_F(EatTaskTest, GetNameReturnsCorrectName)
 {
-    action::EatTask<VillagerEntity> task;
+    action::EatTask<VillagerEntity> task(40);
     EXPECT_EQ(task.getName(), "EatTask");
 }
 
 // 测试：EatTask 构造函数接受自定义进食持续时间
 TEST_F(EatTaskTest, CustomEatDuration)
 {
-    action::EatTask<VillagerEntity> taskDefault;
-    EXPECT_EQ(taskDefault.getName(), "EatTask");
+    action::EatTask<VillagerEntity> taskStandard(40);
+    EXPECT_EQ(taskStandard.getName(), "EatTask");
 
     action::EatTask<VillagerEntity> taskCustom(80);
     EXPECT_EQ(taskCustom.getName(), "EatTask");
