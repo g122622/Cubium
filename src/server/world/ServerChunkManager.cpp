@@ -2040,6 +2040,10 @@ void ServerChunkManager::_debugDumpStuckHolders()
     spdlog::info("[stuck] m_unloadSaveInProgress={} m_pendingUnloadFinishes={}",
         m_unloadSaveInProgress.size(),
         m_pendingUnloadFinishes.size());
+    // 区域调度器内态：pending 含「等待区域」与「已提交到计算池」两类，waiting 仅前者。
+    // 二者之差说明任务是卡在区域内互斥（同区域的运行任务未结束），而非计算池丢失任务。
+    spdlog::info(
+        "[stuck] areaTasks pending={} waiting={}", m_areaTasks.pendingTaskCount(), m_areaTasks.waitingTaskCount());
     std::vector<std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> lifecycleManagersCopy;
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -2092,13 +2096,16 @@ void ServerChunkManager::_debugDumpStuckHolders()
         }
         // 仅打印前 30 个卡住的 holder，避免日志爆炸
         if (stuckCount <= 30) {
-            spdlog::info("[stuck] ({}, {}) gen={} req={} genTask={} blocking={} waiting={} neighboursUsing={} "
-                         "failed={} source={} shouldLoad={} level={}",
+            const auto signal = lifecycleManager->abortSignal();
+            spdlog::info("[stuck] ({}, {}) gen={} req={} genTask={} scheduled={} aborted={} blocking={} waiting={} "
+                         "neighboursUsing={} failed={} source={} shouldLoad={} level={}",
                 lifecycleManager->x(),
                 lifecycleManager->z(),
                 lifecycleManager->getCurrentGenStatus().name(),
                 lifecycleManager->requestedGenStatus().name(),
                 genTask,
+                lifecycleManager->scheduledStatus() ? lifecycleManager->scheduledStatus()->name() : "null",
+                signal ? signal->load(std::memory_order::acquire) : false,
                 lifecycleManager->blockingNeighbourCount(),
                 isWaiting,
                 neighboursUsing,
