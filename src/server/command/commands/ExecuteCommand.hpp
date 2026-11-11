@@ -125,6 +125,23 @@ private:
      * @param context 命令上下文
      * @return 条件是否成立
      */
+    /**
+     * @brief 求值 `if items <block <pos>|entity <entities>> <slots> <item_predicate>` 条件
+     *
+     * 按 SlotRanges 把槽位区间名展开成槽位索引，取出对应 ItemStack，逐个用
+     * ItemPredicateInput::test 判定；任意一个非空且匹配即条件成立。
+     *
+     * 当前支持的槽位来源：方块容器（ContainerBlockEntity 的 IInventory）、
+     * 玩家背包（PlayerInventory，0..40）、任意 LivingEntity 的装备槽（98..106）。
+     * 末影箱/村民/马匹/合成等槽位族需要各自的容器视图，尚无通路，按不匹配处理。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateItemsCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
     static bool _evaluateBiomeCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };

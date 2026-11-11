@@ -42,12 +42,15 @@
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/item/core/ItemRegistry.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/redstone/CommandBlockEntity.hpp"
+#include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -834,6 +837,7 @@ protected:
 
         auto zombie = std::make_unique<mc::ZombieEntity>(mc::EntityInstanceId(1), mc::test::testEcsRegistry());
         zombie->setWorld(m_world);
+        m_zombie = zombie.get();
         m_world->entityManager().addEntity(std::move(zombie));
     }
 
@@ -858,6 +862,7 @@ protected:
     mc::test::BaseTestServer m_server;
     mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
     mc::server::ServerWorld* m_world = nullptr;
+    mc::ZombieEntity* m_zombie = nullptr;
 };
 
 // Pos 是每个实体 writeToNBT 都会写的键。命中与未命两个方向都要验：
@@ -901,18 +906,70 @@ TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataBlockHoldsWhenPathExists)
     EXPECT_EQ(empty.value(), 0);
 }
 
-// 《《items》》条件尚未实现，但它不能被当成 `loaded` / `entity` 求值
-//
-// `items block <pos> <slots> <item_predicate>` 的 `pos` 与 `loaded <pos>` 重名，
-// `items entity <entities> ...` 的 `entities` 与 `entity <entities>` 重名。若分派顺序错了，
-// `if items block <pos>` 会返回“区块是否加载”——看起来像正常结果，实际语义错误。
-// 这条用例钉的是“走到了 items 分支”（出现对应 warn），而不是它返回什么。
-TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsIsRejectedExplicitly)
+// ============================================================================
+// if items 的正向路径（方块容器）
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsBlockMatchesContainerContents)
 {
-    auto [blockResult, blockLog] = _run("execute if items block 4 64 4 container.0 minecraft:stone run help");
-    ASSERT_TRUE(blockResult.success()) << "log:\n" << blockLog;
-    EXPECT_EQ(blockResult.value(), 0);
-    EXPECT_NE(blockLog.find("if items is not implemented"), std::string::npos)
-        << "items must be rejected by its own branch, not silently routed to loaded/entity; log:\n"
-        << blockLog;
+    const mc::BlockPos pos(4, 64, 4);
+    auto chest = std::make_unique<mc::blockentity::ChestEntity>(pos);
+    auto* inventory = chest->getInventory();
+    ASSERT_NE(inventory, nullptr);
+
+    const auto* stone = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr) << "stone must be registered for this test";
+    inventory->setItem(0, mc::ItemStack(*stone, 1));
+
+    m_world->setBlockEntity(pos, std::move(chest));
+
+    // container.0 里是石头 → 命中
+    auto [hit, hitLog] = _run("execute if items block 4 64 4 container.0 minecraft:stone run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "slot 0 holds stone. log:\n" << hitLog;
+
+    // 同一槽位问盾牌 → 不命中
+    auto [miss, missLog] = _run("execute if items block 4 64 4 container.0 minecraft:shield run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "slot 0 holds stone, not shield. log:\n" << missLog;
+
+    // 空槽位 → 不命中（空栈不能匹配 "*" 之外的任何谓词）
+    auto [empty, emptyLog] = _run("execute if items block 4 64 4 container.5 minecraft:stone run help");
+    ASSERT_TRUE(empty.success()) << "log:\n" << emptyLog;
+    EXPECT_EQ(empty.value(), 0) << "slot 5 is empty. log:\n" << emptyLog;
+
+    // container.* 扫全容器 → 命中
+    auto [all, allLog] = _run("execute if items block 4 64 4 container.* minecraft:stone run help");
+    ASSERT_TRUE(all.success()) << "log:\n" << allLog;
+    EXPECT_EQ(all.value(), 1) << "container.* must cover slot 0. log:\n" << allLog;
+}
+
+// ============================================================================
+// if items 的正向路径（实体装备槽）
+// ============================================================================
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsEntityMatchesEquipment)
+{
+    ASSERT_NE(m_zombie, nullptr);
+
+    const auto* stone = mc::ItemRegistry::instance().getItem(mc::ResourceLocation("minecraft:stone"));
+    ASSERT_NE(stone, nullptr);
+    // 直接给夹具在 SetUp 里建的那个僵尸装备：它是世界里唯一的实体，
+    // @e[limit=1] 一定选到它。若另建一个，选中的可能是前者。
+    m_zombie->setEquipment(mc::EquipmentSlot::MainHand, mc::ItemStack(*stone, 1));
+
+    // weapon.mainhand 里是石头 → 命中
+    auto [hit, hitLog] = _run("execute if items entity @e[limit=1] weapon.mainhand minecraft:stone run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "main hand holds stone. log:\n" << hitLog;
+
+    // 同一槽位问盾牌 → 不命中
+    auto [miss, missLog] = _run("execute if items entity @e[limit=1] weapon.mainhand minecraft:shield run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "log:\n" << missLog;
+
+    // 空的副手 → 不命中
+    auto [offhand, offhandLog] = _run("execute if items entity @e[limit=1] weapon.offhand minecraft:stone run help");
+    ASSERT_TRUE(offhand.success()) << "log:\n" << offhandLog;
+    EXPECT_EQ(offhand.value(), 0) << "off hand is empty. log:\n" << offhandLog;
 }

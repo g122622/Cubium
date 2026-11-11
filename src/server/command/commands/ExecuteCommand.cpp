@@ -38,11 +38,16 @@
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
+#include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/ResourceOrTagArgumentType.hpp"
+#include "common/command/arguments/SlotRanges.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -51,6 +56,7 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
@@ -1019,6 +1025,97 @@ bool ExecuteCommand::_evaluateScoreCondition(
     return false;
 }
 
+bool ExecuteCommand::_evaluateItemsCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    const auto slotsName = context.getArgumentOr<std::string>("slots", std::string());
+    // SlotRanges 已在解析期校验过名字，这里取不到只能说明上下文异常，按不成立处理。
+    const std::vector<i32> slotIds = SlotRanges::nameToIds(slotsName);
+    if (slotIds.empty()) {
+        return false;
+    }
+
+    const auto predicate = context.getArgumentOr<ItemPredicateInput>("item_predicate", ItemPredicateInput{});
+
+    // 把槽位索引映射到 ItemStack。方块容器与玩家背包都实现 IInventory（0..N-1 直接对应），
+    // 装备槽（98..106）走 LivingEntity::getEquipment。
+    const auto slotMatches = [&predicate](const ItemStack& stack) {
+        return !stack.isEmpty() && predicate.test(stack);
+    };
+
+    if (context.hasArgument("entities")) {
+        // items entity <entities> <slots> <predicate>
+        const auto entities = support::EntityResolver::resolve(
+            target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
+
+        for (Entity* entity : entities) {
+            if (entity == nullptr) {
+                continue;
+            }
+            auto* living = dynamic_cast<LivingEntity*>(entity);
+            if (living == nullptr) {
+                continue;
+            }
+            // 玩家背包：PlayerInventory 实现 IInventory，槽位 0..40 与区间编号一致。
+            const IInventory* inventory = nullptr;
+            if (auto* player = dynamic_cast<Player*>(entity)) {
+                inventory = &player->inventory();
+            }
+            for (const i32 slotId : slotIds) {
+                if (inventory != nullptr && slotId >= 0 && slotId < inventory->getContainerSize()) {
+                    if (slotMatches(inventory->getItem(slotId))) {
+                        return true;
+                    }
+                    continue;
+                }
+                const ItemSlot slot(slotId);
+                if (!slot.isEquipmentSlot()) {
+                    // 其他槽位族（末影箱/村民/马匹/合成）需要各自的容器视图，
+                    // 当前只支持方块容器、玩家背包与装备槽。不猜，跳过。
+                    continue;
+                }
+                const i32 equipmentIndex = slot.toEquipmentSlotIndex();
+                if (equipmentIndex < 0) {
+                    continue;
+                }
+                if (slotMatches(living->getEquipment(static_cast<EquipmentSlot>(equipmentIndex)))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // items block <pos> <slots> <predicate>
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+    const Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", target);
+    auto* blockEntity = world->getBlockEntity(BlockPos(pos.x, pos.y, pos.z));
+    if (blockEntity == nullptr) {
+        return false;
+    }
+    auto* containerEntity = dynamic_cast<ContainerBlockEntity*>(blockEntity);
+    if (containerEntity == nullptr) {
+        return false;
+    }
+    const IInventory* inventory = containerEntity->getInventory();
+    if (inventory == nullptr) {
+        return false;
+    }
+    const i32 size = inventory->getContainerSize();
+    for (const i32 slotId : slotIds) {
+        if (slotId < 0 || slotId >= size) {
+            continue;
+        }
+        if (slotMatches(inventory->getItem(slotId))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ExecuteCommand::_evaluateBiomeCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -1129,12 +1226,7 @@ bool ExecuteCommand::_evaluateBlockCondition(
     // 分支，`if items block <pos>` 会被当成 `loaded <pos>` 求值——返回的是"区块是否加载"，
     // 语义完全错误，而且看起来像正常结果。
     if (context.hasArgument("item_predicate")) {
-        // TODO: 实现 items 条件。需要先补槽位区间解析（原版 SlotRanges：
-        //   container.N / hotbar.* / weapon.mainhand / a-b 区间 / 逗号列表），
-        //   再按槽位取出方块实体容器或实体背包里的 ItemStack，逐个用
-        //   ItemPredicateInput::test(stack) 判定。当前一律按"条件不成立"处理。
-        spdlog::warn("/execute if items is not implemented yet; the condition evaluates to false");
-        return false;
+        return _evaluateItemsCondition(target, context);
     }
 
     if (context.hasArgument("block")) {
