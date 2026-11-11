@@ -190,16 +190,14 @@ BlockState LadderBlock::updatePostPlacement(const BlockState& state,
     }
 
     // 仅当所倚靠的那个方块本身发生变化时重新检查存活。
-    // vanilla LadderBlock.updateShape 的判据是 `changedDir.getOpposite() == FACING`：原版的
-    // changedDir 是「从变化位置指向自身」的方向，而本项目 updatePostPlacement 的 facing 参数
-    // 是「从自身指向邻居」的方向（见 Block::updateNeighborStates 传 direction，
-    // 与 vanilla updateShape 的入参约定正好相反）。因此本项目的等价判据是
-    // `facing == FACING`，即变化来自梯子所倚靠的那一侧。
-    //
-    // 此前按原版写法比较 opposite(FACING)，等于在等「变化来自梯子正面」，导致附着方块被移除时
-    // 梯子不会自毁（ladder_breaks_when_attached_block_removed 用例失败）。
+    // updatePostPlacement 的 facing 参数约定为「从 currentPos 指向 facingPos」（见
+    // ServerWorld::setBlockState 的 shape update 循环与 Block::updateFromNeighbourShapes）。
+    // 梯子的支撑方块在 opposite(FACING)，因此只有 facing == opposite(FACING)（变化来自背面）
+    // 时才需要重查 canSurvive，与 vanilla LadderBlock.updateShape 的
+    // `direction.getOpposite() == FACING` 等价。
     const Direction ladderFacing = state.get(BlockStateProperties::HORIZONTAL_FACING());
-    if (facing == ladderFacing && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+    if (facing == Directions::opposite(ladderFacing) &&
+        !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
         return VanillaBlocks::AIR->defaultState();
     }
 

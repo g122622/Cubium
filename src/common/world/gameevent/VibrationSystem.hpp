@@ -54,6 +54,8 @@ class ServerWorld; // 前向声明
 
 namespace gameevent {
 
+class GameEventTag; // 前向声明
+
 /**
  * @brief 振动信息
  *
@@ -505,10 +507,22 @@ public:
         [[nodiscard]] virtual i32 calculateTravelTimeInTicks(f32 distance) const;
 
         /**
+         * @brief 获取本监听者可监听的事件标签（原版 `getListenableEvents`）
+         *
+         * 默认返回 `GameEventTags::ALL_VIBRATIONS()`（幽匿感测体的语义）。幽匿尖啸体覆写为
+         * `SHRIEKER_CAN_LISTEN`。isValidVibration 以该标签作为第一道过滤。
+         *
+         * @return 可监听事件标签
+         */
+        [[nodiscard]] virtual const GameEventTag& getListenableEvents() const;
+
+        /**
          * @brief 检查振动事件是否有效
          *
-         * 基本检查：事件频率是否为0、源实体是否在潜行、
-         * 方块是否阻尼振动等。
+         * 先按 getListenableEvents 的标签过滤，再检查源实体（旁观者/潜行/阻尼）与
+         * 受影响方块是否阻尼振动。
+         * 注意**不能**用「振动频率为 0」作为拒绝条件——频率表本就不含 shriek 等事件，
+         * 频率只用于共振/记录，不参与可监听性判定。
          *
          * @param event 游戏事件
          * @param context 事件上下文

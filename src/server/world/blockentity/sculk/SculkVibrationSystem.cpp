@@ -36,6 +36,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/core/CoordConverter.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
@@ -44,6 +45,8 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gameevent/GameEventListener.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
+#include "common/world/gameevent/GameEventTag.hpp"
+#include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -137,25 +140,29 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
 // SculkShriekerVibrationUser
 // ============================================================================
 
+const gameevent::GameEventTag& SculkShriekerVibrationUser::getListenableEvents() const
+{
+    // 尖啸体只监听 SHRIEKER_CAN_LISTEN 标签（sculk_sensor_tendrils_clicking），
+    // 踩踏触发不在此监听范围内。
+    return gameevent::GameEventTags::SHRIEKER_CAN_LISTEN();
+}
+
 bool SculkShriekerVibrationUser::canReceiveVibration(ServerWorld& world,
     const BlockPos& pos,
     const gameevent::GameEvent& event,
     const gameevent::GameEvent::Context& context) const
 {
-    MC_UNUSED(world);
     MC_UNUSED(pos);
+    MC_UNUSED(event);
 
-    // 幽匿尖啸体只响应 SHRIEK 事件（来自其他尖啸体）
-    if (&event != &gameevent::GameEvents::SHRIEK) {
+    // 尖啸中不重复接收（SHRIEKING 为 true 时忽略），且振动必须能解析到玩家：
+    //   !getBlockState().getValue(SHRIEKING) && tryGetPlayer(sourceEntity) != null
+    const BlockState* state = world.getBlockState(m_entity.getPos());
+    if (state == nullptr || state->get(BlockStateProperties::SHRIEKING())) {
         return false;
     }
 
-    // 潜行实体产生的事件可被忽略
-    if (context.sourceEntity() != nullptr && context.sourceEntity()->isSteppingCarefully()) {
-        return false;
-    }
-
-    return true;
+    return SculkShriekerHelper::tryGetPlayer(world, context.sourceEntity()) != nullptr;
 }
 
 void SculkShriekerVibrationUser::onReceiveVibration(ServerWorld& world,

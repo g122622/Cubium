@@ -48,6 +48,8 @@
 #include "common/world/block/tags/BlockTags.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEventTag.hpp"
+#include "common/world/gameevent/GameEventTags.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -167,11 +169,18 @@ i32 VibrationSystem::User::calculateTravelTimeInTicks(f32 distance) const
     return static_cast<i32>(std::floor(static_cast<f64>(distance)));
 }
 
+const GameEventTag& VibrationSystem::User::getListenableEvents() const
+{
+    // 默认监听全部振动事件（幽匿感测体语义）；幽匿尖啸体覆写为 SHRIEKER_CAN_LISTEN。
+    return GameEventTags::ALL_VIBRATIONS();
+}
+
 bool VibrationSystem::User::isValidVibration(const GameEvent& event, const GameEvent::Context& context) const
 {
-    // 检查事件是否有有效频率
-    i32 frequency = getGameEventFrequency(event);
-    if (frequency == 0) {
+    // 可监听性判定的第一道过滤：事件必须属于本监听者可监听的标签。
+    // 不能用「频率为 0」判定——频率表本就不含 shriek 等事件，频率只用于共振与
+    // last_vibration_frequency 记录，不参与可监听性。
+    if (!getListenableEvents().contains(event)) {
         return false;
     }
 

@@ -69,7 +69,7 @@ void SkullBlockEntity::tick(IWorld& world)
 {
     MC_UNUSED(world);
 
-    // 对齐 vanilla SkullBlockEntity.animation：POWERED 为真时累加动画计数并标记动画中
+    // POWERED 为真时累加动画计数并标记动画中（红石驱动的头颅播放旋转动画）
     const BlockState* state = world.getBlockState(m_pos);
     if (state != nullptr && state->get(BlockStateProperties::POWERED())) {
         m_isAnimating = true;

@@ -134,6 +134,13 @@ BlockState CopperChestBlock::updatePostPlacement(const BlockState& state,
     return result;
 }
 
+bool CopperChestBlock::shouldChangedStateKeepBlockEntity(const BlockState& state) const noexcept
+{
+    // 只有旧状态也属于铜箱子族时才保留实体：氧化/涂蜡/除蜡/刮削都发生在族内。
+    // 若无条件返回 true，任意带方块实体的旧方块（漏斗、箱子等）被本方块替换时会被误迁移。
+    return BlockTags::COPPER_CHESTS().contains(state);
+}
+
 bool CopperChestBlock::chestCanConnectTo(const BlockState& neighborState) const
 {
     // 铜箱子允许跨氧化等级与涂蜡状态连接：邻居在 COPPER_CHESTS 标签中且拥有 CHEST_TYPE 属性

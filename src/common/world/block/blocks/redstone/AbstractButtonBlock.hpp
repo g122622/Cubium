@@ -145,13 +145,15 @@ public:
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     /**
-     * @brief 获取按钮附着的方块方向（附面方向）
+     * @brief 获取「从按钮指向支撑方块」的方向
      *
-     * 地板按钮附在上方方块（Up），天花板按钮附在下方方块（Down），墙按钮附在 FACING 方向。
-     * 该方向与 getConnectedDirection().opposite() 等价。
+     * 地板按钮的支撑在下方（Down），天花板按钮的支撑在上方（Up），墙按钮的支撑在
+     * FACING 的反方向（FACING 指向背离支撑的一侧）。该方向与
+     * `getConnectedDirection().opposite()` 等价；isValidPosition 与 _updateNeighbours
+     * 直接用它定位支撑方块。
      *
      * @param state 方块状态
-     * @return 附着方向
+     * @return 指向支撑方块的方向
      */
     [[nodiscard]] static Direction getAttachDirection(const BlockState& state) noexcept;
 
@@ -160,7 +162,7 @@ public:
      * `FaceAttachedHorizontalDirectionalBlock#canSurvive` 继承的实现）。
      *
      * 按钮只能贴在附着方块「朝向按钮的那一面」坚固的位置上：墙按钮要求侧面坚固，
-     * 地板按钮要求上方坚固，天花板按钮要求下方坚固。此前没有覆写，按钮因此能悬浮在
+     * 地板按钮要求下方坚固，天花板按钮要求上方坚固。此前没有覆写，按钮因此能悬浮在
      * 空气中（由差分能力 block_support 查出）。
      *
      * @param state 方块状态
@@ -172,9 +174,11 @@ public:
         const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     /**
-     * @brief 获取按钮信号输出所面向的方向（原版 getConnectedDirection）
+     * @brief 获取按钮强信号输出所面向的方向（原版 getConnectedDirection）
      *
-     * 与附着方向相反：地板按钮输出到 Up，天花板按钮输出到 Down，墙按钮输出到 FACING 的反方向。
+     * 与「指向支撑方块」的方向相反：地板按钮 Up，天花板按钮 Down，墙按钮 FACING。
+     * 该方向按原版语义传给 getStrongPower 的 `side`：支撑方块位于 opposite(FACING)，
+     * 它向按钮查询时传入的 side 正是 FACING，因此墙按钮只会强充能到自己的支撑方块。
      *
      * @param state 方块状态
      * @return 输出方向
