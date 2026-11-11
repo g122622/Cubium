@@ -44,6 +44,9 @@
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/world/IWorld.hpp"
@@ -972,4 +975,81 @@ TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsEntityMatchesEquipment)
     auto [offhand, offhandLog] = _run("execute if items entity @e[limit=1] weapon.offhand minecraft:stone run help");
     ASSERT_TRUE(offhand.success()) << "log:\n" << offhandLog;
     EXPECT_EQ(offhand.value(), 0) << "off hand is empty. log:\n" << offhandLog;
+}
+
+// ============================================================================
+// if predicate 的正向与负向路径
+//
+// 谓词需要先注册到 LootPredicateManager。这里用一个本地的恒真/恒假
+// LootCondition 子类注册两个谓词，避免依赖数据包内容。
+// ============================================================================
+
+namespace {
+
+/// 无条件成立的战利品谓词（仅供测试）
+class AlwaysTrueCondition final : public mc::loot::LootCondition {
+public:
+    bool test(mc::loot::LootContext& /*context*/) const override
+    {
+        return true;
+    }
+
+    std::unique_ptr<mc::loot::LootCondition> clone() const noexcept override
+    {
+        return std::make_unique<AlwaysTrueCondition>(*this);
+    }
+
+    std::string getType() const override
+    {
+        return "test:always_true";
+    }
+};
+
+/// 无条件不成立的战利品谓词（仅供测试）
+class AlwaysFalseCondition final : public mc::loot::LootCondition {
+public:
+    bool test(mc::loot::LootContext& /*context*/) const override
+    {
+        return false;
+    }
+
+    std::unique_ptr<mc::loot::LootCondition> clone() const noexcept override
+    {
+        return std::make_unique<AlwaysFalseCondition>(*this);
+    }
+
+    std::string getType() const override
+    {
+        return "test:always_false";
+    }
+};
+
+} // namespace
+
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfPredicateFollowsRegisteredCondition)
+{
+    // 谓词注册在独立的 LootPredicateManager 上，LootTableManager 只持有它的 const 指针，
+    // 所以测试里自建一个 manager 再挂上去。
+    mc::loot::LootPredicateManager predicateManager;
+    predicateManager.registerPredicate("test:always_true", std::make_unique<AlwaysTrueCondition>());
+    predicateManager.registerPredicate("test:always_false", std::make_unique<AlwaysFalseCondition>());
+    m_server.lootTableManager().setPredicateManager(&predicateManager);
+
+    // 注册为恒真 → 命中
+    auto [hit, hitLog] = _run("execute if predicate test:always_true run help");
+    ASSERT_TRUE(hit.success()) << "log:\n" << hitLog;
+    EXPECT_EQ(hit.value(), 1) << "log:\n" << hitLog;
+
+    // 注册为恒假 → 不命中
+    auto [miss, missLog] = _run("execute if predicate test:always_false run help");
+    ASSERT_TRUE(miss.success()) << "log:\n" << missLog;
+    EXPECT_EQ(miss.value(), 0) << "log:\n" << missLog;
+
+    // 未注册的谓词 → 不命中且有 warn
+    auto [unknown, unknownLog] = _run("execute if predicate test:does_not_exist run help");
+    ASSERT_TRUE(unknown.success()) << "log:\n" << unknownLog;
+    EXPECT_EQ(unknown.value(), 0);
+    EXPECT_NE(unknownLog.find("unknown loot predicate"), std::string::npos)
+        << "an unregistered predicate must be reported, not silently false; log:\n"
+        << unknownLog;
 }

@@ -139,6 +139,23 @@ private:
      * @param context 命令上下文
      * @return 条件是否成立
      */
+    /**
+     * @brief 求值 if predicate <id> 条件
+     *
+     * 从 LootTableManager 取战利品谓词，按与 /loot 相同的方式构建 LootContext
+     * （世界 + 随机源 + 表/谓词解析器 + THIS_ENTITY + ORIGIN），再调用
+     * LootCondition::test。
+     *
+     * 谓词标签形式（#tag）当前不支持——项目没有谓词标签注册表，按不成立处理并 warn。
+     * 无世界或无 server 时返回 false。
+     *
+     * @param target 当前命令源
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluatePredicateCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
     static bool _evaluateItemsCondition(
         const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 

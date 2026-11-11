@@ -48,6 +48,11 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -1025,6 +1030,57 @@ bool ExecuteCommand::_evaluateScoreCondition(
     return false;
 }
 
+bool ExecuteCommand::_evaluatePredicateCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    auto* world = target.world();
+    if (server == nullptr || world == nullptr) {
+        return false;
+    }
+
+    const std::string predicateId = context.getArgumentOr<std::string>("predicate", std::string());
+    if (predicateId.empty()) {
+        return false;
+    }
+
+    // 谓词 ID 可能写成 #tag 形式（resourceOrTag 语法）。标签形式需要"任意一个成员成立"，
+    // 但项目当前没有谓词标签注册表，按不成立处理而不是猜。
+    if (predicateId[0] == '#') {
+        spdlog::warn("/execute if predicate with tag '{}' is not supported (no predicate tag registry)", predicateId);
+        return false;
+    }
+
+    const loot::LootCondition* predicate = server->lootTableManager().getPredicate(predicateId);
+    if (predicate == nullptr) {
+        spdlog::warn("/execute if predicate: unknown loot predicate '{}'", predicateId);
+        return false;
+    }
+
+    // 与 LootCommand 的上下文构建保持一致：世界 + 随机源 + 表/谓词解析器 + THIS_ENTITY + ORIGIN。
+    auto& random = world->getRandom();
+    loot::LootContextBuilder builder(*world);
+    builder.withRandom(random)
+        .withLootTableResolver(
+            [&manager = server->lootTableManager()](const std::string& id) -> const loot::LootTable* {
+                return manager.getTable(id);
+            })
+        .withPredicateResolver(
+            [&manager = server->lootTableManager()](const std::string& id) -> const loot::LootCondition* {
+                return manager.getPredicate(id);
+            });
+
+    if (target.entity() != nullptr) {
+        builder.withNullableParameter(loot::LootParams::THIS_ENTITY, target.entity());
+    }
+    const auto sourcePos = target.position();
+    builder.withOwnedValue(loot::LootParams::ORIGIN,
+        Vector3(static_cast<f32>(sourcePos.x), static_cast<f32>(sourcePos.y), static_cast<f32>(sourcePos.z)));
+
+    auto lootContext = builder.build(loot::LootParameterSets::generic());
+    return predicate->test(*lootContext);
+}
+
 bool ExecuteCommand::_evaluateItemsCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -1227,6 +1283,11 @@ bool ExecuteCommand::_evaluateBlockCondition(
     // 语义完全错误，而且看起来像正常结果。
     if (context.hasArgument("item_predicate")) {
         return _evaluateItemsCondition(target, context);
+    }
+
+    if (context.hasArgument("predicate")) {
+        // predicate <id>：战利品谓词是否成立
+        return _evaluatePredicateCondition(target, context);
     }
 
     if (context.hasArgument("block")) {

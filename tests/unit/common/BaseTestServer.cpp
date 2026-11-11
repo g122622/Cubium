@@ -130,12 +130,12 @@ const resource::DataPackRepository& BaseTestServer::dataPackList() const
 
 loot::LootTableManager& BaseTestServer::lootTableManager()
 {
-    throwUnused();
+    return m_lootTableManager;
 }
 
 const loot::LootTableManager& BaseTestServer::lootTableManager() const
 {
-    throwUnused();
+    return m_lootTableManager;
 }
 
 server::CustomServerBossInfoManager& BaseTestServer::bossBarManager()
