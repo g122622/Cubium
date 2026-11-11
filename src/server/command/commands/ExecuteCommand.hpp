@@ -70,7 +70,8 @@ private:
      * 判定 pos 处的方块是否匹配给定的方块谓词。谓词中显式写出的属性必须一致，
      * 未写出的属性不做限制（对齐 vanilla 的 BlockPredicate 语义）。
      *
-     * 若上下文里没有 pos / block 参数（说明走的是尚未落地的其他条件名），返回 false。
+     * 若上下文里没有 pos / block 参数（说明是其余尚未实现求值的条件名），返回 false。
+     * 注意：`biome` 条件同样带 `pos` 参数，扩展求值时仅凭参数存在性无法区分两者。
      *
      * @param target 当前命令源（用于解析相对坐标）
      * @param context 命令上下文

@@ -193,8 +193,9 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* n
 /**
  * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
  *
- * 条件成立与否在执行链上判定。
- * TODO: `/execute if` 的判定语义尚未实现，执行链目前把这类分支视为条件不成立。
+ * 这里为 12 种条件（biome / block / blocks / data / dimension / entity / function /
+ * items / loaded / predicate / score / stopwatch）都建了完整的参数树，客户端据此补全与高亮。
+ * 条件成立与否在执行链上判定，实际只实现了其中一部分，详见 `_evaluateBlockCondition`。
  */
 std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSource>>>> buildConditionNodes()
 {
@@ -895,9 +896,13 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
 bool ExecuteCommand::_evaluateBlockCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
-    // 目前只有 `if block <pos> <block>` 落了参数树；其他条件名仍是占位字面量，
-    // 解析时不会写入 pos / block，这里按「条件不成立」处理。
-    // TODO: 其余条件落地后，这里要按条件名分派，而不是只认 block。
+    // 只有 `if block <pos> <block>` 真正求值。其余 11 种条件的参数子树由
+    // buildConditionNodes() 建好了（解析期会把参数写进上下文），但求值未实现，
+    // 这里统一按「条件不成立」处理。
+    // TODO: 补齐其余条件时，本函数要按条件名分派，而不是只认 block——注意 `biome` 与
+    //   `block` 都带 `pos` 参数，仅靠参数存在性无法区分，必须拿到条件名（`if`/`unless`
+    //   之后的那个字面量）。执行链当前只有动词链、拿不到条件字面量，需要在解析期把它
+    //   写进上下文。
     if (!context.hasArgument("pos") || !context.hasArgument("block")) {
         return false;
     }
