@@ -641,8 +641,17 @@ private:
  * 实体检测到 NEAREST_VISIBLE_WANTED_ITEM 记忆后，
  * 导航到物品位置并拾取物品。
  *
- * TODO: 此任务需要注册到具有拾取物品行为的实体（如 VillagerEntity、PiglinEntity 等）的
- * Brain 中。需要配合对应的传感器来写入 NEAREST_VISIBLE_WANTED_ITEM 记忆。
+ * 注意：本项目里"拾取物品"已经有一条普适路径，不是靠 Brain 任务实现的——
+ * MobEntity 的 tick 里有完整 looting 段：canPickUpLoot() && isAlive() &&
+ * mobGriefing 为真时，扫描 getPickupReach() 内的 ItemEntity，
+ * 对满足 wantsToPickUp 的调 pickUpItem。VillagerEntity 就是靠这条
+ * 路径工作的（setCanPickUpLoot(true) + 自己的 wantsToPickUp 实现）。
+ *
+ * TODO: 若要启用本任务，需要 (a) 把它注册进目标实体的 Brain；
+ *   (b) 新增一个传感器写入 NEAREST_VISIBLE_WANTED_ITEM（目前全仓搜索该记忆
+ *   只有定义与本任务的读取，没有任何写入点）。
+ *   在那之前不要为 Villager 接入本任务：会与上面那条路径并行重复，
+ *   两边都去 pickUpItem 反而可能导致一件物被拾两次。
  */
 template <typename E>
 class PickupItemTask : public Task<E> {

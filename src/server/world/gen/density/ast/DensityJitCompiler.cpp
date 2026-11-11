@@ -364,17 +364,43 @@ private:
                 return asmjit::kErrorOk;
             }
             case OpCode::Clamp: {
-                // std::clamp(src, imm, imm2) = max(lo, min(src, hi))。
-                // 实现：dst = min(src, hi); dst = max(dst, lo)。NaN 语义与 std::clamp 一致
-                // （std::clamp 用 < 比较，NaN 比较为 false；minsd/maxsd 的 NaN 语义不同，但密度值无 NaN 路径）。
-                // TODO: Clamp 的 NaN 语义未严格对齐 std::clamp（minsd/maxsd vs std::clamp 的 < 比较），
-                //       密度函数树不产生 NaN 故无影响；若未来出现 NaN 路径需改用 ucomisd 分支实现。
+                // std::clamp(src, lo, hi) 的语义：
+                //   src < lo  -> lo
+                //   hi  < src -> hi
+                //   其余（含 NaN，两个比较均为 false）-> src
+                // 不能用 minsd/maxsd：它们遇 NaN 返回**第二操作数**，会把 NaN
+                // 静默变成 lo。这里按上面三分支用 ucomisd 显式实现，NaN 原样透传。
                 asmjit::x86::Xmm dst = m_regs[op.dst];
                 asmjit::x86::Mem lo = m_cc.newDoubleConst(asmjit::ConstPoolScope::kLocal, op.imm);
                 asmjit::x86::Mem hi = m_cc.newDoubleConst(asmjit::ConstPoolScope::kLocal, op.imm2);
                 ASMJIT_PROPAGATE(m_cc.movsd(dst, m_regs[op.srcA]));
-                ASMJIT_PROPAGATE(m_cc.minsd(dst, hi));
-                return m_cc.maxsd(dst, lo);
+
+                asmjit::Label clampNaN = m_cc.newLabel();
+                asmjit::Label clampDone = m_cc.newLabel();
+                asmjit::Label clampLow = m_cc.newLabel();
+
+                // 第一比：src < lo 则取 lo；NaN（PF=1）直接保留 src。
+                ASMJIT_PROPAGATE(m_cc.ucomisd(dst, lo));
+                ASMJIT_PROPAGATE(m_cc.j(asmjit::x86::CondCode::kP, clampNaN));
+                ASMJIT_PROPAGATE(m_cc.j(asmjit::x86::CondCode::kB, clampLow));
+
+                // 第二比：src > hi 则取 hi（hi < src 等价于 dst > hi）。
+                ASMJIT_PROPAGATE(m_cc.ucomisd(dst, hi));
+                ASMJIT_PROPAGATE(m_cc.j(asmjit::x86::CondCode::kP, clampNaN));
+                // dst <= hi（below-or-equal）时无需改动；否则落下去赋 hi。
+                ASMJIT_PROPAGATE(m_cc.j(asmjit::x86::CondCode::kBE, clampDone));
+                ASMJIT_PROPAGATE(m_cc.movsd(dst, hi));
+                ASMJIT_PROPAGATE(m_cc.jmp(clampDone));
+
+                // src < lo：取下界。
+                ASMJIT_PROPAGATE(m_cc.bind(clampLow));
+                ASMJIT_PROPAGATE(m_cc.movsd(dst, lo));
+                ASMJIT_PROPAGATE(m_cc.jmp(clampDone));
+
+                // NaN：dst 已经就是 src，无需动作。
+                ASMJIT_PROPAGATE(m_cc.bind(clampNaN));
+
+                return m_cc.bind(clampDone);
             }
             case OpCode::Binary:
                 return emitBinary(op);

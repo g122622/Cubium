@@ -1783,8 +1783,9 @@ public:
      *        LivingEntity.getSecondsToDisableBlocking + Weapon.disableBlockingForSeconds）
      *
      * vanilla 攻击者主手武器带 WEAPON 组件且 disableBlockingForSeconds>0 时返回该值
-     * （斧头 5.0F）。Cubium 暂无 WEAPON 组件体系，改为检测主手是否为 AxeItem（斧头
-     * 攻击破盾是 wiki 明确行为：用斧攻击盾牌可使盾牌失效 5 秒）。
+     * （斧头 5.0F）。本项目没有"物品类型默认组件"层（ItemStack::setComponent 按 stack
+     * 设置），故改为检测主手是否属于 minecraft:axes 物品标签（物品定义里
+     * 所有斧都带 Weapon(disable_blocking_for_seconds=5.0)，且数据包新增斧类时自动生效）。
      *
      * @return 主手持斧返回 5.0F，否则 0.0F（不破盾）
      */
