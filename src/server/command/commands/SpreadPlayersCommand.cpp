@@ -69,8 +69,12 @@ namespace command {
 namespace {
 
 /// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
-/// TODO: 当支持 EntityArgumentType::entities() 后，非玩家实体应统一归入 null 队伍，
-///       当前仅支持玩家选择器，无法区分玩家和非玩家的队伍归属
+/// TODO: 目标选择器虽然用的是 `EntityArgumentType::entities()`（能匹配非玩家实体），但
+///       `spreadPlayersImpl` 随后走 `resolvePlayerIds` 只取玩家，非玩家实体被静默丢弃——
+///       选中里只要有一个玩家就不报错，全是非玩家时报 "No players matched the selector"。
+///       要支持非玩家实体，需把 `_getNumberOfTeams` / `_setPlayerPositions` 的参数从
+///       `std::vector<std::string> playerNames` 换成实体引用（或 id + 类型），并让非玩家实体
+///       在分队伍时统一归入 null 队伍（原版语义：无队伍实体自成一组）。
 i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
