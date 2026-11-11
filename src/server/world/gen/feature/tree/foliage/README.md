@@ -38,3 +38,11 @@ foliage/
 - 精美橡树的树冠高度固定，首末层半径不扩张，中间层扩张一格；圆形裁剪使用距离平方。
 - `placeFoliage` 显式接受预采样尺寸和可空的状态提供者；旧签名已由仓库内调用方统一迁移，不保留兼容重载。
 - 即使兜底叶片方块为空，也必须收集坐标，使独立状态提供者能放置树冠。
+- **各具体放置器的 `.cpp` 不在 `CMakeLists.txt` 里**：`FoliagePlacers.cpp` 用
+  `#include "PineFoliagePlacer.cpp"` 这种形式把它们整体并入一个翻译单元，
+  因此只有 `FoliagePlacer.cpp` / `BlobFoliagePlacer.cpp` / `FoliagePlacers.cpp` /
+  `CherryFoliagePlacer.cpp` / `RandomSpreadFoliagePlacer.cpp` 出现在构建清单中。
+  两个后果：① 在 CMake 里搜不到某个放置器的 `.cpp` 属正常，不要因此判定它是死文件；
+  ② **绝对不要**再把被包含的 `.cpp` 加进 CMakeLists，否则同一批符号会被编译两次，
+  触发重复定义。同一模式也见于 `tree/trunk/TrunkPlacers.cpp` 与
+  `predicate/BlockPredicate.cpp`。
