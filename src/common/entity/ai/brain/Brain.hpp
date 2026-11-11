@@ -475,15 +475,27 @@ private:
      *        `Timelines::VILLAGER_SCHEDULE()` 与
      *        `attribute::EnvironmentAttributes::VILLAGER_ACTIVITY()`；该类的
      *        sample() 通过 `applyTimeBased(Activity::IDLE, tick)` 取活动。
-     *     2. 把它接进 Brain：`setTimeline(const Timeline*,
+     *     * 把它接进 Brain：`setTimeline(const Timeline*,
      *        const EnvironmentAttribute<Activity>&)`，两个参数都要给。
-     *     3. 驱动：tick() 会调 _updateActivity，但需要 IWorld* 与实体实例；
-     *        也可以给 Brain 增加一个仅供测试的入口（或在测试里通过 tick 传 nullptr
-     *        世界并确认 _updateActivity 不依赖 world 参数——它确实不依赖）。
+     *     3. 驱动：tick() 会调 _updateActivity，需要 IWorld*、实体实例与 IRandom&。
+     *        实测 **world 传 nullptr 是可行的**——_updateActivity 不碰 world，
+     *        _tickSensors / _tickTasks 在没有注册传感器与任务时也不会解引用它。
      *     4. 断言点：注册一个带 ATTACK_TARGET 要求的 FIGHT，写入记忆后连续推进
      *        gameTime 跨过多个 20 tick 窗口，断言 (a) FIGHT 一直保持激活、
      *        (b) 期间没有发生 WORK/IDLE 之类的中间切换。
      *        (b) 是关键——只断言 (a) 无法发现"来回切两次"的抖动。
+     *
+     *   另外两个实测踩到的坑（写测试前务必知道）：
+     *     - MockTestEntity（tests/unit/entity/SensorTests.cpp）原本只有 getBrain()，
+     *       而 Task::_hasRequiredMemories 调的是 owner->brain()。给实体加 brain()
+     *       访问器时会与同名的 Brain 成员变量冲突，需把成员改名为 m_brain。
+     *     - **本方法用 m_tasks 作为活动来源，因此"注册了 requirements 但一个 task
+     *       都没注册"的活动在这里是不可见的**——registerActivity 里
+     *       `for (auto& task : tasks) m_tasks[priority][activity].insert(...)`
+     *       在 tasks 为空时根本不会创建该条目。测试里若用空任务列表注册 FIGHT，
+     *       无论记忆是否就绪都不会被选中。真实代码里每个活动都有任务，所以现状
+     *       不受影响；但这是个脆弱耦合，若要解除，应改为遍历 m_requiredMemoryStates
+     *       （代价是会丢掉 m_tasks 提供的优先级顺序，需要另行保存 activity→priority）。
      *
      * @return true 表示当前有事件活动在生效（已切换过去或本来就在跑），
      *         此时调用方不应再用时间线活动覆盖它。
