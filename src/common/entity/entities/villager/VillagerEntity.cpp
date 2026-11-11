@@ -726,6 +726,11 @@ void VillagerEntity::initializeBrain()
         {});
 
     // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、近战攻击、移动到目标
+    // 注意：这两个活动目前**不可达**。门槛是 ATTACK_TARGET 记忆，而该记忆没有任何
+    // 写入点（详见 MobEntity::setAttackTarget 上的文档注释：攻击目标存在
+    // m_attackTarget 与 Brain 记忆两套互不同步的存储）；同时也没有任何代码
+    // 对村民调用 setAttackTarget（村民本身是和平生物）。这两处注册属于为将来
+    // 袭击/反击行为预留的脚手架。
     m_brain->registerActivity(ai::brain::schedule::Activity::FIGHT,
         0,
         makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
