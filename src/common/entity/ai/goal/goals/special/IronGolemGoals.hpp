@@ -242,46 +242,5 @@ private:
     EntityReference<LivingEntity> m_villageAggressor;
 };
 
-/**
- * @brief 铁傀儡攻击最近敌对目标选择器
- *
- * 搜索附近的敌对生物并攻击，但不攻击苦力怕。
- * 玩家创建的铁傀儡不攻击玩家。
- *
- * TODO(irongolem-target-goal-unused): 本类目前**没有任何实例化点**——全仓只有
- *   本文件的声明与 IronGolemGoals.cpp 里的实现，没有 make_unique/new 出实例，
- *   铁傀儡的目标选择走的是通用的 NearestAttackableTargetGoal。
- *   所以这段逻辑当前不参与运行。要么删掉它（若认定通用版已覆盖），
- *   要么在 IronGolemEntity 的 registerGoals 里接上（若它确有独立语义，
- *   例如"不攻击苦力怕"这条通用版并不具备）。
- */
-class IronGolemNearestAttackableTargetGoal : public TargetGoal {
-public:
-    /**
-     * @brief 构造函数
-     * @param golem 拥有此目标的铁傀儡
-     * @param chance 检查概率倒数（0=每tick都检查）
-     */
-    IronGolemNearestAttackableTargetGoal(IronGolemEntity* golem, i32 chance);
-
-    ~IronGolemNearestAttackableTargetGoal() override = default;
-
-    [[nodiscard]] bool shouldExecute() override;
-    void startExecuting() override;
-
-    [[nodiscard]] std::string getTypeName() const override
-    {
-        return "IronGolemNearestAttackableTargetGoal";
-    }
-
-private:
-    IronGolemEntity* m_golem;
-    i32 m_chance;
-    EntityReference<LivingEntity> m_targetEntity;
-
-    // 搜索范围
-    static constexpr f32 SEARCH_RANGE = 16.0f;
-};
-
 } // namespace entity::ai::goal
 } // namespace mc
