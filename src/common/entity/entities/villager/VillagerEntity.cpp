@@ -823,19 +823,31 @@ void VillagerEntity::initializeBrain()
     //   躲避行为已由 Goal 系统完整承担。
     //
     // TODO(villager-avoid-duplication): 二选一，不要两边都留：
-    //   (a) 注册 AvoidEntitySensor<VillagerEntity> 启用 Brain 版，同时删掉那 8 个
-    //       AvoidEntityGoal 与 PanicGoal——这是原版的方向（村民躲避由 Brain 驱动）；
+    //   (a) 让 Brain 版接管躲避，同时删掉那 8 个 AvoidEntityGoal 与 PanicGoal；
     //   (b) 认定 Goal 版足够，删掉本 AVOID 活动注册。
-    //   现在两边同时存在但只有 Goal 版生效，属于过渡态；事件调度接通后若再补传感器
-    //   就会出现两套逻辑同时驱赶同一个村民，必须避免。
+    //   现在两边同时存在但只有 Goal 版生效，属于过渡态。
     //
-    //   【选 (a) 前必须注意】已核实现有 `AvoidEntitySensor` 的判定是**通用的**
-    //   （`Sensors.hpp`：用 `IMob` 标记接口，"所有继承 MonsterEntity 的实体都视为需要避险"），
-    //   而本文件那 8 个 `AvoidEntityGoal` 是**按具体怪物逐个配置**的
-    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽）。
-    //   所以直接换成 (a) 不是等价替换——村民会开始躲避**所有**怪物，
-    //   包括原版不躲的那些。走 (a) 需要先给 `AvoidEntitySensor` 加一个可配置的
-    //   实体筛选谓词（或新增一个村民专用传感器），再删 Goal。
+    //   【已核实的完整现状，选方案前务必先读】
+    //   1. 正确的 Brain 机制**已经存在**：`VillagerHostilesSensor`（第 632 行已注册）
+    //      内含完整的原版敌对清单与各自检测距离
+    //      （溺尸8/唤魔者12/尸壳8/幻术师12/掠夺者15/劫掠兽12/恼鬼8/卫道士10/疣猪兽10/
+    //      僵尸8/僵尸村民8），写入的是 `NEAREST_HOSTILE`。
+    //      **这套清单与本文件那 8 个 AvoidEntityGoal 覆盖的怪物基本一致**——
+    //      也就是说"按具体怪物筛选"的逻辑已经有了，不需要改 `AvoidEntitySensor`。
+    //   2. 但**没有任何 task 读取 `NEAREST_HOSTILE`**，所以该传感器当前空转。
+    //      本 AVOID 活动读的是 `AVOID_TARGET`，而全仓没有代码写 `AVOID_TARGET`。
+    //      ——两个记忆各自缺一半，这才是"两边都不生效"的真正原因。
+    //   3. `AvoidEntitySensor` 的判定是**通用的**（`MobFlagComponent`，即所有
+    //      MonsterEntity），与村民的精确白名单不等价；直接用它替换 8 个 Goal
+    //      会让村民开始躲避**所有**怪物（含苦力怕/蜘蛛/骷髅等原版不躲的）。
+    //      `Sensors.hpp` 的文档也明确写了"特定实体的避险逻辑应通过专门的传感器实现
+    //      （如 VillagerHostilesSensor），而不是修改此通用传感器"。
+    //
+    //   【结论：正确路径】
+    //   走 (a)，但**不要动 `AvoidEntitySensor`**：改用 `VillagerHostilesSensor`
+    //   写入的 `NEAREST_HOSTILE` 作为触发源——要么把 AVOID 活动的 requiredMemory
+    //   从 `AVOID_TARGET` 改为 `NEAREST_HOSTILE`，要么新增一个把
+    //   `NEAREST_HOSTILE` 转写成 `AVOID_TARGET` 的 task。做完再删那 8 个 Goal。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
