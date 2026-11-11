@@ -163,18 +163,21 @@ TEST(WorldgenRandomVanillaGoldenTest, NextLongMatchesVanilla)
 
 TEST(WorldgenRandomVanillaGoldenTest, NextDoubleMatchesVanilla)
 {
-    // Java: (((long)next(26) << 27) + next(27)) * 1.110223E-16F
-    // 常量是 float 字面量，long*float 的中间精度只有 24 位
-    const std::array<f64, 10> expected = {0.74543213844299320,
-        0.59110760688781740,
-        0.45643019676208496,
-        0.44883000850677490,
-        0.50039875507354740,
-        0.49906075000762940,
-        0.092967644333839420,
-        0.58322405815124510,
-        0.83376991748809810,
-        0.92186999320983890};
+    // 原版 WorldgenRandom 继承 LegacyRandomSource，nextDouble 走 java.util.Random 的 53 位公式：
+    //   (((long)next(26) << 27) + next(27)) * 0x1.0p-53
+    // 乘数是 f64（2^-53 的精确值），中间不经过 f32——tests/diff 的 random_sequence oracle
+    // 直接对原版 jar 的 RandomSource.nextDouble() 取 doubleToRawLongBits 逐位比对，
+    // 已确认该语义（BitRandomSource/Xoroshiro 的 nextDouble 同理）。
+    const std::array<f64, 10> expected = {0.74543212947242110,
+        0.59110759593586959,
+        0.45643020641910315,
+        0.44882999865128581,
+        0.50039876314121101,
+        0.49906074244217236,
+        0.092967645910999153,
+        0.58322404833264918,
+        0.83376988828795151,
+        0.92186997010957017};
     auto rng = makeWorldgenRandom(kDrawSeed);
     for (size_t i = 0; i < expected.size(); ++i) {
         EXPECT_DOUBLE_EQ(rng->nextDouble(), expected[i]) << "nextDouble() 第 " << i << " 次抽取不一致";

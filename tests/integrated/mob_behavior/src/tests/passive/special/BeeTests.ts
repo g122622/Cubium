@@ -216,7 +216,8 @@ function beeFollowsFlower(test: Test): void {
 
   // 结构放置有 +1 抬升：helper-y=N 对应结构内 y=N-1。
   // mediumglass 内部空腔 helper y=2（结构内 y=1 空气），地板 helper y=1（结构内 y=0 圆石）。
-  // 走廊 helper y=2, z=5, x=2..10（9 格）。玩家与蜜蜂分置走廊两端，距离 8 格 < TemptRange 10。
+  // 走廊 helper y=2, z=5, x=1..9（结构内 x=1..9 为空气，x=10 是玻璃墙）。
+  // 玩家 x=2、蜜蜂 x=9，相距 7 格 < TemptRange 10。
   const farmer = test.spawnSimulatedPlayer({ x: 2, y: 2, z: 5 }, "farmer");
 
   // 主手持蒲公英：setItem 第三参 selectSlot=true 同步选中槽 0（主手），
@@ -227,8 +228,9 @@ function beeFollowsFlower(test: Test): void {
   // ItemStack 类型分裂致 setItem 形参类型不兼容；运行时两者均为同一 Cubium ItemStack opaque，强转绕过编译期。
   farmer.setItem(flower as unknown as Parameters<typeof farmer.setItem>[0], 0, true);
 
-  // 蜜蜂 spawn 在走廊远端，距玩家 8 格，在 TemptRange(10) 内
-  test.spawn(beeType, { x: 10, y: 2, z: 5 });
+  // 蜜蜂 spawn 在走廊远端空气格（x=9，结构 x=10 是玻璃墙，不能作为生成点），
+  // 距玩家 7 格，在 TemptRange(10) 内。
+  test.spawn(beeType, { x: 9, y: 2, z: 5 });
 
   // 蜜蜂被诱惑后从 x=10 朝玩家 x=2 方向飞行。断言蜜蜂出现在玩家附近体积（x:2..6）即通过。
   // 体积用 helper 坐标：from(x:2,y:2,z:4) to(x:6,y:4,z:6)，覆盖玩家附近 5×3×3 区域（蜜蜂飞行 y 跨度大）。
