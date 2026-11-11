@@ -737,6 +737,56 @@ public:
      * 注意：只在状态真正变化时触发，重复拴到同一目标不会重复派发，
      * 因为底层每次调用都会通知。
      */
+    /**
+     * @brief 近战命中后按 minecraft:attack 的 effect_* 字段给目标施加状态效果
+     *
+     * 先走基类完整攻击链（伤害属性 + 附魔加成 + 火焰附加 + 击退 + 音效），
+     * 命中成功名再施加效果，保证"没打中就不上效果"。
+     */
+    bool attackEntityAsMob(LivingEntity& target) override
+    {
+        if (!mc::AgeableEntity::attackEntityAsMob(target)) {
+            return false;
+        }
+
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* attack = components != nullptr ? components->component("minecraft:attack") : nullptr;
+        if (attack == nullptr) {
+            return true;
+        }
+        const auto effectName = attack->find("effect_name");
+        if (effectName == attack->end() || !effectName->is_string()) {
+            return true;
+        }
+
+        const std::optional<mc::entity::effect::EffectType> effectType =
+            mc::entity::effect::getEffectByResourceLocation(ResourceLocation(effectName->get<std::string>()));
+        if (!effectType.has_value()) {
+            spdlog::warn(
+                "minecraft:attack effect_name '{}' is not a known effect, skipped", effectName->get<std::string>());
+            return true;
+        }
+
+        // 基岩 schema：effect_duration 单位是**秒**（需 ×20 转 tick），
+        // effect_amplifier 从 0 起算。缺省值与官方一致：持续 1 秒、等级 0。
+        i32 durationSeconds = 1;
+        if (const auto duration = attack->find("effect_duration");
+            duration != attack->end() && duration->is_number_integer()) {
+            durationSeconds = static_cast<i32>(duration->get<i64>());
+        }
+        i32 amplifier = 0;
+        if (const auto value = attack->find("effect_amplifier"); value != attack->end() && value->is_number_integer()) {
+            amplifier = static_cast<i32>(value->get<i64>());
+        }
+        if (durationSeconds <= 0) {
+            return true;
+        }
+
+        target.addEffect(
+            mc::entity::effect::EffectInstance(*effectType, durationSeconds * 20, amplifier, false, true, true));
+        return true;
+    }
+
     void onLeashStateChanged(bool leashed) override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -1685,14 +1735,9 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
                     living->attributes().setBaseValue(mc::entity::attribute::Attributes::ATTACK_DAMAGE, clamped);
                 }
             }
-            // TODO: effect_name / effect_duration / effect_amplifier 需要"近战命中后对目标施加状态
-            //       效果"的挂接点；addon 实体的近战路径尚未接入完整 doHurtTarget 管线，因此这三项
-            //       目前只做校验。务必 warn 而不是静默——否则服主会以为效果已生效。
-            if (it->contains("effect_name")) {
-                spdlog::warn("[BedrockAddon] minecraft:attack effect_name on '{}' is validated but not applied: "
-                             "melee effect application is not wired for addon mobs yet",
-                    m_identifier);
-            }
+            // effect_name / effect_duration / effect_amplifier 由 _AddonMob::attackEntityAsMob 消费：
+            //   近战命中后按基岩语义（duration 单位秒、amplifier 从 0 起）给目标施加状态效果。
+            //   效果名无法解析时记 warn 并跳过，不影响伤害结算。
         } else {
             spdlog::warn("[BedrockAddon] minecraft:attack on non-living entity '{}' has no effect", m_identifier);
         }
