@@ -138,12 +138,6 @@ public:
      */
     [[nodiscard]] Entity& assertEntity() const;
 
-    /**
-     * @brief 断言执行者是玩家
-     * @throws CommandError 如果不是玩家
-     */
-    [[nodiscard]] ServerPlayer& assertPlayer() const;
-
     // ========== 权限 ==========
 
     [[nodiscard]] i32 permissionLevel() const noexcept

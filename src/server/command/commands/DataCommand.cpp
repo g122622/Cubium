@@ -506,7 +506,12 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
         // 检查是否有路径参数
         if (context.hasArgument("path")) {
@@ -580,7 +585,12 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
     EntityDataAccessor accessor(entity);
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
         // 检查是否有路径参数
         if (context.hasArgument("path")) {
@@ -644,7 +654,12 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
     StorageDataAccessor accessor(&storage, id);
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
         // 检查是否有路径参数
         if (context.hasArgument("path")) {
@@ -708,9 +723,14 @@ std::string stringifyNbtValue(const nbt::tags::tag& value)
 ///
 /// 每次调用都重新读取底层数据（原版也是每次都重新 resolve/读存储），因此来源与目标
 /// 是同一个存储时也能拿到写入前的最新状态。
-std::vector<std::unique_ptr<nbt::tags::tag>> readSourcePath(IDataAccessor& accessor, const NbtPath& path)
+Result<std::vector<std::unique_ptr<nbt::tags::tag>>, CommandError> readSourcePath(
+    IDataAccessor& accessor, const NbtPath& path)
 {
-    auto data = accessor.getData();
+    auto dataResult = accessor.getData();
+    if (dataResult.failed()) {
+        return dataResult.error();
+    }
+    auto data = std::move(dataResult).value();
     std::vector<std::unique_ptr<nbt::tags::tag>> values;
     for (const auto* tag : path.get(*data)) {
         values.push_back(tag->copy());
@@ -751,7 +771,14 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                     _sendError(source, "commands.data.block.failed.noBlockEntity");
                     return 0;
                 }
-                sourceValues = readSourcePath(accessor, sourcePath);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             }
             // `from entity <source> <path>`
             else if (const auto* selectorValue = std::any_cast<EntitySelector>(&raw)) {
@@ -762,7 +789,14 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                 }
                 Entity* sourceEntity = entities.front();
                 EntityDataAccessor accessor(sourceEntity);
-                sourceValues = readSourcePath(accessor, sourcePath);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             }
             // `from storage <source> <path>`
             else if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
@@ -772,7 +806,14 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                     return 0;
                 }
                 StorageDataAccessor accessor(&server->commandStorage(), *storageId);
-                sourceValues = readSourcePath(accessor, sourcePath);
+                {
+                    auto sourceValuesResult = readSourcePath(accessor, sourcePath);
+                    if (sourceValuesResult.failed()) {
+                        _sendCommandError(source, sourceValuesResult.error());
+                        return 0;
+                    }
+                    sourceValues = std::move(sourceValuesResult).value();
+                }
             } else {
                 _sendError(source, "commands.data.modify.invalidSource");
                 return 0;
@@ -841,7 +882,12 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
     }
 
     try {
-        auto data = targetAccessor->getData();
+        auto dataResult = targetAccessor->getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
         i32 count = 0;
         switch (operation) {
             case 0: // set
@@ -851,29 +897,60 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                     _sendError(source, "commands.data.modify.missingValue");
                     return 0;
                 }
-                count = targetPath.set(*data, [value]() -> std::unique_ptr<nbt::tags::tag> {
+                auto setResult = targetPath.set(*data, [value]() -> std::unique_ptr<nbt::tags::tag> {
                     return value->copy();
                 });
+                if (setResult.failed()) {
+                    _sendCommandError(source, setResult.error());
+                    return 0;
+                }
+                count = setResult.value();
                 break;
             }
             case 1: // append
-                count = targetPath.append(*data, sourceValues);
+            {
+                auto appendResult = targetPath.append(*data, sourceValues);
+                if (appendResult.failed()) {
+                    _sendCommandError(source, appendResult.error());
+                    return 0;
+                }
+                count = appendResult.value();
                 break;
+            }
             case 2: // prepend
-                count = targetPath.prepend(*data, sourceValues);
+            {
+                auto prependResult = targetPath.prepend(*data, sourceValues);
+                if (prependResult.failed()) {
+                    _sendCommandError(source, prependResult.error());
+                    return 0;
+                }
+                count = prependResult.value();
                 break;
+            }
             case 3: // merge
                 if (sourceValues.empty() || sourceValues.front()->id() != nbt::TagId::Compound) {
                     _sendError(source, "commands.data.modify.merge.expectedCompound");
                     return 0;
                 }
-                count =
-                    targetPath.merge(*data, *static_cast<const nbt::tags::compound_tag*>(sourceValues.front().get()));
+            {
+                auto mergeResult = targetPath.merge(
+                    *data, *static_cast<const nbt::tags::compound_tag*>(sourceValues.front().get()));
+                if (mergeResult.failed()) {
+                    _sendCommandError(source, mergeResult.error());
+                    return 0;
+                }
+                count = mergeResult.value();
                 break;
+            }
             case 4: // insert
             {
                 const i32 index = context.getArgument<i32>("index");
-                count = targetPath.insert(*data, index, sourceValues);
+                auto insertResult = targetPath.insert(*data, index, sourceValues);
+                if (insertResult.failed()) {
+                    _sendCommandError(source, insertResult.error());
+                    return 0;
+                }
+                count = insertResult.value();
                 break;
             }
             default:
@@ -886,7 +963,11 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             return 0;
         }
 
-        targetAccessor->mergeData(*data);
+        auto mergeResult = targetAccessor->mergeData(*data);
+        if (mergeResult.failed()) {
+            _sendCommandError(source, mergeResult.error());
+            return 0;
+        }
         source.sendMessage(targetAccessor->getModifiedMessage());
         return count;
     }
@@ -918,12 +999,22 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
         // 设置值
-        i32 count = path.set(*data, [&value]() {
+        auto setResult = path.set(*data, [&value]() {
             return value->copy();
         });
+        if (setResult.failed()) {
+            _sendCommandError(source, setResult.error());
+            return 0;
+        }
+        const i32 count = setResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");
@@ -931,7 +1022,11 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         }
 
         // 写回数据
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+        if (mergeResult.failed()) {
+            _sendCommandError(source, mergeResult.error());
+            return 0;
+        }
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
@@ -972,18 +1067,36 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
-        i32 count = path.set(*data, [&value]() {
+        auto setResult = path.set(*data, [&value]() {
             return value->copy();
         });
+        if (setResult.failed()) {
+            _sendCommandError(source, setResult.error());
+            return 0;
+        }
+        const i32 count = setResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");
             return 0;
         }
 
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+
+        if (mergeResult.failed()) {
+
+            _sendCommandError(source, mergeResult.error());
+
+            return 0;
+
+        }
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
@@ -1012,18 +1125,36 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     StorageDataAccessor accessor(&storage, id);
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
-        i32 count = path.set(*data, [&value]() {
+        auto setResult = path.set(*data, [&value]() {
             return value->copy();
         });
+        if (setResult.failed()) {
+            _sendCommandError(source, setResult.error());
+            return 0;
+        }
+        const i32 count = setResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.set.pathNotFound");
             return 0;
         }
 
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+
+        if (mergeResult.failed()) {
+
+            _sendCommandError(source, mergeResult.error());
+
+            return 0;
+
+        }
 
         source.sendMessage(accessor.getModifiedMessage());
         return count;
@@ -1057,7 +1188,11 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        accessor.mergeData(*nbt);
+        auto mergeResult = accessor.mergeData(*nbt);
+        if (mergeResult.failed()) {
+            _sendCommandError(source, mergeResult.error());
+            return 0;
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
@@ -1096,7 +1231,11 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        accessor.mergeData(*nbt);
+        auto mergeResult = accessor.mergeData(*nbt);
+        if (mergeResult.failed()) {
+            _sendCommandError(source, mergeResult.error());
+            return 0;
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
@@ -1123,7 +1262,11 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
     StorageDataAccessor accessor(&storage, id);
 
     try {
-        accessor.mergeData(*nbt);
+        auto mergeResult = accessor.mergeData(*nbt);
+        if (mergeResult.failed()) {
+            _sendCommandError(source, mergeResult.error());
+            return 0;
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return 1;
     }
@@ -1156,16 +1299,34 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
-        i32 count = path.remove(*data);
+        auto removeResult = path.remove(*data);
+        if (removeResult.failed()) {
+            _sendCommandError(source, removeResult.error());
+            return 0;
+        }
+        const i32 count = removeResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+
+        if (mergeResult.failed()) {
+
+            _sendCommandError(source, mergeResult.error());
+
+            return 0;
+
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
@@ -1204,16 +1365,34 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
     }
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
-        i32 count = path.remove(*data);
+        auto removeResult = path.remove(*data);
+        if (removeResult.failed()) {
+            _sendCommandError(source, removeResult.error());
+            return 0;
+        }
+        const i32 count = removeResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+
+        if (mergeResult.failed()) {
+
+            _sendCommandError(source, mergeResult.error());
+
+            return 0;
+
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }
@@ -1240,16 +1419,34 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
     StorageDataAccessor accessor(&storage, id);
 
     try {
-        auto data = accessor.getData();
+        auto dataResult = accessor.getData();
+        if (dataResult.failed()) {
+            _sendCommandError(source, dataResult.error());
+            return 0;
+        }
+        auto data = std::move(dataResult).value();
 
-        i32 count = path.remove(*data);
+        auto removeResult = path.remove(*data);
+        if (removeResult.failed()) {
+            _sendCommandError(source, removeResult.error());
+            return 0;
+        }
+        const i32 count = removeResult.value();
 
         if (count == 0) {
             _sendError(source, "commands.data.remove.pathNotFound");
             return 0;
         }
 
-        accessor.mergeData(*data);
+        auto mergeResult = accessor.mergeData(*data);
+
+        if (mergeResult.failed()) {
+
+            _sendCommandError(source, mergeResult.error());
+
+            return 0;
+
+        }
         source.sendMessage(accessor.getModifiedMessage());
         return count;
     }

@@ -90,10 +90,11 @@ public:
         : ExecuteModifierNode(name, index)
     {}
 
-    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
-        ExecuteModifierNode::parse(reader, context);
+        MC_TRY(ExecuteModifierNode::parse(reader, context));
         context.markParsed("executeCondition");
+        return Result<void, CommandError>::ok();
     }
 };
 
@@ -179,8 +180,10 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
 {
     auto node = std::make_shared<ArgumentCommandNode<ServerCommandSource, typename Type::Value>>(name, std::move(type));
     if (executable) {
-        node->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-            throw CommandError(CommandErrorType::Unknown, "commands.execute.conditional");
+        node->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+            // 条件节点的占位命令：走到这里说明条件未满足（或没有 run 子命令）。
+            ctx.getSource().sendError("commands.execute.conditional");
+            return 0;
         });
     }
     return node;
@@ -235,8 +238,9 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         auto destination = conditionArg("destination", BlockPosArgumentType::blockPos(), false);
         for (const char* mode : {"all", "masked"}) {
             auto modeNode = conditionLiteral(mode);
-            modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
-                throw CommandError(CommandErrorType::Unknown, "commands.execute.conditional");
+            modeNode->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
+                ctx.getSource().sendError("commands.execute.conditional");
+                return 0;
             });
             destination->addChild(modeNode);
         }

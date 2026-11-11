@@ -163,22 +163,6 @@ bool ServerCommandSource::allowLogging() const noexcept
     return true;
 }
 
-ServerPlayer& ServerCommandSource::assertPlayer() const
-{
-    if (!m_player) {
-        throw CommandError(CommandErrorType::PermissionDenied, "commands.requires.player");
-    }
-    return *m_player;
-}
-
-Entity& ServerCommandSource::entityOrException() const
-{
-    if (m_entity == nullptr) {
-        throw CommandError(CommandErrorType::PermissionDenied, "commands.requires.entity");
-    }
-    return *m_entity;
-}
-
 ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const
 {
     ServerCommandSource source(*this);

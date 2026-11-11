@@ -118,7 +118,7 @@ class ItemArgumentType : public ArgumentType<ItemInput> {
 public:
     [[nodiscard]] Result<ItemInput, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
+        const i32 start = reader.getCursor();
 
         // 读取物品名称：与原版一样走 Identifier 命令语法（不读引号、不认大写、单个冒号）。
         MC_TRY_DECLARE(location, readResourceLocationId(reader));
@@ -128,7 +128,7 @@ public:
 
         if (item == nullptr) {
             reader.setCursor(start);
-            throw CommandError(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
+            return CommandError(CommandErrorType::Unknown, "Unknown item: " + location.toString(), start);
         }
 
         // air 物品特判：vanilla 中 minecraft:air 是空堆的同义物品，命令层用 air 清空槽位。

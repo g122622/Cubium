@@ -58,10 +58,11 @@ public:
         return m_index;
     }
 
-    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
-        LiteralCommandNode<ServerCommandSource>::parse(reader, context);
+        MC_TRY(LiteralCommandNode<ServerCommandSource>::parse(reader, context));
         context.setArgument("commandModifier", m_index);
+        return Result<void, CommandError>::ok();
     }
 
 private:
@@ -86,16 +87,17 @@ public:
         return "string";
     }
 
-    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
         // run 节点解析链尾时已经把整段原文写进 command；这里多半是同一段文本的第二遍，
         // 若此时还有剩余（`run` 之后的首个词是普通单词、但整段读取的边界不同），以原文为准。
         if (!reader.canRead()) {
-            return;
+            return Result<void, CommandError>::ok();
         }
         std::string remaining = reader.getRemaining();
         reader.setCursor(reader.getTotalLength());
         context.setArgument("command", remaining);
+        return Result<void, CommandError>::ok();
     }
 };
 
@@ -134,10 +136,10 @@ public:
         return m_prototype.getMetadata();
     }
 
-    void parse(StringReader& reader, CommandContext<S>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<S>& context) const override
     {
         const i32 start = reader.getCursor();
-        m_prototype.parse(reader, context);
+        MC_TRY(m_prototype.parse(reader, context));
         // 原型把值写进自己的参数名；这里搬到链内专属槽名，避免多次出现互相覆盖。
         const std::string prototypeName = m_prototype.getName();
         if (prototypeName != m_slot) {
@@ -145,6 +147,7 @@ public:
                 context.setArgumentAny(m_slot, context.getArgumentAny(prototypeName), start);
             }
         }
+        return Result<void, CommandError>::ok();
     }
 
 private:

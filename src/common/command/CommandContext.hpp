@@ -99,16 +99,14 @@ public:
      * @tparam T 参数类型
      * @param name 参数名
      * @return 参数值
-     * @throws std::out_of_range 如果参数不存在
-     * @throws std::bad_any_cast 如果类型不匹配
+     * @note 参数不存在属于调用方违约，断言崩溃（不再抛 std::out_of_range）
      */
     template <typename T>
     [[nodiscard]] T getArgument(const std::string& name) const
     {
-        auto it = m_arguments.find(name);
-        if (it == m_arguments.end()) {
-            throw std::out_of_range("Argument not found: " + name);
-        }
+        const auto it = m_arguments.find(name);
+        // 取不存在的参数属于调用方违约（解析器与执行器的参数名对不上），断言崩溃优于抛异常。
+        MC_ASSERT_RELEASE_MSG(it != m_arguments.end(), "CommandContext::getArgument: argument not found");
         // 指针形式：类型不匹配时返回 nullptr，不抛 std::bad_any_cast；
         // 取到 nullptr 说明解析器与执行器对同一参数的类型约定不一致，属编程错误。
         const auto* value = std::any_cast<T>(&it->second.value);
@@ -134,14 +132,12 @@ public:
 
     /**
      * @brief 按 std::any 取出参数值（不校验类型），用于把参数值搬到另一个槽名。
-     * @throws std::out_of_range 如果参数不存在
+     * @note 参数不存在属于调用方违约，断言崩溃（不再抛 std::out_of_range）
      */
     [[nodiscard]] std::any getArgumentAny(const std::string& name) const
     {
-        auto it = m_arguments.find(name);
-        if (it == m_arguments.end()) {
-            throw std::out_of_range("Argument not found: " + name);
-        }
+        const auto it = m_arguments.find(name);
+        MC_ASSERT_RELEASE_MSG(it != m_arguments.end(), "CommandContext::getArgumentAny: argument not found");
         return it->second.value;
     }
 

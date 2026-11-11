@@ -178,7 +178,7 @@ Result<ItemPredicateInput, CommandError> ItemPredicateArgumentType::parse(String
 
     if (item == nullptr) {
         reader.setCursor(start);
-        throw CommandError(CommandErrorType::Unknown, "Unknown item: " + str, start);
+        return CommandError(CommandErrorType::Unknown, "Unknown item: " + str, start);
     }
 
     return ItemPredicateInput(item->itemId()); // Mode::Item

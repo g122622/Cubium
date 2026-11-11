@@ -239,10 +239,10 @@ public:
     /**
      * @brief 从复合标签获取单个值
      * @param tag 复合标签
-     * @return 匹配的单个标签，如果有多个匹配则抛出异常
-     * @throws CommandError 如果路径无效、未找到或找到多个
+     * @return 匹配的单个标签；路径未找到或匹配到多个时返回错误
      */
-    [[nodiscard]] const nbt::tags::tag* getSingle(const nbt::tags::compound_tag& tag) const;
+    [[nodiscard]] Result<const nbt::tags::tag*, CommandError> getSingle(
+        const nbt::tags::compound_tag& tag) const;
 
     /**
      * @brief 计算路径匹配的数量
@@ -270,7 +270,8 @@ public:
      * @return 修改的数量
      * @throws CommandError 如果路径无效或写入后数据嵌套过深
      */
-    i32 set(nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const;
+    [[nodiscard]] Result<i32, CommandError> set(
+        nbt::tags::compound_tag& tag, std::function<std::unique_ptr<nbt::tags::tag>()> valueSupplier) const;
 
     /**
      * @brief 删除路径指向的值
@@ -278,7 +279,7 @@ public:
      * @return 删除的数量
      * @throws CommandError 如果路径无效
      */
-    i32 remove(nbt::tags::compound_tag& tag) const;
+    [[nodiscard]] Result<i32, CommandError> remove(nbt::tags::compound_tag& tag) const;
 
     /**
      * @brief 将值插入到列表的指定位置
@@ -287,7 +288,7 @@ public:
      * @param values 要插入的值
      * @return 插入的数量
      */
-    i32 insert(
+    [[nodiscard]] Result<i32, CommandError> insert(
         nbt::tags::compound_tag& tag, i32 index, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const;
 
     /**
@@ -304,7 +305,8 @@ public:
      * @param values 要追加的值
      * @return 追加的数量
      */
-    i32 append(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const;
+    [[nodiscard]] Result<i32, CommandError> append(
+        nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const;
 
     /**
      * @brief 将值预置到列表开头
@@ -312,7 +314,8 @@ public:
      * @param values 要预置的值
      * @return 预置的数量
      */
-    i32 prepend(nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const;
+    [[nodiscard]] Result<i32, CommandError> prepend(
+        nbt::tags::compound_tag& tag, const std::vector<std::unique_ptr<nbt::tags::tag>>& values) const;
 
     /**
      * @brief 合并复合标签到路径指向的位置
@@ -320,7 +323,8 @@ public:
      * @param value 要合并的复合标签
      * @return 修改的数量
      */
-    i32 merge(nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const;
+    [[nodiscard]] Result<i32, CommandError> merge(
+        nbt::tags::compound_tag& tag, const nbt::tags::compound_tag& value) const;
 
     /**
      * @brief 获取原始路径字符串

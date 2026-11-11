@@ -56,7 +56,7 @@ namespace mc::command {
  */
 class DimensionArgumentType : public ArgumentType<DimensionId> {
 public:
-    [[nodiscard]] DimensionId parse(StringReader& reader) override
+    [[nodiscard]] Result<DimensionId, CommandError> parse(StringReader& reader) override
     {
         i32 start = reader.getCursor();
 
@@ -70,7 +70,7 @@ public:
         // 这里需要验证输入确实是有效的维度名称
         if (!_isValidDimensionName(name, dimId)) {
             reader.setCursor(start);
-            throw CommandError(CommandErrorType::Unknown, "Unknown dimension: '" + name + "'", start);
+            return CommandError(CommandErrorType::Unknown, "Unknown dimension: '" + name + "'", start);
         }
 
         return dimId;

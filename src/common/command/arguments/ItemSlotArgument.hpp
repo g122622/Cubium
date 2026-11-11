@@ -322,17 +322,17 @@ public:
      * 大小写不同都会报「Unknown slot」，并且报错位置是读完整个名字之后。
      * `contents` 在原版里是容器全体（0），纯数字与原版一致地不支持。
      */
-    [[nodiscard]] ItemSlot parse(StringReader& reader) override
+    [[nodiscard]] Result<ItemSlot, CommandError> parse(StringReader& reader) override
     {
-        i32 start = reader.getCursor();
-        std::string str = reader.readString();
+        const i32 start = reader.getCursor();
+        MC_TRY_DECLARE(str, reader.readString());
 
         if (const auto it = s_slots.find(str); it != s_slots.end()) {
             return ItemSlot(it->second);
         }
 
         // 与 brigadier 一致：游标停留在已读到的位置，报错点名整个名字。
-        throw CommandError(CommandErrorType::Unknown, "Unknown slot: " + str, reader.getCursor());
+        return CommandError(CommandErrorType::Unknown, "Unknown slot: " + str, reader.getCursor());
     }
 
     [[nodiscard]] std::string getTypeName() const noexcept override

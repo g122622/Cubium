@@ -128,9 +128,9 @@ public:
         return s_modifiers[index].lock();
     }
 
-    void parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
-        LiteralCommandNode<ServerCommandSource>::parse(reader, context);
+        MC_TRY(LiteralCommandNode<ServerCommandSource>::parse(reader, context));
         context.setArgument(kParseMarkerParam, ExecuteParseMarker{});
 
         const i32 runEnd = reader.getCursor();
@@ -165,10 +165,8 @@ public:
                 break;
             }
 
-            try {
-                segmentNode->parse(reader, context);
-            }
-            catch (const CommandError&) {
+            if (segmentNode->parse(reader, context).failed()) {
+                // 这一段的参数没解析成功：回退到段首，把余下文本当作嵌套命令原文。
                 reader.setCursor(tokenStart);
                 reader.skipWhitespace();
                 break;
@@ -192,7 +190,11 @@ public:
 
         std::string command;
         if (reader.canRead()) {
-            command = reader.readString();
+            auto commandText = reader.readString();
+            if (commandText.failed()) {
+                return commandText.error();
+            }
+            command = std::move(commandText).value();
             reader.setCursor(reader.getTotalLength());
         }
         // dispatcher 会接着派发 run 下的 command 节点，把剩余文本交给它；那一步产生的
@@ -205,6 +207,7 @@ public:
 
         // 回到 run 之后的位置，让 dispatcher 继续按原样派发（转发节点会读到 command 槽）。
         reader.setCursor(runEnd);
+        return Result<void, CommandError>::ok();
     }
 
 private:
