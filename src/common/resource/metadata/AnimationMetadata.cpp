@@ -103,52 +103,51 @@ AnimationMetadata AnimationMetadata::fromMcmeta(const std::vector<u8>& mcmetaDat
         return AnimationMetadata();
     }
 
-    try {
-        const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
-        const auto json = nlohmann::json::parse(jsonText);
-
-        if (!json.is_object() || !json.contains("animation")) {
-            return AnimationMetadata();
-        }
-
-        AnimationMetadata metadata = fromJson(json["animation"]);
-
-        // 自动检测帧尺寸：当width和height都未指定时，使用min(imageWidth, imageHeight)
-        if (metadata.width <= 0 && metadata.height <= 0) {
-            const u32 minDim = std::min(imageWidth, imageHeight);
-            metadata.width = static_cast<i32>(minDim);
-            metadata.height = static_cast<i32>(minDim);
-        } else if (metadata.width <= 0) {
-            metadata.width = metadata.height;
-        } else if (metadata.height <= 0) {
-            metadata.height = metadata.width;
-        }
-
-        // 验证帧尺寸
-        if (metadata.width <= 0 || metadata.height <= 0) {
-            return AnimationMetadata();
-        }
-
-        if (static_cast<u32>(metadata.width) > imageWidth || static_cast<u32>(metadata.height) > imageHeight) {
-            return AnimationMetadata();
-        }
-
-        // 验证帧尺寸能整除图像尺寸
-        if ((imageWidth % static_cast<u32>(metadata.width)) != 0 ||
-            (imageHeight % static_cast<u32>(metadata.height)) != 0) {
-            return AnimationMetadata();
-        }
-
-        // 如果没有自定义帧序列，计算总帧数
-        // 总帧数 = 图像高度 / 帧高度
-        // 注意：帧序列会在AnimatedSprite中根据实际帧数填充
-
-        return metadata;
-    }
-    catch (const nlohmann::json::exception& e) {
-        // JSON解析失败
+    const std::string jsonText(mcmetaData.begin(), mcmetaData.end());
+    auto parsedJson = util::json::parse(jsonText);
+    if (parsedJson.failed()) {
+        // JSON 解析失败：按「无动画元数据」处理
         return AnimationMetadata();
     }
+    const auto& json = parsedJson.value();
+
+    if (!json.is_object() || !json.contains("animation")) {
+        return AnimationMetadata();
+    }
+
+    AnimationMetadata metadata = fromJson(json["animation"]);
+
+    // 自动检测帧尺寸：当width和height都未指定时，使用min(imageWidth, imageHeight)
+    if (metadata.width <= 0 && metadata.height <= 0) {
+        const u32 minDim = std::min(imageWidth, imageHeight);
+        metadata.width = static_cast<i32>(minDim);
+        metadata.height = static_cast<i32>(minDim);
+    } else if (metadata.width <= 0) {
+        metadata.width = metadata.height;
+    } else if (metadata.height <= 0) {
+        metadata.height = metadata.width;
+    }
+
+    // 验证帧尺寸
+    if (metadata.width <= 0 || metadata.height <= 0) {
+        return AnimationMetadata();
+    }
+
+    if (static_cast<u32>(metadata.width) > imageWidth || static_cast<u32>(metadata.height) > imageHeight) {
+        return AnimationMetadata();
+    }
+
+    // 验证帧尺寸能整除图像尺寸
+    if ((imageWidth % static_cast<u32>(metadata.width)) != 0 ||
+        (imageHeight % static_cast<u32>(metadata.height)) != 0) {
+        return AnimationMetadata();
+    }
+
+    // 如果没有自定义帧序列，计算总帧数
+    // 总帧数 = 图像高度 / 帧高度
+    // 注意：帧序列会在AnimatedSprite中根据实际帧数填充
+
+    return metadata;
 }
 
 } // namespace mc::resource::metadata

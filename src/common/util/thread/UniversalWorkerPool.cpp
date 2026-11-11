@@ -58,14 +58,8 @@ UniversalWorkerPool::UniversalWorkerPool(i32 threadCount, std::string name, i32 
 
 UniversalWorkerPool::~UniversalWorkerPool()
 {
-    try {
-        shutdown();
-    }
-    catch (...) {
-        // 线程回收失败时禁止继续销毁线程池，保持析构的终止语义。
-        spdlog::critical("[UniversalWorkerPool] Shutdown failed during destruction");
-        std::terminate();
-    }
+    // 去异常化后 shutdown() 不会抛异常（失败一律走日志 + 状态），无需兜底。
+    shutdown();
 }
 
 i32 UniversalWorkerPool::_getOptimalThreadCount()
@@ -222,15 +216,8 @@ void UniversalWorkerPool::pruneCancelledTasks()
 
 void UniversalWorkerPool::_cancelTask(const std::shared_ptr<InternalTask>& task)
 {
-    try {
-        task->task->onCancel();
-    }
-    catch (const std::exception& e) {
-        spdlog::error("[UniversalWorkerPool] Cancellation threw: {}", e.what());
-    }
-    catch (...) {
-        spdlog::error("[UniversalWorkerPool] Cancellation threw an unknown exception");
-    }
+    // 任务回调契约：不得抛异常（-fno-exceptions 下也无从抛出）。onCancel 内部自行记录失败。
+    task->task->onCancel();
     _callback(task, false);
 }
 
@@ -239,16 +226,8 @@ void UniversalWorkerPool::_callback(const std::shared_ptr<InternalTask>& task, b
     if (!task->callback) {
         return;
     }
-    try {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic, "TaskCallback", "description", task->task->description());
-        task->callback(success, task->task.get());
-    }
-    catch (const std::exception& e) {
-        spdlog::error("[UniversalWorkerPool] Callback threw: {}", e.what());
-    }
-    catch (...) {
-        spdlog::error("[UniversalWorkerPool] Callback threw an unknown exception");
-    }
+    MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic, "TaskCallback", "description", task->task->description());
+    task->callback(success, task->task.get());
 }
 
 void UniversalWorkerPool::waitForCompletion()
@@ -370,36 +349,22 @@ void UniversalWorkerPool::_executeTask(const std::shared_ptr<InternalTask>& task
 
     m_runningTaskCount.fetch_add(1, std::memory_order::relaxed);
 
-    bool success = false;
+    // 任务执行契约：任务内不得抛异常。去异常化后编译器已保证这一点，
+    // 任务内部失败应通过返回值/日志表达；若真出现编程错误，按项目规范让它崩溃暴露。
+    static const std::atomic<bool> neverAbort{false};
+    const std::atomic<bool>& abortSignal = task->abortSignal ? *task->abortSignal : neverAbort;
 
-    try {
-        // 追踪事件须置于 try 块内：Perfetto/Tracy 的 RAII zone 在构造/析构时可能抛 C++ 异常
-        // （例如未初始化 backend 下访问全局注册表），若在 try 外抛出会逃逸 catch(...) 致
-        // std::terminate → 进程崩溃。整段任务执行（含追踪）包进 try/catch 是 worker 健壮性兜底。
-        static const std::atomic<bool> neverAbort{false};
-        const std::atomic<bool>& abortSignal = task->abortSignal ? *task->abortSignal : neverAbort;
+    MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
+        "ExecuteTask",
+        "type",
+        static_cast<u8>(task->task->type()),
+        "description",
+        task->task->description(),
+        "priority",
+        static_cast<i8>(task->priority));
 
-        MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic,
-            "ExecuteTask",
-            "type",
-            static_cast<u8>(task->task->type()),
-            "description",
-            task->task->description(),
-            "priority",
-            static_cast<i8>(task->priority));
-
-        MC_TRACE_SCOPED_EVENT(
-            TraceEvents.WorkerPool.Generic, "TaskExecution", "description", task->task->description());
-        success = task->task->execute(abortSignal);
-    }
-    catch (const std::exception& e) {
-        spdlog::error("[UniversalWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
-        success = false;
-    }
-    catch (...) {
-        spdlog::error("[UniversalWorkerPool] Task {} threw unknown exception", task->task->description());
-        success = false;
-    }
+    MC_TRACE_SCOPED_EVENT(TraceEvents.WorkerPool.Generic, "TaskExecution", "description", task->task->description());
+    const bool success = task->task->execute(abortSignal);
 
     // 成功完成的任务只通知成功，执行期间置位的令牌不反转已完成结果。
     if (!success && _isTaskCancelled(*task)) {

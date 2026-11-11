@@ -3151,12 +3151,7 @@ Result<std::unique_ptr<LootTable>> LootSerializers::parseLootTable(const std::st
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + jsonParseResult.error().message());
     }
     auto json = std::move(jsonParseResult).value();
-    try {
-        return parseLootTable(json);
-    }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON error: ") + e.what());
-    }
+    return parseLootTable(json);
 }
 
 nlohmann::json LootSerializers::toJson(const LootTable& table)

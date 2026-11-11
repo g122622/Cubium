@@ -86,17 +86,11 @@ Result<void> SettingsBase::load(const std::filesystem::path& path)
         return Error(ErrorCode::FileCorrupted, "Failed to parse settings file: " + jsonResult.error().message());
     }
 
-    try {
-        // 加载设置
-        loadFromJson(jsonResult.value());
+    // 加载设置
+    loadFromJson(jsonResult.value());
 
-        spdlog::info("Settings loaded successfully from: {}", path.string());
-        return Result<void>::ok();
-    }
-    catch (const std::exception& e) {
-        file.close();
-        return Error(ErrorCode::FileReadFailed, "Failed to read settings file: " + std::string(e.what()));
-    }
+    spdlog::info("Settings loaded successfully from: {}", path.string());
+    return Result<void>::ok();
 }
 
 Result<void> SettingsBase::save(const std::filesystem::path& path) const
@@ -110,27 +104,22 @@ Result<void> SettingsBase::save(const std::filesystem::path& path) const
         }
     }
 
-    try {
-        // 构建 JSON 对象
-        nlohmann::json j;
-        saveToJson(j);
+    // 构建 JSON 对象
+    nlohmann::json j;
+    saveToJson(j);
 
-        // 写入文件
-        std::ofstream file(path, std::ios::binary | std::ios::trunc);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, "Failed to create settings file: " + path.string());
-        }
-
-        file << j.dump(4); // 美化输出，缩进 4 空格
-        file.close();
-
-        m_dirty = false;
-        spdlog::info("Settings saved successfully to: {}", path.string());
-        return Result<void>::ok();
+    // 写入文件
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, "Failed to create settings file: " + path.string());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, "Failed to write settings file: " + std::string(e.what()));
-    }
+
+    file << j.dump(4); // 美化输出，缩进 4 空格
+    file.close();
+
+    m_dirty = false;
+    spdlog::info("Settings saved successfully to: {}", path.string());
+    return Result<void>::ok();
 }
 
 void SettingsBase::loadFromJson(const nlohmann::json& j)

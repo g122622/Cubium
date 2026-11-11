@@ -31,6 +31,7 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/util/json/JsonRead.hpp"
+#include <system_error>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -182,15 +183,20 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDirectory(
 
     // 收集所有 .json 文件
     std::vector<fs::path> jsonFiles;
-    try {
-        for (const auto& entry : fs::recursive_directory_iterator(directoryPath)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                jsonFiles.push_back(entry.path());
-            }
+    // 用 error_code 重载遍历：目录不可读时返回空列表并上报，不抛 filesystem_error
+    std::error_code iterateEc;
+    for (fs::recursive_directory_iterator it(directoryPath, fs::directory_options::none, iterateEc), end;
+         it != end;
+         it.increment(iterateEc)) {
+        if (iterateEc) {
+            return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + iterateEc.message());
+        }
+        if (it->is_regular_file() && it->path().extension() == ".json") {
+            jsonFiles.push_back(it->path());
         }
     }
-    catch (const fs::filesystem_error& e) {
-        return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + std::string(e.what()));
+    if (iterateEc) {
+        return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + iterateEc.message());
     }
 
     Size total = jsonFiles.size();

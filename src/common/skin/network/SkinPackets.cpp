@@ -22,6 +22,7 @@
  */
 
 #include "SkinPackets.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "util/text/ITextComponent.hpp"
@@ -98,14 +99,12 @@ std::unique_ptr<text::ITextComponent> PlayerListEntry::getDisplayNameAsText() co
         return nullptr;
     }
 
-    try {
-        nlohmann::json json = nlohmann::json::parse(*displayName);
-        return text::ITextComponent::fromJson(json);
-    }
-    catch (const nlohmann::json::exception& e) {
-        spdlog::warn("PlayerListEntry: Failed to parse displayName JSON: {}", e.what());
+    auto parsedJson = util::json::parse(*displayName);
+    if (parsedJson.failed()) {
+        spdlog::warn("PlayerListEntry: Failed to parse displayName JSON: {}", parsedJson.error().message());
         return nullptr;
     }
+    return text::ITextComponent::fromJson(parsedJson.value());
 }
 
 } // namespace mc::skin

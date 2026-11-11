@@ -99,8 +99,12 @@ AddonModule parseModule(const nlohmann::json& j)
 
 Result<AddonManifest> AddonManifest::parse(const std::string& json)
 {
-    try {
-        auto j = nlohmann::json::parse(json);
+    {
+        auto parsedJson = util::json::parse(json);
+        if (parsedJson.failed()) {
+            return Error(ErrorCode::InvalidData, std::string("Parse error: ") + parsedJson.error().message());
+        }
+        auto j = std::move(parsedJson).value();
         AddonManifest manifest;
 
         // 解析格式版本
@@ -171,9 +175,6 @@ Result<AddonManifest> AddonManifest::parse(const std::string& json)
 
         return manifest;
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Parse error: ") + e.what());
-    }
 }
 
 Result<AddonManifest> AddonManifest::loadFromFile(const std::string& path)
@@ -183,20 +184,14 @@ Result<AddonManifest> AddonManifest::loadFromFile(const std::string& path)
         return Error(ErrorCode::FileNotFound, "Cannot open manifest file: " + path);
     }
 
-    try {
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
 
-        auto result = parse(content);
-        if (result.failed()) {
-            return Error(
-                result.error().code(), "Failed to parse manifest from " + path + ": " + result.error().message());
-        }
-        return result;
+    auto result = parse(content);
+    if (result.failed()) {
+        return Error(result.error().code(), "Failed to parse manifest from " + path + ": " + result.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, std::string("Failed to read manifest file: ") + e.what());
-    }
+    return result;
 }
 
 bool AddonManifest::hasScriptModule() const noexcept

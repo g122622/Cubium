@@ -189,15 +189,10 @@ Result<std::string> BehaviorPack::readScriptFile(const std::string& relativePath
         return Error(ErrorCode::FileOpenFailed, "Cannot open script file: " + fullPath.string());
     }
 
-    try {
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
 
-        return content;
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, std::string("Failed to read script file: ") + e.what());
-    }
+    return content;
 }
 
 Result<std::vector<u8>> BehaviorPack::readResource(const std::string& relativePath) const

@@ -67,6 +67,10 @@ option(MC_ENABLE_SANITIZERS "Enable sanitizers for the CI sanitizer builds" OFF)
 # tests target 仍保留异常（gtest 的 EXPECT_THROW 与 ScopedAssertThrowHandler 依赖它）。
 # 详见 docs/iterations/exception禁用指南.md。
 option(MC_ENABLE_NO_EXCEPTIONS "Compile production targets with -fno-exceptions" OFF)
+# 灰度开关：为空表示「全部生产 target」；填分号分隔的 target 名则只对子集生效。
+# 用途是分 target 逐步去异常化（例如先只给 mc_common 打开，验证通过后再扩到 server）。
+set(MC_NO_EXCEPTIONS_TARGETS "" CACHE STRING
+    "MC_ENABLE_NO_EXCEPTIONS 生效的 target 子集（分号分隔）；留空表示全部生产 target")
 option(MC_ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 option(MC_ENABLE_TRACING "Enable Perfetto tracing" ON)
 # Tracy 默认关闭：它带来可观的常驻内存开销，且不经系统 malloc（无法用常规手段观测）。
@@ -487,6 +491,24 @@ if(MC_ENABLE_NO_EXCEPTIONS)
     if(MC_BUILD_BENCHMARKS)
         list(APPEND _mc_no_exception_targets mc_benchmark)
     endif()
+
+    # 灰度子集：显式指定时只对列出的 target 生效（仍会与上面求交集，避免写错 target 名静默生效）。
+    if(MC_NO_EXCEPTIONS_TARGETS)
+        set(_mc_requested_targets ${MC_NO_EXCEPTIONS_TARGETS})
+        set(_mc_filtered_targets "")
+        foreach(_mc_target IN LISTS _mc_no_exception_targets)
+            if(_mc_target IN_LIST _mc_requested_targets)
+                list(APPEND _mc_filtered_targets ${_mc_target})
+            endif()
+        endforeach()
+        foreach(_mc_requested IN LISTS _mc_requested_targets)
+            if(NOT _mc_requested IN_LIST _mc_filtered_targets)
+                message(WARNING "MC_NO_EXCEPTIONS_TARGETS 里的 '${_mc_requested}' 不是生产 target，已忽略")
+            endif()
+        endforeach()
+        set(_mc_no_exception_targets ${_mc_filtered_targets})
+    endif()
+    message(STATUS "  No exceptions targets: ${_mc_no_exception_targets}")
 
     foreach(_mc_target IN LISTS _mc_no_exception_targets)
         if(TARGET ${_mc_target})

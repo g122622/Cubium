@@ -140,28 +140,29 @@ Result<size_t> LanguageManager::loadLanguageFromPack(
 
 Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
 {
-    try {
-        auto json = nlohmann::json::parse(jsonContent);
-
-        if (!json.is_object()) {
-            return Error(ErrorCode::InvalidData, "Language file must be a JSON object");
-        }
-
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        size_t count = 0;
-        for (auto& [key, value] : json.items()) {
-            if (value.is_string()) {
-                m_translations[key] = value.get<std::string>();
-                ++count;
-            }
-        }
-
-        return count;
+    auto parsedJson = util::json::parse(jsonContent);
+    if (parsedJson.failed()) {
+        return Error(ErrorCode::InvalidData,
+            std::string("Error parsing language JSON: ") + parsedJson.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Error parsing language JSON: ") + e.what());
+    const auto& json = parsedJson.value();
+
+    if (!json.is_object()) {
+        return Error(ErrorCode::InvalidData, "Language file must be a JSON object");
     }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    size_t count = 0;
+    for (auto& [key, value] : json.items()) {
+        const auto text = util::json::getString(value);
+        if (text.success()) {
+            m_translations[key] = text.value();
+            ++count;
+        }
+    }
+
+    return count;
 }
 
 void LanguageManager::clear()

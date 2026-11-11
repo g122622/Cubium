@@ -227,8 +227,8 @@ i32 BaseApplicationEntry::run(i32 argc, char* argv[])
         m_profilerStarted = true;
     }
 
-    // 8. 核心业务运行（异常路径统一清理）。
-    try {
+    // 8. 核心业务运行。
+    {
         const i32 code = runApplication();
 
         // 先 stop profiler（若已启动），再 shutdown LogManager。
@@ -242,20 +242,6 @@ i32 BaseApplicationEntry::run(i32 argc, char* argv[])
 
         LogManager::instance().shutdown();
         return code;
-    }
-    catch (const std::exception& e) {
-        spdlog::critical("Unhandled exception: {}, terminating...", e.what());
-
-        // 子类错误清理（如 server cleanupServerGameTest：在脚本引擎销毁前释放 JS 句柄）。
-        onErrorCleanup();
-
-        // 先 stop profiler，再 shutdown LogManager（理由同正常路径）。
-        if (m_profilerStarted) {
-            profilerStopShutdown();
-        }
-
-        LogManager::instance().shutdown();
-        return 1;
     }
 }
 

@@ -123,12 +123,8 @@ public:
      *
      * 未登记的 id 返回 ProtocolError（调用方可按需跳过该包，保留连接）。
      *
-     * 异常兜底：解码路径直接面对**不可信字节**，而部分第三方依赖（nlohmann-json、simdjson）
-     * 仍以异常报错。任何逃逸到这里的异常都会让进程直接终止——即畸形报文可远程打崩服务端。
-     * 故在唯一的分发点上统一把异常转成协议错误，使各包 codec 无需各自防御。
-     *
-     * TODO: 第三方库改为非抛出调用（nlohmann `json::parse(..., nullptr, false)`、
-     *       simdjson 错误码 API）后删除本 try/catch，使解码路径完全无异常。
+     * 解码路径直接面对**不可信字节**，因此各包 codec 一律用 `Result` 报错、不抛异常；
+     * 这里不再需要异常兜底（历史 try/catch 已随第三方库改为非抛出调用而移除）。
      */
     [[nodiscard]] Result<Variant> decode(B& buf) const
     {
@@ -136,18 +132,8 @@ public:
         MC_TRY_ASSIGN(id, buf.readVarInt());
         for (const auto& entry : m_entries) {
             if (entry.id == id) {
-                try {
-                    return entry.decode(buf);
-                }
-                catch (const std::exception& e) {
-                    return Error(ErrorCode::InvalidData,
-                        std::string("packet decode raised: ") + e.what(),
-                        "IdDispatchCodec::decode");
-                }
-                catch (...) {
-                    return Error(
-                        ErrorCode::InvalidData, "packet decode raised a non-std exception", "IdDispatchCodec::decode");
-                }
+                // entry.decode 返回 Result，失败已是错误值；不再需要异常兜底
+                return entry.decode(buf);
             }
         }
         return Error(ErrorCode::ProtocolError, "Unknown packet id " + std::to_string(id), "IdDispatchCodec::decode");
