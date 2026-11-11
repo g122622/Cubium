@@ -35,20 +35,17 @@ namespace mc {
  * @brief 射线检测上下文
  *
  * 包含射线检测所需的所有参数。
- * 参考MC的RayTraceContext。
  */
 struct RaycastContext {
     Ray ray;
-    f32 maxDistance = 5.0f; ///< MC默认5格，创造模式更远
-
-    RaycastContext() = default;
+    f32 maxDistance; ///< 最大检测距离（生存 5 格，创造模式更远），必须由构造函数传入
 
     /**
      * @brief 构造射线检测上下文
      * @param r 射线
      * @param dist 最大检测距离
      */
-    explicit RaycastContext(const Ray& r, f32 dist = 5.0f)
+    explicit RaycastContext(const Ray& r, f32 dist)
         : ray(r)
         , maxDistance(dist)
     {}
