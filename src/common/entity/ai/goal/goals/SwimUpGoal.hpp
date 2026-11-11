@@ -47,7 +47,7 @@ public:
      * @param speed 游泳速度倍率
      * @param targetY 目标Y高度（可选，默认自动检测水面）
      */
-    SwimUpGoal(CreatureEntity* creature, f64 speed, i32 targetY = -1);
+    SwimUpGoal(CreatureEntity* creature, f64 speed, i32 targetY);
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
