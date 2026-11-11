@@ -348,17 +348,19 @@ std::unique_ptr<StructureStart> ShipwreckStructure::generate(
     piece->setTemplateManager(templateManager);
 
     // 只有「放不进世界生成区域」的超大模板才在起点阶段调整高度（原版
-    // `isTooBigToFitInWorldGenRegion` 分支）；其余模板的贴地发生在后处理阶段，
-    // 起点阶段的包围盒保持在 Y=90。
-    // TODO: 在后处理阶段实现 `ShipwreckPiece.postProcess` 的贴地（赋高与搁浅随机下沉），
-    //       目前只保证起点阶段的几何一致。
+    // `isTooBigToFitInWorldGenRegion` 分支）；其余模板的贴地推迟到本片段被真正生成时，
+    // 由 ShipwreckPiece::generate 按高度图重算（含搁浅随机下沉），所以起点阶段的
+    // 包围盒保持在 Y=90 只是占位。
     const BlockPos size = piece->templateSize();
     if (size.x > 32 || size.y > 32) {
         const auto& bounds = piece->getBoundingBox();
         const HeightmapType adjustType = isBeached ? HeightmapType::WorldSurfaceWG : HeightmapType::OceanFloorWG;
         i32 height;
         if (isBeached) {
-            i32 lowest = 0;
+            // 初值必须是上界（原版用 level.getMaxY() + 1）。
+            // 若写成 0，在地表高度全为正的主世界里 std::min 会恒得 0，
+            // 沉船会被错误地放到 Y=0 附近。
+            i32 lowest = world::MAX_BUILD_HEIGHT;
             for (i32 z = bounds.minZ(); z <= bounds.maxZ(); ++z) {
                 for (i32 x = bounds.minX(); x <= bounds.maxX(); ++x) {
                     lowest = std::min(lowest, generator.getHeight(x, z, adjustType));
