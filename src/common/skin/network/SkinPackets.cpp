@@ -22,9 +22,9 @@
  */
 
 #include "SkinPackets.hpp"
-#include "common/util/json/JsonRead.hpp"
 #include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "util/text/ITextComponent.hpp"
 #include <array>
 #include <memory>

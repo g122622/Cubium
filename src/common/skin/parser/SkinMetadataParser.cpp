@@ -22,7 +22,6 @@
  */
 
 #include "SkinMetadataParser.hpp"
-#include "common/util/json/JsonRead.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
@@ -30,6 +29,7 @@
 #include "common/skin/core/SkinTypes.hpp"
 #include "common/util/Base64.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -104,8 +104,8 @@ Result<SkinTextures> SkinMetadataParser::parseJson(const std::string& jsonData)
 
     auto parsedJson = util::json::parse(jsonData);
     if (parsedJson.failed()) {
-        return Error(ErrorCode::InvalidData,
-            std::string("Failed to parse textures JSON: ") + parsedJson.error().message());
+        return Error(
+            ErrorCode::InvalidData, std::string("Failed to parse textures JSON: ") + parsedJson.error().message());
     }
     const auto& json = parsedJson.value();
 

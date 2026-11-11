@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentUtils.hpp"
@@ -284,12 +285,11 @@ std::unique_ptr<CustomServerBossInfo> CustomServerBossInfo::fromNbt(
     auto nameIt = nbt.value.find("Name");
     if (nameIt != nbt.value.end() && nameIt->second->id() == nbt::TagId::String) {
         std::string nameJson = dynamic_cast<const nbt::tags::string_tag&>(*nameIt->second).value;
-        try {
-            nlohmann::json json = nlohmann::json::parse(nameJson);
-            name = text::ITextComponent::fromJson(json);
-        }
-        catch (...) {
+        auto parsedName = util::json::parse(nameJson);
+        if (parsedName.failed()) {
             name = std::make_unique<text::StringTextComponent>(id.path());
+        } else {
+            name = text::ITextComponent::fromJson(parsedName.value());
         }
     }
     if (!name) {

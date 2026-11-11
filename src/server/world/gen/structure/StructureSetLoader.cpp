@@ -171,12 +171,7 @@ Result<std::unique_ptr<StructureSet>> StructureSetLoader::loadFromJson(
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
     }
     auto jsonObj = std::move(parsedJson).value();
-    try {
-        return loadFromJson(jsonObj, location);
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
-    }
+    return loadFromJson(jsonObj, location);
 }
 
 Result<std::unique_ptr<StructureSet>> StructureSetLoader::loadFromJson(

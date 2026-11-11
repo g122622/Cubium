@@ -222,13 +222,8 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path)
     if (!std::filesystem::exists(path)) {
         spdlog::info("Whitelist file not found, creating empty whitelist: {}", path.string());
         // 创建空文件
-        try {
-            std::ofstream file(path);
-            file << "[]";
-        }
-        catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create whitelist file: {}", e.what()));
-        }
+        std::ofstream file(path);
+        file << "[]";
         return {};
     }
 
@@ -292,7 +287,8 @@ Result<void> WhitelistManager::load(const std::filesystem::path& path)
     }
 
     spdlog::info("Loaded {} whitelist entries from {}", m_entriesByUuid.size(), path.string());
-    return {};}
+    return {};
+}
 
 Result<void> WhitelistManager::save(const std::filesystem::path& path)
 {
@@ -305,41 +301,38 @@ Result<void> WhitelistManager::save(const std::filesystem::path& path)
 
     m_filePath = savePath;
 
-    try {
-        // 确保目录存在
-        std::filesystem::path parentDir = savePath.parent_path();
-        if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
-            std::filesystem::create_directories(parentDir);
-        }
-
-        // 构建 JSON 数组
-        nlohmann::json json = nlohmann::json::array();
-
-        for (const auto& [uuid, entry] : m_entriesByUuid) {
-            nlohmann::json item;
-            item["uuid"] = entry.uuid;
-            item["name"] = entry.name;
-            json.push_back(item);
-        }
-
-        // 写入文件
-        std::ofstream file(savePath);
-        if (!file.is_open()) {
+    // 确保目录存在
+    std::filesystem::path parentDir = savePath.parent_path();
+    if (!parentDir.empty()) {
+        std::error_code dirEc;
+        std::filesystem::create_directories(parentDir, dirEc);
+        if (dirEc) {
             return Error(ErrorCode::FileWriteFailed,
-                fmt::format("Failed to open whitelist file for writing: {}", savePath.string()));
+                fmt::format("Failed to create directory {}: {}", parentDir.string(), dirEc.message()));
         }
+    }
 
-        file << json.dump(2);
+    // 构建 JSON 数组
+    nlohmann::json json = nlohmann::json::array();
 
-        spdlog::info("Saved {} whitelist entries to {}", m_entriesByUuid.size(), savePath.string());
-        return {};
+    for (const auto& [uuid, entry] : m_entriesByUuid) {
+        nlohmann::json item;
+        item["uuid"] = entry.uuid;
+        item["name"] = entry.name;
+        json.push_back(item);
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize whitelist JSON: {}", e.what()));
+
+    // 写入文件
+    std::ofstream file(savePath);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileWriteFailed,
+            fmt::format("Failed to open whitelist file for writing: {}", savePath.string()));
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save whitelist file: {}", e.what()));
-    }
+
+    file << json.dump(2);
+
+    spdlog::info("Saved {} whitelist entries to {}", m_entriesByUuid.size(), savePath.string());
+    return {};
 }
 
 Result<void> WhitelistManager::reload()

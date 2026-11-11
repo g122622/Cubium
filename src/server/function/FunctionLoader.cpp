@@ -458,59 +458,54 @@ Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
     }
     auto jsonObj = std::move(parsedJson).value();
-    try {
-        TagData tagData;
-        tagData.id = tagId;
+    TagData tagData;
+    tagData.id = tagId;
 
-        // 解析 replace 字段（可选，默认 false）
-        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
-            tagData.replace = jsonObj["replace"].get<bool>();
-        }
+    // 解析 replace 字段（可选，默认 false）
+    if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+        tagData.replace = jsonObj["replace"].get<bool>();
+    }
 
-        // 解析 values 数组（必需）
-        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "Function tag '" + tagId.toString() + "' missing 'values' array");
-        }
+    // 解析 values 数组（必需）
+    if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "Function tag '" + tagId.toString() + "' missing 'values' array");
+    }
 
-        for (const auto& value : jsonObj["values"]) {
-            if (value.is_string()) {
-                // 字符串格式: "namespace:path" 或 "#namespace:tag"
-                // 字符串格式默认 required=true
-                std::string entry = value.get<std::string>();
-                resolveTagEntry(entry, true, tagData.entries);
-            } else if (value.is_object()) {
-                // 对象格式: {"id":"namespace:path","required":false}
-                // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
-                if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped",
-                        tagId.toString());
-                    continue;
-                }
-
-                std::string id = value["id"].get<std::string>();
-                if (id.empty()) {
-                    spdlog::warn(
-                        "FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
-                    continue;
-                }
-
-                // 解析 required 字段（可选，默认 true）
-                bool required = true;
-                if (value.contains("required") && value["required"].is_boolean()) {
-                    required = value["required"].get<bool>();
-                }
-
-                resolveTagEntry(id, required, tagData.entries);
-            } else {
-                spdlog::warn("FunctionLoader: Value in tag '{}' is not a string or object, skipped", tagId.toString());
+    for (const auto& value : jsonObj["values"]) {
+        if (value.is_string()) {
+            // 字符串格式: "namespace:path" 或 "#namespace:tag"
+            // 字符串格式默认 required=true
+            std::string entry = value.get<std::string>();
+            resolveTagEntry(entry, true, tagData.entries);
+        } else if (value.is_object()) {
+            // 对象格式: {"id":"namespace:path","required":false}
+            // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
+            if (!value.contains("id") || !value["id"].is_string()) {
+                spdlog::warn(
+                    "FunctionLoader: Object-format entry in tag '{}' missing 'id' field, skipped", tagId.toString());
+                continue;
             }
-        }
 
-        return tagData;
+            std::string id = value["id"].get<std::string>();
+            if (id.empty()) {
+                spdlog::warn(
+                    "FunctionLoader: Object-format entry in tag '{}' has empty 'id', skipped", tagId.toString());
+                continue;
+            }
+
+            // 解析 required 字段（可选，默认 true）
+            bool required = true;
+            if (value.contains("required") && value["required"].is_boolean()) {
+                required = value["required"].get<bool>();
+            }
+
+            resolveTagEntry(id, required, tagData.entries);
+        } else {
+            spdlog::warn("FunctionLoader: Value in tag '{}' is not a string or object, skipped", tagId.toString());
+        }
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
-    }
+
+    return tagData;
 }
 
 void FunctionLoader::resolveTagEntry(const std::string& entry, bool required, std::vector<TagEntry>& entries)

@@ -20,8 +20,8 @@
  *
  */
 
-#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "common/util/json/JsonRead.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/network/buffer/ByteBuf.hpp"

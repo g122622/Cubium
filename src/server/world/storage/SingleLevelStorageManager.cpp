@@ -27,6 +27,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
@@ -238,15 +239,18 @@ Result<void> SingleLevelStorageManager::_openNativeFormat(const std::filesystem:
     std::filesystem::path dbPath = worldPath / "db";
     std::filesystem::path backupPath = worldPath / "backups";
 
-    try {
-        std::filesystem::create_directories(worldPath);
-        std::filesystem::create_directories(dbPath);
-        if (m_config.enableBackup) {
-            std::filesystem::create_directories(backupPath);
+    {
+        std::error_code dirEc;
+        std::filesystem::create_directories(worldPath, dirEc);
+        if (!dirEc) {
+            std::filesystem::create_directories(dbPath, dirEc);
         }
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create directories: {}", e.what()));
+        if (!dirEc && m_config.enableBackup) {
+            std::filesystem::create_directories(backupPath, dirEc);
+        }
+        if (dirEc) {
+            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create directories: {}", dirEc.message()));
+        }
     }
 
     auto lockResult =
@@ -1196,17 +1200,17 @@ Result<std::optional<nlohmann::json>> SingleLevelStorageManager::loadDragonFight
         return std::nullopt;
     }
 
-    try {
+    {
         std::ifstream file(filePath, std::ios::in);
         if (!file.is_open()) {
             return std::nullopt;
         }
-        nlohmann::json data = nlohmann::json::parse(file);
-        return data;
-    }
-    catch (const std::exception& e) {
-        spdlog::warn("Failed to load end_dragon_fight.json: {}", e.what());
-        return std::nullopt;
+        auto parsedDragonJson = util::json::parse(file);
+        if (parsedDragonJson.failed()) {
+            spdlog::warn("Failed to load end_dragon_fight.json: {}", parsedDragonJson.error().message());
+            return std::nullopt;
+        }
+        return std::move(parsedDragonJson).value();
     }
 }
 
@@ -1225,10 +1229,13 @@ Result<void> SingleLevelStorageManager::saveDragonFightData(const nlohmann::json
         return Result<void>::ok();
     }
 
-    try {
+    {
         const auto dataDir = m_worldPath / "data";
-        if (!std::filesystem::exists(dataDir)) {
-            std::filesystem::create_directories(dataDir);
+        std::error_code dataDirEc;
+        std::filesystem::create_directories(dataDir, dataDirEc);
+        if (dataDirEc) {
+            return Error(
+                ErrorCode::FileWriteFailed, fmt::format("Failed to create data directory: {}", dataDirEc.message()));
         }
 
         const auto filePath = dataDir / "end_dragon_fight.json";
@@ -1238,9 +1245,6 @@ Result<void> SingleLevelStorageManager::saveDragonFightData(const nlohmann::json
         }
         file << data.dump(2);
         return Result<void>::ok();
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save end_dragon_fight.json: {}", e.what()));
     }
 }
 

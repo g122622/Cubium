@@ -638,67 +638,62 @@ void StarLightEngine::light(StarLightLightingProvider* lightAccess, const IChunk
     // 初始化缓存
     setupCaches(lightAccess, centerX, centerY, centerZ, true, true);
 
-    try {
-        const i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
+    const i32 totalLightSections = m_maxLightSection - m_minLightSection + 1;
 
-        // 与 Moonrise 一致：light() 使用一组"全 NULL 状态"临时 nibble 作为点亮输入。
-        // 这些 nibble 只作一次性输入：lightChunk 之后由 setNibbles 按移动语义把状态搬进
-        // 区块的 nibble，临时对象随即析构。缓存里存的是它们的裸指针，故必须堆分配以保证
-        // 地址稳定（不能用值数组，扩容/移动会让缓存指针失效）。
-        std::vector<std::unique_ptr<SWMRNibbleArray>> tempNibbles = getFilledEmptyLight(totalLightSections);
-        std::vector<SWMRNibbleArray*> tempNibblePtrs(static_cast<size_t>(totalLightSections), nullptr);
-        for (i32 i = 0; i < totalLightSections; ++i) {
-            tempNibblePtrs[static_cast<size_t>(i)] = tempNibbles[static_cast<size_t>(i)].get();
-        }
-
-        // 设置当前区块到缓存
-        setChunkInCache(chunkX, chunkZ, chunk);
-
-        // 设置区块段到缓存
-        const auto sectionsArr = chunk->getSections();
-        setBlocksForChunkInCache(chunkX, chunkZ, sectionsArr.data());
-
-        // 将临时 nibble 写入缓存（而不是直接读取 chunk 上现有 nibble）
-        setNibblesForChunkInCache(chunkX, chunkZ, tempNibblePtrs.data());
-
-        // 与 Moonrise 一致：unlit 点亮流程先按"无空映射"处理，避免旧缓存干扰 initNibble。
-        setEmptinessMapCache(chunkX, chunkZ, nullptr);
-
-        // 计算 emptySections，并在未点亮模式下先跑一次空段处理（Moonrise light() 同构流程）
-        std::vector<bool> emptySections(static_cast<size_t>(m_maxSection - m_minSection + 1), true);
-        for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
-            const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY - m_minSection)];
-            emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->isEmpty());
-        }
-
-        std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
-        if (!emptinessUpdate.empty()) {
-            auto rawMap =
-                _copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
-            setEmptinessMap(chunk, rawMap.get());
-            setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
-        }
-
-        // 执行光照计算
-        lightChunk(lightAccess, chunk, needsEdgeChecks);
-
-        // 将临时 nibble 写回区块（move 语义：临时对象状态转移到区块 nibble，临时对象置 Null）
-        setNibbles(chunk, tempNibblePtrs.data());
-
-        // 重新把缓存指向区块上的 nibble（move 后区块 nibble 与临时对象是不同实例）。
-        // 对齐 Moonrise light() 顺序：setNibbles 后 updateVisible 必须作用在区块 nibble 上，
-        // 因 markLightChanged→getData→toByteArray 读区块 nibble 的 visible 侧，
-        // 若 updateVisible 仍作用已 move 置空的临时对象则区块 nibble 永不发布 visible（既有 bug）。
-        setNibblesForChunkInCache(chunkX, chunkZ, getNibblesOnChunk(chunk));
-
-        // 更新可见数据：发布区块 nibble 的 visible 侧，并经 markLightChanged 通知主线程
-        updateVisible(lightAccess);
-    }
-    catch (...) {
-        destroyCaches();
-        throw;
+    // 与 Moonrise 一致：light() 使用一组"全 NULL 状态"临时 nibble 作为点亮输入。
+    // 这些 nibble 只作一次性输入：lightChunk 之后由 setNibbles 按移动语义把状态搬进
+    // 区块的 nibble，临时对象随即析构。缓存里存的是它们的裸指针，故必须堆分配以保证
+    // 地址稳定（不能用值数组，扩容/移动会让缓存指针失效）。
+    std::vector<std::unique_ptr<SWMRNibbleArray>> tempNibbles = getFilledEmptyLight(totalLightSections);
+    std::vector<SWMRNibbleArray*> tempNibblePtrs(static_cast<size_t>(totalLightSections), nullptr);
+    for (i32 i = 0; i < totalLightSections; ++i) {
+        tempNibblePtrs[static_cast<size_t>(i)] = tempNibbles[static_cast<size_t>(i)].get();
     }
 
+    // 设置当前区块到缓存
+    setChunkInCache(chunkX, chunkZ, chunk);
+
+    // 设置区块段到缓存
+    const auto sectionsArr = chunk->getSections();
+    setBlocksForChunkInCache(chunkX, chunkZ, sectionsArr.data());
+
+    // 将临时 nibble 写入缓存（而不是直接读取 chunk 上现有 nibble）
+    setNibblesForChunkInCache(chunkX, chunkZ, tempNibblePtrs.data());
+
+    // 与 Moonrise 一致：unlit 点亮流程先按"无空映射"处理，避免旧缓存干扰 initNibble。
+    setEmptinessMapCache(chunkX, chunkZ, nullptr);
+
+    // 计算 emptySections，并在未点亮模式下先跑一次空段处理（Moonrise light() 同构流程）
+    std::vector<bool> emptySections(static_cast<size_t>(m_maxSection - m_minSection + 1), true);
+    for (i32 sectionY = m_minSection; sectionY <= m_maxSection; ++sectionY) {
+        const ChunkSection* section = sectionsArr[static_cast<size_t>(sectionY - m_minSection)];
+        emptySections[static_cast<size_t>(sectionY - m_minSection)] = (section == nullptr || section->isEmpty());
+    }
+
+    std::vector<bool> emptinessUpdate = handleEmptySectionChanges(lightAccess, chunk, emptySections, true);
+    if (!emptinessUpdate.empty()) {
+        auto rawMap =
+            _copyEmptinessMap(emptinessUpdate, static_cast<size_t>(m_maxLightSection - m_minLightSection + 1));
+        setEmptinessMap(chunk, rawMap.get());
+        setEmptinessMapCache(chunkX, chunkZ, getEmptinessMap(chunk));
+    }
+
+    // 执行光照计算
+    lightChunk(lightAccess, chunk, needsEdgeChecks);
+
+    // 将临时 nibble 写回区块（move 语义：临时对象状态转移到区块 nibble，临时对象置 Null）
+    setNibbles(chunk, tempNibblePtrs.data());
+
+    // 重新把缓存指向区块上的 nibble（move 后区块 nibble 与临时对象是不同实例）。
+    // 对齐 Moonrise light() 顺序：setNibbles 后 updateVisible 必须作用在区块 nibble 上，
+    // 因 markLightChanged→getData→toByteArray 读区块 nibble 的 visible 侧，
+    // 若 updateVisible 仍作用已 move 置空的临时对象则区块 nibble 永不发布 visible（既有 bug）。
+    setNibblesForChunkInCache(chunkX, chunkZ, getNibblesOnChunk(chunk));
+
+    // 更新可见数据：发布区块 nibble 的 visible 侧，并经 markLightChanged 通知主线程
+    updateVisible(lightAccess);
+
+    // 收尾：无论成功/失败都释放本次光照计算占用的缓存
     destroyCaches();
 }
 

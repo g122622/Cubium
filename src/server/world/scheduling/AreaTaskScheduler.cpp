@@ -68,18 +68,11 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
             }
             m_type = m_dispatch.task->body->type();
             m_description = m_dispatch.task->body->description();
-            // 任务体抛异常时 worker 池会捕获并转成失败回调，但异常路径会跳过下面的
-            // releaseBody()。若此时不释放，任务体将活到 _finish 的断言之后，既不满足
-            // 「完成即释放」的时序约定，也让区域锁释放在断言处中断。
-            try {
-                const bool success = m_dispatch.task->body->execute(abortSignal);
-                releaseBody();
-                return success;
-            }
-            catch (...) {
-                releaseBody();
-                throw;
-            }
+            // 去异常化后任务体不再抛异常（执行失败通过返回值表达），
+            // 因此完成/失败都走同一条 releaseBody() 路径。
+            const bool success = m_dispatch.task->body->execute(abortSignal);
+            releaseBody();
+            return success;
         }
 
         void onCancel() override
@@ -176,15 +169,8 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
 
     static void _cancelBody(const TaskPtr& task)
     {
-        try {
-            task->body->onCancel();
-        }
-        catch (const std::exception& e) {
-            spdlog::error("[AreaTaskScheduler] Cancellation threw: {}", e.what());
-        }
-        catch (...) {
-            spdlog::error("[AreaTaskScheduler] Cancellation threw an unknown exception");
-        }
+        // 任务回调契约：不得抛异常（-fno-exceptions 下也无从抛出）。
+        task->body->onCancel();
     }
 
     static void _callback(const TaskPtr& task, bool success)
@@ -192,15 +178,7 @@ struct AreaTaskScheduler::State : std::enable_shared_from_this<State> {
         if (!task->callback) {
             return;
         }
-        try {
-            task->callback(success, task->body.get());
-        }
-        catch (const std::exception& e) {
-            spdlog::error("[AreaTaskScheduler] Callback threw: {}", e.what());
-        }
-        catch (...) {
-            spdlog::error("[AreaTaskScheduler] Callback threw an unknown exception");
-        }
+        task->callback(success, task->body.get());
     }
 
     void _scheduleLocked(const TaskPtr& task, std::vector<Dispatch>& ready)
@@ -393,14 +371,8 @@ AreaTaskScheduler::AreaTaskScheduler(util::UniversalWorkerPool* executor)
 
 AreaTaskScheduler::~AreaTaskScheduler()
 {
-    try {
-        shutdown();
-    }
-    catch (...) {
-        // 关闭失败时不能继续销毁仍可能被任务访问的世界，保持析构的终止语义。
-        spdlog::critical("[AreaTaskScheduler] Shutdown failed during destruction");
-        std::terminate();
-    }
+    // 去异常化后 shutdown() 不会抛异常（失败一律走日志 + 状态）。
+    shutdown();
 }
 
 void AreaTaskScheduler::setExecutor(util::UniversalWorkerPool* executor)

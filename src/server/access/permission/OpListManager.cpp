@@ -262,108 +262,95 @@ Result<void> OpListManager::load(const std::filesystem::path& path)
     if (!std::filesystem::exists(path)) {
         spdlog::info("Ops file not found, creating empty list: {}", path.string());
         // 创建空文件
-        try {
-            std::ofstream file(path);
-            file << "[]";
-        }
-        catch (const std::exception& e) {
-            return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create ops file: {}", e.what()));
-        }
+        std::ofstream file(path);
+        file << "[]";
         return {};
     }
 
     // 读取文件
-    try {
-        std::ifstream file(path);
-        if (!file.is_open()) {
-            return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open ops file: {}", path.string()));
-        }
-
-        auto jsonResult = util::json::parse(file);
-        if (jsonResult.failed()) {
-            return Error(ErrorCode::FileCorrupted, "Failed to parse ops file: " + jsonResult.error().message());
-        }
-        const nlohmann::json& json = jsonResult.value();
-
-        if (!json.is_array()) {
-            return Error(ErrorCode::FileCorrupted, "Ops file must be a JSON array");
-        }
-
-        for (const auto& item : json) {
-            if (!item.is_object()) {
-                spdlog::warn("Skipping invalid op entry: not an object");
-                continue;
-            }
-
-            OpEntry entry;
-
-            // 解析 UUID
-            if (item.contains("uuid")) {
-                entry.uuid = item["uuid"].get<std::string>();
-            } else {
-                spdlog::warn("Skipping op entry: missing uuid");
-                continue;
-            }
-
-            // 解析名称
-            if (item.contains("name")) {
-                entry.name = item["name"].get<std::string>();
-            } else {
-                spdlog::warn("Skipping op entry: missing name");
-                continue;
-            }
-
-            // 解析权限等级
-            if (item.contains("level")) {
-                i32 level = item["level"].get<i32>();
-                // 限制等级范围 0-4
-                if (level < 0) {
-                    level = 0;
-                }
-                if (level > 4) {
-                    level = 4;
-                }
-                entry.level = static_cast<OpLevel>(level);
-            } else {
-                // MC 1.16.5 默认等级为 2
-                entry.level = OpLevel::GameMaster;
-            }
-
-            // 解析 bypassesPlayerLimit
-            if (item.contains("bypassesPlayerLimit")) {
-                entry.bypassesPlayerLimit = item["bypassesPlayerLimit"].get<bool>();
-            } else {
-                entry.bypassesPlayerLimit = false;
-            }
-
-            // 验证条目
-            if (!entry.isValid()) {
-                spdlog::warn("Skipping invalid op entry: uuid={}, name={}", entry.uuid, entry.name);
-                continue;
-            }
-
-            // 检查重复 UUID
-            if (m_entriesByUuid.contains(entry.uuid)) {
-                spdlog::warn("Skipping duplicate op entry with uuid: {}", entry.uuid);
-                continue;
-            }
-
-            // 添加条目
-            m_entriesByUuid[entry.uuid] = entry;
-
-            // 添加名称映射
-            m_nameToUuid[_toLowerName(entry.name)] = entry.uuid;
-        }
-
-        spdlog::info("Loaded {} op entries from {}", m_entriesByUuid.size(), path.string());
-        return {};
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return Error(ErrorCode::FileOpenFailed, fmt::format("Failed to open ops file: {}", path.string()));
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileCorrupted, fmt::format("Failed to parse ops JSON: {}", e.what()));
+
+    auto jsonResult = util::json::parse(file);
+    if (jsonResult.failed()) {
+        return Error(ErrorCode::FileCorrupted, "Failed to parse ops file: " + jsonResult.error().message());
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileReadFailed, fmt::format("Failed to read ops file: {}", e.what()));
+    const nlohmann::json& json = jsonResult.value();
+
+    if (!json.is_array()) {
+        return Error(ErrorCode::FileCorrupted, "Ops file must be a JSON array");
     }
+
+    for (const auto& item : json) {
+        if (!item.is_object()) {
+            spdlog::warn("Skipping invalid op entry: not an object");
+            continue;
+        }
+
+        OpEntry entry;
+
+        // 解析 UUID
+        if (item.contains("uuid")) {
+            entry.uuid = item["uuid"].get<std::string>();
+        } else {
+            spdlog::warn("Skipping op entry: missing uuid");
+            continue;
+        }
+
+        // 解析名称
+        if (item.contains("name")) {
+            entry.name = item["name"].get<std::string>();
+        } else {
+            spdlog::warn("Skipping op entry: missing name");
+            continue;
+        }
+
+        // 解析权限等级
+        if (item.contains("level")) {
+            i32 level = item["level"].get<i32>();
+            // 限制等级范围 0-4
+            if (level < 0) {
+                level = 0;
+            }
+            if (level > 4) {
+                level = 4;
+            }
+            entry.level = static_cast<OpLevel>(level);
+        } else {
+            // MC 1.16.5 默认等级为 2
+            entry.level = OpLevel::GameMaster;
+        }
+
+        // 解析 bypassesPlayerLimit
+        if (item.contains("bypassesPlayerLimit")) {
+            entry.bypassesPlayerLimit = item["bypassesPlayerLimit"].get<bool>();
+        } else {
+            entry.bypassesPlayerLimit = false;
+        }
+
+        // 验证条目
+        if (!entry.isValid()) {
+            spdlog::warn("Skipping invalid op entry: uuid={}, name={}", entry.uuid, entry.name);
+            continue;
+        }
+
+        // 检查重复 UUID
+        if (m_entriesByUuid.contains(entry.uuid)) {
+            spdlog::warn("Skipping duplicate op entry with uuid: {}", entry.uuid);
+            continue;
+        }
+
+        // 添加条目
+        m_entriesByUuid[entry.uuid] = entry;
+
+        // 添加名称映射
+        m_nameToUuid[_toLowerName(entry.name)] = entry.uuid;
+    }
+
+    spdlog::info("Loaded {} op entries from {}", m_entriesByUuid.size(), path.string());
+    return {};
 }
 
 Result<void> OpListManager::save(const std::filesystem::path& path)
@@ -377,43 +364,40 @@ Result<void> OpListManager::save(const std::filesystem::path& path)
 
     m_filePath = savePath;
 
-    try {
-        // 确保目录存在
-        std::filesystem::path parentDir = savePath.parent_path();
-        if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
-            std::filesystem::create_directories(parentDir);
+    // 确保目录存在
+    std::filesystem::path parentDir = savePath.parent_path();
+    if (!parentDir.empty()) {
+        std::error_code dirEc;
+        std::filesystem::create_directories(parentDir, dirEc);
+        if (dirEc) {
+            return Error(ErrorCode::FileWriteFailed,
+                fmt::format("Failed to create directory {}: {}", parentDir.string(), dirEc.message()));
         }
-
-        // 构建 JSON 数组
-        nlohmann::json json = nlohmann::json::array();
-
-        for (const auto& [uuid, entry] : m_entriesByUuid) {
-            nlohmann::json item;
-            item["uuid"] = entry.uuid;
-            item["name"] = entry.name;
-            item["level"] = entry.getLevelValue();
-            item["bypassesPlayerLimit"] = entry.bypassesPlayerLimit;
-            json.push_back(item);
-        }
-
-        // 写入文件
-        std::ofstream file(savePath);
-        if (!file.is_open()) {
-            return Error(
-                ErrorCode::FileWriteFailed, fmt::format("Failed to open ops file for writing: {}", savePath.string()));
-        }
-
-        file << json.dump(2);
-
-        spdlog::info("Saved {} op entries to {}", json.size(), savePath.string());
-        return {};
     }
-    catch (const nlohmann::json::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to serialize ops JSON: {}", e.what()));
+
+    // 构建 JSON 数组
+    nlohmann::json json = nlohmann::json::array();
+
+    for (const auto& [uuid, entry] : m_entriesByUuid) {
+        nlohmann::json item;
+        item["uuid"] = entry.uuid;
+        item["name"] = entry.name;
+        item["level"] = entry.getLevelValue();
+        item["bypassesPlayerLimit"] = entry.bypassesPlayerLimit;
+        json.push_back(item);
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save ops file: {}", e.what()));
+
+    // 写入文件
+    std::ofstream file(savePath);
+    if (!file.is_open()) {
+        return Error(
+            ErrorCode::FileWriteFailed, fmt::format("Failed to open ops file for writing: {}", savePath.string()));
     }
+
+    file << json.dump(2);
+
+    spdlog::info("Saved {} op entries to {}", json.size(), savePath.string());
+    return {};
 }
 
 Result<void> OpListManager::reload()

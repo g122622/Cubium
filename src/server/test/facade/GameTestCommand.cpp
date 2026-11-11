@@ -129,12 +129,10 @@ void GameTestCommand::registerTo(mc::command::CommandDispatcher<mc::command::Ser
 i32 GameTestCommand::_run(mc::command::CommandContext<mc::command::ServerCommandSource>& context)
 {
     auto& source = context.getSource();
+    // testName 是可选参数：缺失时默认匹配全部（getArgument 对缺失参数是断言，不能用来探测）
     std::string testName;
-    try {
+    if (context.hasArgument("testName")) {
         testName = context.getArgument<std::string>("testName");
-    }
-    catch (const std::out_of_range&) {
-        testName = "*";
     }
     if (testName.empty()) {
         testName = "*";

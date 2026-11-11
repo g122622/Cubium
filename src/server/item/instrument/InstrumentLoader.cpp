@@ -28,6 +28,7 @@
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/ITextComponent.hpp"
 
 #include <nlohmann/json.hpp>
@@ -119,20 +120,18 @@ size_t _loadFromResourcePaths(
             continue;
         }
 
-        std::unique_ptr<mc::item::instrument::InstrumentDefinition> instrument;
-        try {
-            const nlohmann::json jsonObj = nlohmann::json::parse(readResult.value());
-            auto parseResult = _parseInstrument(jsonObj, location);
-            if (!parseResult.success()) {
-                spdlog::warn("Failed to parse instrument {}: {}", location.toString(), parseResult.error().message());
-                continue;
-            }
-            instrument = parseResult.value();
-        }
-        catch (const std::exception& e) {
-            spdlog::warn("Failed to parse instrument {}: {}", location.toString(), e.what());
+        auto jsonParseResult = util::json::parse(readResult.value());
+        if (jsonParseResult.failed()) {
+            spdlog::warn("Failed to parse instrument {}: {}", location.toString(), jsonParseResult.error().message());
             continue;
         }
+
+        auto parseResult = _parseInstrument(jsonParseResult.value(), location);
+        if (!parseResult.success()) {
+            spdlog::warn("Failed to parse instrument {}: {}", location.toString(), parseResult.error().message());
+            continue;
+        }
+        std::unique_ptr<mc::item::instrument::InstrumentDefinition> instrument = parseResult.value();
 
         mc::item::instrument::InstrumentRegistry::instance().registerInstrument(location, std::move(instrument));
         ++loadedCount;

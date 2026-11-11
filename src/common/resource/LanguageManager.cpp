@@ -142,8 +142,8 @@ Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
 {
     auto parsedJson = util::json::parse(jsonContent);
     if (parsedJson.failed()) {
-        return Error(ErrorCode::InvalidData,
-            std::string("Error parsing language JSON: ") + parsedJson.error().message());
+        return Error(
+            ErrorCode::InvalidData, std::string("Error parsing language JSON: ") + parsedJson.error().message());
     }
     const auto& json = parsedJson.value();
 

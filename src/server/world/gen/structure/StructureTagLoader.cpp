@@ -297,72 +297,67 @@ Result<std::unique_ptr<StructureTag>> StructureTagLoader::loadFromJson(
         return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + parsedJson.error().message());
     }
     auto jsonObj = std::move(parsedJson).value();
-    try {
-        // 解析 replace 字段（可选，默认 false）
-        bool replace = false;
-        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
-            replace = jsonObj["replace"].get<bool>();
-        }
+    // 解析 replace 字段（可选，默认 false）
+    bool replace = false;
+    if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+        replace = jsonObj["replace"].get<bool>();
+    }
 
-        // 创建标签，传入 replace 标志
-        auto tag = std::make_unique<StructureTag>(location, replace);
+    // 创建标签，传入 replace 标志
+    auto tag = std::make_unique<StructureTag>(location, replace);
 
-        // 解析 values 数组
-        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "structure tag missing 'values' array");
-        }
+    // 解析 values 数组
+    if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+        return Error(ErrorCode::InvalidData, "structure tag missing 'values' array");
+    }
 
-        std::vector<ResourceLocation> structureIds;
-        std::unordered_set<ResourceLocation> visitedTags;
-        visitedTags.insert(location); // 防止自引用
+    std::vector<ResourceLocation> structureIds;
+    std::unordered_set<ResourceLocation> visitedTags;
+    visitedTags.insert(location); // 防止自引用
 
-        for (const auto& value : jsonObj["values"]) {
-            if (value.is_string()) {
-                // 字符串格式: "minecraft:shipwreck" 或 "#minecraft:ocean_ruin"
-                // 字符串格式默认 required=true
-                std::string entry = value.get<std::string>();
-                resolveTagEntry(entry, true, structureIds, visitedTags);
-            } else if (value.is_object()) {
-                // 对象格式: {"id":"minecraft:shipwreck","required":false}
-                // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
-                if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("StructureTagLoader: object entry in tag '{}' missing 'id' field, skipped",
-                        location.toString());
-                    continue;
-                }
-
-                std::string id = value["id"].get<std::string>();
-                if (id.empty()) {
-                    spdlog::warn(
-                        "StructureTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
-                    continue;
-                }
-
-                // 解析 required 字段（可选，默认 true）
-                bool required = true;
-                if (value.contains("required") && value["required"].is_boolean()) {
-                    required = value["required"].get<bool>();
-                }
-
-                resolveTagEntry(id, required, structureIds, visitedTags);
-            } else {
+    for (const auto& value : jsonObj["values"]) {
+        if (value.is_string()) {
+            // 字符串格式: "minecraft:shipwreck" 或 "#minecraft:ocean_ruin"
+            // 字符串格式默认 required=true
+            std::string entry = value.get<std::string>();
+            resolveTagEntry(entry, true, structureIds, visitedTags);
+        } else if (value.is_object()) {
+            // 对象格式: {"id":"minecraft:shipwreck","required":false}
+            // 对应 MC Java 的 TagEntry 对象格式，支持 required 语义
+            if (!value.contains("id") || !value["id"].is_string()) {
                 spdlog::warn(
-                    "StructureTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
+                    "StructureTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
+                continue;
             }
+
+            std::string id = value["id"].get<std::string>();
+            if (id.empty()) {
+                spdlog::warn(
+                    "StructureTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
+                continue;
+            }
+
+            // 解析 required 字段（可选，默认 true）
+            bool required = true;
+            if (value.contains("required") && value["required"].is_boolean()) {
+                required = value["required"].get<bool>();
+            }
+
+            resolveTagEntry(id, required, structureIds, visitedTags);
+        } else {
+            spdlog::warn(
+                "StructureTagLoader: value in tag '{}' is not a string or object, skipped", location.toString());
         }
-
-        // 将解析到的结构 ID 添加到标签中
-        tag->addAll(structureIds);
-
-        if (structureIds.empty()) {
-            spdlog::info("StructureTagLoader: tag '{}' resolved no valid structure IDs", location.toString());
-        }
-
-        return tag;
     }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("failed to parse JSON: ") + e.what());
+
+    // 将解析到的结构 ID 添加到标签中
+    tag->addAll(structureIds);
+
+    if (structureIds.empty()) {
+        spdlog::info("StructureTagLoader: tag '{}' resolved no valid structure IDs", location.toString());
     }
+
+    return tag;
 }
 
 } // namespace mc::world::gen::structure

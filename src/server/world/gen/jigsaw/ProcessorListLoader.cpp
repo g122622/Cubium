@@ -105,11 +105,11 @@ std::optional<std::string> optString(simdjson::ondemand::object& obj, std::strin
     if (fieldResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
-    auto strResult = fieldResult.value().get_string();
+    auto strResult = fieldResult.value_unsafe().get_string();
     if (strResult.error() != simdjson::SUCCESS) {
         return std::nullopt;
     }
-    return std::string(strResult.value());
+    return std::string(strResult.value_unsafe());
 }
 
 /**
@@ -155,11 +155,11 @@ std::string reqString(simdjson::ondemand::object& obj, std::string_view key)
     if (fieldResult.error() != simdjson::SUCCESS) {
         return {};
     }
-    auto strResult = fieldResult.value().get_string();
+    auto strResult = fieldResult.value_unsafe().get_string();
     if (strResult.error() != simdjson::SUCCESS) {
         return {};
     }
-    return std::string(strResult.value());
+    return std::string(strResult.value_unsafe());
 }
 
 /**
@@ -173,11 +173,11 @@ f32 optFloat(simdjson::ondemand::object& obj, std::string_view key, f32 defaultV
     if (fieldResult.error() != simdjson::SUCCESS) {
         return defaultValue;
     }
-    auto dblResult = fieldResult.value().get_double();
+    auto dblResult = fieldResult.value_unsafe().get_double();
     if (dblResult.error() != simdjson::SUCCESS) {
         return defaultValue;
     }
-    return static_cast<f32>(dblResult.value());
+    return static_cast<f32>(dblResult.value_unsafe());
 }
 
 /**
@@ -191,11 +191,11 @@ i32 optInt(simdjson::ondemand::object& obj, std::string_view key, i32 defaultVal
     if (fieldResult.error() != simdjson::SUCCESS) {
         return defaultValue;
     }
-    auto intResult = fieldResult.value().get_int64();
+    auto intResult = fieldResult.value_unsafe().get_int64();
     if (intResult.error() != simdjson::SUCCESS) {
         return defaultValue;
     }
-    return static_cast<i32>(intResult.value());
+    return static_cast<i32>(intResult.value_unsafe());
 }
 
 // ============================================================================
@@ -232,11 +232,11 @@ u32 parseOutputBlockStateId(simdjson::ondemand::object& outputState)
     if (propsResult.error() != simdjson::SUCCESS) {
         return defaultState.stateId();
     }
-    auto propsObjResult = propsResult.value().get_object();
+    auto propsObjResult = propsResult.value_unsafe().get_object();
     if (propsObjResult.error() != simdjson::SUCCESS) {
         return defaultState.stateId();
     }
-    auto props = propsObjResult.value();
+    auto props = propsObjResult.value_unsafe();
 
     // 有 Properties，逐一设置属性
     const BlockState* currentState = &defaultState;
@@ -246,13 +246,13 @@ u32 parseOutputBlockStateId(simdjson::ondemand::object& outputState)
         if (keyResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        std::string propName(keyResult.value());
+        std::string propName(keyResult.value_unsafe());
 
         auto valResult = field.value().get_string();
         if (valResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        std::string propValue(valResult.value());
+        std::string propValue(valResult.value_unsafe());
 
         const IProperty* prop = block->stateContainer().getProperty(propName);
         if (prop == nullptr) {
@@ -332,10 +332,10 @@ std::unique_ptr<RuleTest> parseRuleTest(simdjson::ondemand::object& predicateObj
         // probability 是数值字段
         auto probResult = predicateObj["probability"];
         if (block && probResult.error() == simdjson::SUCCESS) {
-            auto probValResult = probResult.value().get_double();
+            auto probValResult = probResult.value_unsafe().get_double();
             if (probValResult.error() == simdjson::SUCCESS) {
                 ResourceLocation blockLoc(*block);
-                f32 probability = static_cast<f32>(probValResult.value());
+                f32 probability = static_cast<f32>(probValResult.value_unsafe());
                 Block* blockPtr = BlockRegistry::instance().getBlock(blockLoc);
                 if (blockPtr != nullptr) {
                     return std::make_unique<RandomBlockMatchRuleTest>(blockPtr, probability);
@@ -358,9 +358,9 @@ std::unique_ptr<RuleTest> parseRuleTest(simdjson::ondemand::object& predicateObj
     if (predicateType == "block_state_match" || predicateType == "blockstate_match") {
         auto bsResult = predicateObj["block_state"];
         if (bsResult.error() == simdjson::SUCCESS) {
-            auto bsObjResult = bsResult.value().get_object();
+            auto bsObjResult = bsResult.value_unsafe().get_object();
             if (bsObjResult.error() == simdjson::SUCCESS) {
-                auto bsObj = bsObjResult.value();
+                auto bsObj = bsObjResult.value_unsafe();
                 const BlockState* state = parseOutputBlockState(bsObj);
                 if (state != nullptr) {
                     return std::make_unique<BlockStateMatchRuleTest>(state);
@@ -375,12 +375,12 @@ std::unique_ptr<RuleTest> parseRuleTest(simdjson::ondemand::object& predicateObj
         auto bsResult = predicateObj["block_state"];
         auto probResult = predicateObj["probability"];
         if (bsResult.error() == simdjson::SUCCESS && probResult.error() == simdjson::SUCCESS) {
-            auto bsObjResult = bsResult.value().get_object();
-            auto probValResult = probResult.value().get_double();
+            auto bsObjResult = bsResult.value_unsafe().get_object();
+            auto probValResult = probResult.value_unsafe().get_double();
             if (bsObjResult.error() == simdjson::SUCCESS && probValResult.error() == simdjson::SUCCESS) {
-                auto bsObj = bsObjResult.value();
+                auto bsObj = bsObjResult.value_unsafe();
                 const BlockState* state = parseOutputBlockState(bsObj);
-                f32 probability = static_cast<f32>(probValResult.value());
+                f32 probability = static_cast<f32>(probValResult.value_unsafe());
                 if (state != nullptr) {
                     return std::make_unique<RandomBlockStateMatchRuleTest>(state, probability);
                 }
@@ -588,20 +588,12 @@ Result<void> ProcessorListLoader::loadFromJson(const std::string& json, const Re
             ErrorCode::InvalidData, std::string("JSON parse error: ") + simdjson::error_message(docResult.error()));
     }
 
-    try {
-        auto rootResult = docResult.value().get_object();
-        if (rootResult.error() != simdjson::SUCCESS) {
-            return Error(ErrorCode::InvalidData, "Processor list JSON is not an object");
-        }
-        auto root = rootResult.value();
-        return _loadFromJsonObj(root, location);
+    auto rootResult = docResult.value_unsafe().get_object();
+    if (rootResult.error() != simdjson::SUCCESS) {
+        return Error(ErrorCode::InvalidData, "Processor list JSON is not an object");
     }
-    catch (const simdjson::simdjson_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
-    }
+    auto root = rootResult.value_unsafe();
+    return _loadFromJsonObj(root, location);
 }
 
 Result<void> ProcessorListLoader::_loadFromJsonObj(
@@ -612,11 +604,11 @@ Result<void> ProcessorListLoader::_loadFromJsonObj(
     if (procsResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Processor list missing 'processors' array");
     }
-    auto procsArrResult = procsResult.value().get_array();
+    auto procsArrResult = procsResult.value_unsafe().get_array();
     if (procsArrResult.error() != simdjson::SUCCESS) {
         return Error(ErrorCode::InvalidData, "Processor list 'processors' is not an array");
     }
-    auto procsArr = procsArrResult.value();
+    auto procsArr = procsArrResult.value_unsafe();
 
     auto processorList = std::make_unique<StructureProcessorList>();
 
@@ -625,7 +617,7 @@ Result<void> ProcessorListLoader::_loadFromJsonObj(
         if (processorObjResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        auto processorObj = processorObjResult.value();
+        auto processorObj = processorObjResult.value_unsafe();
         auto processor = _parseProcessor(processorObj);
         if (processor) {
             processorList->addProcessor(std::move(processor));
@@ -647,14 +639,14 @@ std::unique_ptr<StructureProcessorList> ProcessorListLoader::parseInlineProcesso
     if (arrResult.error() != simdjson::SUCCESS) {
         return processorList; // 非数组返回空列表
     }
-    auto arr = arrResult.value();
+    auto arr = arrResult.value_unsafe();
 
     for (auto processorVal : arr) {
         auto processorObjResult = processorVal.get_object();
         if (processorObjResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        auto processorObj = processorObjResult.value();
+        auto processorObj = processorObjResult.value_unsafe();
         auto processor = _parseProcessor(processorObj);
         if (processor) {
             processorList->addProcessor(std::move(processor));
@@ -711,19 +703,19 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
 
     auto blocksResult = processorObj["blocks"];
     if (blocksResult.error() == simdjson::SUCCESS) {
-        auto blocksArrResult = blocksResult.value().get_array();
+        auto blocksArrResult = blocksResult.value_unsafe().get_array();
         if (blocksArrResult.error() == simdjson::SUCCESS) {
-            auto blocksArr = blocksArrResult.value();
+            auto blocksArr = blocksArrResult.value_unsafe();
             for (auto blockEntryVal : blocksArr) {
                 // 先判断元素类型:字符串(方块名)或对象(完整方块状态)
                 auto typeResult = blockEntryVal.type();
                 if (typeResult.error() != simdjson::SUCCESS) {
                     continue;
                 }
-                if (typeResult.value() == simdjson::ondemand::json_type::string) {
+                if (typeResult.value_unsafe() == simdjson::ondemand::json_type::string) {
                     auto strResult = blockEntryVal.get_string();
                     if (strResult.error() == simdjson::SUCCESS) {
-                        ResourceLocation blockLoc(std::string(strResult.value()));
+                        ResourceLocation blockLoc(std::string(strResult.value_unsafe()));
                         Block* block = BlockRegistry::instance().getBlock(blockLoc);
                         if (block != nullptr) {
                             // 处理器按方块 ID 忽略，任意状态都会被跳过。
@@ -733,10 +725,10 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseBlockIgnoreProces
                                 "block_ignore: unknown block '{}' in ignore list, skipping", blockLoc.toString());
                         }
                     }
-                } else if (typeResult.value() == simdjson::ondemand::json_type::object) {
+                } else if (typeResult.value_unsafe() == simdjson::ondemand::json_type::object) {
                     auto objResult = blockEntryVal.get_object();
                     if (objResult.error() == simdjson::SUCCESS) {
-                        auto blockEntryObj = objResult.value();
+                        auto blockEntryObj = objResult.value_unsafe();
                         const u32 stateId = parseOutputBlockStateId(blockEntryObj);
                         const BlockState* state = BlockRegistry::instance().getBlockState(stateId);
                         if (state != nullptr) {
@@ -810,27 +802,27 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(sim
         spdlog::info("rule processor: no rules array, creating empty rule processor");
         return std::make_unique<RuleStructureProcessor>(std::move(rules));
     }
-    auto rulesArrResult = rulesResult.value().get_array();
+    auto rulesArrResult = rulesResult.value_unsafe().get_array();
     if (rulesArrResult.error() != simdjson::SUCCESS) {
         spdlog::info("rule processor: 'rules' is not an array, creating empty rule processor");
         return std::make_unique<RuleStructureProcessor>(std::move(rules));
     }
-    auto rulesArr = rulesArrResult.value();
+    auto rulesArr = rulesArrResult.value_unsafe();
 
     for (auto ruleVal : rulesArr) {
         auto ruleObjResult = ruleVal.get_object();
         if (ruleObjResult.error() != simdjson::SUCCESS) {
             continue;
         }
-        auto ruleObj = ruleObjResult.value();
+        auto ruleObj = ruleObjResult.value_unsafe();
 
         // 解析 input_predicate
         std::unique_ptr<RuleTest> inputPredicate;
         auto inputResult = ruleObj["input_predicate"];
         if (inputResult.error() == simdjson::SUCCESS) {
-            auto inputObjResult = inputResult.value().get_object();
+            auto inputObjResult = inputResult.value_unsafe().get_object();
             if (inputObjResult.error() == simdjson::SUCCESS) {
-                auto inputObj = inputObjResult.value();
+                auto inputObj = inputObjResult.value_unsafe();
                 inputPredicate = parseRuleTest(inputObj);
             }
         }
@@ -842,9 +834,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(sim
         std::unique_ptr<RuleTest> locationPredicate;
         auto locResult = ruleObj["location_predicate"];
         if (locResult.error() == simdjson::SUCCESS) {
-            auto locObjResult = locResult.value().get_object();
+            auto locObjResult = locResult.value_unsafe().get_object();
             if (locObjResult.error() == simdjson::SUCCESS) {
-                auto locObj = locObjResult.value();
+                auto locObj = locObjResult.value_unsafe();
                 locationPredicate = parseRuleTest(locObj);
             }
         }
@@ -856,9 +848,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(sim
         std::unique_ptr<feature::template_::PosRuleTest> posPredicate;
         auto posResult = ruleObj["pos_predicate"];
         if (posResult.error() == simdjson::SUCCESS) {
-            auto posObjResult = posResult.value().get_object();
+            auto posObjResult = posResult.value_unsafe().get_object();
             if (posObjResult.error() == simdjson::SUCCESS) {
-                auto posObj = posObjResult.value();
+                auto posObj = posObjResult.value_unsafe();
                 posPredicate = _parsePosRuleTest(posObj);
             }
         }
@@ -870,9 +862,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(sim
         u32 outputStateId = 0;
         auto outResult = ruleObj["output_state"];
         if (outResult.error() == simdjson::SUCCESS) {
-            auto outObjResult = outResult.value().get_object();
+            auto outObjResult = outResult.value_unsafe().get_object();
             if (outObjResult.error() == simdjson::SUCCESS) {
-                auto outObj = outObjResult.value();
+                auto outObj = outObjResult.value_unsafe();
                 outputStateId = parseOutputBlockStateId(outObj);
             }
         }
@@ -969,12 +961,12 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(s
         spdlog::warn("capped processor: missing or invalid 'delegate' field, using nop processor");
         return std::make_unique<NopStructureProcessor>();
     }
-    auto delegateObjResult = delegateResult.value().get_object();
+    auto delegateObjResult = delegateResult.value_unsafe().get_object();
     if (delegateObjResult.error() != simdjson::SUCCESS) {
         spdlog::warn("capped processor: 'delegate' is not an object, using nop processor");
         return std::make_unique<NopStructureProcessor>();
     }
-    auto delegateObj = delegateObjResult.value();
+    auto delegateObj = delegateObjResult.value_unsafe();
 
     auto delegateProcessor = _parseProcessor(delegateObj);
     if (!delegateProcessor) {
@@ -990,9 +982,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(s
         // IntProviderParser 仍基于 nlohmann::json(被 8+ 个其他 loader 复用,本次不迁移)。
         // 在此边界用 raw_json() 取 limit 字段的原始 JSON 文本,转回 nlohmann::json 传给 IntProviderParser。
         // capped 处理器在原版数据中稀有,边界开销可接受。
-        auto rawResult = limitResult.value().raw_json();
+        auto rawResult = limitResult.value_unsafe().raw_json();
         if (rawResult.error() == simdjson::SUCCESS) {
-            std::string_view rawJson = rawResult.value();
+            std::string_view rawJson = rawResult.value_unsafe();
             auto limitJsonParseResult = util::json::parse(rawJson);
             if (limitJsonParseResult.failed()) {
                 spdlog::warn("capped processor: failed to parse 'limit' JSON ({}), using default limit",

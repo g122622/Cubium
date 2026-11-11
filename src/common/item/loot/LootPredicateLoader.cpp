@@ -31,11 +31,11 @@
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "common/resource/repository/PackRepository.hpp"
 #include "common/util/json/JsonRead.hpp"
-#include <system_error>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -185,9 +185,8 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDirectory(
     std::vector<fs::path> jsonFiles;
     // 用 error_code 重载遍历：目录不可读时返回空列表并上报，不抛 filesystem_error
     std::error_code iterateEc;
-    for (fs::recursive_directory_iterator it(directoryPath, fs::directory_options::none, iterateEc), end;
-         it != end;
-         it.increment(iterateEc)) {
+    for (fs::recursive_directory_iterator it(directoryPath, fs::directory_options::none, iterateEc), end; it != end;
+        it.increment(iterateEc)) {
         if (iterateEc) {
             return Error(ErrorCode::FileOpenFailed, "Failed to iterate directory: " + iterateEc.message());
         }

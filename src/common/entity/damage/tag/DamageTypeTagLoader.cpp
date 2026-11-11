@@ -165,8 +165,8 @@ static Result<DamageTypeRawTagData> parseDamageTypeJsonRaw(const std::string& js
             rawData.entries.push_back({value.get<std::string>(), true});
         } else if (value.is_object()) {
             if (!value.contains("id") || !value["id"].is_string()) {
-                spdlog::warn("DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
-                    location.toString());
+                spdlog::warn(
+                    "DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                 continue;
             }
 
@@ -480,8 +480,8 @@ Result<std::unique_ptr<DamageTypeTag>> DamageTypeTagLoader::loadFromJson(
             resolveDamageTypeTagEntry(rawEntry, damageTypes, visitedTags, location);
         } else if (value.is_object()) {
             if (!value.contains("id") || !value["id"].is_string()) {
-                spdlog::warn("DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped",
-                    location.toString());
+                spdlog::warn(
+                    "DamageTypeTagLoader: object entry in tag '{}' missing 'id' field, skipped", location.toString());
                 continue;
             }
 

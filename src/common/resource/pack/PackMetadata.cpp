@@ -21,10 +21,10 @@
  *
  */
 
-#include "common/util/json/JsonRead.hpp"
 #include "common/resource/pack/PackMetadata.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <exception>
 #include <fstream>
 #include <ios>
@@ -46,8 +46,8 @@ Result<PackMetadata> PackMetadata::parse(std::string_view jsonContent)
 {
     auto parsedJson = util::json::parse(jsonContent);
     if (parsedJson.failed()) {
-        return Error(ErrorCode::ResourceParseError,
-            std::string("Failed to parse pack.mcmeta: ") + parsedJson.error().message());
+        return Error(
+            ErrorCode::ResourceParseError, std::string("Failed to parse pack.mcmeta: ") + parsedJson.error().message());
     }
     const auto& json = parsedJson.value();
 

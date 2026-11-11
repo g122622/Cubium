@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <vector>
 #include <fmt/format.h>
 #include <rocksdb/env.h>
@@ -76,11 +77,13 @@ Result<std::unique_ptr<BackupManager>> BackupManager::open(const std::filesystem
     MC_TRACE_SCOPED_EVENT(TraceEvents.Storage.Task, "BackupManager::open", "path", backupDir.string());
 
     // 创建备份目录
-    try {
-        std::filesystem::create_directories(backupDir);
-    }
-    catch (const std::exception& e) {
-        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to create backup directory: {}", e.what()));
+    {
+        std::error_code dirEc;
+        std::filesystem::create_directories(backupDir, dirEc);
+        if (dirEc) {
+            return Error(
+                ErrorCode::FileWriteFailed, fmt::format("Failed to create backup directory: {}", dirEc.message()));
+        }
     }
 
     auto manager = std::unique_ptr<BackupManager>(new BackupManager(backupDir));

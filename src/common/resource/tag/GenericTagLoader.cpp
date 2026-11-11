@@ -113,8 +113,7 @@ Result<_RawTagData> _parseJsonRaw(const std::string& json, const ResourceLocatio
 
             std::string id = value["id"].get<std::string>();
             if (id.empty()) {
-                spdlog::error(
-                    "GenericTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
+                spdlog::error("GenericTagLoader: object entry 'id' in tag '{}' is empty, skipped", location.toString());
                 continue;
             }
 
