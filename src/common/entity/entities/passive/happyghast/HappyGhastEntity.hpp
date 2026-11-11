@@ -53,7 +53,6 @@ class Goal;
  * 1.21 新增的被动飞行生物，由干燥恶魂方块在水中孵化（幼年个体）或通过幼体成长获得。
  * 成体会自动远离地面悬浮巡游，可载多名乘客。
  *
- * 参考：net.minecraft.world.entity.animal.happyghast.HappyGhast
  *
  * @note 本项目无 Brain 系统，vanilla HappyGhastAi 的 IDLE 活动改以 GoalSelector 的
  *       GhastHappyFloatGoal（幼体漂浮）+ GhastRandomFlyGoal（成年随机飞行）实现，

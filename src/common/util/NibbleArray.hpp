@@ -45,7 +45,6 @@ namespace mc {
  * 用于存储光照数据等0-15范围的值，每个元素仅占用半个字节。
  * 存储格式与Minecraft NibbleArray一致，用于区块光照存储。
  *
- * 参考: net.minecraft.world.chunk.NibbleArray
  *
  * 内存布局:
  * - 每个字节存储两个相邻元素

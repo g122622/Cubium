@@ -55,7 +55,6 @@ namespace blocks {
  * - 需要与 DispenserBlockEntity 配合
  * - 特殊物品行为处理
  *
- * 参考: net.minecraft.block.DispenserBlock
  */
 class DispenserBlock : public Block {
 public:

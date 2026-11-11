@@ -31,7 +31,6 @@ namespace mc {
  * @brief 物品使用动作枚举
  *
  * 定义物品在使用时的动作类型，用于客户端播放正确的动画。
- * 参考: net.minecraft.item.UseAction
  */
 enum class UseAction : u8 {
     None = 0,           ///< 无动作（默认）

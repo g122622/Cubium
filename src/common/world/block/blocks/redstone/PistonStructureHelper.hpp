@@ -43,7 +43,6 @@ namespace blocks {
  * - 要破坏的方块列表
  * - 黏液块/蜂蜜块的粘连处理
  *
- * 参考: net.minecraft.block.PistonBlockStructureHelper
  */
 class PistonStructureHelper {
 public:

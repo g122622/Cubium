@@ -107,7 +107,6 @@ public:
      * - BARS 标签方块之间（如铁栏杆↔铜栏杆）：同上，垂直方向始终跳过，
      *   水平方向仅当双方都有对应方向的连接属性时跳过
      *
-     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
      */
     [[nodiscard]] bool skipRendering(
         const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;

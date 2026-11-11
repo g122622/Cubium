@@ -37,7 +37,6 @@ namespace mc {
  * 提供所有原版物品的静态指针，便于快速访问。
  * 在游戏初始化时调用 Items::initialize() 进行注册。
  *
- * 参考: net.minecraft.item.Items
  */
 class Items {
 public:

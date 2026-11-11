@@ -64,8 +64,7 @@ public:
 
     /// 本类继承链标识（parent = WaterMobEntity::classInfo()）。见 Entity::classInfo()。
     // vanilla 1.21.11 AbstractFish 在 Mob(id15) 之后注册 FROM_BUCKET(Boolean,id16)。
-    // 本项目保留此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见
-    // entity-sync-alignment-decisions-2026-07。
+    // 本项目保留此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id。
     static const entity::EntityClassInfo& classInfo();
 
     AbstractFishEntity(const AbstractFishEntity&) = delete;

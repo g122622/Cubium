@@ -371,8 +371,10 @@ void CatEntity::registerData()
     //   IS_LYING(20) Boolean 默认 false
     //   RELAX_STATE_ONE(21) Boolean 默认 false
     //   DATA_COLLAR_COLOR(22) Int 默认 14=Red
-    // TODO: vanilla Cat 默认变体为 BLACK(id=1),项目历史默认 Tabby(0);此处 wire 默认值取 Black(1)
-    //       对齐 vanilla,但构造时 setRandomCatType() 会立即覆盖为随机值,故默认值仅影响瞬态。
+    // 说明：vanilla Cat 的 DEFAULT_VARIANT 是 BLACK(id=1)，这里注册的默认值同样是 Black(1)，
+    //   与 vanilla 一致。构造函数在 registerData() 之后会立刻 setRandomCatType() 把变体改成随机值，
+    //   因此这个注册默认值只在"还没随机"的瞬态可见，不需要为它单独做什么。
+    //   （历史上项目默认 Tabby(0)，该差异已修正。）
     // serializerId 21 = CAT_VARIANT（vanilla EntityDataSerializers 注册顺序）。
     m_dataManager.registerParam(DATA_VARIANT_ID_PARAM,
         entity::HolderVariantValue{

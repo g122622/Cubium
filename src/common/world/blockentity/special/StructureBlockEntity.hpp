@@ -45,7 +45,6 @@ namespace blockentity {
  * 保存结构方块的编辑状态：结构名、坐标偏移、尺寸、镜像/旋转、模式、是否忽略实体、
  * 数据模式下的元数据、完整度与随机种子。客户端打开界面时由服务端下发本实体的更新 NBT。
  *
- * 参考：net.minecraft.world.level.block.entity.StructureBlockEntity
  *
  * @note 未实现（TODO）：保存（SAVE）/加载（LOAD）/扫描（SCAN）三种操作真正读写结构模板。
  *       本项目结构模板体系（TemplateManager，位于 server 模块）与 common 层方块实体之间尚无

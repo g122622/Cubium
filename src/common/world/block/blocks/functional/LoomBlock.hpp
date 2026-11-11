@@ -53,7 +53,6 @@ namespace blocks {
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
  *
- * 参考: net.minecraft.block.LoomBlock
  */
 class LoomBlock : public Block {
 public:

@@ -104,7 +104,6 @@ public:
      * 此前 Cubium PigEntity 无 interactMob override（落入 AnimalEntity::interactMob 仅处理喂食），
      * 空手右键配鞍猪返 Pass 不骑乘（对齐缺陷）。本次补全实体侧骑乘入口（与 StriderEntity 同构）。
      *
-     * 参考: net.minecraft.world.entity.animal.pig.Pig#mobInteract(Player, InteractionHand)
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 

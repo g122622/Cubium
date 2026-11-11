@@ -52,7 +52,6 @@ namespace mc {
  *
  * 预计算并管理所有可能的状态组合。
  *
- * 参考: net.minecraft.state.StateContainer<O, S>
  *
  * @tparam Owner 拥有者类型
  * @tparam State 状态类型

@@ -38,7 +38,6 @@ namespace loot {
  * @brief 掉落函数基类
  *
  * 掉落函数用于修改生成的物品堆，如设置数量、应用附魔加成等。
- * 参考: net.minecraft.world.level.storage.loot.functions.LootItemFunction
  *
  * 每个函数自带一组 `conditions`（数据包里的 `conditions` 字段）。条件不满足时
  * 函数原样返回堆，这与原版 `LootItemConditionalFunction#apply` 一致。

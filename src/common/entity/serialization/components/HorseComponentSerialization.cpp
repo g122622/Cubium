@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/ecs/components/ChestedHorseComponent.hpp"
 #include "common/entity/ecs/components/HorseAttributeComponent.hpp"
 #include "common/entity/ecs/components/HorseJumpComponent.hpp"
 #include "common/entity/ecs/components/HorseStatusComponent.hpp"
@@ -233,6 +234,36 @@ static Result<void> loadHorseAttribute(Entity& entity, const nbt::tags::compound
 }
 
 // ============================================================================
+// ChestedHorseComponent — ChestedHorse（布尔）
+//
+// 1.16.5 残留缺陷：这个标志此前完全没有存盘，装过箱子的驴/骡读档后会退回"没箱子"，
+// 库存规模也从 2 + 3*columns 掉回 2 格，箱子里的东西一并丢失。原版
+// AbstractChestedHorse.addAdditionalSaveData 里就是一句 putBoolean("ChestedHorse", hasChest())。
+//
+// priority=0：load 时只写组件字段。真正的库存重建由 initHorseChest() 负责，那一步依赖
+// 本字段先就位，因此不能排在后面。
+// ============================================================================
+
+static void saveChestedHorse(const Entity& entity, nbt::tags::compound_tag& tag)
+{
+    const auto* c = entity.tryGetComponent<ecs::ChestedHorseComponent>();
+    if (c == nullptr) {
+        return; // 非驴/骡早退
+    }
+    tag.put(nbt_keys::HORSE_CHESTED, static_cast<i8>(c->m_hasChest ? 1 : 0));
+}
+
+static Result<void> loadChestedHorse(Entity& entity, const nbt::tags::compound_tag& tag)
+{
+    auto* c = entity.tryGetComponent<ecs::ChestedHorseComponent>();
+    if (c == nullptr) {
+        return {}; // 非驴/骡早退
+    }
+    c->m_hasChest = nbt_helper::tryGetBool(tag, nbt_keys::HORSE_CHESTED).value_or(false);
+    return {};
+}
+
+// ============================================================================
 // 注册
 // ============================================================================
 
@@ -243,6 +274,7 @@ void registerHorseComponentSerializers(ComponentSerializerRegistry& registry)
     //               Attribute=20 最后 load（speed/horseHealth 同步 AttributeMap）。
     registry.registerSerializer<ecs::HorseTamingComponent>(saveHorseTaming, loadHorseTaming, 0);
     registry.registerSerializer<ecs::HorseJumpComponent>(saveHorseJump, loadHorseJump, 0);
+    registry.registerSerializer<ecs::ChestedHorseComponent>(saveChestedHorse, loadChestedHorse, 0);
     registry.registerSerializer<ecs::HorseStatusComponent>(saveHorseStatus, loadHorseStatus, 10);
     registry.registerSerializer<ecs::HorseAttributeComponent>(saveHorseAttribute, loadHorseAttribute, 20);
 }

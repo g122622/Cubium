@@ -47,7 +47,6 @@ namespace blocks {
  * 植物只能在特定地面（草地、泥土、耕地等）上放置。
  * 默认返回 PlantType::Plains，子类可重写 getPlantType() 返回其他类型。
  *
- * 参考: net.minecraft.block.BushBlock
  */
 class BushBlock : public Block, public IPlantable {
 public:

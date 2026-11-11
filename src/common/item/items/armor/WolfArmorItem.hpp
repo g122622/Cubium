@@ -46,7 +46,6 @@ namespace item::items {
  * - 伤害吸收：狼穿戴狼铠时，非绕过护甲的伤害由狼铠吸收（WolfEntity::actuallyHurt）
  * - 裂纹：狼铠受损到不同阈值时播放裂纹音效和粒子（Crackiness::WOLF_ARMOR）
  *
- * 参考: net.minecraft.world.item.WolfArmorItem (MC 1.21.11)
  */
 class WolfArmorItem : public DyeableArmorItem {
 public:

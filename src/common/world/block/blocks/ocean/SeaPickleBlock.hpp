@@ -57,7 +57,6 @@ namespace blocks {
  * - 亮度随数量增加：1个=6, 2个=9, 3个=12, 4个=15
  * - 离开水不发光
  *
- * 参考: net.minecraft.block.SeaPickleBlock
  */
 class SeaPickleBlock : public Block, public IWaterLoggable {
 public:

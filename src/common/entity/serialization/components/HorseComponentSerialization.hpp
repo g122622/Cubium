@@ -56,8 +56,10 @@ namespace mc::entity::serialization::components {
  *
  * 不注册序列化器的组件：HorseBoostComponent（运行时无持久化）、HorseInventoryComponent
  * （库存内容走 LootableContainer 体系，项目当前未接通 vehicle/马匹容器持久化 TODO）、
- * HorseAnimationComponent（运行时动画计数器/插值量不存盘）、ChestedHorseComponent
- * （m_hasChest 标志项目当前未存盘，1.16.5 残留缺陷 TODO）。
+ * HorseAnimationComponent（运行时动画计数器/插值量不存盘）。
+ *
+ * `ChestedHorseComponent`（`ChestedHorse` 字节）已在本批接入，priority=0：必须在
+ * initHorseChest() 之前就位，否则库存规模会按"没箱子"重建。
  *
  * 接通方式：本批完成后，AbstractHorseEntity 的 addAdditionalSaveData override 删除（搬注册表
  * 后双重写入键冲突），readAdditionalSaveData 改薄壳（仅基类调用 + initHorseChest，因

@@ -110,7 +110,6 @@ struct DamageTypeEntry {
 };
 
 // 与 MC 1.21.11 DamageTypes.java 注册表保持一致的完整映射表
-// 参考: net.minecraft.world.damagesource.DamageTypes.bootstrap()
 constexpr DamageTypeEntry kEntries[] = {
     {DamageType::InFire, "minecraft:in_fire"},
     {DamageType::Campfire, "minecraft:campfire"},

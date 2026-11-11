@@ -64,7 +64,6 @@ namespace blockentity {
  * - _unpackLootTable 使用 const_cast 实现逻辑上的 const 语义，
  *   因为填充战利品是缓存初始化而非逻辑状态变更
  *
- * 参考: net.minecraft.RandomizableContainerBlockEntity
  *
  * 子类:
  * - ChestEntity（箱子）
@@ -146,7 +145,6 @@ public:
      *
      * 在检查物品之前会先触发战利品表填充（_unpackLootTable），
      * 确保未填充的战利品表不会被误判为空容器。
-     * 参考: net.minecraft.RandomizableContainerBlockEntity.isEmpty()
      */
     [[nodiscard]] bool isEmpty() const override;
 
@@ -155,7 +153,6 @@ public:
      *
      * 在清空之前会先触发战利品表填充（_unpackLootTable），
      * 确保清空时战利品已被正确生成（而非丢失）。
-     * 参考: net.minecraft.RandomizableContainerBlockEntity.clearContent()
      */
     void clearContainer() override;
 
@@ -216,7 +213,6 @@ protected:
      * 子类在实现 IInventory 接口方法（getItem/setItem/removeItem 等）时，
      * 应在操作前调用此方法，以确保战利品表已被填充。
      *
-     * 参考: net.minecraft.RandomizableContainer.unpackLootTable(@Nullable Player)
      *
      * @param player 触发填充的玩家（可为nullptr，isEmpty/getItem等容器访问时传nullptr）
      */

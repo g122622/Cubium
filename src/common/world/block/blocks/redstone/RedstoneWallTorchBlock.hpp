@@ -53,7 +53,6 @@ namespace blocks {
  * - shouldBeOff 检查附着面方向的信号
  * - 需要处理支撑方块检测
  *
- * 参考: net.minecraft.block.RedstoneWallTorchBlock
  */
 class RedstoneWallTorchBlock : public RedstoneTorchBlock {
 public:

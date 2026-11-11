@@ -50,7 +50,6 @@ namespace blockentity {
  * 振动系统数据通过 NBT/JSON 序列化保存到存档，键名为 "listener"，
  * 与 MC 原版 SculkSensorBlockEntity 的序列化格式兼容。
  *
- * 参考: net.minecraft.block.entity.SculkSensorBlockEntity
  */
 class SculkSensorBlockEntity : public BlockEntity {
 public:

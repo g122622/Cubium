@@ -41,7 +41,6 @@ namespace blocks {
  * 只能放置在天花板下方（上方方块必须有向下的坚固面），且不能放置在水中。
  * 当上方支撑丢失时自动脱落变为空气。
  *
- * 参考: net.minecraft.world.level.block.SporeBlossomBlock (MC 1.21.11)
  */
 class SporeBlossomBlock : public Block {
 public:

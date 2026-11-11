@@ -491,6 +491,43 @@ private:
 };
 
 /**
+ * @brief 会把自身字面量写进命令上下文的字面量节点
+ *
+ * 普通 {@link LiteralCommandNode} 只校验"读到的词是否等于自身字面量"，对上下文一个字节都不写。
+ * 于是当多个字面量分支出现在同一棵子树里、而后续执行期必须知道"走的是哪一个分支"时，
+ * 上下文里查不到任何痕迹。
+ *
+ * 典型场景：`/execute if|unless` 的条件。它的条件名（`block`/`score`/…）和比较运算符
+ * （`<`/`<=`/`=`/`>`/`>=`）都是字面量，而执行链里只记录动词、拿不到这些字面量。
+ * 用本节点替换对应的字面量节点后，解析期就会把选中的字面量记到 `context` 的指定键上，
+ * 执行期直接查该键即可。
+ *
+ * @tparam S 命令源类型
+ */
+template <typename S>
+class LiteralRecordingCommandNode : public LiteralCommandNode<S> {
+public:
+    /**
+     * @param literal 要匹配的字面量
+     * @param contextKey 把该字面量写进上下文时使用的键
+     */
+    LiteralRecordingCommandNode(const std::string& literal, std::string contextKey)
+        : LiteralCommandNode<S>(literal)
+        , m_contextKey(std::move(contextKey))
+    {}
+
+    void parse(StringReader& reader, CommandContext<S>& context) const override
+    {
+        LiteralCommandNode<S>::parse(reader, context);
+        // 基类已经校验并消费了字面量，这里补记一笔，值就是本节点的字面量文本。
+        context.setArgument(m_contextKey, LiteralCommandNode<S>::getLiteral());
+    }
+
+private:
+    std::string m_contextKey;
+};
+
+/**
  * @brief 参数命令节点
  *
  * 表示可变的命令参数，如 <player>、<pos>

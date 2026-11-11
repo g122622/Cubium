@@ -36,7 +36,6 @@ namespace loot {
  * @brief 天气检查条件
  *
  * 检查当前世界的天气状态（下雨/雷暴）。
- * 参考: net.minecraft.loot.conditions.WeatherCheck
  *
  * JSON 格式示例:
  * @code

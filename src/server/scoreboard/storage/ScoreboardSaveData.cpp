@@ -679,19 +679,28 @@ Result<void> ScoreboardSaveData::applyToScoreboard(Scoreboard& scoreboard) const
         auto color = text::fromName(teamData.color);
         team->setColor(color);
 
-        // 严格解析：原版 CODEC.byName 对未知值返回 null。这里只在解析成功时设置，
-        // 失败则保留队伍默认值——避免未知字符串被静默写成 Always。
-        // TODO: 原版在解析失败时会让整个存档读取报错；Cubium 目前静默跳过，
-        // 待存档读取的错误上报链路补齐后改为返回错误。
-        if (const auto visibility = teamVisibilityParse(teamData.nameTagVisibility)) {
-            team->setNameTagVisibility(*visibility);
+        // 严格解析：原版 CODEC.byName 对未知值返回 null，进而让整个存档读取失败。
+        // 这里同样返回错误，而不是静默保留默认值——未知枚举值意味着存档已损坏或被改坏，
+        // 悄悄降级成 Always/Never 会让问题在很久以后才以"队伍行为诡异"的形式暴露。
+        const auto visibility = teamVisibilityParse(teamData.nameTagVisibility);
+        if (!visibility.has_value()) {
+            return Error(
+                ErrorCode::InvalidData, "Unknown NameTagVisibility in TeamData: " + teamData.nameTagVisibility);
         }
-        if (const auto deathVisibility = teamVisibilityParse(teamData.deathMessageVisibility)) {
-            team->setDeathMessageVisibility(*deathVisibility);
+        team->setNameTagVisibility(*visibility);
+
+        const auto deathVisibility = teamVisibilityParse(teamData.deathMessageVisibility);
+        if (!deathVisibility.has_value()) {
+            return Error(ErrorCode::InvalidData,
+                "Unknown DeathMessageVisibility in TeamData: " + teamData.deathMessageVisibility);
         }
-        if (const auto rule = teamCollisionRuleParse(teamData.collisionRule)) {
-            team->setCollisionRule(*rule);
+        team->setDeathMessageVisibility(*deathVisibility);
+
+        const auto rule = teamCollisionRuleParse(teamData.collisionRule);
+        if (!rule.has_value()) {
+            return Error(ErrorCode::InvalidData, "Unknown CollisionRule in TeamData: " + teamData.collisionRule);
         }
+        team->setCollisionRule(*rule);
         team->setAllowFriendlyFire(teamData.allowFriendlyFire);
         team->setSeeFriendlyInvisibles(teamData.seeFriendlyInvisibles);
 

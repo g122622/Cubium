@@ -53,7 +53,6 @@ struct compound_tag;
  * 当末影箱方块被打开时，通过 setActiveChest 关联到对应的 EnderChestEntity
  * 以实现开盖动画和距离检查。
  *
- * 参考: net.minecraft.world.entity.player.PlayerEnderChestContainer
  */
 class PlayerEnderChestInventory : public IInventory {
 public:
@@ -170,7 +169,6 @@ public:
      * @brief 添加容器变更监听器
      *
      * 监听器在容器内容变更时通过 containerChanged() 被通知。
-     * 参考: net.minecraft.world.SimpleContainer.addListener()
      *
      * @param listener 监听器指针（调用方负责确保指针在移除前有效）
      */
@@ -179,7 +177,6 @@ public:
     /**
      * @brief 移除容器变更监听器
      *
-     * 参考: net.minecraft.world.SimpleContainer.removeListener()
      *
      * @param listener 要移除的监听器指针
      */

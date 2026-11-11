@@ -49,7 +49,6 @@ namespace blocks {
  *
  * MC ID: minecraft:nether_portal
  *
- * 参考: net.minecraft.block.NetherPortalBlock
  */
 class NetherPortalBlock : public Block {
 public:

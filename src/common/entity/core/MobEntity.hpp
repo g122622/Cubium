@@ -1016,7 +1016,6 @@ public:
      * @brief 获取身体护甲槽位的物品堆
      *
      * 用于狼铠、鹦鹉螺铠甲、马铠等非玩家实体的身体护甲。
-     * 参考: net.minecraft.world.entity.Mob.getBodyArmorItem()
      *
      * @return 身体护甲槽位的物品堆引用
      */
@@ -1029,7 +1028,6 @@ public:
      * @brief 检查是否穿戴了身体护甲
      *
      * 检查 Body 槽位是否有有效（非空）的护甲物品。
-     * 参考: net.minecraft.world.entity.Mob.isWearingBodyArmor()
      *
      * @return 如果穿戴了身体护甲返回 true
      */
@@ -1043,7 +1041,6 @@ public:
      *
      * 同时设置该槽位为保整掉落（确保死亡时掉落护甲），
      * 并启用实体持久化（防止穿戴护甲的实体自然消失）。
-     * 参考: net.minecraft.world.entity.Mob.setBodyArmorItem()
      *
      * @param stack 要装备的物品堆
      */
@@ -1056,7 +1053,6 @@ public:
      *
      * 默认行为：实体未被骑乘时允许剪切。
      * 子类可重写此方法添加额外条件（如狼仅允许主人剪切）。
-     * 参考: net.minecraft.world.entity.Mob.canShearEquipment()
      *
      * @param player 尝试剪切的玩家
      * @return 如果允许剪切返回 true
@@ -1068,7 +1064,6 @@ public:
      *
      * 当玩家手持剪刀右键实体时，如果实体穿着可剪切的装备（如狼铠），
      * 则将装备从实体身上剪下并掉落为物品实体。
-     * 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
      *
      * 流程：
      * 1. 遍历所有装备槽位

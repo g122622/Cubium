@@ -46,7 +46,6 @@ namespace special {
  * - 清除所有效果（包括正面和负面效果）
  * - 不恢复饥饿值
  *
- * 参考: net.minecraft.item.MilkBucketItem
  */
 class MilkBucketItem : public Item {
 public:

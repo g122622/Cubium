@@ -139,7 +139,6 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
         playerName = selector.username();
         // 离线玩家使用 MC 原版离线模式 UUID 算法
         // 算法：UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(UTF_8))
-        // 参考: net.minecraft.core.UUIDUtil.createOfflinePlayerUUID
         playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
     }
 

@@ -57,7 +57,6 @@ namespace blocks {
  * - 碰撞箱是动态的，由 PistonBlockEntity 计算
  * - 方块移除时必须清理 PistonBlockEntity
  *
- * 参考: net.minecraft.block.MovingPistonBlock
  */
 class MovingPistonBlock : public Block {
 public:

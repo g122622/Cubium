@@ -210,7 +210,6 @@ private:
  * - 4个墙上火把
  * - 传送门方块填充圆环内部
  *
- * 参考: net.minecraft.world.level.levelgen.feature.EndPodiumFeature
  */
 class EndTeleporter : public Teleporter {
 public:
@@ -272,42 +271,6 @@ public:
 
     /// 末地出口传送门中心柱高度
     static constexpr i32 PODIUM_PILLAR_HEIGHT = 4;
-
-    /**
-     * @brief 放置末地传送门框架方块环
-     *
-     * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
-     * 每个框架方块的凸起朝外（背离传送门中心），与 MC Java 的
-     * EndPortalFrameBlock.getOrCreatePortalShape() 图案一致：
-     * - 北边框架: FACING=NORTH，南边框架: FACING=SOUTH
-     * - 西边框架: FACING=WEST，东边框架: FACING=EAST
-     * 所有框架均带有末影之眼（EYE=true）。
-     * 放置后自动在框架内部 3×3 区域生成末地传送门方块。
-     *
-     * 框架布局（5×5，从上往下看，北 = -Z，南 = +Z）：
-     *   ? v v v ?      v = FACING=NORTH（北边框架，z = center.z - 2）
-     *   > P P P <      > = FACING=WEST（西边框架，x = center.x - 2）
-     *   > P P P <      P = 末地传送门方块（3×3 内部区域，center ± 1）
-     *   > P P P <      < = FACING=EAST（东边框架，x = center.x + 2）
-     *   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架，z = center.z + 2）
-     *   ? = 角落，不放置方块
-     *
-     * 注意：要塞生成中的传送门房间使用 StructurePiece::placeEndPortalFrames()
-     * 放置框架，该方法支持结构局部坐标、区块裁剪、镜像旋转和随机末影之眼。
-     * 本方法使用世界绝对坐标，所有框架默认带眼，总是放置传送门方块，
-     * 适用于运行时在指定位置搭出一座完整传送门（如调试、自定义内容）。
-     *
-     * 与末影龙无关：龙死亡后生成的是**出口讲台**（见 createExitPortal），那是
-     * 另一套结构，不要与要塞的 3×3 框架混淆。
-     *
-     * TODO: 目前只有单元测试调用本方法，没有生产调用点。它的用途是"按世界绝对
-     *   坐标搭一座带眼的完整末地传送门"，若确认没有运行时需求，可与测试一并删除；
-     *   结构生成请继续用 StructurePiece::placeEndPortalFrames。
-     *
-     * @param world 世界引用
-     * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置
-     */
-    static void placeEndPortalFrame(IWorld& world, const BlockPos& center);
 };
 
 } // namespace mc

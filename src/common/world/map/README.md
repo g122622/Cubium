@@ -13,6 +13,7 @@ map/
 ├── MapFrame.hpp/cpp        # 展示框标记 - 展示框位置/旋转记录
 ├── MapIdTracker.hpp/cpp    # 地图ID追踪器 - 自增ID分配
 ├── MapBlockColor.hpp/cpp   # 地图取色用的方块状态选择 - 含水方块顶面不完整时改用水色
+├── MapBiomePreview.hpp/cpp # 探险地图的生物群系预览底图 - 按水体生物群系涂橙色/棕色的水陆轮廓
 └── MapDataManager.hpp/cpp  # 地图数据管理器 - CRUD、tick更新
 ```
 

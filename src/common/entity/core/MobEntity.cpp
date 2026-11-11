@@ -1039,7 +1039,6 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
     }
 
     // 5. 剪刀剪切装备（狼铠、快乐恶魂挽具）
-    //    参考: net.minecraft.world.entity.Entity.interact() 中的剪刀分支
     //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + Body 槽装有"可被剪下"的装备
     //    vanilla 用 Equippable.canBeSheared 判定；Cubium 无该数据组件，此前仅接受
     //    ArmorItem，致快乐恶魂挽具（HarnessItem，非护甲）永远剪不下来。
@@ -1222,7 +1221,6 @@ bool MobEntity::canShearEquipment(const Player& /*player*/) const
 bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears)
 {
     // 遍历所有装备槽位，找到第一个有装备的槽位
-    // 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
     // MC 1.21.11 中通过 Equippable.canBeSheared() 判断，本项目通过 Body 槽位有装备判断
     // （目前只有狼铠可被剪切，马铠等后续可扩展）
     const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);

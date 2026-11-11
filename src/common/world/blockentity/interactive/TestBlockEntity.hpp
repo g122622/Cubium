@@ -37,7 +37,6 @@ namespace blockentity {
  * 存储测试方块（TestBlock）的运行状态：模式缓存（权威值在方块状态 MODE 属性）、
  * 消息文本、是否被红石充能、是否已被触发。
  *
- * 参考: net.minecraft.world.level.block.entity.TestBlockEntity
  */
 class TestBlockEntity : public BlockEntity {
 public:

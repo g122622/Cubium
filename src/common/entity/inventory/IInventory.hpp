@@ -42,7 +42,6 @@ class Item;
  * @brief 背包接口
  *
  * 所有背包容器的基础接口，定义了背包的基本操作。
- * 参考: net.minecraft.inventory.IInventory
  *
  * 用法示例:
  * @code
@@ -135,7 +134,6 @@ public:
      * 监听器在容器内容变更（setItem、removeItem、clear 等）时通过
      * containerChanged() 被通知。removeItemNoUpdate 不触发通知。
      *
-     * 参考: net.minecraft.world.SimpleContainer.addListener()
      *
      * @param listener 监听器指针（调用方负责确保指针生命周期有效）
      */
@@ -147,7 +145,6 @@ public:
     /**
      * @brief 移除容器变更监听器
      *
-     * 参考: net.minecraft.world.SimpleContainer.removeListener()
      *
      * @param listener 要移除的监听器指针
      */

@@ -44,7 +44,6 @@ namespace blocks {
  * 可朝任意方向放置的紫水晶芽和簇。支持含水。
  * 不同大小的紫水晶芽通过构造参数区分（高度和宽度）。
  *
- * 参考: net.minecraft.block.AmethystClusterBlock
  */
 class AmethystClusterBlock : public AmethystBlock, public IWaterLoggable {
 public:

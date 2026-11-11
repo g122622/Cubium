@@ -51,7 +51,6 @@ namespace blockentity {
  * - 歌曲播放完毕后自动停止
  * - 每20tick（1秒）发射音符粒子效果
  *
- * 参考: net.minecraft.block.entity.JukeboxBlockEntity
  */
 class JukeboxEntity : public ContainerBlockEntity {
 public:

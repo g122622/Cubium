@@ -46,7 +46,6 @@ namespace loot {
  * @brief 掉落表
  *
  * 定义实体死亡、方块破坏等情况下生成的物品。
- * 参考: net.minecraft.loot.LootTable
  *
  * 结构：
  * - 掉落表包含多个池（LootPool）
@@ -250,7 +249,6 @@ private:
 /**
  * @brief 掉落表构建器
  *
- * 参考: net.minecraft.loot.LootTable.Builder
  */
 class LootTableBuilder {
 public:

@@ -67,7 +67,6 @@ namespace blocks {
 namespace {
 
 /// 钟方块事件 ID：敲响动画
-/// 参考: net.minecraft.world.level.block.BellBlock#EVENT_BELL_RING
 constexpr i32 EVENT_BELL_RING = 1;
 
 /// 1 像素 = 1/16 格
@@ -262,7 +261,6 @@ size_t BellBlock::_shapeIndex(const BlockState& state)
 
 BlockState BellBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考: net.minecraft.world.level.block.BellBlock#getStateForPlacement
     // 与 MC 1.21.11 一致：
     // - Y 轴点击：FLOOR（顶面）或 CEILING（底面），通过 canSurvive 判定
     //   canSurvive 中 CEILING 走 Block.canSupportCenter(world, pos.up(), DOWN) 中心支撑判定
@@ -374,7 +372,6 @@ BlockState BellBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingState);
     MC_UNUSED(currentPos);
 
-    // 参考: net.minecraft.world.level.block.BellBlock#updateShape
     // getConnectedDirection(state): FLOOR→UP, CEILING→DOWN, WALL→FACING.opposite
     // direction = getConnectedDirection(state).opposite(): FLOOR→DOWN, CEILING→UP, WALL→FACING
     // canSurvive 检查 direction 方向的支撑方块
@@ -483,7 +480,6 @@ BlockActionResult BellBlock::useWithoutItem(
     const BlockState& state, IWorld& world, const BlockPos& pos, Player& player, const BlockRaycastResult& hit)
 {
 
-    // 参考: net.minecraft.world.level.block.BellBlock#useWithoutItem
     if (world.isClientSide()) {
         // 客户端：等待服务端同步，返回 Success 让客户端知道交互已处理
         return ActionResultType::Success;
@@ -498,7 +494,6 @@ BlockActionResult BellBlock::useWithoutItem(
 void BellBlock::onProjectileHit(
     IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
 {
-    // 参考: net.minecraft.world.level.block.BellBlock#onProjectileHit
     Player* player = nullptr;
     auto* projectileEntity = dynamic_cast<entity::ProjectileEntity*>(&projectile);
     if (projectileEntity != nullptr) {
@@ -518,7 +513,6 @@ void BellBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 参考: net.minecraft.world.level.block.BellBlock#neighborChanged
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
         return;
@@ -548,7 +542,6 @@ bool BellBlock::attemptToRing(IWorld& world, const BlockPos& pos, Direction dire
 
 bool BellBlock::attemptToRing(Player* player, IWorld& world, const BlockPos& pos, Direction direction)
 {
-    // 参考: net.minecraft.world.level.block.BellBlock#attemptToRing
     MC_UNUSED(player);
 
     if (world.isClientSide()) {
@@ -577,7 +570,6 @@ bool BellBlock::attemptToRing(Player* player, IWorld& world, const BlockPos& pos
 bool BellBlock::onHit(
     IWorld& world, const BlockState& state, const BlockRaycastResult& hit, Player* player, bool isProjectile)
 {
-    // 参考: net.minecraft.world.level.block.BellBlock#onHit, isProperHit
     const Direction direction = hit.face();
     const BlockPos blockPos = hit.blockPos();
     const Vector3 hitLocation = hit.hitPosition();
@@ -596,7 +588,6 @@ bool BellBlock::onHit(
 
 bool BellBlock::isProperHit(const BlockState& state, Direction direction, f64 hitY)
 {
-    // 参考: net.minecraft.world.level.block.BellBlock#isProperHit
     // 若点击方向是 Y 轴，或点击位置 Y > 0.8124，则不是有效敲击
     if (Directions::getAxis(direction) == Axis::Y || hitY > 0.8124) {
         return false;

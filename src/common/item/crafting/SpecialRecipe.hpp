@@ -49,7 +49,6 @@ namespace crafting {
  * - BannerDuplicateRecipe - 旗帜复制
  * - 等等
  *
- * 参考: net.minecraft.item.crafting.SpecialRecipe
  */
 class SpecialRecipe : public CraftingRecipe {
 public:

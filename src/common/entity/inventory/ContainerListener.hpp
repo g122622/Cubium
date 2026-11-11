@@ -32,7 +32,6 @@ class IInventory;
  * @brief 容器变更监听器接口
  *
  * 当容器（IInventory）内容发生变更时通知监听者。
- * 参考: net.minecraft.world.ContainerListener
  *
  * 典型使用场景：
  * - 方块实体标记自身为脏（需要保存）

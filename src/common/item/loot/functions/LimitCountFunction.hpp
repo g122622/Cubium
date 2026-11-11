@@ -36,7 +36,6 @@ namespace loot {
  * @brief 限制数量函数
  *
  * 限制物品数量的最小和最大值。
- * 参考: net.minecraft.loot.functions.LimitCount
  *
  * 用于确保掉落数量在合理范围内。
  */

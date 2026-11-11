@@ -53,7 +53,6 @@ namespace blockentity {
  * - 槽位2占用 → +4
  * - 最大信号强度 = 7（所有槽位均占用）
  *
- * 参考: net.minecraft.block.entity.ShelfBlockEntity (MC 1.21.11)
  */
 class ShelfBlockEntity : public ContainerBlockEntity {
 public:
@@ -108,7 +107,6 @@ public:
      * @brief 通知方块实体已更改
      *
      * 向客户端同步方块实体数据。
-     * 参考: net.minecraft.block.entity.ShelfBlockEntity.setChanged()
      */
     void markChanged();
 

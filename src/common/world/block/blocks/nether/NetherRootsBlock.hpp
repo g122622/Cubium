@@ -47,7 +47,6 @@ namespace blocks {
  *
  * MC ID: minecraft:crimson_roots, minecraft:warped_roots
  *
- * 参考: net.minecraft.block.NetherRootsBlock
  */
 class NetherRootsBlock : public BushBlock {
 public:

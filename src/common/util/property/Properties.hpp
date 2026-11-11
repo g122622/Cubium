@@ -31,7 +31,6 @@
  * @file BlockStateProperties.hpp
  * @brief 预定义的方块状态属性
  *
- * 参考: net.minecraft.state.properties.BlockStateProperties
  *
  * 这个文件包含所有方块状态常用的属性定义。
  * 属性是静态单例，应该通过引用访问。
@@ -375,7 +374,6 @@ public:
      *
      * 用于滴水石锥等方块。
      *
-     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.VERTICAL_DIRECTION
      */
     static const DirectionProperty& VERTICAL_DIRECTION()
     {
@@ -1620,7 +1618,6 @@ public:
 
     // ========================================================================
     // SideChainPart 辅助方法
-    // 参考: net.minecraft.world.level.block.state.properties.SideChainPart (MC 1.21.11)
     // ========================================================================
 
     /**
@@ -1835,7 +1832,6 @@ public:
     /**
      * @brief 是否自然生成（嘎枝之心）
      *
-     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.NATURAL
      */
     static const BooleanProperty& NATURAL()
     {
@@ -1846,7 +1842,6 @@ public:
     /**
      * @brief 是否为末端（苍白苔藓）
      *
-     * 参考: net.minecraft.world.level.block.state.properties.BlockStateProperties.TIP
      */
     static const BooleanProperty& TIP()
     {

@@ -1014,4 +1014,42 @@ TEST_F(ScoreboardPersistenceTest, Scoreboard_DisplayNameSurvivesSaveAndLoad)
     EXPECT_EQ(loadedScore->getScorePoints(), 5);
 }
 
+// 队伍里出现未知的枚举字符串时，整次读取必须失败——原版 CODEC.byName 对未知值返回 null，
+// 从而让存档读取报错；静默降级成默认值会让损坏的存档以"队伍行为诡异"的形式很晚才暴露。
+TEST_F(ScoreboardPersistenceTest, TeamData_UnknownNameTagVisibilityFailsLoad)
+{
+    ScoreboardSaveData data;
+    ScoreboardSaveData::TeamData team;
+    team.name = "red";
+    team.nameTagVisibility = "not_a_real_visibility";
+    team.deathMessageVisibility = "always";
+    team.collisionRule = "always";
+    data.addTeam(team);
+
+    Scoreboard scoreboard;
+    const auto result = data.applyToScoreboard(scoreboard);
+
+    EXPECT_TRUE(result.failed()) << "an unknown NameTagVisibility must abort the whole load";
+    EXPECT_NE(result.error().message().find("NameTagVisibility"), std::string::npos)
+        << "the error should name the offending field, got: " << result.error().message();
+}
+
+TEST_F(ScoreboardPersistenceTest, TeamData_UnknownCollisionRuleFailsLoad)
+{
+    ScoreboardSaveData data;
+    ScoreboardSaveData::TeamData team;
+    team.name = "blue";
+    team.nameTagVisibility = "always";
+    team.deathMessageVisibility = "always";
+    team.collisionRule = "not_a_real_rule";
+    data.addTeam(team);
+
+    Scoreboard scoreboard;
+    const auto result = data.applyToScoreboard(scoreboard);
+
+    EXPECT_TRUE(result.failed()) << "an unknown CollisionRule must abort the whole load";
+    EXPECT_NE(result.error().message().find("CollisionRule"), std::string::npos)
+        << "the error should name the offending field, got: " << result.error().message();
+}
+
 // main 函数由 gtest_main 库提供

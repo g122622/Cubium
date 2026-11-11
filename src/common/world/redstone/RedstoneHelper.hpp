@@ -134,7 +134,6 @@ public:
      *   signal = floor(fillRatio * 14) + (nonEmptySlots > 0 ? 1 : 0)
      * 结果范围为 0-15。
      *
-     * 参考: net.minecraft.world.inventory.AbstractContainerMenu.getRedstoneSignalFromContainer
      *
      * @param inventory 容器接口
      * @return i32 信号强度 0-15

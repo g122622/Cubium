@@ -880,3 +880,20 @@ TEST_F(CommandBlockEntityTest, NbtRoundTripPreservesEveryCommandBlockField)
     // 模式必须靠 LPCommandMode 往返，否则会退化成方块类型默认的脉冲模式。
     EXPECT_EQ(restored.getMode(), CommandBlockMode::Sequence);
 }
+
+// LPCondionalMode 当前无法在加载期应用到方块状态（无世界参数），
+// 但它不能影响同一份 NBT 里其他字段的加载——否则读档会因一个
+// "暂不支持"的字段而整体走偏。
+TEST_F(CommandBlockEntityTest, LoadFromNbtWithConditionalModeKeepsOtherFields)
+{
+    mc::nbt::tags::compound_tag tag;
+    tag.put("id", std::string("minecraft:command_block"));
+    tag.put("Command", std::string("say conditional"));
+    tag.put("LPCondionalMode", static_cast<mc::i8>(1));
+    tag.put("LPRedstoneMode", static_cast<mc::i8>(1));
+
+    CommandBlockEntity entity(BlockPos(0, 0, 0), CommandBlockMode::Redstone);
+    ASSERT_TRUE(entity.loadFromNBT(tag)) << "an unsupported-but-known field must not fail the whole load";
+    EXPECT_EQ(entity.getCommand(), "say conditional") << "other fields must still be applied";
+    EXPECT_FALSE(entity.isAuto()) << "LPRedstoneMode is still honoured alongside the dropped field";
+}

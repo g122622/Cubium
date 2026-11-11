@@ -344,7 +344,6 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     }
 
     // equipment 复合标签（护甲 + 副手，以枚举名存储）
-    // 参考: net.minecraft.world.entity.EntityEquipment.CODEC
     // 键名: "offhand", "feet", "legs", "chest", "head"
     // 空槽位不写入，MainHand 来自 Inventory 的选中快捷栏槽位
     {

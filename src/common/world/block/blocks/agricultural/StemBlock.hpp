@@ -56,7 +56,6 @@ class StemGrownBlock;
  * 状态属性：
  * - AGE_0_7: 生长阶段 (0-7)
  *
- * 参考: net.minecraft.block.StemBlock
  */
 class StemBlock : public BushBlock, public IGrowable {
 public:
@@ -177,7 +176,6 @@ protected:
  *
  * 由茎类作物生成的果实方块。
  *
- * 参考: net.minecraft.block.StemGrownBlock
  */
 class StemGrownBlock : public Block {
 public:
@@ -213,7 +211,6 @@ public:
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向（指向果实方向）
  *
- * 参考: net.minecraft.block.AttachedStemBlock
  */
 class AttachedStemBlock : public BushBlock {
 public:

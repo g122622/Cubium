@@ -80,7 +80,6 @@ namespace blocks {
  *
  * 注意：Shelf 方块不能为附魔台提供附魔能量（与 Bookshelf 不同）。
  *
- * 参考: net.minecraft.block.ShelfBlock (MC 1.21.11)
  */
 class ShelfBlock : public HorizontalBlock, public IWaterLoggable {
 public:

@@ -51,7 +51,6 @@ namespace blocks {
  * 状态属性：
  * - MOISTURE: 湿润等级 (0-7)
  *
- * 参考: net.minecraft.block.FarmlandBlock
  */
 class FarmlandBlock : public Block {
 public:

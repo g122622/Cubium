@@ -56,7 +56,6 @@ namespace item::items {
  * 下界合金鹦鹉螺铠甲额外具备防火属性（FIRE_RESISTANT 标签），与下界合金马铠机制一致，
  * 免疫火焰/岩浆伤害。
  *
- * 参考: net.minecraft.world.item.Item.Properties.nautilusArmor(ArmorMaterial) (MC 1.21.11)
  */
 class NautilusArmorItem : public Item {
 public:

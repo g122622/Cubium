@@ -6,6 +6,7 @@
 
 ```
 redstone/
+├── BedrockCloneFilterData.hpp/cpp # 基岩 clone filtered 的 data 值 → Java 方块状态属性串（当前仅台阶）
 ├── CommandBlockEntity.hpp/cpp     # 命令方块实体（脉冲/循环/连锁三种模式）
 ├── ComparatorEntity.hpp/cpp       # 比较器方块实体（存储输出信号强度）
 ├── DaylightDetectorEntity.hpp/cpp # 日光探测器方块实体（定期更新信号）
@@ -99,3 +100,13 @@ void CommandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
 ### 9. 日光探测器更新间隔
 
 日光探测器每 20 tick 更新一次信号，而非每 tick 更新。这是性能优化。
+
+### 10. 基岩 clone filtered 的 data 译法
+
+`bedrockCloneFilterDataToJavaProps` 把基岩的数值 `data` 翻译成 Java 属性串，**当前只覆盖台阶**，
+其余方块一律返回空串。两个坑：
+
+- **不要把空串当成错误**。它是刻意的安全回退，调用方据此退化为“只按方块类型过滤”。
+  活板门/按钮/原木的位布局目前**无权威来源**（LeviLamina 与 wiki 都查不到），靠猜会静默产出错误方块状态。
+- **data 必须整串都是数字**。解析用 `std::from_chars` 并检查全消费，
+  `"3abc"` 会被拒绝（`std::stoi` 会静默截断成 3，不要换回去）。

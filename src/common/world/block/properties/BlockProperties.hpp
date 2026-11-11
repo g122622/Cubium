@@ -184,7 +184,6 @@ public:
      *   - 1-14: 部分透明，光线衰减指定等级
      *   - 15: 完全不透明，阻挡所有光线
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties#opacity
      */
     BlockProperties& opacity(i32 value) noexcept
     {
@@ -202,7 +201,6 @@ public:
      *
      * vanilla 的 canOcclude 是 `getLightBlock`/`isSolidRender`/面遮挡检测的总开关，与材质无关：
      * 铁栏杆（金属材质）、潜影盒（木质材质）、树叶、门、活板门等在原版均注册为 noOcclusion。
-     * 参考: net.minecraft.world.level.block.state.BlockBehaviour.Properties#noOcclusion
      */
     /**
      * @brief 覆写「是否造成窒息」（原版 `BlockBehaviour.Properties#isSuffocating`）
@@ -244,7 +242,6 @@ public:
      * 某些方块（如树叶、冰、水）会使天空光衰减1级后传播，
      * 而不是完全阻挡或无衰减传播。
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties#propagatesSkylightDown
      */
     BlockProperties& propagatesSkylightDown(bool value = true) noexcept
     {
@@ -345,7 +342,6 @@ public:
      *
      * 注意：蜂蜜块的减速效果通过 speedFactor(0.4) 和 jumpFactor(0.5) 实现，而非修改滑度。
      *
-     * 参考: net.minecraft.block.Block.friction
      *
      * @param value 滑度值 (0.0-1.0)
      */
@@ -362,7 +358,6 @@ public:
      * - 1.0f: 默认值（正常速度）
      * - 0.5f: 蜂蜜块（减速）
      *
-     * 参考: net.minecraft.block.Block.speedFactor
      *
      * @param value 速度因子值
      */
@@ -378,7 +373,6 @@ public:
      * 设置方块的跳跃影响系数。
      * - 1.0f: 默认值（正常跳跃）
      *
-     * 参考: net.minecraft.block.Block.jumpFactor
      *
      * @param value 跳跃因子值
      */
@@ -394,7 +388,6 @@ public:
      * 如果设置为 true，该方块会被随机刻系统选中执行 randomTick。
      * 用于农作物生长、铜氧化、冰融化等需要随机更新的方块。
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties.tickRandomly
      *
      * @return 属性构建器引用
      */
@@ -423,7 +416,6 @@ public:
      *
      * 当为 true 时，方块接触岩浆会被点燃（如木头、TNT）。
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties.ignitedByLava
      */
     BlockProperties& ignitedByLava(bool value = true) noexcept
     {
@@ -439,7 +431,6 @@ public:
      * - XZ: 仅水平偏移（植物类如花、草）
      * - XYZ: 三轴偏移（如菌类）
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties.offsetType
      */
     BlockProperties& offsetType(BlockOffsetType type) noexcept
     {
@@ -452,7 +443,6 @@ public:
      *
      * 当音符盒放置在此方块上方时演奏的乐器。
      *
-     * 参考: net.minecraft.block.AbstractBlock.Properties.instrument
      */
     BlockProperties& instrument(NoteBlockInstrument instr) noexcept
     {

@@ -40,7 +40,6 @@ namespace blocks {
  *
  * 透明、可含水的装饰方块。相邻Y轴红树根之间跳过渲染。
  *
- * 参考: net.minecraft.block.MangroveRootsBlock
  */
 class MangroveRootsBlock : public Block, public IWaterLoggable {
 public:

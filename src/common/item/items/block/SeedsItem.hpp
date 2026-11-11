@@ -49,8 +49,6 @@ namespace items {
  *
  * 在 MC Java 1.21+ 中，种子物品直接使用 BlockItem（不再有 SeedsItem 子类），
  * 但本项目保留此子类以提供更清晰的语义区分和未来扩展点。
- *
- * 参考: net.minecraft.world.item.BlockItem（MC 1.21+ 中种子直接注册为 BlockItem 实例）
  */
 class SeedsItem : public BlockItem {
 public:

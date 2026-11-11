@@ -46,7 +46,6 @@ class IProperty;
  * 用于检查 BlockState 的属性值是否匹配指定条件。
  * 支持精确匹配和范围匹配。
  *
- * 参考: net.minecraft.advancements.criterion.StatePropertiesPredicate
  *
  * 用法示例:
  * @code

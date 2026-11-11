@@ -57,7 +57,6 @@ namespace container {
  * - 槽位4-30：玩家主背包
  * - 槽位31-39：玩家快捷栏
  *
- * 参考: net.minecraft.inventory.container.LoomContainer
  */
 class LoomContainer : public AbstractContainerMenu {
 public:

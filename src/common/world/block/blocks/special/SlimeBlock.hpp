@@ -58,7 +58,6 @@ public:
      * 弹跳系数：LivingEntity 使用 1.0（完全反弹），其他实体使用 0.8（每次损失 20%）。
      * 潜行实体（isSteppingCarefully）不弹跳，按普通方块着地处理。
      *
-     * 参考: net.minecraft.world.level.block.SlimeBlock#updateEntityMovementAfterFallOn / bounceUp
      */
     void onLanded(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
@@ -69,7 +68,6 @@ public:
      * 自身伤害）。潜行实体同样免疫（Java fallOn 中 isSuppressingBounce 仅控制是否调用
      * causeFallDamage，但 multiplier 恒为 0，结果一致）。
      *
-     * 参考: net.minecraft.world.level.block.SlimeBlock#fallOn
      */
     void onFallenUpon(
         IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance) override;

@@ -33,6 +33,7 @@
 #include "common/physics/shape/DiscreteVoxelShape.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
+#include "common/util/TimeUtils.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -395,9 +396,12 @@ std::pair<math::IRandom*, std::unique_ptr<math::IRandom>> PlacementSettings::get
     if (m_random != nullptr) {
         return {m_random, nullptr}; // 借用，不转移所有权
     }
-    // TODO: pos == nullptr 分支原版用当前时间做种子（非确定性）。项目内暂无调用方，
-    //       若将来出现该调用，须在此处复刻 Util.getMillis() 语义。
-    MC_ASSERT_RELEASE(pos != nullptr);
+    // pos == nullptr 分支：原版在这里用当前毫秒时间做种子（Util.getMillis()），
+    // 因此结果是**非确定性**的。结构生成不会走这条路径（它总是带着结构位置），
+    // 只有"按模板随便铺一下"这类无位置的调用才会用到。
+    if (pos == nullptr) {
+        return {nullptr, std::make_unique<math::JavaLegacyRandom>(util::TimeUtils::getCurrentTimeMs())};
+    }
     return {nullptr, std::make_unique<math::JavaLegacyRandom>(math::getPositionRandom(pos->x, pos->y, pos->z))};
 }
 

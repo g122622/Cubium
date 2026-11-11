@@ -51,7 +51,6 @@ namespace blocks {
  * - POWERED: 是否被红石信号驱动
  * - OXIDATION: 氧化等级（通过 WeatheringCopperBlock 继承）
  *
- * 参考: net.minecraft.block.CopperBulbBlock (1.21)
  */
 class CopperBulbBlock : public WeatheringCopperBlock {
 public:
@@ -123,7 +122,6 @@ protected:
  *
  * 涂蜡版本的铜灯，不会氧化。同样具有LIT和POWERED属性。
  *
- * 参考: net.minecraft.block.CopperBulbBlock (waxed variant)
  */
 class WaxedCopperBulbBlock : public WaxedCopperBlock {
 public:

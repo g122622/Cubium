@@ -37,7 +37,6 @@ namespace loot {
  * @brief 填充玩家头颅函数
  *
  * 用玩家信息填充玩家头颅物品。
- * 参考: net.minecraft.loot.functions.FillPlayerHead
  *
  * 用于生成玩家头颅时填充皮肤信息。
  */

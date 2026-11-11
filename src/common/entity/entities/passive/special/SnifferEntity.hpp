@@ -58,7 +58,6 @@ class DamageSource;
  * - 繁殖：用火把花种子/瓶草荚果繁殖，繁殖后掉落嗅探兽蛋物品（非直接幼体）
  * - 幼体：幼年期 48000 tick（40 分钟），是普通动物的两倍
  *
- * 参考：net.minecraft.world.entity.animal.sniffer.Sniffer
  *
  * @note 原版使用 Brain + MemoryModuleType（SNIFFER_SNIFFING_TARGET / SNIFFER_DIGGING /
  *       SNIFFER_HAPPY / SNIFF_COOLDOWN / SNIFFER_EXPLORED_POSITIONS）驱动状态机；本项目无 Brain

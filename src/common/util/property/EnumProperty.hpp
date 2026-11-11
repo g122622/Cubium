@@ -41,7 +41,6 @@ namespace mc {
  * 表示一个枚举类型的方块状态属性。
  * 枚举类型必须提供 toString() 和 fromName() 方法。
  *
- * 参考: net.minecraft.state.EnumProperty
  *
  * 注意:
  * - 枚举类型需要特化 EnumProperty<E>::Traits 或提供 toString/fromName 方法

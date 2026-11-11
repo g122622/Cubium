@@ -50,7 +50,6 @@ namespace blocks {
  * 完全倾斜时无碰撞箱，玩家会掉落。
  * 红石信号可立即重置倾斜状态为NONE。
  *
- * 参考: net.minecraft.block.BigDripleafBlock
  */
 class BigDripleafBlock : public Block, public IWaterLoggable, public IGrowable {
 public:

@@ -52,7 +52,6 @@ class ItemGroup;
  * 继承自 WallOrFloorItem，根据放置位置自动选择放置形态。
  * 每种颜色的旗帜是独立的物品实例。
  *
- * 参考: net.minecraft.item.BannerItem
  */
 class BannerItem : public WallOrFloorItem {
 public:

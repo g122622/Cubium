@@ -46,7 +46,6 @@ namespace mc::world::map {
  * @brief 地图旗帜标记
  *
  * 记录旗帜在地图上的位置和颜色信息，用于在地图上显示旗帜图标。
- * 参考: net.minecraft.world.storage.MapBanner
  */
 class MapBanner {
 public:
@@ -84,7 +83,6 @@ public:
      * @brief 从世界中的旗帜方块实体创建 MapBanner
      *
      * 检查指定位置是否存在 BannerEntity，如果存在则返回对应的 MapBanner。
-     * 参考: net.minecraft.world.level.saveddata.maps.MapBanner.fromWorld
      *
      * @param world 世界引用
      * @param pos 旗帜方块位置
@@ -96,7 +94,6 @@ public:
      * @brief 比较两个 MapBanner 是否相等
      *
      * 仅比较位置和颜色，不比较名称（与 MC Java 版一致）。
-     * 参考: net.minecraft.world.level.saveddata.maps.MapBanner.equals
      */
     [[nodiscard]] bool equals(const MapBanner& other) const;
 

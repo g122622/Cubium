@@ -46,7 +46,6 @@ namespace blockentity {
  * - 打开动画与普通箱子相同
  * - 爆破抗性高（600）
  *
- * 参考: net.minecraft.tileentity.EnderChestTileEntity
  */
 class EnderChestEntity : public BlockEntity {
 public:

@@ -67,7 +67,6 @@ public:
      * 当虫蚀方块被破坏时，根据游戏规则和精准采集附魔决定是否生成蠹虫。
      * 如果 doTileDrops 游戏规则为 true 且工具没有精准采集附魔，则生成蠹虫。
      *
-     * 参考: net.minecraft.block.InfestedBlock.spawnAfterBreak
      */
     void spawnAfterBreak(IWorld& world,
         const BlockPos& pos,

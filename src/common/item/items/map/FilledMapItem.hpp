@@ -124,6 +124,22 @@ public:
     [[nodiscard]] static bool isExplorationMap(const ItemStack& stack);
 
     /**
+     * @brief 按生物群系填涂地图的预览底图
+     *
+     * 探险地图（林地府邸/海底神殿/埋藏的宝藏等）在拿到手时就带一张"地形预览"：
+     * 按 128×128 采样生物群系，水体画成橙色、陆地画成棕色系，并在水陆交界处
+     * 画出明暗过渡，让玩家一眼看出目标周围是海还是陆。
+     *
+     * 采样点的取法与地形无关，只看生物群系：每个像素对应 `scale` 格，
+     * 判断依据是 `BiomeTags::WATER_ON_MAP_OUTLINES` 标签（与地形高度无关），
+     * 因此不需要读取方块或高度图，地图还没被"画"过也能先有预览。
+     *
+     * @param world 世界（只用于取样生物群系）
+     * @param stack 地图物品堆（必须已建好 MapData）
+     */
+    static void renderBiomePreviewMap(IWorld& world, ItemStack& stack);
+
+    /**
      * @brief 检查是否为已填充地图
      */
     [[nodiscard]] static bool isFilledMap(const ItemStack& stack);

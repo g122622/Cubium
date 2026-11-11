@@ -47,7 +47,6 @@ namespace crafting {
  * 结果：源旗帜的副本（count=1）
  * 剩余：源旗帜保留返回
  *
- * 参考: net.minecraft.item.crafting.BannerDuplicateRecipe
  */
 class BannerDuplicateRecipe : public SpecialRecipe {
 public:

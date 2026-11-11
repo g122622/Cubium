@@ -38,7 +38,6 @@ namespace loot {
  * @brief 设置NBT标签函数
  *
  * 设置物品的自定义NBT数据。
- * 参考: net.minecraft.loot.functions.SetNBT
  *
  * 用于设置物品的自定义数据，如药水效果、显示名称等。
  */

@@ -63,7 +63,6 @@ namespace crafting {
  * TEMPLATE_SLOT=0 / BASE_SLOT=1 / ADDITIONAL_SLOT=2 核对一致；容器落地后仍需确认
  * 实际槽位布局与之一致。
  *
- * 参考: net.minecraft.world.item.crafting.SmithingTrimRecipe
  */
 class SmithingTrimRecipe : public IRecipe<IInventory> {
 public:

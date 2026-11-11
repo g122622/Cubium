@@ -60,7 +60,6 @@ namespace blocks {
  * 同时实现 ILiquidSealed：海带不被水流替换（否则水流每次 tick 都会把海带当作被冲毁的
  * 方块而生成一次掉落物）。
  *
- * 参考: net.minecraft.world.level.block.KelpBlock
  */
 class KelpBlock : public Block, public IPlantable, public IGrowable, public ILiquidSealed {
 public:

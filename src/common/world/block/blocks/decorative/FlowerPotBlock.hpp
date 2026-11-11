@@ -50,7 +50,6 @@ namespace blocks {
  * 每个具体的盆栽植物（如 potted_poppy、potted_oak_sapling）都是独立的 FlowerPotBlock 实例，
  * 通过构造时传入不同的"内容物方块"来区分。空花盆的内容物为 nullptr。
  *
- * 参考: net.minecraft.world.level.block.FlowerPotBlock
  *
  * 与 MC Java 1.21.11 的差异：
  * - MC 中空花盆的 potted 字段为 Blocks.AIR；本项目使用 nullptr 表示空花盆
@@ -167,7 +166,6 @@ public:
      *
      * 与地栽眼眸花不同，花盆版不连锁触发周围 3×2×3 范围内的同种方块。
      *
-     * 参考: net.minecraft.world.level.block.FlowerPotBlock#randomTick
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 

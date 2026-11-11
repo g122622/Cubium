@@ -43,7 +43,6 @@ namespace item::items {
  * - 钻石马铠：+11 护甲
  * - 下界合金马铠：+19 护甲，防火（FIRE_RESISTANT 标签）
  *
- * 参考: net.minecraft.item.HorseArmorItem
  */
 class HorseArmorItem : public Item {
 public:

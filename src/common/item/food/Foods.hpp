@@ -32,7 +32,6 @@ namespace item::food {
  * @brief 原版食物定义
  *
  * 包含所有 Minecraft 1.16.5 原版食物的属性定义。
- * 参考: net.minecraft.item.Foods
  *
  * 饱和度计算公式：saturation = food * saturationModifier * 2.0
  * 例如苹果 (4, 0.3F)：saturation = 4 * 0.3 * 2.0 = 2.4

@@ -67,7 +67,6 @@ class IResourcePack;
  * 2. 第二阶段：按依赖顺序递归解析 # 标签引用并填充标签内容。
  *    使用 resolved/resolving 集合检测循环依赖。
  *
- * 参考: net.minecraft.tags.DamageTypeTags (MC 1.21.11)
  */
 class DamageTypeTagLoader {
 public:

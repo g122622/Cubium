@@ -46,7 +46,6 @@ namespace blocks {
  * - 实现 IWaterLoggable 接口支持含水功能
  * - 具有铜氧化特性
  *
- * 参考: net.minecraft.block.OxidizableLanternBlock (MC 1.21+)
  */
 class WeatheringCopperLanternBlock : public WeatheringCopperBlock, public IWaterLoggable {
 public:
@@ -140,7 +139,6 @@ protected:
  *
  * 涂蜡后的铜灯笼不会氧化，支持含水。
  *
- * 参考: net.minecraft.block.WaxedLanternBlock (MC 1.21+)
  */
 class WaxedCopperLanternBlock : public WaxedCopperBlock, public IWaterLoggable {
 public:

@@ -38,7 +38,6 @@ namespace mc::text {
  * @brief 文本解析器
  *
  * 解析 § 代码格式的文本为 ITextComponent。
- * 参考: net.minecraft.util.text.TextComponentUtils
  *
  * ## 支持的格式
  *

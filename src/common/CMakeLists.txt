@@ -796,6 +796,7 @@ add_library(mc_common STATIC
     command/arguments/ItemArgument.cpp
     command/arguments/NbtPath.cpp
     command/arguments/NbtPathArgumentType.cpp
+    command/arguments/SlotRanges.cpp
 
     # World - Block System
     world/block/base/material/Material.cpp
@@ -1188,6 +1189,7 @@ add_library(mc_common STATIC
     world/blockentity/processing/BeaconEntity.cpp
     world/blockentity/processing/ConduitEntity.cpp
     world/blockentity/processing/CampfireBlockEntity.cpp
+    world/blockentity/redstone/BedrockCloneFilterData.cpp
     world/blockentity/redstone/ComparatorEntity.cpp
     world/blockentity/redstone/CommandBlockEntity.cpp
     world/blockentity/redstone/DaylightDetectorEntity.cpp
@@ -1236,6 +1238,7 @@ add_library(mc_common STATIC
     # World - Map
     world/map/MaterialColor.cpp
     world/map/MapBlockColor.cpp
+    world/map/MapBiomePreview.cpp
 
     # World - Generation (gen) — 从 server 迁移的纯接口/数据类型
     # 架构规则：common 不得依赖 server。以下 gen 类型只依赖 common，

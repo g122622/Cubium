@@ -38,26 +38,38 @@
 #include "common/command/arguments/FunctionArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
+#include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/ResourceOrTagArgumentType.hpp"
+#include "common/command/arguments/SlotRanges.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/IInventory.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
+#include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/commands/ExecuteBlocksCondition.hpp"
+#include "server/command/data/DataAccessor.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <charconv>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -65,6 +77,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -190,11 +203,22 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* n
     return std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
 }
 
+/// 上下文键：`if score` 用了哪个比较运算符（`<`/`<=`/`=`/`>`/`>=`）。
+/// 运算符是字面量，执行链里没有痕迹，靠 LiteralRecordingCommandNode 在解析期写进来。
+inline constexpr const char* kScoreConditionOpKey = "executeScoreConditionOp";
+
+/// 上下文键：`if blocks` 用了哪种比较模式（`all`/`masked`）。理由同上。
+inline constexpr const char* kBlocksConditionModeKey = "executeBlocksConditionMode";
+
+/// 上下文键：`if data` 用的是哪个数据源（`block`/`entity`/`storage`）。理由同上。
+inline constexpr const char* kDataConditionTypeKey = "executeDataConditionType";
+
 /**
  * @brief 构建 if / unless 的条件子树（对齐原版 ExecuteCommand.Conditions.build）
  *
- * 条件成立与否在执行链上判定。
- * TODO: `/execute if` 的判定语义尚未实现，执行链目前把这类分支视为条件不成立。
+ * 这里为 12 种条件（biome / block / blocks / data / dimension / entity / function /
+ * items / loaded / predicate / score / stopwatch）都建了完整的参数树，客户端据此补全与高亮。
+ * 条件成立与否在执行链上判定，实际只实现了其中一部分，详见 `_evaluateBlockCondition`。
  */
 std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSource>>>> buildConditionNodes()
 {
@@ -227,7 +251,10 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         auto to = conditionArg("end", BlockPosArgumentType::blockPos(), false);
         auto destination = conditionArg("destination", BlockPosArgumentType::blockPos(), false);
         for (const char* mode : {"all", "masked"}) {
-            auto modeNode = conditionLiteral(mode);
+            // `all`/`masked` 是字面量，执行链拿不到，用记录节点写进上下文，
+            // 执行期从 kBlocksConditionModeKey 读出走了哪个模式。
+            auto modeNode =
+                std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(mode, kBlocksConditionModeKey);
             modeNode->setCommand([](CommandContext<ServerCommandSource>&) -> i32 {
                 throw CommandException(CommandErrorType::Unknown, "commands.execute.conditional");
             });
@@ -243,17 +270,20 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
     {
         auto dataNode = conditionLiteral("data");
 
-        auto blockNode = conditionLiteral("block");
+        auto blockNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("block", kDataConditionTypeKey);
         auto sourcePos = conditionArg("sourcePos", BlockPosArgumentType::blockPos(), false);
         sourcePos->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
         blockNode->addChild(sourcePos);
 
-        auto entityNode = conditionLiteral("entity");
+        auto entityNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("entity", kDataConditionTypeKey);
         auto source = conditionArg("source", EntityArgumentType::entity(), false);
         source->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
         entityNode->addChild(source);
 
-        auto storageNode = conditionLiteral("storage");
+        auto storageNode =
+            std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>("storage", kDataConditionTypeKey);
         auto storageId = conditionArg("source", ResourceLocationArgumentType::resourceLocation(), false);
         attachCommandSuggestions(storageId);
         storageId->addChild(conditionArg("path", NbtPathArgumentType::nbtPath(), true));
@@ -332,7 +362,9 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
         attachCommandSuggestions(target);
         auto objective = conditionArg("targetObjective", ObjectiveNameArgumentType::objective(), false);
         for (const char* op : {"<", "<=", "=", ">", ">="}) {
-            auto opNode = conditionLiteral(op);
+            // 运算符是字面量，执行链拿不到，用会记录自身字面量的节点写进上下文，
+            // 执行期从 kScoreConditionOpKey 读出走了哪个比较符。
+            auto opNode = std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(op, kScoreConditionOpKey);
             auto source = conditionArg("source", ScoreHolderArgumentType::scoreHolder(false), false);
             attachCommandSuggestions(source);
             source->addChild(conditionArg("sourceObjective", ObjectiveNameArgumentType::objective(), true));
@@ -892,12 +924,373 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
     return runChain(source, 0);
 }
 
+bool ExecuteCommand::_evaluateScoreCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    const std::string targetHolder = context.getArgumentOr<std::string>("target", std::string());
+    const std::string targetObjectiveName = context.getArgumentOr<std::string>("targetObjective", std::string());
+    if (targetHolder.empty() || targetObjectiveName.empty()) {
+        return false;
+    }
+
+    auto& scoreboard = server->scoreboard();
+    auto* targetObjective = scoreboard.getObjective(targetObjectiveName);
+    if (targetObjective == nullptr) {
+        return false;
+    }
+
+    // 取目标侧的值。计分项不存在时条件不成立（不要顺手创建 0 分项）。
+    const auto* targetScore = scoreboard.getScore(targetHolder, *targetObjective);
+    if (targetScore == nullptr) {
+        return false;
+    }
+    const i32 targetValue = targetScore->getScorePoints();
+
+    // matches <range>：单侧区间判断。参数类型产出的是字符串形式（`5` / `5..` / `..5` / `5..10`），
+    // 这里就地解析成上下界，避免为一次比较引入额外的解析依赖。
+    if (context.hasArgument("range")) {
+        const std::string rangeText = context.getArgumentOr<std::string>("range", std::string());
+        if (rangeText.empty()) {
+            return false;
+        }
+        const size_t dots = rangeText.find("..");
+        auto parseBound = [](const std::string& text, i32& out) -> bool {
+            if (text.empty()) {
+                return false;
+            }
+            const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), out);
+            return error == std::errc{} && end == text.data() + text.size();
+        };
+        if (dots == std::string::npos) {
+            // 精确值
+            i32 exact = 0;
+            return parseBound(rangeText, exact) && targetValue == exact;
+        }
+        const std::string minText = rangeText.substr(0, dots);
+        const std::string maxText = rangeText.substr(dots + 2);
+        if (!minText.empty()) {
+            i32 minValue = 0;
+            if (!parseBound(minText, minValue) || targetValue < minValue) {
+                return false;
+            }
+        }
+        if (!maxText.empty()) {
+            i32 maxValue = 0;
+            if (!parseBound(maxText, maxValue) || targetValue > maxValue) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // score 比较：需要另一侧的持有者与计分项。
+    const std::string sourceHolder = context.getArgumentOr<std::string>("source", std::string());
+    const std::string sourceObjectiveName = context.getArgumentOr<std::string>("sourceObjective", std::string());
+    if (sourceHolder.empty() || sourceObjectiveName.empty()) {
+        return false;
+    }
+
+    auto* sourceObjective = scoreboard.getObjective(sourceObjectiveName);
+    if (sourceObjective == nullptr) {
+        return false;
+    }
+    const auto* sourceScore = scoreboard.getScore(sourceHolder, *sourceObjective);
+    if (sourceScore == nullptr) {
+        return false;
+    }
+    const i32 sourceValue = sourceScore->getScorePoints();
+
+    const std::string op = context.getArgumentOr<std::string>(kScoreConditionOpKey, std::string());
+    if (op == "<") {
+        return targetValue < sourceValue;
+    }
+    if (op == "<=") {
+        return targetValue <= sourceValue;
+    }
+    if (op == "=") {
+        return targetValue == sourceValue;
+    }
+    if (op == ">") {
+        return targetValue > sourceValue;
+    }
+    if (op == ">=") {
+        return targetValue >= sourceValue;
+    }
+    // 运算符没记上（解析路径异常）：按不成立处理，不要猜。
+    return false;
+}
+
+bool ExecuteCommand::_evaluateItemsCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    const auto slotsName = context.getArgumentOr<std::string>("slots", std::string());
+    // SlotRanges 已在解析期校验过名字，这里取不到只能说明上下文异常，按不成立处理。
+    const std::vector<i32> slotIds = SlotRanges::nameToIds(slotsName);
+    if (slotIds.empty()) {
+        return false;
+    }
+
+    const auto predicate = context.getArgumentOr<ItemPredicateInput>("item_predicate", ItemPredicateInput{});
+
+    // 把槽位索引映射到 ItemStack。方块容器与玩家背包都实现 IInventory（0..N-1 直接对应），
+    // 装备槽（98..106）走 LivingEntity::getEquipment。
+    const auto slotMatches = [&predicate](const ItemStack& stack) {
+        return !stack.isEmpty() && predicate.test(stack);
+    };
+
+    if (context.hasArgument("entities")) {
+        // items entity <entities> <slots> <predicate>
+        const auto entities = support::EntityResolver::resolve(
+            target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
+
+        for (Entity* entity : entities) {
+            if (entity == nullptr) {
+                continue;
+            }
+            auto* living = dynamic_cast<LivingEntity*>(entity);
+            if (living == nullptr) {
+                continue;
+            }
+            // 玩家背包：PlayerInventory 实现 IInventory，槽位 0..40 与区间编号一致。
+            const IInventory* inventory = nullptr;
+            if (auto* player = dynamic_cast<Player*>(entity)) {
+                inventory = &player->inventory();
+            }
+            for (const i32 slotId : slotIds) {
+                if (inventory != nullptr && slotId >= 0 && slotId < inventory->getContainerSize()) {
+                    if (slotMatches(inventory->getItem(slotId))) {
+                        return true;
+                    }
+                    continue;
+                }
+                const ItemSlot slot(slotId);
+                if (!slot.isEquipmentSlot()) {
+                    // 其他槽位族（末影箱/村民/马匹/合成）需要各自的容器视图，
+                    // 当前只支持方块容器、玩家背包与装备槽。不猜，跳过。
+                    continue;
+                }
+                const i32 equipmentIndex = slot.toEquipmentSlotIndex();
+                if (equipmentIndex < 0) {
+                    continue;
+                }
+                if (slotMatches(living->getEquipment(static_cast<EquipmentSlot>(equipmentIndex)))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // items block <pos> <slots> <predicate>
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+    const Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", target);
+    auto* blockEntity = world->getBlockEntity(BlockPos(pos.x, pos.y, pos.z));
+    if (blockEntity == nullptr) {
+        return false;
+    }
+    auto* containerEntity = dynamic_cast<ContainerBlockEntity*>(blockEntity);
+    if (containerEntity == nullptr) {
+        return false;
+    }
+    const IInventory* inventory = containerEntity->getInventory();
+    if (inventory == nullptr) {
+        return false;
+    }
+    const i32 size = inventory->getContainerSize();
+    for (const i32 slotId : slotIds) {
+        if (slotId < 0 || slotId >= size) {
+            continue;
+        }
+        if (slotMatches(inventory->getItem(slotId))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ExecuteCommand::_evaluateBiomeCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    const auto biomeArg = context.getArgumentOr<ParsedResourceOrTag>("biome", ParsedResourceOrTag{});
+    const ResourceLocation& wanted = biomeArg.id();
+    if (wanted.path().empty()) {
+        return false;
+    }
+
+    const Vector3i posVec = BlockPosArgumentType::getBlockPos(context, "pos", target);
+    // 走 IWorld 接口取群系：ServerWorld 自己把 getBiome 声明为私有（它另有内部取法），
+    // 基类虚函数才是对外的查询入口。
+    auto* worldReader = static_cast<const IWorld*>(world);
+    const BiomeId actualBiomeId = worldReader->getBiome(posVec.x, posVec.y, posVec.z);
+
+    if (biomeArg.isTag()) {
+        const world::biome::BiomeTag* tag = world::biome::BiomeTags::getTag(wanted);
+        // 标签不存在时按不成立处理，不要当成「空标签恰好不包含」而混淆语义。
+        if (tag == nullptr) {
+            return false;
+        }
+        return tag->contains(actualBiomeId);
+    }
+
+    // 具名群系：Biome::name() 只存不带命名空间的裸名（如 "plains"），这里补前缀比较。
+    const auto& registry = world::biome::BiomeRegistry::instance();
+    if (!registry.hasBiome(actualBiomeId)) {
+        return false;
+    }
+    return ("minecraft:" + registry.get(actualBiomeId).name()) == wanted.toString();
+}
+
+bool ExecuteCommand::_evaluateDataCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* server = target.server();
+    if (server == nullptr) {
+        return false;
+    }
+
+    const std::string dataType = context.getArgumentOr<std::string>(kDataConditionTypeKey, std::string());
+    const auto path = context.getArgumentOr<NbtPath>("path", NbtPath{});
+    if (path.toString().empty()) {
+        return false;
+    }
+
+    // 三种数据源各走自己的 accessor。取不到数据（方块实体不存在、实体已消失、存储未建）
+    // 一律算"路径未命中"，不建空对象。
+    std::unique_ptr<nbt::tags::compound_tag> data;
+
+    if (dataType == "block") {
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        const Vector3i pos = BlockPosArgumentType::getBlockPos(context, "sourcePos", target);
+        const BlockPos blockPos(pos.x, pos.y, pos.z);
+        // 该位置没有方块实体时 BlockDataAccessor::getData() 会抛 CommandException，
+        // 而条件语义应当是“不成立”而非报错。这里先判一次。
+        if (world->getBlockEntity(blockPos) == nullptr) {
+            return false;
+        }
+        BlockDataAccessor accessor(world, blockPos);
+        data = accessor.getData();
+    } else if (dataType == "entity") {
+        const auto selector = context.getArgumentOr<EntitySelector>("source", EntitySelector{});
+        Entity* entity = support::EntityResolver::resolveSingle(target, selector);
+        if (entity == nullptr) {
+            return false;
+        }
+        EntityDataAccessor accessor(entity);
+        data = accessor.getData();
+    } else if (dataType == "storage") {
+        const auto storageId = context.getArgumentOr<ResourceLocation>("source", ResourceLocation());
+        if (storageId.toString().empty()) {
+            return false;
+        }
+        StorageDataAccessor accessor(&server->commandStorage(), storageId);
+        data = accessor.getData();
+    } else {
+        // 未识别的数据源类型：不猜，按条件不成立处理。
+        return false;
+    }
+
+    if (data == nullptr) {
+        return false;
+    }
+    return !path.get(*data).empty();
+}
+
 bool ExecuteCommand::_evaluateBlockCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
-    // 目前只有 `if block <pos> <block>` 落了参数树；其他条件名仍是占位字面量，
-    // 解析时不会写入 pos / block，这里按「条件不成立」处理。
-    // TODO: 其余条件落地后，这里要按条件名分派，而不是只认 block。
+    // 按「上下文里出现了哪个参数」分派，而不是靠条件名——执行链里只有动词字面量，
+    // 拿不到 `if` 之后的条件名，但解析期已经把该条件的参数写进上下文了。
+    // 各条件的参数集互不重叠，所以这套判据是唯一且有意义的：
+    //   block 带 block、biome 带 biome、dimension 带 dimension、entity 带 entities、
+    //   loaded 只带裸 pos。
+    //
+    // 【必须先判 item_predicate】`items` 条件的参数是
+    // `block <pos> <slots> <item_predicate>` / `entity <entities> <slots> <item_predicate>`，
+    // 它的 pos / entities 与 loaded、entity 两个条件重名。若让它落到后面的 pos / entities
+    // 分支，`if items block <pos>` 会被当成 `loaded <pos>` 求值——返回的是"区块是否加载"，
+    // 语义完全错误，而且看起来像正常结果。
+    if (context.hasArgument("item_predicate")) {
+        return _evaluateItemsCondition(target, context);
+    }
+
+    if (context.hasArgument("block")) {
+        // 落到下面继续求值
+    } else if (context.hasArgument("biome")) {
+        // biome <pos> <biome>：pos 处的生物群系是否是指定群系（或其成员）
+        return _evaluateBiomeCondition(target, context);
+    } else if (context.hasArgument("dimension")) {
+        // 与命令源当前维度比对（`/execute in <dim>` 已在链上改写过 source）
+        const auto wanted = context.getArgumentOr<DimensionId>("dimension", target.dimensionId());
+        return wanted == target.dimensionId();
+    } else if (context.hasArgument("entities")) {
+        // 选择器是否至少选中一个实体
+        const auto entities = support::EntityResolver::resolve(
+            target, context.getArgumentOr<EntitySelector>("entities", EntitySelector()));
+        return !entities.empty() && entities.front() != nullptr;
+    } else if (context.hasArgument("path")) {
+        // data <block|entity|storage> ... <path>：路径是否至少命中一个标签
+        return _evaluateDataCondition(target, context);
+    } else if (context.hasArgument("target")) {
+        // score <target> <targetObjective> <op> <source> <sourceObjective> | matches <range>
+        return _evaluateScoreCondition(target, context);
+    } else if (context.hasArgument("start")) {
+        // blocks <start> <end> <destination> [all|masked]
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        const Vector3i startVec = BlockPosArgumentType::getBlockPos(context, "start", target);
+        const Vector3i endVec = BlockPosArgumentType::getBlockPos(context, "end", target);
+        const Vector3i destinationVec = BlockPosArgumentType::getBlockPos(context, "destination", target);
+        const BlockPos startPos(startVec.x, startVec.y, startVec.z);
+        const BlockPos endPos(endVec.x, endVec.y, endVec.z);
+        const BlockPos destinationPos(destinationVec.x, destinationVec.y, destinationVec.z);
+        const std::string mode = context.getArgumentOr<std::string>(kBlocksConditionModeKey, std::string());
+        // 模式没记上（解析路径异常）按不成立处理，不猜默认值。
+        if (mode != "all" && mode != "masked") {
+            return false;
+        }
+        return blocksMatch(
+            startPos, endPos, destinationPos, mode == "masked", [world](const BlockPos& pos) -> const BlockState* {
+                return world->getBlockState(pos);
+            });
+    } else if (context.hasArgument("pos")) {
+        // loaded <pos>：pos 所在区块是否已加载
+        auto* world = target.world();
+        if (world == nullptr) {
+            return false;
+        }
+        auto* chunkManager = world->chunkManager();
+        if (chunkManager == nullptr) {
+            return false;
+        }
+        const Vector3d resolvedPos = Vec3ArgumentType::getVec3(context, "pos", target);
+        const i32 chunkX = static_cast<i32>(std::floor(resolvedPos.x)) >> world::CHUNK_SHIFT;
+        const i32 chunkZ = static_cast<i32>(std::floor(resolvedPos.z)) >> world::CHUNK_SHIFT;
+        return chunkManager->tryToGetChunkInMem(static_cast<ChunkCoord>(chunkX), static_cast<ChunkCoord>(chunkZ)) !=
+            nullptr;
+    } else {
+        // data / items / predicate / function / stopwatch 的参数分别落在
+        // 各自的参数名上，这里一并按「条件不成立」处理。
+        return false;
+    }
+
     if (!context.hasArgument("pos") || !context.hasArgument("block")) {
         return false;
     }

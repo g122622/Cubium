@@ -36,7 +36,6 @@ namespace blocks {
  *
  * 石头按钮被按下后持续 10 tick（1 秒）。
  *
- * 参考: net.minecraft.block.StoneButtonBlock
  */
 class StoneButtonBlock : public AbstractButtonBlock {
 public:

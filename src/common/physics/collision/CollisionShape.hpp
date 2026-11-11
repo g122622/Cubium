@@ -409,7 +409,6 @@ public:
      * 即检查是否存在任何体素使得完整方块和本形状不一致，
      * 如果不存在差异体素，则本形状覆盖整个方块。
      *
-     * 参考: net.minecraft.block.Block#isShapeFullBlock
      *
      * @return 如果形状覆盖整个单位方块返回 true
      */

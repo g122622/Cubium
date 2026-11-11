@@ -66,7 +66,6 @@ namespace blocks {
  * - CHEST_TYPE: 箱子类型（SINGLE/LEFT/RIGHT）
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.CopperChestBlock (MC 1.21.11)
  */
 class CopperChestBlock : public ChestBlock {
 public:
@@ -221,7 +220,6 @@ public:
      * @param pos 放置位置
      * @return 铜箱子方块状态
      *
-     * 参考: net.minecraft.world.level.block.CopperChestBlock.getFromCopperBlock (MC 1.21.11)
      */
     [[nodiscard]] static BlockState getFromCopperBlock(
         const Block* copperBlock, Direction facing, IWorld& world, const BlockPos& pos);
@@ -278,7 +276,6 @@ protected:
  * 氧化链：copper_chest -> exposed_copper_chest ->
  *         weathered_copper_chest -> oxidized_copper_chest
  *
- * 参考: net.minecraft.world.level.block.WeatheringCopperChestBlock (MC 1.21.11)
  */
 class WeatheringCopperChestBlock : public CopperChestBlock, public IOxidizableBlock {
 public:
@@ -377,7 +374,6 @@ private:
  * 涂蜡后的铜箱子不会氧化。重写 isWaxed() 返回 true，
  * 用于双箱合并时判断涂蜡状态。
  *
- * 参考: net.minecraft.world.level.block.CopperChestBlock (MC 1.21.11, 涂蜡变体)
  */
 class WaxedCopperChestBlock : public CopperChestBlock {
 public:

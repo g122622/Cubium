@@ -36,7 +36,6 @@ namespace mc {
  * 用于可以在地板上放置或在墙上放置的物品（如告示牌、旗帜、头颅等）。
  * 根据点击位置自动选择放置在地板上还是墙上。
  *
- * 参考: net.minecraft.item.WallOrFloorItem
  */
 class WallOrFloorItem : public BlockItem {
 public:

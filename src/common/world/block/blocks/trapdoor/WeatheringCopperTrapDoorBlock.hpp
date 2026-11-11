@@ -37,7 +37,6 @@ namespace blocks {
  *
  * 继承TrapDoorBlock的活板门行为，同时具有铜氧化特性。
  *
- * 参考: net.minecraft.block.OxidizableTrapDoorBlock
  */
 class WeatheringCopperTrapDoorBlock : public TrapDoorBlock, public IOxidizableBlock {
 public:

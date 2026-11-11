@@ -118,7 +118,6 @@ void LootableContainerBlockEntity::_unpackLootTable(Player* player) const
 bool LootableContainerBlockEntity::isEmpty() const
 {
     // 在检查物品之前，先触发战利品表填充
-    // 参考: net.minecraft.RandomizableContainerBlockEntity.isEmpty()
     _unpackLootTable(nullptr);
     return LockableBlockEntity::isEmpty();
 }
@@ -126,7 +125,6 @@ bool LootableContainerBlockEntity::isEmpty() const
 void LootableContainerBlockEntity::clearContainer()
 {
     // 在清空容器之前，先触发战利品表填充
-    // 参考: net.minecraft.RandomizableContainerBlockEntity.clearContent()
     _unpackLootTable(nullptr);
     LockableBlockEntity::clearContainer();
 }
@@ -139,7 +137,6 @@ void LootableContainerBlockEntity::openContainer(Player* player)
     }
 
     // 触发战利品表填充（带玩家上下文，包含幸运值等信息）
-    // 参考: net.minecraft.RandomizableContainerBlockEntity.createMenu() 中 unpackLootTable(player)
     _unpackLootTable(player);
 
     LockableBlockEntity::openContainer(player);

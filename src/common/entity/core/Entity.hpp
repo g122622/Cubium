@@ -3442,7 +3442,6 @@ public:
      *
      * 基类默认返回 false。Player 类重写此方法返回实际的旁观者模式状态。
      * 旁观者模式下的实体不可被弹射物命中、不可冰冻、不可被推挤等。
-     * 参考: net.minecraft.world.entity.Entity.isSpectator()
      *
      * @return 如果实体处于旁观者模式返回 true
      */
@@ -3468,7 +3467,6 @@ public:
      *
      * 阻尼振动的实体不会触发振动信号。
      * 监守者始终阻尼振动，掉落的羊毛物品也阻尼振动。
-     * 参考: net.minecraft.world.entity.Entity.dampensVibrations()
      *
      * @return 如果实体阻尼振动返回true
      */
@@ -3806,8 +3804,8 @@ protected:
     // 乘客/骑乘系统
     std::vector<EntityInstanceId> m_passengers;     // 乘客列表
     EntityInstanceId m_vehicle = INVALID_ENTITY_ID; // 正在骑乘的车辆
-    // 注：原 m_rideCooldown（项目自定义骑乘冷却，非 vanilla 机制）已移除以对齐 vanilla。
-    // 详见 Entity.cpp addPassenger/removePassenger/canBeRidden 注释。
+    // 注意：不要给骑乘加全局冷却（vanilla 无此机制，且会破坏马驯服等反复骑乘玩法，
+    // 理由见 Entity.cpp addPassenger 注释）。
 
     // 反序列化阶段暂存的 Passengers NBT 列表。主实体被 spawnEntity 注入世界、拿到真实 id 后，
     // 由 EntityDeserializer::attachPassengers 递归 spawn 乘客并 startRiding，保证乘客的 m_vehicle

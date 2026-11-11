@@ -98,7 +98,15 @@ std::vector<i32> readIntSequence(const nbt::Tag& tag)
 // - direction (i32 0-3: 0=north,1=east,2=south,3=west,基岩 CommonDirection)：门/楼梯/按钮等通用朝向
 //   → Java facing（vanilla HORIZONTAL_FACING 4 向，north/south/east/west）
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认数字字符串转换。
-// TODO: 部分复合方块（如 lever 的门控/朝向组合属性）仍待补全。
+// TODO: 本函数（以及下面的布尔位映射）**只按基岩属性名分派，不看方块类型**，因此对"同一个基岩
+//   属性名在不同方块上语义不同"的情形会产出错误的 Java 属性。已确认的具体缺陷：拉杆。
+//   - 基岩拉杆用 `open_bit` 表示通断，而这里把 `open_bit` 无条件映射成 Java 的 open；
+//     但 Java 拉杆（LeverBlock）的属性是 HORIZONTAL_FACING + POWERED + ATTACH_FACE，
+//     **根本没有 open**——于是拉杆会拿到一个不存在的属性。
+//   - 拉杆的 face（wall/floor/ceiling）也需要从基岩 `direction` 的附加位推出，这里只映射了 facing。
+//   修法：把签名从 (bedrockKey, intVal) 扩成 (blockName, bedrockKey, intVal)，
+//   对 lever 单独分支（open_bit → powered，并按 direction 拆出 face/facing）。
+//   扩签名后注意调用点都在本文件内，且 block 在上层已可拿到，不需要额外查询。
 std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(const std::string& bedrockKey, i32 intVal)
 {
     if (bedrockKey == "facing_direction") {

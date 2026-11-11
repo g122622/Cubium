@@ -73,7 +73,6 @@ struct BannerPattern {
  * - 墙挂式和站立式两种形态
  * - 16种底色可选
  *
- * 参考: net.minecraft.tileentity.BannerTileEntity
  */
 class BannerEntity : public BlockEntity {
 public:

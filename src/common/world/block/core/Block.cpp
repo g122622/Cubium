@@ -222,7 +222,6 @@ void Block::onFallenUpon(IWorld& world, const BlockPos& pos, const BlockState& s
     MC_UNUSED(state);
 
     // 默认实现：施加普通摔落伤害
-    // 参考: net.minecraft.block.Block#fallOn — 调用 entity.causeFallDamage(fallDistance, 1.0F, damageSources().fall())
     // 子类可重写此方法以自定义摔落行为：
     // - 石笋方块：施加增大伤害，不调用父类（替代普通摔落伤害）
     // - 海龟蛋方块：不调用父类（取消摔落伤害）
@@ -311,7 +310,6 @@ const CollisionShape& Block::getBlockSupportShape(const BlockState& state) const
 {
     // 默认返回碰撞形状，与 MC 一致
     // 某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块
-    // 参考: net.minecraft.block.Block#getBlockSupportShape
     return getCollisionShape(state);
 }
 
@@ -354,7 +352,6 @@ const CollisionShape& Block::getEntityInsideCollisionShape(const BlockState& sta
     // 默认返回完整方块形状，即只要实体 AABB 与方块网格重叠就认为实体在方块内部。
     // 炼药锅、细雪等方块重写此方法返回更精确的形状，使 onEntityCollision
     // 只在实体实际进入方块内容区域时触发。
-    // 参考: net.minecraft.block.BlockBehaviour#getEntityInsideCollisionShape 默认返回 Shapes.block()
     return CollisionShape::fullBlockShape();
 }
 
@@ -1035,7 +1032,6 @@ bool Block::hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction dir
         return false;
     }
 
-    // 参考: net.minecraft.block.Block#hasEnoughSolidSide
     // 需要同时满足：1) 方块面是固体面  2) 碰撞形状在该方向的面投影覆盖整个面
     if (!state->isSolidSide(world, pos, direction)) {
         return false;
@@ -1079,7 +1075,6 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
     }
 
     // 获取形状在指定方向上的面投影，检查投影是否覆盖整个面
-    // 参考: net.minecraft.block.Block#isFaceFull
     CollisionShape faceShape = shape.getFaceShape(direction);
     return faceShape.coversFullBlock();
 }
@@ -1087,7 +1082,6 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
 bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
 {
     // 提取面投影并检查是否覆盖整个面
-    // 参考: net.minecraft.block.Block#isFaceFull(VoxelShape, Direction)
     CollisionShape faceShape = shape.getFaceShape(direction);
     return faceShape.coversFullBlock();
 }
@@ -1100,7 +1094,6 @@ bool Block::canPlaceAt(const BlockItemUseContext& /*context*/) const
 
 bool Block::isExceptionForConnection(const BlockState& state)
 {
-    // 参考: net.minecraft.block.Block#isExceptionForConnection
     // 某些固体方块不应与栅栏、墙、玻璃板建立连接
     return BlockTags::LEAVES().contains(state) || BlockTags::SHULKER_BOXES().contains(state) ||
         state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "barrier"))) ||
@@ -1113,7 +1106,6 @@ bool Block::isExceptionForConnection(const BlockState& state)
 const BlockState& Block::pushEntitiesUp(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)
 {
-    // 参考: net.minecraft.world.level.block.Block#pushEntitiesUp
     // 当方块碰撞形状增大时，将嵌入方块内的实体向上推出。
     //
     // 算法（与 MC Java 1.21.11 一致）：

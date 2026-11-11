@@ -60,7 +60,6 @@ namespace crafting {
  * 本类仅完成数据结构层面的解析与注册。matches 的 3 槽语义已与 SmithingMenu.java
  * 的 TEMPLATE_SLOT=0 / BASE_SLOT=1 / ADDITIONAL_SLOT=2 核对一致，接入容器时无需调整。
  *
- * 参考: net.minecraft.world.item.crafting.SmithingTransformRecipe
  */
 class SmithingTransformRecipe : public IRecipe<IInventory> {
 public:

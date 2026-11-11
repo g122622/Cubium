@@ -187,6 +187,7 @@ add_executable(mc_tests
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/world/map/MapBlockColorTest.cpp
+    common/world/map/MapBiomePreviewTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
     common/item/food/FoodItemTest.cpp
     common/item/food/FoodsTest.cpp
@@ -628,6 +629,7 @@ add_executable(mc_tests
     # ShulkerBoxBlock 16色潜影盒方块测试（注册、颜色、isShulkerBox、标签）
     common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
+    common/world/blockentity/BedrockCloneFilterDataTest.cpp
     common/world/blockentity/CommandBlockEntityTest.cpp
     common/world/blockentity/StructureBlockEntityTest.cpp
     common/world/blockentity/JigsawBlockEntityTest.cpp
@@ -931,6 +933,7 @@ add_executable(mc_tests
     # AbstractHorse 动画计数器、扬蹄条件、Owner UUID、NBT 序列化测试
     entity/AbstractHorseEntityTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
+    common/entity/entities/passive/horse/ChestedHorseNbtPersistTest.cpp
     # 马类交互逻辑测试（interactMob、equipArmor、equipChest、doPlayerRide）
     common/entity/entities/passive/horse/HorseInteractTest.cpp
     common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
@@ -1131,6 +1134,7 @@ add_executable(mc_tests
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
+    server/command/ExecuteBlocksConditionTest.cpp
     server/command/ExecuteCommandTest.cpp
     # 命令系统测试（原 mc_command_tests 并入）
     server/command/CommandStorageTest.cpp
@@ -1146,6 +1150,8 @@ add_executable(mc_tests
     common/command/arguments/FunctionArgumentTest.cpp
     common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
+    common/command/arguments/SlotRangesTest.cpp
+    common/command/arguments/ItemSlotsArgumentTypeTest.cpp
     common/command/arguments/NbtPathTest.cpp
     # style 参数（SNBT 复合标签 → Style，供 /scoreboard ... numberformat styled 使用）
     common/command/arguments/StyleArgumentTest.cpp

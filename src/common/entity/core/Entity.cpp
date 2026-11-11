@@ -1409,7 +1409,6 @@ void Entity::_checkFallDamageResettingBlocks(const Vector3& actualMovement)
 void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: Entity.causeFallDamage 首先传播摔落伤害给所有乘客，基类不处理自身伤害
-    // 参考: net.minecraft.world.entity.Entity.causeFallDamage → propagateFallToPassengers
     // LivingEntity.causeFallDamage 调用 super.causeFallDamage（传播给乘客）后自行计算伤害
     propagateFallToPassengers(distance, damageMultiplier, source);
 }
@@ -1417,7 +1416,6 @@ void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSou
 void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
     // MC 1.21.11: 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害
-    // 参考: net.minecraft.world.entity.Entity.propagateFallToPassengers
     if (!hasPassengers() || m_world == nullptr) {
         return;
     }
@@ -1991,12 +1989,10 @@ bool Entity::addPassenger(Entity& passenger)
         m_passengers.push_back(passenger.id());
     }
 
-    // 对齐 vanilla：addPassenger 不设置骑乘冷却（vanilla Entity.addPassenger 无此机制）。
-    // 原实现设 passenger.m_rideCooldown = 60（项目自定义防抖），但该冷却被 canBeRidden 用于
-    // 阻止 startRiding，破坏了马驯服等需反复快速上下骑乘的核心玩法（RunAroundLikeCrazyGoal 甩人后
-    // 玩家需立即重新骑上以继续累积 temper；60 tick 冷却使每次重新骑乘延迟 3 秒，驯服链路形同失效）。
-    // m_rideCooldown 已整体移除（见 canBeRidden / baseTick / removePassenger），TODO 若未来确需
-    // 防抖应在载具侧按 vanilla 的 mount/dismount 动画时序实现，而非全局骑乘冷却。
+    // 不设置任何骑乘冷却：vanilla Entity.addPassenger 没有这个机制。
+    // 不要在这里引入全局防抖——它会挡住 startRiding，让马驯服这类"甩下来必须立刻再骑上去"
+    // 的玩法失效（每次重新骑乘要等冷却，temper 攒不起来）。需要防抖请做在载具侧，
+    // 按 vanilla 的 mount/dismount 动画时序实现。
 
     // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
     // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
@@ -2041,8 +2037,7 @@ void Entity::removePassenger(Entity& passenger)
             passenger.setVehicle(INVALID_ENTITY_ID);
         }
 
-        // 对齐 vanilla：removePassenger 不设置骑乘冷却（vanilla Entity.removePassenger 无此机制）。
-        // m_rideCooldown 已整体移除（详见 addPassenger 注释），此处不再设置。
+        // 这里同样不设置骑乘冷却（vanilla Entity.removePassenger 无此机制）。
 
         // 服务端：乘客列表已变更，广播 SetPassengers 给追踪本载具的玩家，
         // 补齐客户端骑乘渲染同步（旧实现仅改服务端模型无网络发包，客户端看不到骑乘关系）。
@@ -2198,9 +2193,8 @@ void Entity::removePassengers()
 
 bool Entity::canBeRidden(const Entity& vehicle) const
 {
-    // 对齐 vanilla：canBeRidden（对应 MC Java Entity.canRide）仅检查不处于潜行状态。
-    // 原实现额外检查 m_rideCooldown <= 0（项目自定义骑乘冷却），但该冷却非 vanilla 机制且
-    // 破坏了马驯服等反复骑乘玩法（详见 addPassenger 注释），已整体移除。
+    // vanilla Entity.canRide 只检查"不处于潜行状态"，不要再加骑乘冷却判据
+    // （理由见 addPassenger 注释：会破坏马驯服等反复骑乘玩法）。
     MC_UNUSED(vehicle);
     return !isSneaking();
 }
@@ -2974,7 +2968,6 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     addAdditionalSaveData(tag);
 
     // Passengers (乘客列表)
-    // 参考: net.minecraft.world.entity.Entity.saveWithoutId → 若 isVehicle 则写 Passengers 列表。
     // 每个 passenger 通过 saveAsPassenger 递归保存：写 "id" 后调用 saveWithoutId，
     // 从而支持多层骑乘（Boat → Zombie → BabyZombie）的嵌套序列化。
     // 注意：passenger 的 Pos 取 vehicle 的 x/z 与 passenger 的 y（MC Java 行为），

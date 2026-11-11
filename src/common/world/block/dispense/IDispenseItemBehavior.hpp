@@ -69,7 +69,6 @@ namespace blocks {
  * }
  * ```
  *
- * 参考: net.minecraft.dispenser.IDispenseItemBehavior
  */
 class IDispenseItemBehavior {
 public:
@@ -307,7 +306,6 @@ private:
  * 当物品实现了 ProjectileItem 接口时，发射器自动使用此类进行发射，
  * 无需为每种投掷物单独编写 lambda 工厂函数。
  *
- * 参考: net.minecraft.core.dispenser.ProjectileDispenseBehavior
  */
 class ProjectileDispenseBehavior : public DefaultDispenseItemBehavior {
 public:

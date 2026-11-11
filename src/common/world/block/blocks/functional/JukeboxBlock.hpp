@@ -58,7 +58,6 @@ namespace blocks {
  * - 比较器信号强度由唱片类型决定（1-15）
  * - 正在播放时直接输出信号强度15（isSignalSource）
  *
- * 参考: net.minecraft.block.JukeboxBlock
  */
 class JukeboxBlock : public Block {
 public:

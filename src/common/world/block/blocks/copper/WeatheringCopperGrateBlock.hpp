@@ -39,7 +39,6 @@ namespace blocks {
  *
  * 透明方块，支持含水，具有铜氧化特性。
  *
- * 参考: net.minecraft.block.OxidizableGrateBlock
  */
 class WeatheringCopperGrateBlock : public WeatheringCopperBlock, public IWaterLoggable {
 public:
@@ -80,7 +79,6 @@ protected:
  *
  * 涂蜡后的铜格栅不会氧化，支持含水。
  *
- * 参考: net.minecraft.block.WaxedGrateBlock
  */
 class WaxedCopperGrateBlock : public WaxedCopperBlock, public IWaterLoggable {
 public:

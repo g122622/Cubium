@@ -33,7 +33,6 @@ PortalSize ←─── NetherTeleporter
 EndTeleporter 提供以下功能：
 - `createEndSpawnPlatform()`: 创建末地出生黑曜石平台（5×5，Y=48），清空上方 4 层空间
 - `createExitPortal(pos, active)`: 创建末地出口传送门讲台（基岩柱 + 传送门环 + 火把），active 控制是否放置传送门方块
-- `placeEndPortalFrame(center)`: 放置 12 个末影之眼框架 + 3×3 传送门方块（用于要塞传送门房间）
 
 ## 上下游外部依赖关系
 
@@ -112,3 +111,9 @@ EndTeleporter 提供以下功能：
 ### 10. CHUNK_HEIGHT 与 MAX_BUILD_HEIGHT
 
 两者值不同（384 vs 320）且语义不同。`CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`。搜索传送门方块时使用 `world::MIN_BUILD_HEIGHT` 和 `world::MAX_BUILD_HEIGHT` 作为高度范围。
+
+### 11. 要塞传送门框架不在这里
+
+要塞末地传送门房间的 12 个框架由 `StructurePiece::placeEndPortalFrames()` 放置（在 `stronghold` 结构里，支持结构局部坐标、区块裁剪、镜像旋转与随机末影之眼），**不是** `EndTeleporter` 的职责。
+
+曾经有一个 `EndTeleporter::placeEndPortalFrame(IWorld&, center)` 做同样的事（世界绝对坐标版本），但它没有任何生产调用点，只被自己的单元测试调用，且 README 曾错误地把它标注为"用于要塞传送门房间"。该方法和它的测试已删除——要放置要塞框架请用 `StructurePiece::placeEndPortalFrames()`，不要在 `EndTeleporter` 里再长出一个平行实现。

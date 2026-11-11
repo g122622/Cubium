@@ -35,7 +35,6 @@ namespace potion {
  * 提供所有原版药水的静态指针，便于快速访问。
  * 在游戏初始化时调用 Potions::initialize() 进行注册。
  *
- * 参考: net.minecraft.potion.Potions
  */
 class Potions {
 public:

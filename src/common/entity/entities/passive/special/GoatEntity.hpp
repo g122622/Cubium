@@ -130,9 +130,9 @@ public:
     /**
      * @brief 生成该山羊对应的山羊角物品（对齐 vanilla Goat.createHorn）
      *
-     * vanilla 从 SCREAMING_GOAT_HORNS / REGULAR_GOAT_HORNS 乐器标签按 UUID 哈希取乐器；
-     * Cubium 乐器注册表尚未接入，主手类型为普通山羊角。
-     * TODO(instrument-registry): 乐器注册表落地后按上表标签选取，并把 Instrument 组件写入 ItemStack。
+     * 候选乐器来自乐器标签 SCREAMING_GOAT_HORNS / REGULAR_GOAT_HORNS（数据包
+     * tags/instrument），按 UUID 的 Java String.hashCode 作种子确定性选一个，写入 Instrument 组件。
+     * 标签缺失或为空时返回空地址（由调用方按"无可掉落乐器"处理）。
      */
     [[nodiscard]] ItemStack createHorn() const;
 

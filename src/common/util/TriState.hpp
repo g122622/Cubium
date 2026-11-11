@@ -36,7 +36,6 @@ namespace util {
  * - False：明确为假
  * - Default：未设置，由调用方提供回退值
  *
- * 参考: net.minecraft.util.TriState
  */
 enum class TriState : u8 {
     False = 0,

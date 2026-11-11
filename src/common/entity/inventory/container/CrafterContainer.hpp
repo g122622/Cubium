@@ -47,7 +47,6 @@ class CrafterBlockEntity;
  * - 预览结果：1格（不可交互，仅展示合成结果）
  * - 玩家背包：27格主背包 + 9格快捷栏
  *
- * 参考: net.minecraft.world.inventory.CrafterMenu
  */
 class CrafterContainer : public AbstractContainerMenu {
 public:

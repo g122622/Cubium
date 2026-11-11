@@ -40,7 +40,6 @@ namespace loot {
  * 概率表中的每个元素对应一个附魔等级（从等级0开始），
  * 如果附魔等级超出概率表长度，则使用最后一个概率值。
  *
- * 参考: net.minecraft.world.level.storage.loot.predicates.BonusLevelTableCondition
  *
  * JSON 格式:
  * @code

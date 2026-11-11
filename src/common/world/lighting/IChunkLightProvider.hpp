@@ -46,7 +46,6 @@ class BlockState;
  * 为光照引擎提供区块访问和世界信息。
  * ServerWorld 和 ClientWorld 实现此接口。
  *
- * 参考: net.minecraft.world.chunk.IChunkLightProvider
  */
 class StarLightLightingProvider {
 public:

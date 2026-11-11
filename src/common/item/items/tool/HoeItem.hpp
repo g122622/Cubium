@@ -52,7 +52,6 @@ namespace tool {
  * 攻击伤害：最低
  * 攻击速度：比其他工具慢（约 -1.0）
  *
- * 参考: net.minecraft.item.HoeItem
  */
 class HoeItem : public ToolItem {
 public:

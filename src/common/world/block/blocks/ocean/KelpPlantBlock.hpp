@@ -37,7 +37,6 @@ namespace blocks {
  * 实现 ILiquidSealed：海带茎不被水流替换。缺此实现时，水流每次 tick 都会把海带茎当作
  * 被水冲毁的方块，经 WaterFluid::beforeReplacingBlock 生成一次掉落物。
  *
- * 参考: net.minecraft.world.level.block.KelpPlantBlock
  */
 class KelpPlantBlock : public SimpleBlock, public ILiquidSealed {
 public:

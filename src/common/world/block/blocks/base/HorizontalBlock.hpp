@@ -39,7 +39,6 @@ namespace blocks {
  * 提供旋转和镜像的默认实现。
  * 常用于门、床、活塞、熔炉等方块。
  *
- * 参考: net.minecraft.block.HorizontalBlock
  */
 class HorizontalBlock : public Block {
 public:

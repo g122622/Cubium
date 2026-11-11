@@ -42,7 +42,6 @@ namespace mc {
  * - 下方：可以访问输出槽（槽位 2）和燃料槽（槽位 1）
  * - 侧面：只能访问燃料槽（槽位 1）
  *
- * 参考: net.minecraft.inventory.ISidedInventory
  */
 class ISidedInventory : public IInventory {
 public:

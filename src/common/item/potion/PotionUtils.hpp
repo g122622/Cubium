@@ -40,7 +40,6 @@ namespace potion {
  *
  * 提供药水相关的工具方法，如从物品获取药水、设置药水等。
  *
- * 参考: net.minecraft.potion.PotionUtils
  */
 class PotionUtils {
 public:

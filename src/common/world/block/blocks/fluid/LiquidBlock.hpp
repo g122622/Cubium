@@ -43,7 +43,6 @@ namespace block {
  * 与流体关联的方块，用于在世界中表示流体。
  * 实现 IBucketPickupHandler 接口以支持用空桶舀水/岩浆。
  *
- * 参考: net.minecraft.block.LiquidBlock
  *
  * 方块LEVEL (0-15) 与流体LEVEL (1-8) 的映射：
  * - 方块level=0 -> 流体level=8（源头）

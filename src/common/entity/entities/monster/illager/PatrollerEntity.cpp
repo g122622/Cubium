@@ -99,8 +99,10 @@ void PatrollerEntity::finalizeSpawn(
     // 的还是调用方先前设好的（巡逻队/袭击波次的队长都由调用方设定）。
     if (m_isPatrolLeader) {
         equipOminousBanner();
-        // TODO(raider-drop-chance): 原版同时执行 setDropChance(HEAD, 2.0F)；Cubium 的
-        //   装备掉落率接口尚未接到实体上，旗帜掉率目前仍是默认值。
+        // 对应 vanilla `PatrollingMonster#finalizeSpawn`：队长戴上不祥旗帜后把头部掉落率设为 2.0，
+        // 即"必掉且不受抢夺影响"。装备掉落率接口本身早已存在（`MobEntity::setEquipmentDropChance`，
+        // 僵尸/骷髅也在用），这里此前只是漏了这一行。
+        setEquipmentDropChance(EquipmentSlot::Head, 2.0f);
     }
 }
 

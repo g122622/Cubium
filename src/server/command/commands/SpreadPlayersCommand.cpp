@@ -40,6 +40,7 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/command/support/SpreadAlgorithm.hpp"
 #include "server/network/sync/player/TeleportManager.hpp"
@@ -62,23 +63,38 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
 
 namespace {
 
-/// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按实体数计算）
-/// TODO: 当支持 EntityArgumentType::entities() 后，非玩家实体应统一归入 null 队伍，
-///       当前仅支持玩家选择器，无法区分玩家和非玩家的队伍归属
-i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& playerNames)
+/// 一个"待分散目标"：玩家与非玩家实体统一到同一抽象，
+/// 使分散算法与传送逻辑不必再按类型分叉两次。
+struct SpreadTarget {
+    /// 实体指针（玩家时指向 Player，非玩家时指向该实体）。始终非空。
+    Entity* entity = nullptr;
+    /// 玩家的 PlayerId；非玩家实体为 0 且 isPlayer 为 false。
+    PlayerId playerId = 0;
+    /// 用于查队伍归属的名字：玩家用玩家名（与原版 `entity.getScoreboardName()` 对玩家返回名字一致），
+    /// 非玩家实体用 UUID 字符串（与原版对非玩家实体返回 UUID 一致）。
+    std::string scoreboardName;
+    /// 是否为玩家（决定传送走玩家通道还是实体通道）。
+    bool isPlayer = false;
+};
+
+/// 计算需要分散的位置数量（尊重队伍时，按队伍数计算；否则按目标数计算）
+i32 _getNumberOfTeams(server::IServer& server, const std::vector<SpreadTarget>& targets)
 {
     // 收集不同的队伍（nullptr 算作一支独立的"无队伍"）
     std::set<scoreboard::ScorePlayerTeam*> teams;
     auto& scoreboard = server.scoreboard();
 
-    for (const auto& name : playerNames) {
-        scoreboard::ScorePlayerTeam* team = scoreboard.getPlayersTeam(name);
+    for (const auto& target : targets) {
+        // 非玩家实体查不到队伍时 getPlayersTeam 返回 nullptr，
+        // 与原版"无队伍实体统一归入 null 队伍"语义一致。
+        scoreboard::ScorePlayerTeam* team = scoreboard.getPlayersTeam(target.scoreboardName);
         teams.insert(team); // nullptr 也会被插入，但只算一个
     }
 
@@ -86,11 +102,10 @@ i32 _getNumberOfTeams(server::IServer& server, const std::vector<std::string>& p
 }
 
 /// 将分散后的位置应用到玩家/实体
-/// 返回所有玩家到最近分散点的最小距离的平均值
-f64 _setPlayerPositions(server::IServer& server,
+/// 返回所有目标到最近分散点的最小距离的平均值
+f64 _setTargetPositions(server::IServer& server,
     server::ServerWorld& world,
-    const std::vector<PlayerId>& playerIds,
-    const std::vector<std::string>& playerNames,
+    const std::vector<SpreadTarget>& targets,
     std::vector<support::SpreadPosition>& positions,
     i32 maxHeight,
     bool respectTeams)
@@ -102,11 +117,11 @@ f64 _setPlayerPositions(server::IServer& server,
     std::unordered_map<scoreboard::ScorePlayerTeam*, support::SpreadPosition*> teamPositionMap;
     auto& scoreboard = server.scoreboard();
 
-    for (size_t i = 0; i < playerIds.size(); ++i) {
+    for (const SpreadTarget& target : targets) {
         support::SpreadPosition* targetPos = nullptr;
 
         if (respectTeams) {
-            scoreboard::ScorePlayerTeam* team = scoreboard.getPlayersTeam(playerNames[i]);
+            scoreboard::ScorePlayerTeam* team = scoreboard.getPlayersTeam(target.scoreboardName);
             auto it = teamPositionMap.find(team);
             if (it == teamPositionMap.end()) {
                 // 此队伍首次出现，分配下一个分散位置
@@ -128,40 +143,48 @@ f64 _setPlayerPositions(server::IServer& server,
         f64 targetX = std::floor(targetPos->x) + 0.5;
         f64 targetZ = std::floor(targetPos->z) + 0.5;
 
-        // 保留玩家当前的旋转角度（对齐 vanilla setPlayerPositions 用 entity.getYRot()/getXRot()，
-        // 即实体自身朝向）。真实玩家优先读 ServerPlayerData（网络层权威朝向），SimulatedPlayer 不进
-        // PlayerManager（getPlayer 返 nullptr），回退经 ServerPlayerEntityManager 取实体层 yaw/pitch。
-        // 原先仅读 ServerPlayerData，SimulatedPlayer 朝向归零（与 vanilla 偏差）。
-        f32 playerYaw = 0.0f;
-        f32 playerPitch = 0.0f;
-        auto* playerData = server.playerManager().getPlayer(playerIds[i]);
-        if (playerData != nullptr) {
-            playerYaw = playerData->yaw;
-            playerPitch = playerData->pitch;
+        // 保留目标当前的旋转角度（原版 setPlayerPositions 用 entity.getYRot()/getXRot()，
+        // 即实体自身朝向）。
+        f32 targetYaw = 0.0f;
+        f32 targetPitch = 0.0f;
+
+        if (target.isPlayer) {
+            // 真实玩家优先读 ServerPlayerData（网络层权威朝向），SimulatedPlayer 不进
+            // PlayerManager（getPlayer 返 nullptr），回退经 ServerPlayerEntityManager 取实体层
+            // yaw/pitch。原先仅读 ServerPlayerData，SimulatedPlayer 朝向归零（与原版偏差）。
+            auto* playerData = server.playerManager().getPlayer(target.playerId);
+            if (playerData != nullptr) {
+                targetYaw = playerData->yaw;
+                targetPitch = playerData->pitch;
+            } else if (auto* playerEntity = server.playerEntityManager().getPlayerEntity(target.playerId, world)) {
+                targetYaw = playerEntity->yaw();
+                targetPitch = playerEntity->pitch();
+            }
+
+            // 传送：真实玩家经 TeleportManager（改 ServerPlayerData + 发传送包，客户端回移动包后
+            // 实体收敛）；requestTeleport 对 SimulatedPlayer 返 0，回退经 ServerPlayerEntityManager
+            // 取实体直接 setPosition+setRotation 立即移动。同款回退范式见
+            // TeleportCommand::teleportPlayers。
+            if (server.teleportManager().requestTeleport(
+                    target.playerId, targetX, static_cast<f64>(spawnY), targetZ, targetYaw, targetPitch) == 0) {
+                mc::Player* playerEntity = server.playerEntityManager().getPlayerEntity(target.playerId, world);
+                if (playerEntity != nullptr) {
+                    playerEntity->setPosition(
+                        static_cast<f32>(targetX), static_cast<f32>(spawnY), static_cast<f32>(targetZ));
+                    playerEntity->setRotation(targetYaw, targetPitch);
+                }
+            }
         } else {
-            mc::Player* playerEntity = server.playerEntityManager().getPlayerEntity(playerIds[i], world);
-            if (playerEntity != nullptr) {
-                playerYaw = playerEntity->yaw();
-                playerPitch = playerEntity->pitch();
-            }
+            // 非玩家实体：没有连接、没有传送包，直接改实体坐标与朝向，
+            // 等价于原版 entity.teleportTo 立即移动实体的语义。
+            MC_ASSERT_RELEASE(target.entity != nullptr);
+            targetYaw = target.entity->yaw();
+            targetPitch = target.entity->pitch();
+            target.entity->setPosition(static_cast<f32>(targetX), static_cast<f32>(spawnY), static_cast<f32>(targetZ));
+            target.entity->setRotation(targetYaw, targetPitch);
         }
 
-        // 传送：真实玩家经 TeleportManager（改 ServerPlayerData + 发传送包，客户端回移动包后实体收敛）；
-        // requestTeleport 对 SimulatedPlayer 返 0（其不进 PlayerManager，getPlayer 返 nullptr 直接 return 0），
-        // 回退经 ServerPlayerEntityManager 取实体直接 setPosition+setRotation 立即移动（对齐 vanilla
-        // entity.teleportTo 立即移动实体的语义；SimulatedPlayer 无连接，setRotation 写实体朝向即可）。
-        // 同款回退范式见 TeleportCommand::teleportPlayers。
-        if (server.teleportManager().requestTeleport(
-                playerIds[i], targetX, static_cast<f64>(spawnY), targetZ, playerYaw, playerPitch) == 0) {
-            mc::Player* playerEntity = server.playerEntityManager().getPlayerEntity(playerIds[i], world);
-            if (playerEntity != nullptr) {
-                playerEntity->setPosition(
-                    static_cast<f32>(targetX), static_cast<f32>(spawnY), static_cast<f32>(targetZ));
-                playerEntity->setRotation(playerYaw, playerPitch);
-            }
-        }
-
-        // 计算此玩家到其他分散位置的最小距离
+        // 计算此目标到其他分散位置的最小距离
         f64 closestDist = std::numeric_limits<f64>::max();
         for (auto& pos : positions) {
             if (targetPos != &pos) {
@@ -173,7 +196,7 @@ f64 _setPlayerPositions(server::IServer& server,
         totalMinDist += closestDist;
     }
 
-    return playerIds.size() < 2 ? 0.0 : totalMinDist / static_cast<f64>(playerIds.size());
+    return targets.size() < 2 ? 0.0 : totalMinDist / static_cast<f64>(targets.size());
 }
 
 /// 无 under 子命令的执行入口：使用世界默认最大高度
@@ -190,11 +213,29 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     const bool respectTeams = context.getArgument<bool>("respectTeams");
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
 
-    // 解析目标玩家
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No players matched the selector");
+    // 解析目标：选择器用 entities() 语义，玩家与非玩家实体都要处理。
+    // 原版 /spreadplayers 的 targets 就是实体集合，非玩家实体（盔甲架、动物等）同样会被分散。
+    auto matchedEntities = support::EntityResolver::resolve(source, selector);
+    if (matchedEntities.empty()) {
+        source.sendError("No entities matched the selector");
         return 0;
+    }
+
+    std::vector<SpreadTarget> targets;
+    targets.reserve(matchedEntities.size());
+    for (Entity* matched : matchedEntities) {
+        SpreadTarget target;
+        target.entity = matched;
+        if (auto* playerEntity = dynamic_cast<mc::Player*>(matched)) {
+            target.isPlayer = true;
+            target.playerId = playerEntity->playerId();
+            // 玩家的队伍归属按玩家名查（与原版 entity.getScoreboardName() 对玩家返回名字一致）。
+            target.scoreboardName = support::resolvePlayerName(source, target.playerId);
+        } else {
+            // 非玩家实体的队伍归属按 UUID 字符串查（与原版对非玩家实体返回 UUID 一致）。
+            target.scoreboardName = matched->uuid();
+        }
+        targets.push_back(std::move(target));
     }
 
     // 获取世界
@@ -213,16 +254,8 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
         return 0;
     }
 
-    // 解析玩家名称（用于队伍查询）
-    std::vector<std::string> playerNames;
-    playerNames.reserve(playerIds.size());
-    for (const PlayerId playerId : playerIds) {
-        playerNames.push_back(support::resolvePlayerName(source, playerId));
-    }
-
     // 计算需要分散的位置数量
-    const i32 positionCount =
-        respectTeams ? _getNumberOfTeams(*server, playerNames) : static_cast<i32>(playerIds.size());
+    const i32 positionCount = respectTeams ? _getNumberOfTeams(*server, targets) : static_cast<i32>(targets.size());
 
     if (positionCount == 0) {
         source.sendError("No positions to spread");
@@ -257,12 +290,12 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
         return 0;
     }
 
-    // 将分散位置应用到玩家
-    f64 avgMinDist = _setPlayerPositions(*server, *world, playerIds, playerNames, positions, maxHeight, respectTeams);
+    // 将分散位置应用到目标（玩家与非玩家实体）
+    f64 avgMinDist = _setTargetPositions(*server, *world, targets, positions, maxHeight, respectTeams);
 
     // 构建成功反馈消息
     std::ostringstream ss;
-    ss << "Spread " << positionCount << " " << (respectTeams ? "team" : "player") << (positionCount != 1 ? "s" : "")
+    ss << "Spread " << positionCount << " " << (respectTeams ? "team" : "entity") << (positionCount != 1 ? "s" : "")
        << " around (" << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.y) << ")"
        << " with average distance " << std::fixed << std::setprecision(2) << avgMinDist;
     source.sendMessage(ss.str());

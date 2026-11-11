@@ -48,7 +48,6 @@ namespace blocks {
  * 3. 下落落地时检查落地点是否接触水，如果接触水则固化为混凝土
  * 4. 下落过程中穿过水时提前固化（由 FallingBlockEntity 处理）
  *
- * 参考: net.minecraft.world.level.block.ConcretePowderBlock
  */
 class ConcretePowderBlock : public FallingBlock {
 public:

@@ -41,7 +41,6 @@ namespace crafting {
  *
  * 锻造台配方将基础装备和添加物组合成升级装备。
  * 主要用于下界合金升级。
- * 参考: net.minecraft.item.crafting.SmithingRecipe
  *
  * JSON 格式示例：
  * @code

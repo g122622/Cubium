@@ -54,7 +54,6 @@ struct is_vector_bool<std::vector<bool, Alloc>> : std::true_type {};
  *
  * @tparam T 属性值类型，必须支持比较操作
  *
- * 参考: net.minecraft.state.Property<T extends Comparable<T>>
  *
  * 用法示例:
  * @code

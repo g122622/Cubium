@@ -37,7 +37,6 @@ namespace loot {
  * @brief 组条目
  *
  * 执行所有子条目。
- * 参考: net.minecraft.loot.GroupLootEntry
  */
 class GroupLootEntry : public LootEntry {
 public:

@@ -47,7 +47,6 @@ namespace blocks {
  * - LEVEL: 光照等级 (0-15)，默认 15
  * - WATERLOGGED: 是否含水
  *
- * 参考: net.minecraft.world.level.block.LightBlock
  */
 class LightBlock : public Block, public IWaterLoggable {
 public:

@@ -115,7 +115,6 @@ public:
      * 返回炼药锅外部形状与岩浆内容区域的并集。实体只有进入岩浆内容区域
      * 才会触发 onEntityCollision（受到岩浆伤害）。
      *
-     * 参考: net.minecraft.block.LavaCauldronBlock#getEntityInsideCollisionShape
      * 原版: FILLED_SHAPE = Shapes.or(SHAPE, Block.column(12, 4, 15))
      * 其中 SHAPE_INSIDE = Block.column(12, 4, 15) = box(2, 4, 2, 14, 15, 14)
      */

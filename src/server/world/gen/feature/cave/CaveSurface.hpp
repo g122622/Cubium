@@ -37,7 +37,6 @@ namespace mc::world::gen::feature::cave {
  *
  * 指示植被贴片生成在洞穴的地面还是天花板。
  *
- * 参考: net.minecraft.world.level.levelgen.feature.CaveSurface
  */
 enum class CaveSurface : u8 {
     /// 地面：植被放置在地面方块上方

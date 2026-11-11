@@ -47,7 +47,6 @@ namespace blocks {
  * - 未激活时减速矿车
  * - 只支持直轨和斜轨（不支持弯轨）
  *
- * 参考: net.minecraft.block.PoweredRailBlock
  */
 class PoweredRailBlock : public AbstractRailBlock {
 public:

@@ -26,7 +26,6 @@
  * @brief 实体 NBT 序列化键名常量
  *
  * 所有键名与 Java 版保持一致，确保存档兼容性。
- * 参考：net.minecraft.entity.Entity.writeWithoutTypeId()
  */
 
 namespace mc::entity::serialization::nbt_keys {
@@ -140,6 +139,7 @@ constexpr const char* LOVE_CAUSE = "LoveCause";
 // ========== AbstractHorseEntity 键 ==========
 
 constexpr const char* TEMPER = "Temper";
+constexpr const char* HORSE_CHESTED = "ChestedHorse";
 constexpr const char* HORSE_JUMP_STRENGTH = "JumpStrength";
 constexpr const char* HORSE_SPEED = "Speed";
 constexpr const char* HORSE_HEALTH = "HorseHealth";

@@ -56,7 +56,6 @@ namespace mc {
  * }
  * @endcode
  *
- * 参考: net.minecraft.tags.DamageTypeTags (MC 1.21.11)
  */
 class DamageTypeTag {
 public:
@@ -138,7 +137,6 @@ private:
  * 提供 DamageType 枚举与 MC 1.21.11 资源位置名（如 "minecraft:drown"）之间的双向映射，
  * 供 DamageTypeTag 数据包加载和序列化使用。
  *
- * 参考: net.minecraft.world.damagesource.DamageTypes (MC 1.21.11)
  */
 namespace DamageTypeNames {
 /**

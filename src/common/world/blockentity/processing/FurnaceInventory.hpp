@@ -44,7 +44,6 @@ namespace blockentity {
  * - 槽位1：燃料槽（煤炭、木炭等）
  * - 槽位2：输出槽（熔炼产物）
  *
- * 参考: net.minecraft.inventory.FurnaceInventory
  */
 class FurnaceInventory : public IInventory {
 public:
@@ -182,7 +181,6 @@ public:
      * @brief 添加容器变更监听器
      *
      * 监听器在容器内容变更时通过 containerChanged() 被通知。
-     * 参考: net.minecraft.world.SimpleContainer.addListener()
      *
      * @param listener 监听器指针（调用方负责确保指针在移除前有效）
      */
@@ -191,7 +189,6 @@ public:
     /**
      * @brief 移除容器变更监听器
      *
-     * 参考: net.minecraft.world.SimpleContainer.removeListener()
      *
      * @param listener 要移除的监听器指针
      */

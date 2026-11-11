@@ -287,7 +287,6 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
 
 bool FenceBlock::_canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const
 {
-    // 参考: net.minecraft.block.FenceBlock#connectsTo
     // 栅栏门平行时可以连接
     if (fencehelpers::isFenceGate(state)) {
         if (fencehelpers::isFenceGateParallel(state, direction)) {
@@ -296,7 +295,6 @@ bool FenceBlock::_canConnect(const BlockState& state, bool isNeighborSolid, Dire
     }
 
     // 同类栅栏连接：木质栅栏连接木质栅栏，下界砖栅栏连接下界砖栅栏
-    // 参考: net.minecraft.block.FenceBlock#isSameFence
     bool isFence = BlockTags::FENCES().contains(state);
     if (isFence) {
         bool thisIsWooden = BlockTags::WOODEN_FENCES().contains(this->defaultState());

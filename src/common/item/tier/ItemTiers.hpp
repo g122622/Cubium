@@ -51,7 +51,6 @@ namespace tier {
  * | GOLD      | 0       | 32   | 12.0  | 0.0  | 22     |
  * | NETHERITE | 4       | 2031 | 9.0   | 4.0  | 15     |
  *
- * 参考: net.minecraft.item.ItemTier
  */
 class ItemTiers {
 public:

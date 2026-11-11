@@ -59,7 +59,6 @@ namespace item::items {
  * - 总权重上限 = 64（对应 MC 的 Fraction.ONE）
  * - 收纳袋嵌套权重 = 4 + 内袋权重（对应 MC 的 1/16 + inner.weight）
  *
- * 参考: net.minecraft.world.item.BundleItem
  */
 class BundleItem : public Item {
 public:

@@ -155,7 +155,6 @@ public:
      * @brief 检查玩家是否可以剪切实体装备
      *
      * 狼只允许主人剪切狼铠。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.canShearEquipment()
      *
      * @param player 尝试剪切的玩家
      * @return 如果是主人返回 true
@@ -183,7 +182,6 @@ public:
      *
      * 当狼穿戴狼铠且伤害源不绕过护甲时，伤害由狼铠吸收（狼不扣血）。
      * 狼铠受损时检查裂纹等级变化，等级变化时播放裂纹音效和粒子。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.actuallyHurt()
      *
      * @param source 伤害来源
      * @param amount 伤害量
@@ -194,7 +192,6 @@ public:
      * @brief 盔甲受损回调
      *
      * 狼穿戴狼铠时，将伤害传递给狼铠。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.hurtArmor()
      *
      * @param source 伤害来源
      * @param amount 伤害量
@@ -239,7 +236,6 @@ public:
      *
      * 重置甩水状态（isWet, isShaking, shakeAnim, shakeAnimO），
      * 防止死亡过程中残留甩水动画。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.die()
      */
     void die(DamageSource& cause) override;
 
@@ -438,7 +434,6 @@ public:
      * 与 isInWater() 不同：isInWater() 表示当前帧是否在水中，
      * isWet 表示自上次甩水以来是否曾接触水。
      *
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.isWet
      */
     [[nodiscard]] bool isWet() const
     {
@@ -459,7 +454,6 @@ public:
      * @param partialTick 部分 tick（0.0-1.0）
      * @return 插值后的甩水动画进度（0.0-2.0）
      *
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getShakeAnim()
      */
     [[nodiscard]] f32 getShakeAnim(f32 partialTick) const;
 
@@ -468,7 +462,6 @@ public:
      * @param partialTick 部分 tick（0.0-1.0）
      * @return 着色值（0.75-1.0），1.0 表示完全干燥
      *
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getWetShade()
      */
     [[nodiscard]] f32 getWetShade(f32 partialTick) const;
 
@@ -477,7 +470,6 @@ public:
      * @param partialTick 部分 tick（0.0-1.0）
      * @return 头部 Z 轴旋转角度（弧度）
      *
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.getHeadRollAngle()
      */
     [[nodiscard]] f32 getHeadRollAngle(f32 partialTick) const;
 
@@ -557,7 +549,6 @@ protected:
      * @brief 播放甩水音效
      *
      * 在甩水动画开始时调用（m_shakeAnim == 0.0f 时）。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.playShakingSound()
      */
     void playShakingSound();
 
@@ -566,7 +557,6 @@ protected:
      *
      * 重置 isShaking、shakeAnim、shakeAnimO。
      * 当狼在甩水过程中再次接触水时调用。
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.cancelShake()
      */
     void _cancelShake();
 
@@ -685,7 +675,6 @@ private:
      * @brief 检查狼铠是否可以吸收此伤害
      *
      * 条件：穿戴狼铠 且 伤害源不绕过护甲
-     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.canArmorAbsorb()
      *
      * @param source 伤害来源
      * @return 如果狼铠可以吸收此伤害返回 true

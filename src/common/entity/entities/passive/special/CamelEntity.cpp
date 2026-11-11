@@ -92,9 +92,11 @@ void CamelEntity::registerAttributes()
     attributes().setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 32.0);
     attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.09);
     attributes().setBaseValue(entity::attribute::Attributes::JUMP_STRENGTH, 0.42);
-    // TODO(attribute): 原版的 step_height 属性尚未在 Attributes 中登记，setBaseValue 目前
-    //  静默失败，骆驼的 1.5 格步高没有生效。补齐 step_height 后改成 Attributes::STEP_HEIGHT。
-    attributes().setBaseValue("generic.step_height", 1.5);
+    // 步高 1.5：属性已由 `LivingEntity::registerAttributes` 注册，名字是 1.21 起的
+    // `minecraft:step_height`。这里必须用常量而不是 1.16.5 的旧名 `generic.step_height`——
+    // `AttributeMap::getInstance` 是朴素按名查找（归一化只发生在命令/JSON 解析路径的
+    // AttributeRegistry 上），用旧名会查不到并无返回值地失败，步高静默停留在默认 0.6。
+    attributes().setBaseValue(entity::attribute::Attributes::STEP_HEIGHT, 1.5);
     setHealth(maxHealth());
 }
 

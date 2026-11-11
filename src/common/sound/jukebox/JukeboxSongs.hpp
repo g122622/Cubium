@@ -41,7 +41,6 @@ namespace mc {
  * 管理所有唱片机歌曲的定义。每首歌曲通过 ResourceLocation 标识，
  * 存储声音事件ID、描述翻译键、歌曲长度和比较器输出信号强度。
  *
- * 参考: net.minecraft.world.item.JukeboxSongs
  */
 class JukeboxSongs {
 public:

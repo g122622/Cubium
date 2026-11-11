@@ -37,7 +37,6 @@ namespace loot {
  * @brief 随机附魔函数
  *
  * 随机选择附魔类型和等级。
- * 参考: net.minecraft.loot.functions.EnchantRandomly
  */
 class EnchantRandomlyFunction : public LootFunction {
 public:

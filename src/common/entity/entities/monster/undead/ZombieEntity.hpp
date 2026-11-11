@@ -73,8 +73,7 @@ public:
     /// 本类继承链标识（parent = MonsterEntity::classInfo()）。见 Entity::classInfo()。
     // vanilla 1.21.11 Zombie 在 Mob(id15) 之后注册三字段：DATA_BABY_ID(Boolean,id16)、
     // DATA_SPECIAL_TYPE_ID(Int,id17)、DATA_DROWNED_CONVERSION_ID(Boolean,id18)。本项目保留
-    // 此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id，见
-    // entity-sync-alignment-decisions-2026-07。
+    // 此层并补齐 registerData+ClassRegisterGuard 对齐 vanilla 字段 id。
     static const entity::EntityClassInfo& classInfo();
 
     // 禁止拷贝

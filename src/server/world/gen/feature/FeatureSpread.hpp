@@ -42,7 +42,6 @@ namespace mc {
  * - 新的任意 IntProvider（get() 委托 provider->sample()）。
  * 当 provider 非空时以 IntProvider 为准。
  *
- * 参考: net.minecraft.world.gen.feature.FeatureSpread / 1.21 FoliagePlacer.radius
  */
 class FeatureSpread {
 public:

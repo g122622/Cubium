@@ -65,7 +65,6 @@ struct MixPredicate {
  * 1. 药水类型转换（加入材料改变药水类型）
  * 2. 容器转换（药水→喷溅药水→滞留药水）
  *
- * 参考: net.minecraft.potion.PotionBrewing
  */
 class PotionBrewing {
 public:

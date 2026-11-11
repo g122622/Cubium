@@ -275,7 +275,6 @@ public:
      * 此前 Cubium 苦力怕无 interactMob override，打火石/火焰弹右键苦力怕不点燃（对齐缺陷），
      * 仅打火石 onItemUse 处理方块点燃。此处补全实体侧点燃链路。
      *
-     * 参考: net.minecraft.world.entity.monster.Creeper#mobInteract(Player, InteractionHand)
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 

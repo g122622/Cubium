@@ -736,7 +736,6 @@ void PlayerInventory::toNbt(nbt::tags::compound_tag& tag) const
     // ========== Inventory 列表（仅快捷栏和主背包，Slot 0-35）==========
     // MC 1.21.11 新格式：护甲和副手不再存储在 Inventory 列表中，
     // 而是通过 LivingEntity 的 "equipment" 复合标签以 EquipmentSlot 枚举名独立存储。
-    // 参考: net.minecraft.world.entity.player.Inventory.save()
     // Player 的 equipment 标签由 LivingEntity::addAdditionalSaveData() 写入，
     // PlayerInventory 仅负责 Inventory 列表和 SelectedItemSlot。
     auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
@@ -766,7 +765,6 @@ Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& 
     // ========== 读取装备（MC 1.21.11 格式：equipment 复合标签）==========
     // 使用 EquipmentSlot 枚举名作为键（"offhand", "feet", "legs", "chest", "head"），
     // 空槽位在 equipment 标签中不存在。
-    // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()
     if (const auto* equipmentTag = tryGetCompound(tag, EQUIPMENT)) {
         // EquipmentSlot 名称到内部背包索引的映射
         static constexpr struct {
@@ -792,7 +790,6 @@ Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& 
 
     // ========== 读取背包物品列表 ==========
     // MC 1.21.11：Inventory 仅包含 Slot 0-35（快捷栏与主背包），装备经 equipment 字段读取。
-    // 参考: net.minecraft.world.entity.player.Inventory.save()
     if (const auto* invList = tryGetList(tag, INVENTORY)) {
         if (invList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);

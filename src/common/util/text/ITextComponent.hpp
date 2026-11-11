@@ -38,7 +38,6 @@ namespace mc::text {
  * @brief 文本组件接口
  *
  * 表示一段富文本，支持样式继承和嵌套。
- * 参考: net.minecraft.util.text.ITextComponent
  *
  * ## 继承关系
  *
