@@ -579,6 +579,13 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_BED);
     m_brain->registerMemory(MemoryModuleTypes::WALK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::LOOK_TARGET);
+    // TODO(brain-memory-writers): 上面几条记忆里有两条目前没有对应的写入方，已逐文件核实：
+    //   - LOOK_TARGET：被 LookAtEntityTask 当门槛（VALUE_ABSENT，因此不阻塞执行）、
+    //     被 AttackTask 当 REGISTERED 依赖，但**全仓无 setMemory**。而 LookAtEntityTask
+    //     自己的文档写的是"概率触发时…设置 LOOK_TARGET 记忆"——代码并未这么做，
+    //     属于文档与实现不符。补齐后它才能记住"正在看谁"，避免每 tick 重选目标。
+    //   - LAST_WORKED_AT_POI：只在此处注册，全仓既不读也不写，属于为将来
+    //     村民工作冷却预留的槽位；在补上读写之前它可以删掉，或就地标注保留意图。
     m_brain->registerMemory(MemoryModuleTypes::VISIBLE_MOBS);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_HOSTILE);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_PLAYERS);
