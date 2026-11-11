@@ -71,6 +71,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace command {
@@ -1121,6 +1122,21 @@ bool ExecuteCommand::_evaluateBlockCondition(
     // 各条件的参数集互不重叠，所以这套判据是唯一且有意义的：
     //   block 带 block、biome 带 biome、dimension 带 dimension、entity 带 entities、
     //   loaded 只带裸 pos。
+    //
+    // 【必须先判 item_predicate】`items` 条件的参数是
+    // `block <pos> <slots> <item_predicate>` / `entity <entities> <slots> <item_predicate>`，
+    // 它的 pos / entities 与 loaded、entity 两个条件重名。若让它落到后面的 pos / entities
+    // 分支，`if items block <pos>` 会被当成 `loaded <pos>` 求值——返回的是"区块是否加载"，
+    // 语义完全错误，而且看起来像正常结果。
+    if (context.hasArgument("item_predicate")) {
+        // TODO: 实现 items 条件。需要先补槽位区间解析（原版 SlotRanges：
+        //   container.N / hotbar.* / weapon.mainhand / a-b 区间 / 逗号列表），
+        //   再按槽位取出方块实体容器或实体背包里的 ItemStack，逐个用
+        //   ItemPredicateInput::test(stack) 判定。当前一律按"条件不成立"处理。
+        spdlog::warn("/execute if items is not implemented yet; the condition evaluates to false");
+        return false;
+    }
+
     if (context.hasArgument("block")) {
         // 落到下面继续求值
     } else if (context.hasArgument("biome")) {

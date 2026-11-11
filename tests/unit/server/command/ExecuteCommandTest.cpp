@@ -900,3 +900,19 @@ TEST_F(ExecuteCommandDataEntityTest, ExecuteIfDataBlockHoldsWhenPathExists)
     ASSERT_TRUE(empty.success()) << "missing block entity must not error out. log:\n" << emptyLog;
     EXPECT_EQ(empty.value(), 0);
 }
+
+// 《《items》》条件尚未实现，但它不能被当成 `loaded` / `entity` 求值
+//
+// `items block <pos> <slots> <item_predicate>` 的 `pos` 与 `loaded <pos>` 重名，
+// `items entity <entities> ...` 的 `entities` 与 `entity <entities>` 重名。若分派顺序错了，
+// `if items block <pos>` 会返回“区块是否加载”——看起来像正常结果，实际语义错误。
+// 这条用例钉的是“走到了 items 分支”（出现对应 warn），而不是它返回什么。
+TEST_F(ExecuteCommandDataEntityTest, ExecuteIfItemsIsRejectedExplicitly)
+{
+    auto [blockResult, blockLog] = _run("execute if items block 4 64 4 container.0 minecraft:stone run help");
+    ASSERT_TRUE(blockResult.success()) << "log:\n" << blockLog;
+    EXPECT_EQ(blockResult.value(), 0);
+    EXPECT_NE(blockLog.find("if items is not implemented"), std::string::npos)
+        << "items must be rejected by its own branch, not silently routed to loaded/entity; log:\n"
+        << blockLog;
+}
