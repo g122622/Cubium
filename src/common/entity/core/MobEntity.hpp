@@ -322,6 +322,18 @@ public:
      * 在设置攻击目标时同步更新愤怒状态。
      * 通过MobEntity*指针调用时也能正确派发到子类的override。
      */
+    /** @brief 设置攻击目标 */
+    // TODO(attack-target-dual-store): 攻击目标目前有**两个互不同步的存储**：
+    //   1) 本类的 m_attackTarget —— setAttackTarget 写它，attackTarget() 读它，
+    //      Goal 系统的目标选择器也用它；
+    //   2) Brain 的 ATTACK_TARGET 记忆（MemoryModuleType<EntityInstanceId>）——
+    //      Brain 任务（AttackTask / ChaseTask / LookAtEntityTask 的优先级分支）读它，
+    //      但**全仓库没有任何生产代码写它**（唯一的 setMemory 在
+    //      ProtectOwnerTask 里，而该类目前零实例化）。
+    //   后果：村民等 Brain 实体注册了 AttackTask/ChaseTask，却永远等不到 ATTACK_TARGET，
+    //   攻击行为静默失效；而 Goal 实体一切正常（它们走 m_attackTarget）。
+    //   要修需二选一：让 setAttackTarget 同步写 Brain 记忆（前提是该实体持有 Brain），
+    //   或让 Brain 任务改读 attackTarget()。前者更贴近原版（原版 Brain 实体以记忆为单一源）。
     virtual void setAttackTarget(LivingEntity* target)
     {
         m_attackTarget = target;
