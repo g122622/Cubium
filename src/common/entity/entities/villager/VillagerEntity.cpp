@@ -778,9 +778,13 @@ void VillagerEntity::initializeBrain()
     //
     // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
     // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
-    // 要启用它们，需要在这些活动对应的触发条件出现时显式切换活动
-    // （例如被袭击时切到 FIGHT/RAID，遇险时切到 AVOID/HIDE），
-    // 而不是只把任务注册进活动。
+    //
+    // 这不是"漏了某处激活调用"，而是**机制本身不支持条件驱动切换**：
+    // Brain::_updateActivity（Brain.hpp）里唯一的切换逻辑是
+    //   m_activitySampler->applyTimeBased(Activity::IDLE, gameTime)
+    // 即"按时间采样下一条活动"，全仓没有基于记忆/状态的 switchTo 调用。
+    // 所以想让这些活动生效，必须先在 Brain 层增加条件驱动切换的能力
+    // （例如检测到 ATTACK_TARGET 就切到 FIGHT），否则注册再多任务也没用。
     //
     // 下面几处注释里提到的"活动不可达"都以此为大前提：先把活动激活，
     // 再谈门槛、传感器、记忆写入方是否齐全。
