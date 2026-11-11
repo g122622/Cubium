@@ -683,6 +683,12 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
+    // TODO(meet-activity): MEET 活动目前不会真正触发交互。
+    //   VillagerInteractTask 的门槛是 INTERACTION_TARGET == VALUE_PRESENT，但全仓库
+    //   只有 registerMemory 与读取，**没有任何写入点**（已逐文件核实），所以该任务
+    //   永远过不了 shouldExecute，MEET 活动实际上只剩走位与游荡。
+    //   要补齐需要先确定"村民之间何时建立交互"的触发点（如靠近另一村民且双方空闲），
+    //   再由某个传感器或任务写入该记忆；具体触发时机需对照原版村民社交逻辑确定。
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
         makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(),
