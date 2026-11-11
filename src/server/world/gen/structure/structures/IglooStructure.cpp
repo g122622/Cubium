@@ -37,6 +37,7 @@
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
+#include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -183,8 +184,11 @@ void IglooPiece::generate(IWorldWriter& world,
 
     m_template->placeInWorld(*reader, m_templatePosition, settings, rng, world::BlockUpdateFlags::UPDATE_CLIENTS);
 
-    // 原版 `TemplateStructurePiece.postProcess` 末尾的拼图方块 `final_state` 覆盖。
-    // TODO: 雪屋的数据标记（地窖入口与地下室箱子）仍未实现，届时需排在 jigsaw 覆盖之前。
+    // 原版 `TemplateStructurePiece.postProcess`：放完模板后先按 DATA 标记生成箱子内容，
+    // 最后把拼图方块按 `final_state` 覆盖。
+    for (const auto& marker : m_template->getDataMarkers(m_templatePosition, settings)) {
+        _handleDataMarker(marker.metadata, marker.pos, *reader, rng);
+    }
     m_template->applyJigsawReplacements(*reader, m_templatePosition, settings);
 
     // 顶盖模板的入口下方若不是空气/梯子，补一块雪块把梯井封口。
@@ -203,6 +207,31 @@ void IglooPiece::generate(IWorldWriter& world,
     }
 
     m_templatePosition = nominalPosition;
+}
+
+void IglooPiece::_handleDataMarker(const std::string& metadata, const BlockPos& pos, IWorld& world, math::IRandom& rng)
+{
+    // 原版 IglooPieces.IglooPiece.handleDataMarker 只认 "chest" 一种标记：
+    // 先把标记处的结构方块清成空气，再给**正下方**的箱子挂上 igloo_chest 战利品表。
+    // 雪屋三个模板里只有地下室带这个标记，所以不区分模板名。
+    if (metadata != "chest") {
+        return;
+    }
+
+    // 先清掉标记处的结构方块（原版 setBlock(AIR, 3)）。
+    auto* writer = dynamic_cast<IWorldWriter*>(&world);
+    MC_ASSERT_RELEASE_MSG(writer != nullptr, "IglooPiece::_handleDataMarker requires an IWorldWriter");
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    if (airState != nullptr) {
+        writer->setBlockState(pos.x, pos.y, pos.z, airState, static_cast<i32>(world::BlockUpdateFlags::UPDATE_ALL));
+    }
+
+    BlockEntity* blockEntity = world.getBlockEntity(BlockPos(pos.x, pos.y - 1, pos.z));
+    auto* container = dynamic_cast<mc::blockentity::LootableContainerBlockEntity*>(blockEntity);
+    if (container != nullptr) {
+        static const ResourceLocation iglooLoot("minecraft:chests/igloo_chest");
+        container->setLootTable(iglooLoot, rng.nextLong());
+    }
 }
 
 // ============================================================================

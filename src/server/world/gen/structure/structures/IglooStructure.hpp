@@ -90,6 +90,19 @@ public:
 private:
     void _updateBoundingBox();
 
+    /**
+     * @brief 处理模板的 DATA 标记（原版 IglooPiece.handleDataMarker）
+     *
+     * 雪屋只有 "chest" 一种标记：清掉标记处的结构方块，并给正下方的
+     * 箱子挂上 minecraft:chests/igloo_chest 战利品表。
+     *
+     * @param metadata 标记字符串（原版结构方块的 metadata）
+     * @param pos 标记的世界坐标
+     * @param world 世界
+     * @param rng 随机源（战利品表种子）
+     */
+    void _handleDataMarker(const std::string& metadata, const BlockPos& pos, IWorld& world, math::IRandom& rng);
+
     std::string m_templateName;
     BlockPos m_templatePosition;
     BlockPos m_size{1, 1, 1};

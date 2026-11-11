@@ -87,6 +87,20 @@ private:
     /// 用模板真实尺寸 + 旋转重算包围盒（对应原版 `StructureTemplate.getBoundingBox`）。
     void _updateBoundingBox();
 
+    /**
+     * @brief 按原版 NetherFossilPiece.placeDriedGhast 放置干燥恶魂方块
+     *
+     * 50% 概率在化石底部随机位置放一个干燥恶魂。只放在空气且在本次
+     * 生成的区块包围盒内，避免写到尚未生成的邻居区块。
+     *
+     * @param world 世界（读方块状态）
+     * @param writer 世界写入接口
+     * @param rng 随机源
+     * @param chunkBounds 本次生成允许写入的区块包围盒
+     */
+    void _placeDriedGhast(
+        IWorld& world, IWorldWriter& writer, math::IRandom& rng, const StructureBoundingBox& chunkBounds);
+
     std::string m_templateName;
     BlockPos m_templatePosition;
     feature::template_::TemplateManager* m_templateManager = nullptr;

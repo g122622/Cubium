@@ -109,6 +109,24 @@ public:
 private:
     void _loadTemplate();
 
+    /**
+     * @brief 处理模板 DATA 标记（原版 WoodlandMansionPieces.MansionPiece.handleDataMarker）
+     *
+     * 已实现宝箱类标记（ChestNorth/ChestSouth/ChestEast/ChestWest）：给标记下方一格的
+     * 容器挂 minecraft:chests/woodland_mansion 战利品表。
+     *
+     * @param metadata 标记字符串
+     * @param pos 标记的世界坐标
+     * @param world 世界
+     * @param rng 随机源（战利品表种子）
+     * @param chunkBounds 本次生成允许写入的区块包围盒
+     */
+    void _handleDataMarker(const std::string& metadata,
+        const BlockPos& pos,
+        IWorld& world,
+        math::IRandom& rng,
+        const StructureBoundingBox& chunkBounds);
+
     std::string m_templateName;
     BlockPos m_templatePosition;
     feature::template_::TemplateManager* m_templateManager = nullptr;
