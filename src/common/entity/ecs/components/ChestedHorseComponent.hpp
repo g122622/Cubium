@@ -16,9 +16,9 @@ namespace mc::ecs {
  * getInventorySize() 依赖此字段决定库存规模：未装箱回落基类 2 槽（鞍+马铠），
  * 装箱后 2 + 3 * getInventoryColumns()。initHorseChest() 据此重建库存。
  *
- * 持久化：vanilla 1.21.11 AbstractChestedHorse 持久化 ChestnutItem 等容器内容走
- * LootableContainer 体系；m_hasChest 标志本身项目当前未存盘（1.16.5 残留缺陷，TODO）。
- * 本组件不注册序列化器。
+ * 持久化：本标志持久化为 `ChestedHorse`（字节，与原版 AbstractChestedHorse 一致），
+ * 由 `registerHorseComponentSerializers` 里 priority=0 的序列化器负责，必须先于
+ * initHorseChest() 就位。容器内容本身走 LootableContainer 体系（尚未接通）。
  */
 struct ChestedHorseComponent {
     bool m_hasChest{false}; ///< 是否装备了箱子

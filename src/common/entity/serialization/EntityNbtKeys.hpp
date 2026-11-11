@@ -140,6 +140,7 @@ constexpr const char* LOVE_CAUSE = "LoveCause";
 // ========== AbstractHorseEntity 键 ==========
 
 constexpr const char* TEMPER = "Temper";
+constexpr const char* HORSE_CHESTED = "ChestedHorse";
 constexpr const char* HORSE_JUMP_STRENGTH = "JumpStrength";
 constexpr const char* HORSE_SPEED = "Speed";
 constexpr const char* HORSE_HEALTH = "HorseHealth";

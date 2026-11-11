@@ -932,6 +932,7 @@ add_executable(mc_tests
     # AbstractHorse 动画计数器、扬蹄条件、Owner UUID、NBT 序列化测试
     entity/AbstractHorseEntityTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
+    common/entity/entities/passive/horse/ChestedHorseNbtPersistTest.cpp
     # 马类交互逻辑测试（interactMob、equipArmor、equipChest、doPlayerRide）
     common/entity/entities/passive/horse/HorseInteractTest.cpp
     common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
