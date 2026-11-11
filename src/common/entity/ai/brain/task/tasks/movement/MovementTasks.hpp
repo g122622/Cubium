@@ -56,6 +56,24 @@ namespace brain {
 namespace task {
 namespace movement {
 
+// TODO(brain-movement-default-params): 本文件有 4 个任务构造函数带默认参数，
+//   违反项目规范「函数参数和配置结构体不允许使用和设置默认值」：
+//     explicit StrollTask(f32 speed = 1.0f, i32 interval = 40)
+//     FindHiddenBlockTask(f32 speed = 1.0f)
+//     ChaseTask(f32 speed = 1.5f, f32 stopDistance = 2.0f)
+//     FleeTask(f32 speed = 1.5f, f32 fleeDistance = goal::constants::AVOID_ESCAPE_RANGE)
+//   注意 `action/ActionTasks.hpp` 的同类问题已修复（提交 033a60556），这里是剩下的另一半。
+//
+//   去掉默认值前必须先把**部分传参**的调用点补全——它们不会报错，只会静默取默认值，
+//   是这次改动的主要风险来源。已确认的：
+//     - VillagerEntity.cpp 的 IDLE 活动里 `StrollTask<VillagerEntity>(0.6f)`
+//       只传 speed，interval 走默认 40；
+//     - VillagerEntity.cpp 的 AVOID 活动里 `FleeTask<VillagerEntity>(1.0f)`
+//       只传 speed，fleeDistance 走默认 AVOID_ESCAPE_RANGE。
+//   其余调用点（VillagerEntity.cpp 的 WORK/REST/PLAY/MEET/FIGHT/RAID、
+//   BrainMovementTaskTests.cpp 的无参构造）也需要逐个核对传参个数，
+//   不能只靠正则判断——参见 033a60556 里"脚本报告成功但实际未替换"的教训。
+
 using namespace memory;
 
 // 本文件所有任务都直接调用 `owner->brain()`，不做空指针检查——这是刻意的契约，不是疏漏：

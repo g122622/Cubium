@@ -54,6 +54,21 @@ namespace brain {
 namespace task {
 namespace interact {
 
+// TODO(brain-interact-default-params): 本文件有 5 个任务构造函数带默认参数，
+//   违反项目规范「函数参数和配置结构体不允许使用和设置默认值」：
+//     VillagerInteractTask(f32 range = 3.0f) noexcept
+//     ProtectOwnerTask(f32 speed = 1.5f, f32 protectRange = 16.0f) noexcept
+//     PickupItemTask(f32 speed = 1.0f, f32 pickupRange = 1.5f) noexcept
+//     FollowParentTask(f32 speed = 1.0f, f32 followDistance = 4.0f) noexcept
+//     TemptTask(f32 speed = 1.0f, f32 range = 10.0f) noexcept
+//   注意 `action/ActionTasks.hpp` 与 `movement/MovementTasks.hpp` 的同类问题见各自的
+//   TODO；本文件与它们一并处理更合适，避免三次改动同一批调用点。
+//
+//   与 movement 那边不同，这 5 个任务目前**几乎没有生产调用点**：
+//   VillagerInteractTask 在 MEET 活动里被构造（但门槛 INTERACTION_TARGET 无写入方，
+//   所以实际不执行），其余 4 个目前只在 BrainInteractTaskTests.cpp 里以无参形式构造。
+//   因此去掉默认值的改动面远小于 action/movement，主要工作是补全测试里的显式传参。
+
 using namespace memory;
 
 /**
