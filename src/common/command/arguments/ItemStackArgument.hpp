@@ -27,6 +27,8 @@
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/resource/ResourceLocation.hpp"
 
+#include <spdlog/spdlog.h>
+
 #include <memory>
 #include <string>
 
@@ -44,9 +46,14 @@ public:
     {
         // TODO: 物品栈的组件语法（`stone[damage=5]`）与 NBT 数据尚未完整实现，
         //   这里先按 ItemArgument 的语法读物品 id，并吞掉可选的 `[...]` / `{...}`。
+        //   吞掉属于"存在但未实现"，必须记 warn，否则用户写了组件却静默生效为空。
         ItemInput result = ItemArgumentType::item()->parse(reader);
-        skipBracketGroup(reader, '[', ']');
-        skipBracketGroup(reader, '{', '}');
+        const bool skippedComponents = skipBracketGroup(reader, '[', ']');
+        const bool skippedNbt = skipBracketGroup(reader, '{', '}');
+        if (skippedComponents || skippedNbt) {
+            spdlog::warn("Item stack component/NBT syntax is parsed but not applied yet: {}",
+                skippedComponents ? "components [...]" : "nbt {...}");
+        }
         return result;
     }
 
@@ -61,10 +68,15 @@ public:
     }
 
 private:
-    static void skipBracketGroup(StringReader& reader, char open, char close)
+    /**
+     * @brief 跳过一层括号分组（如 `[a=1,b=2]` 或 `{k:v}`）
+     *
+     * @return true 表示确实跳过了一个分组（即输入里真的带了这个语法）
+     */
+    static bool skipBracketGroup(StringReader& reader, char open, char close)
     {
         if (!reader.canRead() || reader.peek() != open) {
-            return;
+            return false;
         }
         i32 depth = 0;
         while (reader.canRead()) {
@@ -74,10 +86,11 @@ private:
             } else if (c == close) {
                 --depth;
                 if (depth == 0) {
-                    return;
+                    return true;
                 }
             }
         }
+        return true;
     }
 };
 
