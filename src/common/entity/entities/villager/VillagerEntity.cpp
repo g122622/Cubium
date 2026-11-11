@@ -787,28 +787,38 @@ void VillagerEntity::initializeBrain()
     // 且各自的任务门槛均可满足。其中 PLAY 曾是缺口——幼年作息轨道
     // （由 BABY_VILLAGER_ACTIVITY 属性选出）会切到 Activity::PLAY，
     // 而本实体当时从未注册它，导致幼年村民在玩耍时段被切进零任务活动。
-    // 也就是说 **AVOID / FIGHT / HIDE / PANIC / RAID 这 5 个活动从不被激活**——
-    // 无论它们的任务写得多完整、门槛多容易满足，都不会运行。
     //
-    // 这不是"漏了某处激活调用"，而是**机制本身不支持条件驱动切换**：
-    // Brain::_updateActivity（Brain.hpp）里唯一的切换逻辑是
-    //   m_activitySampler->applyTimeBased(Activity::IDLE, gameTime)
-    // 即"按时间采样下一条活动"，全仓没有基于记忆/状态的 switchTo 调用。
-    // 所以想让这些活动生效，必须先在 Brain 层增加条件驱动切换的能力
-    // （例如检测到 ATTACK_TARGET 就切到 FIGHT），否则注册再多任务也没用。
+    // 另一组是"事件活动"：AVOID / FIGHT / HIDE / PANIC / RAID。它们不属于时间线，
+    // 而是靠注册时声明的 requirements 被条件触发。此前 Brain 只做时间驱动切换
+    // （_updateActivity 里只调 applyTimeBased），所以这 5 个永远进不去；
+    // 现在 Brain::_tryEventActivity 会在时间采样之后按优先级检查各活动的
+    // 记忆要求并切换过去，因此它们**已具备被选中的能力**。
     //
-    // 下面几处注释里提到的"活动不可达"都以此为大前提：先把活动激活，
-    // 再谈门槛、传感器、记忆写入方是否齐全。
+    // 但"能被选中"不等于"会运行"——它们各自还缺上游写入方（见下面各项注释）：
+    //   FIGHT / RAID 依赖 ATTACK_TARGET，而没有代码给村民设攻击目标；
+    //   AVOID / HIDE / PANIC 依赖 AVOID_TARGET，其写入方 AvoidEntitySensor 未注册
+    //     （其中 AVOID 与 PANIC 的活动级 requirements 就是 AVOID_TARGET；
+    //     PANIC 的优先级 0 那档已核实声明了该要求，优先级 -1 那档只有开门任务、
+    //     无 requirements，属于时间线活动不会被 _tryEventActivity 选中）。
     // ----------------------------------------------------
 
-    // AvoidEntitySensor —— 本实体的 registerSensor 列表里没有它（见 initializeBrain
-    // 末尾那批注册）。所以村民永远不会"因看到威胁而逃跑"，
-    // 该行为目前由 Goal 系统完整承担、且是另一条独立路径：
-    //   下方 addGoal 里注册了 1 个 PanicGoal 与 8 个 AvoidEntityGoal
-    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽）。
-    //   所以这不是"功能缺失"，而是同一行为存在 Brain 版与 Goal 版两套实现，
-    //   而 Brain 版因缺传感器未接通。要启用需在下面注册 AvoidEntitySensor<VillagerEntity>；
-    //   若认定 Goal 版足够，则应删除此 AVOID 活动注册以免误导。
+    // ---- 关于 AVOID 活动（以及它依赖的 AvoidEntitySensor）----
+    // 状态说明（事件活动调度已接通之后）：本活动的门槛 AVOID_TARGET 现在**能够**被
+    // 满足触发——Brain 已支持按优先级选择带 requirements 的活动。缺的只是写入方：
+    // AVOID_TARGET 的唯一写入方 AvoidEntitySensor 未出现在本实体的 registerSensor
+    // 列表里（见 initializeBrain 末尾那批注册）。
+    //
+    // 所以现在的取舍不是"能不能接通"，而是"接通后会不会重复"：
+    //   下方 addGoal 里已有 1 个 PanicGoal 与 8 个 AvoidEntityGoal
+    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽），
+    //   躲避行为已由 Goal 系统完整承担。
+    //
+    // TODO(villager-avoid-duplication): 二选一，不要两边都留：
+    //   (a) 注册 AvoidEntitySensor<VillagerEntity> 启用 Brain 版，同时删掉那 8 个
+    //       AvoidEntityGoal 与 PanicGoal——这是原版的方向（村民躲避由 Brain 驱动）；
+    //   (b) 认定 Goal 版足够，删掉本 AVOID 活动注册。
+    //   现在两边同时存在但只有 Goal 版生效，属于过渡态；事件调度接通后若再补传感器
+    //   就会出现两套逻辑同时驱赶同一个村民，必须避免。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
         makeTasks(
