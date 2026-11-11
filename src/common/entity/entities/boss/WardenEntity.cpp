@@ -299,8 +299,14 @@ void WardenEntity::registerGoals()
     // - Sniff: 嗅闻动画（无目标时定期播放）
     // - 心跳音效：根据怒气等级调整心跳频率
     // - 触碰怒气：实体触碰监守者时增加怒气（20 tick 冷却）
-    // 这些子系统依赖 Brain 系统、MemoryModuleType、Pose 系统等尚未实现的基建，
-    // 后续逐项收敛。
+    // 这些子系统依赖的基建状态不同，不能说"都尚未实现"：
+    //   - Brain 系统（common/entity/ai/brain/）**已实现**，村民已完整接入
+    //     （memory / sensor / activity / task 四层，含条件驱动的事件活动调度）；
+    //   - MemoryModuleType 同样**已存在**；
+    //   - Pose 系统确实**尚未实现**（全仓没有 Pose 枚举）。
+    // 所以监守者接入 Brain 并不缺底层基建，缺的是它自己的 sensor/task 以及
+    // 振动、怒气这两套专属逻辑；Pose 相关的那几项（Emerging / Digging / Roar / Sniff）
+    // 则确实要先补 Pose。后续逐项收敛时请据此判断阻塞点在哪一层。
 }
 
 // ============================================================================
