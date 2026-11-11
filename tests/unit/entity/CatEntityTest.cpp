@@ -50,6 +50,7 @@
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
+#include <array>
 #include <memory>
 #include <unordered_map>
 
@@ -2080,6 +2081,37 @@ TEST_F(CatEntityTestFixture, NoPurrSound_WhenNotLyingOrRelaxing)
     // 由于我们只检查播放次数，如果没有其他音效应该为 0
     // 注意：CatEntity 可能还有环境音效，所以这里只检查不崩溃
     EXPECT_NO_FATAL_FAILURE({});
+}
+
+// ============================================================================
+// 皮肤变体的随机取值域
+// ============================================================================
+
+// CatType 共 11 个取值（Tabby=0 … AllBlack=10）。setRandomCatType() 用
+// rng.nextInt(0, 10)，而 IRandom::nextInt(min, max) 是**双端闭区间**，
+// 所以 0..10 全都能取到。这里连抽若干次，要求 11 个变体都出现过——
+// 若哪天有人把区间改成 nextInt(0, 11)（越界）或改回 [min, max) 语义，
+// AllBlack 会变得取不到，本用例立刻失败。
+TEST_F(CatEntityTestFixture, SetRandomCatType_CoversEveryVariant)
+{
+    CatEntity cat(EntityInstanceId(0), mc::test::testEcsRegistry());
+
+    constexpr i32 VARIANT_COUNT = 11; // CatType::Tabby(0) … CatType::AllBlack(10)
+    constexpr i32 DRAW_COUNT = 2000;  // 抽不到某个变体的概率 (10/11)^2000 ≈ 0
+
+    std::array<i32, VARIANT_COUNT> hitCount{};
+    for (i32 i = 0; i < DRAW_COUNT; ++i) {
+        cat.setRandomCatType();
+        const auto variant = static_cast<i32>(cat.getCatType());
+        ASSERT_GE(variant, 0);
+        ASSERT_LT(variant, VARIANT_COUNT);
+        ++hitCount[static_cast<size_t>(variant)];
+    }
+
+    for (i32 variant = 0; variant < VARIANT_COUNT; ++variant) {
+        EXPECT_GT(hitCount[static_cast<size_t>(variant)], 0)
+            << "cat variant " << variant << " was never picked randomly";
+    }
 }
 
 } // namespace
