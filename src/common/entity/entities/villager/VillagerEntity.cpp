@@ -726,6 +726,15 @@ void VillagerEntity::initializeBrain()
         {});
 
     // PANIC 活动：逃跑、移动到目标、开关门
+    // 注意优先级 -1 这一档的 requirements 是空集合，但这**不是** bug：
+    //   - activity 级的记忆要求存在 m_requiredMemoryStates[activity] 里，
+    //     由"带非空 requirements 的那次 registerActivity"写入——这里就是下面
+    //     优先级 0 的那次（写了 {{AVOID_TARGET, VALUE_PRESENT}}）。
+    //   - 而任务是按 m_tasks[priority][activity] 分开存的，_startTasks 会把
+    //     当前活动的**所有优先级**里的任务一起考虑。
+    //   所以 PANIC 一旦被 AVOID_TARGET 触发，-1 档的开门任务照常参与调度，
+    //   只是它本身不携带门槛。不要在 -1 档上重复声明 requirements（无意义），
+    //   也不要因为看到空集合就把它删掉。
     m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
         -1,
         makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
