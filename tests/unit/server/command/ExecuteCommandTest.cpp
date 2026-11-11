@@ -35,14 +35,25 @@
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteCommand.hpp"
 #include "server/command/commands/HelpCommand.hpp"
 #include "server/command/commands/ListCommand.hpp"
 #include "server/command/data/DataAccessor.hpp"
+#include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
+#include "server/world/ServerChunkManager.hpp"
+#include "server/world/ServerWorld.hpp"
+#include "server/world/gen/RandomState.hpp"
+#include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
+#include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
+#include "server/world/gen/settings/DimensionSettings.hpp"
 
 namespace mc::command {
 
@@ -697,3 +708,81 @@ TEST_F(DimensionArgumentTypeTest, GetExamples)
 // 2. ServerCommandSource::withDimension(DimensionId) 创建新源并更新 m_dimensionId（ServerCommandSource.cpp:192-197）
 // 3. _executeAt 调用 modifiedSource.withDimension(entity->dimension()) 对齐 MC Java 行为
 // ============================================================================
+
+// ============================================================================
+// if biome 的正向路径
+//
+// 需要命令源能解析到真实世界。BaseTestServer 的 dimensionManager() 敏感之前直接
+// 抛 "unused"，所以这类用例根本写不出来。现在它返回一个真实的
+// ServerDimensionManager，用例可以自己装入维度与世界。
+// ============================================================================
+
+namespace {
+
+std::unique_ptr<mc::server::ServerWorld> createBiomeTestWorld(const mc::server::ServerWorldConfig& config)
+{
+    auto world = std::make_unique<mc::server::ServerWorld>(config);
+    auto settings = mc::DimensionSettings::overworld();
+    auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+    auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false, false);
+    auto generator =
+        std::make_unique<mc::NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
+    auto chunkManager = std::make_unique<mc::server::ServerChunkManager>(*world, std::move(generator));
+    world->setChunkManager(std::move(chunkManager));
+    return world;
+}
+
+} // namespace
+
+class ExecuteCommandBiomeTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+
+        mc::command::ExecuteCommand::registerTo(m_server.commandRegistry().dispatcher());
+        mc::command::HelpCommand::registerTo(m_server.commandRegistry().dispatcher());
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        dimension->setWorld(createBiomeTestWorld(config));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+    }
+
+    mc::test::BaseTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+};
+
+// 不假设具体群系名：先从世界直接读出该坐标的真实群系，再断言命令的结果
+// 与之一致。这样一来，“恒返回 false”与“恒返回 true”两种错误实现都会被捕获。
+TEST_F(ExecuteCommandBiomeTest, ExecuteIfBiomeAgreesWithWorld)
+{
+    mc::server::ServerWorld* world = m_server.dimensionManager().getDimension(0)->world();
+    ASSERT_NE(world, nullptr);
+
+    // ServerWorld 自己的 getBiome 是私有的，走 IWorld 接口。
+    const auto* reader = static_cast<const mc::IWorld*>(world);
+    const mc::BiomeId actualId = reader->getBiome(0, 64, 0);
+
+    const auto& registry = mc::world::biome::BiomeRegistry::instance();
+    ASSERT_TRUE(registry.hasBiome(actualId));
+    const std::string actualName = "minecraft:" + registry.get(actualId).name();
+
+    // 命中：用真实群系名去问。
+    const auto hit =
+        m_server.commandRegistry().execute("execute if biome 0 64 0 " + actualName + " run help", m_console);
+    ASSERT_TRUE(hit.success());
+    EXPECT_EQ(hit.value(), 1) << "biome at 0,64,0 is " << actualName;
+
+    // 不存在的群系必定不成立。
+    const auto miss =
+        m_server.commandRegistry().execute("execute if biome 0 64 0 minecraft:not_a_real_biome run help", m_console);
+    ASSERT_TRUE(miss.success());
+    EXPECT_EQ(miss.value(), 0);
+}

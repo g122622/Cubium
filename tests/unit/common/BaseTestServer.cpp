@@ -72,12 +72,12 @@ BaseTestServer::BaseTestServer()
 
 ServerDimensionManager& BaseTestServer::dimensionManager()
 {
-    throwUnused();
+    return m_dimensionManager;
 }
 
 const ServerDimensionManager& BaseTestServer::dimensionManager() const
 {
-    throwUnused();
+    return m_dimensionManager;
 }
 
 server::ServerWorld* BaseTestServer::getPlayerWorld(PlayerId)

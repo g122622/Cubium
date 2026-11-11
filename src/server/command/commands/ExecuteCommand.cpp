@@ -47,6 +47,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/dimension/DimensionType.hpp"
@@ -1016,6 +1018,43 @@ bool ExecuteCommand::_evaluateScoreCondition(
     return false;
 }
 
+bool ExecuteCommand::_evaluateBiomeCondition(
+    const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
+{
+    auto* world = target.world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    const auto biomeArg = context.getArgumentOr<ParsedResourceOrTag>("biome", ParsedResourceOrTag{});
+    const ResourceLocation& wanted = biomeArg.id();
+    if (wanted.path().empty()) {
+        return false;
+    }
+
+    const Vector3i posVec = BlockPosArgumentType::getBlockPos(context, "pos", target);
+    // 走 IWorld 接口取群系：ServerWorld 自己把 getBiome 声明为私有（它另有内部取法），
+    // 基类虚函数才是对外的查询入口。
+    auto* worldReader = static_cast<const IWorld*>(world);
+    const BiomeId actualBiomeId = worldReader->getBiome(posVec.x, posVec.y, posVec.z);
+
+    if (biomeArg.isTag()) {
+        const world::biome::BiomeTag* tag = world::biome::BiomeTags::getTag(wanted);
+        // 标签不存在时按不成立处理，不要当成「空标签恰好不包含」而混淆语义。
+        if (tag == nullptr) {
+            return false;
+        }
+        return tag->contains(actualBiomeId);
+    }
+
+    // 具名群系：Biome::name() 只存不带命名空间的裸名（如 "plains"），这里补前缀比较。
+    const auto& registry = world::biome::BiomeRegistry::instance();
+    if (!registry.hasBiome(actualBiomeId)) {
+        return false;
+    }
+    return ("minecraft:" + registry.get(actualBiomeId).name()) == wanted.toString();
+}
+
 bool ExecuteCommand::_evaluateDataCondition(
     const ServerCommandSource& target, CommandContext<ServerCommandSource>& context)
 {
@@ -1056,8 +1095,8 @@ bool ExecuteCommand::_evaluateBlockCondition(
     if (context.hasArgument("block")) {
         // 落到下面继续求值
     } else if (context.hasArgument("biome")) {
-        // biome 条件的位表/标签匹配尚未实现，按「条件不成立」处理
-        return false;
+        // biome <pos> <biome>：pos 处的生物群系是否是指定群系（或其成员）
+        return _evaluateBiomeCondition(target, context);
     } else if (context.hasArgument("dimension")) {
         // 与命令源当前维度比对（`/execute in <dim>` 已在链上改写过 source）
         const auto wanted = context.getArgumentOr<DimensionId>("dimension", target.dimensionId());

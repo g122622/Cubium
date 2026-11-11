@@ -112,6 +112,21 @@ private:
      * @return 条件是否成立
      */
     static bool _evaluateDataCondition(const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
+
+    /**
+     * @brief 求值 `if biome <pos> <biome>` 条件
+     *
+     * 取 pos 处的生物群系，判断它是否等于给定群系；若给的是标签（`#namespace:tag`），
+     * 则判断该群系是否属于这个标签。
+     *
+     * 无世界时返回 false。
+     *
+     * @param target 当前命令源（用于解析相对坐标与取世界）
+     * @param context 命令上下文
+     * @return 条件是否成立
+     */
+    static bool _evaluateBiomeCondition(
+        const ServerCommandSource& target, CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command
