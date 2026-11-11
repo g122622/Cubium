@@ -1305,9 +1305,9 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                     }
                 }
             }
-            // TODO: filters（过滤器组）尚未接入：需要把 EntityFilter 接到"玩家对生物使用物品"这条
-            //   交互上下文上；目前生效的是"物品 → 治疗量"与"effects → 状态效果"两条
-            //   （见 _AddonMob::tryHealFromItem）。
+            // filters（交互前置条件）在 _AddonMob::tryHealFromItem 里已实际生效：
+            //   组件级 filters 编译成 EntityFilter 并求值，不满足则整次喂食作废。
+            //   交互参与者映射为 self=本生物、player/other=使用物品的玩家。
         } else if (name == "minecraft:breathable") {
             // 官方 schema 同时给了 snake_case 与 camelCase 两套键（suffocate_time/suffocateTime、
             // total_supply/totalSupply），原版实体定义里两种都出现过，必须都接受。
@@ -1356,10 +1356,18 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                         ErrorCode::InvalidData, std::string("minecraft:breathable requires a number: ") + field);
                 }
             }
-            // TODO: breathe_blocks / non_breathe_blocks 是按方块白/黑名单改写呼吸环境，
-            //   需要"实体所在方块"逐类判定；当前 canBreatheUnderwater 只区分水/非水，
-            //   无法表达任意方块名单。inhale_time 与 suffocate_time 也还需要接入空气恢复
-            //   与窒息计时，当前沿用基类的固定速率与固定间隔。
+            // TODO: 该组件还有两处未落地。
+            //   (a) breathe_blocks / non_breathe_blocks 是按方块白/黑名单改写呼吸环境。
+            //       卡点是**基岩方块名到 Block* 的解析**：bedrock 模块里没有任何
+            //       block descriptor / 方块名 -> Block* 的映射（检索 resolveBlock / blockByName /
+            //       BlockDescriptor / parseBlockName / findBlock 均无结果），而名单元素用的是基岩
+            //       自己的方块标识，与项目的 Java 侧方块 ID 不同源。没有这层映射就无法把名单
+            //       落到具体方块上，所以先不做，避免写死一套错误的对应关系。
+            //       注意 canBreatheUnderwater() 本身已不只是"水/非水"：它已消费
+            //       breathes_water（见下方 override），缺的是"当前所在方块是否在名单内"这一维度。
+            //   (b) inhale_time 与 suffocate_time 需要按实体覆盖空气恢复/消耗速率。
+            //       LivingEntity::decreaseAirSupply 目前固定每 tick -1（只受 oxygen_bonus 属性影响），
+            //       increaseAirSupply 同理；要落地得先把这两个速率做成可覆写点。
         } else if (name == "minecraft:inventory") {
             // 6 个字段与官方 schema 对齐。inventory_size 是核心（默认 5）。
             // TODO: 目前只做解析与校验，实体尚未真正持有库存容器——addon 实体的可交互背包
