@@ -1187,8 +1187,6 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 return Error(ErrorCode::InvalidData,
                     std::string("minecraft:experience_reward must be a number, string or object: ") + field);
             }
-            // TODO: on_bred（成功繁殖时的经验）尚无消费点——BreedGoal 的经验链路当前只走
-            //   固定的繁殖经验常量，没有接入实体级配置。
         } else if (name == "minecraft:burns_in_daylight") {
             // 唯一字段 protection_slot：该装备槽里有物品时不会燃烧（默认头盔位）。
             // 取值形如 slot.armor.head，与项目 EquipmentSlotNames 的裸名（head/chest）差一个前缀。
