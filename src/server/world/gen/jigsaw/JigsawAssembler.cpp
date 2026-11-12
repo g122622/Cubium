@@ -95,8 +95,8 @@ feature::template_::TemplateManager& JigsawAssembler::getTemplateManager()
 
 void JigsawAssembler::clearCache()
 {
-    // TODO: 目前无调用方（数据包重载尚未实现）；接入资源/数据包热重载时必须调用本方法，
-    // 否则重载后仍会命中旧数据包视图下加载的模板缓存。
+    // 由 `/reload` 调用：模板来自数据包，重载后必须丢弃旧模板缓存，否则新建结构仍会
+    // 命中重载前加载的模板对象。
     s_templateManager.clear();
 }
 

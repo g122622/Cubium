@@ -38,6 +38,7 @@
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/network/handshake/RegistryDataBuilder.hpp"
+#include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include <memory>
 #include <string>
 #include <spdlog/spdlog.h>
@@ -167,6 +168,15 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
 
     // 文件内容变化后重建握手快照，后续连接不能继续收到重载前的注册表 NBT。
     server::net::setRegistryDatapackSource(dataPacks);
+
+    // 6. 清空结构模板缓存
+    //
+    // 模板（.nbt 结构文件）同样来自数据包，但 JigsawAssembler 的模板管理器是进程级单例，
+    // 一旦加载过就会一直命中旧对象。不在这里清空的话，`/reload` 之后新建的结构仍然用
+    // 重载前的模板——数据包里改过的结构文件要重启服务器才生效，且没有任何提示。
+    mc::world::gen::jigsaw::JigsawAssembler::clearCache();
+    source.sendMessage("Reloaded structure templates");
+
     source.sendMessage("Reload complete!");
     return 1;
 }

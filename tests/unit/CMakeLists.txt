@@ -1357,6 +1357,7 @@ add_executable(mc_tests
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
     common/world/gen/jigsaw/test_pos_rule_test.cpp
     common/world/gen/jigsaw/test_template_pool_loader.cpp
+    common/world/gen/jigsaw/JigsawTemplateCacheClearTest.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
     # Perfetto 测试（集成到主测试套件）
