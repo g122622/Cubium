@@ -56,6 +56,20 @@ namespace interact {
 
 using namespace memory;
 
+// 本文件集中放"实体间互动"类 Brain 任务，各自的实例化状态差异很大，新增使用前先确认：
+//
+//   已接入（有实体注册）：VillagerInteractTask（村民 MEET）、InteractWithDoorTask
+//      （村民多个活动）；
+//   零实例化（已实现但无任何实体注册）：
+//      FollowOwnerTask      —— 对应 Goal 版 FollowOwnerGoal 在跑；
+//      ProtectOwnerTask     —— 对应 Goal 版 OwnerHurtByTargetGoal 在跑；
+//      TemptTask            —— 对应 Goal 版 TemptGoal 在跑；
+//      FollowParentTask     —— 对应 Goal 版 FollowParentGoal 在跑；
+//      PickupItemTask       —— 无 Goal 等价物，物品拾取走 MobEntity::tick 的通用路径。
+//   根因是这些目标实体（驯服动物、普通动物）目前只接 Goal 系统，没有 Brain。
+//   因此它们虽然能编译、能通过单元测试，运行时不会有任何行为——排查"某种动物不跟
+//   主人走"之类问题时不要往这里找，看对应 Goal 即可。
+
 /**
  * @brief 与村民互动任务
  *
@@ -312,8 +326,9 @@ protected:
  * 距离过远时传送到主人身边。
  *
  * TODO: 此任务需要 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后
- * 才能注册使用。当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 FollowOwnerGoal。
- * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 OwnerHurtBySensor。
+ * 才能注册使用。**当前全仓零实例化**——这些实体仅使用 Goal 系统，对应实现是
+ * FollowOwnerGoal（已存在且在用）。集成 Brain 后需在对应实体的 initializeBrain()
+ * 中注册此任务和 OwnerHurtBySensor。
  */
 template <typename E>
 class FollowOwnerTask : public Task<E> {
@@ -484,8 +499,8 @@ private:
  * 通过读取 OWNER_HURT_BY 记忆模块获取攻击者信息。
  *
  * TODO: 此任务需要 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后
- * 才能注册使用。当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 OwnerHurtByTargetGoal。
- * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 OwnerHurtBySensor。
+ * 才能注册使用。**当前全仓零实例化**——对应实现是 OwnerHurtByTargetGoal（已存在）。
+ * 注意它的记忆写入方 OwnerHurtBySensor 已经注册在 MobEntity 侧，只是没人消费。
  */
 template <typename E>
 class ProtectOwnerTask : public Task<E> {
@@ -647,11 +662,13 @@ private:
  * 对满足 wantsToPickUp 的调 pickUpItem。VillagerEntity 就是靠这条
  * 路径工作的（setCanPickUpLoot(true) + 自己的 wantsToPickUp 实现）。
  *
- * TODO: 若要启用本任务，需要 (a) 把它注册进目标实体的 Brain；
- *   (b) 新增一个传感器写入 NEAREST_VISIBLE_WANTED_ITEM（目前全仓搜索该记忆
+ * TODO: 本任务**当前全仓零实例化**。若要启用它，需要 (a) 把它注册进目标实体的
+ *   Brain；(b) 新增一个传感器写入 NEAREST_VISIBLE_WANTED_ITEM（目前全仓搜索该记忆
  *   只有定义与本任务的读取，没有任何写入点）。
- *   在那之前不要为 Villager 接入本任务：会与上面那条路径并行重复，
+ *   在那之前不要为 Villager 接入本任务：会与上面那条 MobEntity 通用路径并行重复，
  *   两边都去 pickUpItem 反而可能导致一件物被拾两次。
+ *   注意这里没有"Goal 版本"可以替代它——村里的 GatherItemsGoal 服务于村民自身的
+ *   拾取需求（种子、面包），语义与"看到想要的东西就去捡"不同，不能等同。
  */
 template <typename E>
 class PickupItemTask : public Task<E> {
@@ -806,9 +823,8 @@ private:
  * 基于 NEAREST_VISIBLE_ADULT 记忆模块。
  *
  * TODO: 此任务需要 AnimalEntity 子类（如 CowEntity、PigEntity、SheepEntity 等）
- * 集成 Brain 系统后才能注册使用。当前这些实体仅使用 Goal 系统，
- * 对应的 Goal 版本为 FollowParentGoal。
- * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 BabySensor。
+ * 集成 Brain 系统后才能注册使用。**当前全仓零实例化**——对应实现是 FollowParentGoal
+ * （已存在）。集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 BabySensor。
  */
 template <typename E>
 class FollowParentTask : public Task<E> {
@@ -973,7 +989,7 @@ private:
  * 基于 TEMPTING_PLAYER 记忆模块。
  *
  * TODO: 此任务需要 AnimalEntity 子类集成 Brain 系统后才能注册使用。
- * 当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 TemptGoal。
+ * **当前全仓零实例化**——对应实现是 TemptGoal（已存在）。
  * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 TemptingPlayerSensor。
  */
 template <typename E>

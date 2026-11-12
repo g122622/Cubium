@@ -323,17 +323,19 @@ public:
      * 通过MobEntity*指针调用时也能正确派发到子类的override。
      */
     /** @brief 设置攻击目标 */
-    // TODO(attack-target-dual-store): 攻击目标目前有**两个互不同步的存储**：
-    //   1) 本类的 m_attackTarget —— setAttackTarget 写它，attackTarget() 读它，
-    //      Goal 系统的目标选择器也用它；
-    //   2) Brain 的 ATTACK_TARGET 记忆（MemoryModuleType<EntityInstanceId>）——
-    //      Brain 任务（AttackTask / ChaseTask / LookAtEntityTask 的优先级分支）读它，
-    //      但**全仓库没有任何生产代码写它**（唯一的 setMemory 在
-    //      ProtectOwnerTask 里，而该类目前零实例化）。
-    //   后果：村民等 Brain 实体注册了 AttackTask/ChaseTask，却永远等不到 ATTACK_TARGET，
-    //   攻击行为静默失效；而 Goal 实体一切正常（它们走 m_attackTarget）。
-    //   要修需二选一：让 setAttackTarget 同步写 Brain 记忆（前提是该实体持有 Brain），
-    //   或让 Brain 任务改读 attackTarget()。前者更贴近原版（原版 Brain 实体以记忆为单一源）。
+    // 攻击目标有两个存储：本类的 m_attackTarget（Goal 系统与 attackTarget() 读它）
+    // 和 Brain 的 ATTACK_TARGET 记忆。
+    //
+    // 基类这里**只写** m_attackTarget：Brain 是各实体自行持有的（MobEntity 没有
+    // brain()），在基类同步记忆就得强制所有 Mob 都持有 Brain。需要两套同步的实体
+    // 在自己的 override 里补写记忆——见 VillagerEntity::setAttackTarget，它同时写
+    // m_attackTarget 与 ATTACK_TARGET，因为它的 FIGHT/RAID 活动与 AttackTask/
+    // ChaseTask 的门槛都读记忆。
+    //
+    // TODO(attack-target-dual-store): 其余持有 Brain 且注册了 AttackTask/ChaseTask
+    //   的实体若没有自己的 override，Brain 侧仍读不到攻击目标，攻击行为会静默失效。
+    //   新增此类实体时务必覆写 setAttackTarget 同步记忆，或改为让 Brain 任务直接读
+    //   attackTarget()（后者更省事，但偏离原版"Brain 实体以记忆为单一源"的设计）。
     virtual void setAttackTarget(LivingEntity* target)
     {
         m_attackTarget = target;
