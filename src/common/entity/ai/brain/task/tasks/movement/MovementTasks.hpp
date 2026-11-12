@@ -782,20 +782,35 @@ private:
 /**
  * @brief 避险任务（对应 MC SetWalkTargetAwayFrom / AnimalPanic）
  *
- * 读取 AVOID_TARGET 记忆，计算远离威胁的方向，设置 WALK_TARGET。
+ * 读取指定的威胁记忆（默认 AVOID_TARGET），计算远离威胁的方向并设置 WALK_TARGET。
  * 实际移动由 MoveToTargetTask 执行。
+ *
+ * 威胁记忆是可配置的：原版 SetWalkTargetAwayFrom 同样是参数化记忆的——猪灵/疣猪兽
+ * 用 AVOID_TARGET（由自身 AI 写入），村民用 NEAREST_HOSTILE（由 VillagerHostilesSensor
+ * 每 tick 刷新）。
+ *
+ * clearMemoryOnReset 控制任务结束时是否清除该记忆。由传感器维护的记忆（NEAREST_HOSTILE）
+ * 不属于任务，任务结束就删掉会让村民在威胁仍在视野内时立刻忘记，因此传 false；
+ * 由任务自己写入的记忆（如疣猪兽的 AVOID_TARGET TTL）按原语义清除。
  */
 template <typename E>
 class FleeTask : public Task<E> {
 public:
-    FleeTask(f32 speed, f32 fleeDistance)
-        : Task<E>({{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT},
+    FleeTask(
+        const MemoryModuleType<EntityInstanceId>* threatMemory, f32 speed, f32 fleeDistance, bool clearMemoryOnReset)
+        : Task<E>({{threatMemory, MemoryModuleStatus::VALUE_PRESENT},
                       {MemoryModuleTypes::WALK_TARGET, MemoryModuleStatus::VALUE_ABSENT}},
               60,
               200)
+        , m_threatMemory(threatMemory)
         , m_speed(speed)
         , m_fleeDistance(fleeDistance)
-    {}
+        , m_clearMemoryOnReset(clearMemoryOnReset)
+    {
+        // 不在这里断言 m_threatMemory 非空：记忆类型指针由 MemoryModuleTypes 的
+        // 静态注册表在初始化阶段填充，早于它的构造（如测试里的直接实例化）会拿到
+        // nullptr；此时任务的门槛自然无法满足、shouldExecute 恒为 false，是安全行为。
+    }
 
     std::string getName() const override
     {
@@ -810,7 +825,7 @@ protected:
         }
 
         auto& brain = owner->brain();
-        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
+        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(m_threatMemory);
         if (!avoidTargetId.has_value() || *avoidTargetId == INVALID_ENTITY_ID) {
             return false;
         }
@@ -843,15 +858,17 @@ protected:
         if (navigator) {
             navigator->stop();
         }
-        // 清除逃避目标记忆
-        owner->brain().template removeMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
+        // 只清除由本任务负责的记忆；传感器维护的记忆交给传感器自己刷新。
+        if (m_clearMemoryOnReset) {
+            owner->brain().template removeMemory<EntityInstanceId>(m_threatMemory);
+        }
     }
 
 private:
     void _setFleeTarget(IWorld* world, E* owner)
     {
         auto& brain = owner->brain();
-        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(MemoryModuleTypes::AVOID_TARGET);
+        auto avoidTargetId = brain.template getMemory<EntityInstanceId>(m_threatMemory);
         if (!avoidTargetId.has_value() || *avoidTargetId == INVALID_ENTITY_ID) {
             return;
         }
@@ -916,8 +933,10 @@ private:
                 BlockPos(static_cast<i32>(fleeX), static_cast<i32>(ownerPos.y), static_cast<i32>(fleeZ)), m_speed, 1));
     }
 
+    const MemoryModuleType<EntityInstanceId>* m_threatMemory;
     f32 m_speed;
     f32 m_fleeDistance;
+    bool m_clearMemoryOnReset;
 };
 
 } // namespace movement

@@ -309,8 +309,11 @@ TEST_F(MovementTaskTest, FleeTaskShouldNotExecuteWithoutAvoidTarget)
     villager.setWorld(m_world.get());
     villager.setPosition(0.0f, 64.0f, 0.0f);
 
-    // FleeTask 需要 AVOID_TARGET=PRESENT 且 WALK_TARGET=ABSENT
-    movement::FleeTask<VillagerEntity> task(1.5f, mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE);
+    // 村民的 FleeTask 读 NEAREST_HOSTILE（由 VillagerHostilesSensor 写）且要求 WALK_TARGET=ABSENT
+    movement::FleeTask<VillagerEntity> task(mc::entity::ai::brain::memory::MemoryModuleTypes::NEAREST_HOSTILE,
+        1.5f,
+        mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE,
+        /*clearMemoryOnReset=*/false);
 
     mc::math::Random rng(42);
     EXPECT_FALSE(task.start(m_world.get(), &villager, 0, rng));
@@ -394,7 +397,11 @@ TEST_F(MovementTaskTest, TaskGetNameReturnsCorrectName)
     EXPECT_EQ(movement::LookAtEntityTask<VillagerEntity>().getName(), "LookAtEntityTask");
     EXPECT_EQ(movement::FindHiddenBlockTask<VillagerEntity>(1.0f).getName(), "FindHiddenBlockTask");
     EXPECT_EQ(movement::ChaseTask<VillagerEntity>(1.5f, 2.0f).getName(), "ChaseTask");
-    EXPECT_EQ(movement::FleeTask<VillagerEntity>(1.5f, mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE).getName(),
+    EXPECT_EQ(movement::FleeTask<VillagerEntity>(mc::entity::ai::brain::memory::MemoryModuleTypes::NEAREST_HOSTILE,
+                  1.5f,
+                  mc::entity::ai::goal::constants::AVOID_ESCAPE_RANGE,
+                  /*clearMemoryOnReset=*/false)
+                  .getName(),
         "FleeTask");
 }
 

@@ -743,9 +743,10 @@ void VillagerEntity::initializeBrain()
 
     m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
         0,
-        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(0.6f, 10.0f),
+        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(
+                      MemoryModuleTypes::NEAREST_HOSTILE, 0.6f, 10.0f, /*clearMemoryOnReset=*/false),
             std::make_unique<MoveToTargetTask<VillagerEntity>>()),
-        {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {{MemoryModuleTypes::NEAREST_HOSTILE, MemoryModuleStatus::VALUE_PRESENT}},
         {MemoryModuleTypes::WALK_TARGET});
 
     // HIDE 活动：寻找隐蔽点、移动到目标
@@ -811,69 +812,19 @@ void VillagerEntity::initializeBrain()
     //     无 requirements，属于时间线活动不会被 _tryEventActivity 选中）。
     // ----------------------------------------------------
 
-    // ---- 关于 AVOID 活动（以及它依赖的 AvoidEntitySensor）----
-    // 状态说明（事件活动调度已接通之后）：本活动的门槛 AVOID_TARGET 现在**能够**被
-    // 满足触发——Brain 已支持按优先级选择带 requirements 的活动。缺的只是写入方：
-    // AVOID_TARGET 的唯一写入方 AvoidEntitySensor 未出现在本实体的 registerSensor
-    // 列表里（见 initializeBrain 末尾那批注册）。
-    //
-    // 所以现在的取舍不是"能不能接通"，而是"接通后会不会重复"：
-    //   下方 addGoal 里已有 1 个 PanicGoal 与 8 个 AvoidEntityGoal
-    //   （僵尸/劫毁兽/掠夺者/唤魔者/卫道士/恼鬼/幻术师/疣猪兽），
-    //   躲避行为已由 Goal 系统完整承担。
-    //
-    // TODO(villager-avoid-duplication): 二选一，不要两边都留：
-    //   (a) 让 Brain 版接管躲避，同时删掉那 8 个 AvoidEntityGoal 与 PanicGoal；
-    //   (b) 认定 Goal 版足够，删掉本 AVOID 活动注册。
-    //   现在两边同时存在但只有 Goal 版生效，属于过渡态。
-    //
-    //   【已核实的完整现状，选方案前务必先读】
-    //   1. 正确的 Brain 机制**已经存在**：`VillagerHostilesSensor`（第 632 行已注册）
-    //      内含完整的原版敌对清单与各自检测距离
-    //      （溺尸8/唤魔者12/尸壳8/幻术师12/掠夺者15/劫掠兽12/恼鬼8/卫道士10/疣猪兽10/
-    //      僵尸8/僵尸村民8），写入的是 `NEAREST_HOSTILE`。
-    //      **这套清单与本文件那 8 个 AvoidEntityGoal 覆盖的怪物基本一致**——
-    //      也就是说"按具体怪物筛选"的逻辑已经有了，不需要改 `AvoidEntitySensor`。
-    //   2. 但**没有任何 task 读取 `NEAREST_HOSTILE`**，所以该传感器当前空转。
-    //      本 AVOID 活动读的是 `AVOID_TARGET`，而全仓没有代码写 `AVOID_TARGET`。
-    //      ——两个记忆各自缺一半，这才是"两边都不生效"的真正原因。
-    //   3. `AvoidEntitySensor` 的判定是**通用的**（`MobFlagComponent`，即所有
-    //      MonsterEntity），与村民的精确白名单不等价；直接用它替换 8 个 Goal
-    //      会让村民开始躲避**所有**怪物（含苦力怕/蜘蛛/骷髅等原版不躲的）。
-    //      `Sensors.hpp` 的文档也明确写了"特定实体的避险逻辑应通过专门的传感器实现
-    //      （如 VillagerHostilesSensor），而不是修改此通用传感器"。
-    //
-    //   【结论：正确路径】
-    //   `AVOID_TARGET` 的写入方**已经存在**——`AvoidEntitySensor::update`
-    //   （`Sensors.cpp:612`）用 `setMemoryWithTTL(AVOID_TARGET, id, 100)` 写入，
-    //   并在无目标时 `removeMemory` 清除。它功能完整，**只是没有为村民注册**。
-    //
-    //   所以最小改动是：
-    //     1. 注册 `AvoidEntitySensor<VillagerEntity>`（它写 AVOID_TARGET，正好是
-    //        AVOID 活动 + FleeTask 需要的那个记忆）；
-    //     2. 删掉那 8 个 `AvoidEntityGoal` 与 `PanicGoal`；
-    //     3. 同步删掉 `VillagerHostilesSensor` 的注册——它写的是 `NEAREST_HOSTILE`，
-    //        而全仓没有 task 读那个记忆，留着只是空转（若确认后续要用可保留）。
-    //
-    //   【方案 B 是等价替换——已逐项核对】
-    //   `VillagerHostilesSensor` 的映射表（`Sensors.cpp:267`）与这 8 个 Goal 的谓词
-    //   **覆盖面完全一致**：zombie/drowned/husk/zombie_villager=8、evoker=12、
-    //   illusioner=12、pillager=15、ravager=12、vex=8、vindicator=10、hoglin=10。
-    //   两者都按精确白名单判定（均排除 zombified_piglin），距离也一一对应。
-    //   所以方案 B 不会扩张或收缩村民的躲避范围，是真正的等价替换。
-    //
-    //   走方案 B 后的净变化仅为：躲避的**驱动方**从 GoalSelector 换成 Brain 的
-    //   AVOID 活动。此时必须同步删掉那 8 个 `AvoidEntityGoal` 与 `PanicGoal`，
-    //   否则两套逻辑会同时驱赶同一个村民。
-    //
-    //   注意 `PanicGoal`（`addGoal(1, 0.5)`）与这 8 个 Goal 不是同一机制：它由
-    //   `HurtBySensor` 写 `HURT_BY` 触发，覆盖"任意伤害来源"而非特定怪物。
-    //   删它之前要确认 Brain 侧有等价路径，否则村民会失去受击后的短时逃跑。
+    // ---- AVOID 活动 ----
+    // 威胁来源是 NEAREST_HOSTILE（VillagerHostilesSensor 每 tick 写入），与原版
+    // 村民一致：原版 SetWalkTargetAwayFrom 读的也是这个记忆，而不是 AVOID_TARGET
+    // （后者只有猪灵/疣猪兽使用）。任务结束时不清除该记忆——它归传感器所有，
+    // 任务删掉会让村民在威胁仍在视野内时立刻忘记。
     m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
         0,
-        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(1.0f, ai::goal::constants::AVOID_ESCAPE_RANGE),
+        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(MemoryModuleTypes::NEAREST_HOSTILE,
+                      1.0f,
+                      ai::goal::constants::AVOID_ESCAPE_RANGE,
+                      /*clearMemoryOnReset=*/false),
             std::make_unique<MoveToTargetTask<VillagerEntity>>()),
-        {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {{MemoryModuleTypes::NEAREST_HOSTILE, MemoryModuleStatus::VALUE_PRESENT}},
         {});
 
     // REST 活动：随机漫步（低频率）、看向实体、开关门
@@ -1771,91 +1722,9 @@ void WanderingTraderEntity::registerGoals()
     m_goalSelector.addGoal(1, std::make_unique<TradeWithPlayerGoal>(this));
 
     // ========== 优先级 1: 逃避威胁 ==========
-    // AvoidEntityGoal - 躲避僵尸类（对齐 Java VillagerHostilesSensor.ACCEPTABLE_DISTANCE_FROM_HOSTILES，
-    //   zombie=8/drowned=8/husk=8/zombie_villager=8；vanilla 白名单**无** ZOMBIFIED_PIGLIN，
-    //   此前误列僵尸猪灵已移除——僵尸猪灵虽 extends Zombie，但 vanilla 用精确白名单非 instanceof Zombie）。
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            8.0f, // 躲避距离
-            0.5,  // 远距离速度
-            0.5,  // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr &&
-                    (entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIE ||
-                        entity->entityType() == entity::VanillaEntityTypeKeys::DROWNED ||
-                        entity->entityType() == entity::VanillaEntityTypeKeys::HUSK ||
-                        entity->entityType() == entity::VanillaEntityTypeKeys::ZOMBIE_VILLAGER);
-            }));
-
-    // AvoidEntityGoal - 躲避劫毁兽（vanilla ravager=12，此前缺失）
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            12.0f, // 躲避距离
-            0.5,   // 远距离速度
-            0.5,   // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::RAVAGER;
-            }));
-
-    // AvoidEntityGoal - 躲避掠夺者
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            15.0f, // 躲避距离
-            0.5,   // 远距离速度
-            0.5,   // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::PILLAGER;
-            }));
-
-    // AvoidEntityGoal - 躲避唤魔者
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            12.0f, // 躲避距离
-            0.5,   // 远距离速度
-            0.5,   // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::EVOKER;
-            }));
-
-    // AvoidEntityGoal - 躲避卫道士
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            8.0f, // 躲避距离
-            0.5,  // 远距离速度
-            0.5,  // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::VINDICATOR;
-            }));
-
-    // AvoidEntityGoal - 躲避恼鬼
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            8.0f, // 躲避距离
-            0.5,  // 远距离速度
-            0.5,  // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::VEX;
-            }));
-
-    // AvoidEntityGoal - 躲避幻术师
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            12.0f, // 躲避距离
-            0.5,   // 远距离速度
-            0.5,   // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::ILLUSIONER;
-            }));
-
-    // AvoidEntityGoal - 躲避疣猪兽
-    m_goalSelector.addGoal(1,
-        std::make_unique<AvoidEntityGoal>(this,
-            10.0f, // 躲避距离
-            0.5,   // 远距离速度
-            0.5,   // 近距离速度
-            [](const LivingEntity* entity) -> bool {
-                return entity != nullptr && entity->entityType() == entity::VanillaEntityTypeKeys::ZOGLIN;
-            }));
+    // 躲避怪物由 Brain 的 AVOID / PANIC 活动接管（北向 NEAREST_HOSTILE 记忆），
+    // 此处不再注册 AvoidEntityGoal——两套逻辑同时存在会重复驱赶同一个村民。
+    // 怪物白名单与各自距离见 VillagerHostilesSensor，与原版 Villager 一致。
 
     // PanicGoal - 恐慌逃跑
     m_goalSelector.addGoal(1, std::make_unique<PanicGoal>(this, 0.5));
