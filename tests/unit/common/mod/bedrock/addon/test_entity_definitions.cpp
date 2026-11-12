@@ -2337,3 +2337,56 @@ TEST_F(AddonEntityDefinitionTest, InvalidSavedTimerDoesNotMutateLiveComponentSta
     EXPECT_TRUE(components->load(*entity, corrupt).failed());
     EXPECT_EQ(components->save(), before);
 }
+
+TEST_F(AddonEntityDefinitionTest, NameableDefaultTriggerFiresOnNamingChangeOnly)
+{
+    // minecraft:nameable.default_trigger 表示"该实体被命名时触发一次指定事件"，
+    // 与具体名字无关。三条边界都要守住：
+    //   1) 初次命名要触发；
+    //   2) 换成另一个名字要再触发一次；
+    //   3) 改回同一个名字、以及清除名字都不触发。
+    const auto directory = pack("nameable", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:nameable");
+    definition["minecraft:entity"]["events"] = {{"test:on_name", {{"set_property", {{"test:count", 42}}}}}};
+    definition["minecraft:entity"]["components"]["minecraft:nameable"] = {
+        {"allow_name_tag_renaming", true}, {"default_trigger", "test:on_name"}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+
+    auto entity = create("addon_test:nameable");
+    ASSERT_NE(entity, nullptr);
+    auto& state = entity->getOrAddComponent<EntityAddonState>();
+    ASSERT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+
+    entity->setCustomName("First");
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(42));
+
+    // 同名重复设置不重复触发：把属性改回默认值后仍应保持默认，说明没有再派发。
+    state.setProperty("test:count", nlohmann::json(3));
+    entity->setCustomName("First");
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+
+    // 换成另一个名字要再次触发。
+    entity->setCustomName("Second");
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(42));
+
+    // 清除名字不触发。
+    state.setProperty("test:count", nlohmann::json(3));
+    entity->setCustomName("");
+    EXPECT_EQ(state.getProperty("test:count"), nlohmann::json(3));
+}
+
+TEST_F(AddonEntityDefinitionTest, NameableWithoutDefaultTriggerLeavesNameUnchanged)
+{
+    // 未声明 default_trigger 时命名只改名字，不应出错也不应影响其它属性状态。
+    const auto directory = pack("nameable_plain", _PACK, std::nullopt);
+    auto definition = _definition("addon_test:nameable_plain");
+    definition["minecraft:entity"]["components"]["minecraft:nameable"] = {{"allow_name_tag_renaming", true}};
+    write(directory / "entities/entity.json", definition);
+    ASSERT_TRUE(manager.loadPacks("", root.string()).success());
+
+    auto entity = create("addon_test:nameable_plain");
+    ASSERT_NE(entity, nullptr);
+    entity->setCustomName("Plain");
+    EXPECT_EQ(entity->customNameText(), std::string("Plain"));
+}
