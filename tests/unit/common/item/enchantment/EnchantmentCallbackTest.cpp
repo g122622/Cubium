@@ -356,7 +356,7 @@ TEST_F(SharpnessEnchantmentTest, GetDamageBonusAgainstAll)
 // ThornsEnchantment 测试
 // ============================================================================
 
-class ThornsEnchantmentTest : public ::testing::Test {
+class ThornsEnchantmentCallbackTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -370,7 +370,7 @@ protected:
     }
 };
 
-TEST_F(ThornsEnchantmentTest, Properties)
+TEST_F(ThornsEnchantmentCallbackTest, Properties)
 {
     ThornsEnchantment thorns;
 
@@ -381,7 +381,7 @@ TEST_F(ThornsEnchantmentTest, Properties)
     EXPECT_EQ(thorns.rarity(), EnchantmentRarity::VeryRare);
 }
 
-TEST_F(ThornsEnchantmentTest, GetMinCost)
+TEST_F(ThornsEnchantmentCallbackTest, GetMinCost)
 {
     ThornsEnchantment thorns;
 
@@ -390,7 +390,7 @@ TEST_F(ThornsEnchantmentTest, GetMinCost)
     EXPECT_EQ(thorns.getMinCost(3), 50); // 10 + 40
 }
 
-TEST_F(ThornsEnchantmentTest, GetMaxCost)
+TEST_F(ThornsEnchantmentCallbackTest, GetMaxCost)
 {
     ThornsEnchantment thorns;
 
@@ -399,7 +399,7 @@ TEST_F(ThornsEnchantmentTest, GetMaxCost)
     EXPECT_EQ(thorns.getMaxCost(3), 100); // 50 + 50
 }
 
-TEST_F(ThornsEnchantmentTest, ShouldTrigger)
+TEST_F(ThornsEnchantmentCallbackTest, ShouldTrigger)
 {
     math::Random rng(12345);
 
@@ -431,7 +431,7 @@ TEST_F(ThornsEnchantmentTest, ShouldTrigger)
     EXPECT_LT(triggerCount3, 500);
 }
 
-TEST_F(ThornsEnchantmentTest, GetThornsDamage)
+TEST_F(ThornsEnchantmentCallbackTest, GetThornsDamage)
 {
     // 对齐 vanilla 1.21.11 THORNS（Enchantments.java:342）DamageEntity(constant 1.0, constant 5.0)：
     // Mth.randomBetween(random, 1.0F, 5.0F) ∈ [1.0, 5.0)，与等级无关（无老版本 level>10 分支）。
@@ -459,7 +459,7 @@ TEST_F(ThornsEnchantmentTest, GetThornsDamage)
     EXPECT_LT(maxSeen, 5.0f);
 }
 
-TEST_F(ThornsEnchantmentTest, GetTriggerChance)
+TEST_F(ThornsEnchantmentCallbackTest, GetTriggerChance)
 {
     EXPECT_FLOAT_EQ(ThornsEnchantment::getTriggerChance(1), 0.15f);
     EXPECT_FLOAT_EQ(ThornsEnchantment::getTriggerChance(2), 0.30f);

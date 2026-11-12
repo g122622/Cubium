@@ -50,7 +50,7 @@ public:
 // RuleTest 测试
 // ============================================================================
 
-class RuleTestTest : public ::testing::Test {
+class OreFeatureRuleTestTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -58,7 +58,7 @@ protected:
     }
 };
 
-TEST_F(RuleTestTest, StoneRuleTest)
+TEST_F(OreFeatureRuleTestTest, StoneRuleTest)
 {
     auto rule = createOreTarget(OreTargetType::NaturalStone);
     math::Random random(12345);
@@ -74,7 +74,7 @@ TEST_F(RuleTestTest, StoneRuleTest)
     EXPECT_FALSE(rule->test(*air, random));
 }
 
-TEST_F(RuleTestTest, BlockIdRuleTest)
+TEST_F(OreFeatureRuleTestTest, BlockIdRuleTest)
 {
     auto rule = createOreTarget(OreTargetType::Netherrack);
     math::Random random(12345);

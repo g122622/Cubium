@@ -21,7 +21,7 @@
  *
  */
 
-#include "TestWorldHelper.hpp"
+#include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "server/world/gen/feature/Feature.hpp"
@@ -292,19 +292,29 @@ TEST_F(RuleTestTest, TagMatchRuleTestClone)
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesStoneTag)
 {
-    // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
-    TagMatchRuleTest test(ResourceLocation("minecraft:stone"));
+    // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用。
+    // 原版数据包里没有 `minecraft:stone` 这个方块标签（只有 stone_bricks/stone_buttons 等），
+    // 岩石类方块实际归档在 `minecraft:base_stone_overworld`，这里按真实标签验证。
+    TagMatchRuleTest test(ResourceLocation("minecraft:base_stone_overworld"));
     math::Random rng(12345);
 
-    // 应该匹配 stone 标签中的方块
+    // 应该匹配 base_stone_overworld 标签中的方块
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::GRANITE), rng));
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIORITE), rng));
     EXPECT_TRUE(test.test(*VanillaBlocks::getState(VanillaBlocks::ANDESITE), rng));
 
-    // 不应该匹配不在 stone 标签中的方块
+    // 不应该匹配不在该标签中的方块
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
+}
+
+TEST_F(RuleTestTest, TagMatchRuleTestMissingTagMatchesNothing)
+{
+    // 未注册的标签必须安全地判定为“不匹配”，而不是断言崩溃。
+    TagMatchRuleTest test(ResourceLocation("minecraft:this_tag_does_not_exist"));
+    math::Random rng(12345);
+    EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
 }
 
 TEST_F(RuleTestTest, TagMatchRuleTestMatchesLogsTag)

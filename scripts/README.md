@@ -21,6 +21,7 @@ scripts/
 │   ├── tidy.sh                  # Linux：直接使用 compile_commands.json
 │   └── tidy.ps1                 # Windows：注入 MSVC / Windows SDK / vcpkg 头文件路径
 ├── diag/
+│   ├── orphan_sources.ts        # 游离源文件统计：找出未被任何 CMake target 收集的 .cpp/.c
 │   └── syntax-check/
 │       └── syntax_check.sh      # 单文件语法检查：复用 compile_commands.json 参数，加 -fsyntax-only 不产出 .o
 ├── iwyu/                        # clang-include-cleaner 工具
@@ -72,4 +73,9 @@ CI 使用说明见 `docs/CI.md`。
   `node --experimental-strip-types scripts/format/check_encoding.ts` 检查存量 GBK 与 U+FFFD 乱码。
 - `iwyu.sh` 只打印建议；批量落地用 `fix_includes.ts`，其中 `.hpp` 的 include 移除默认禁用。
 - `baking/` 的产物是数据包中不存在的内嵌快照，会与原版注册表漂移；上游数据变更后必须重新烘焙。
+- `diag/orphan_sources.ts` 判定“游离”依赖对 CMake 的静态求值：它按 CMAKE_CURRENT_SOURCE_DIR 解析
+  相对路径、展开变量/foreach/函数/宏，并用 compile_commands.json 兜底。新增**变量驱动的源清单**
+  （如把文件塞进某个 `${..._SOURCES}` 列表）时无需改脚本；但若引入脚本不认识的命令语义，
+  会体现在输出末尾的 “Parsing warnings” 里——出现告警时不要直接采信游离结论。
+  聚合单元（`#include "Xxx.cpp"`）的成员被计入 “Included by aggregate units”，不算游离。
 - 测试输出可能很大；CI 解析必须读取完整输入，长度限制只适用于展示结果。

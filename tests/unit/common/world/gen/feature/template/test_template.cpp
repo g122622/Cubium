@@ -60,7 +60,7 @@ protected:
     }
 };
 
-class RuleTestTest : public ::testing::Test {
+class TemplateRuleTestTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -1222,7 +1222,7 @@ TEST_F(TemplateTest, ProcessorList_Chain)
 // template_:: 下的同名类为 mc:: 的别名。位置谓词 PosRuleTest 仍属本命名空间。
 // ============================================================================
 
-TEST_F(RuleTestTest, AlwaysTrueRuleTest)
+TEST_F(TemplateRuleTestTest, AlwaysTrueRuleTest)
 {
     AlwaysTrueRuleTest test;
     math::Random rng(12345);
@@ -1233,7 +1233,7 @@ TEST_F(RuleTestTest, AlwaysTrueRuleTest)
     EXPECT_EQ(test.name(), std::string("always_true"));
 }
 
-TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone)
+TEST_F(TemplateRuleTestTest, AlwaysTrueRuleTest_Clone)
 {
     AlwaysTrueRuleTest original;
     auto clone = original.clone();
@@ -1246,7 +1246,7 @@ TEST_F(RuleTestTest, AlwaysTrueRuleTest_Clone)
     EXPECT_TRUE(clone->test(*state, rng));
 }
 
-TEST_F(RuleTestTest, BlockMatchRuleTest)
+TEST_F(TemplateRuleTestTest, BlockMatchRuleTest)
 {
     auto& registry = BlockRegistry::instance();
 
@@ -1268,7 +1268,7 @@ TEST_F(RuleTestTest, BlockMatchRuleTest)
     EXPECT_EQ(test.getBlock(), stoneBlock);
 }
 
-TEST_F(RuleTestTest, BlockMatchRuleTest_Clone)
+TEST_F(TemplateRuleTestTest, BlockMatchRuleTest_Clone)
 {
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -1284,7 +1284,7 @@ TEST_F(RuleTestTest, BlockMatchRuleTest_Clone)
     EXPECT_EQ(cloned->getBlock(), stoneBlock);
 }
 
-TEST_F(RuleTestTest, BlockStateMatchRuleTest)
+TEST_F(TemplateRuleTestTest, BlockStateMatchRuleTest)
 {
     auto& registry = BlockRegistry::instance();
 
@@ -1304,7 +1304,7 @@ TEST_F(RuleTestTest, BlockStateMatchRuleTest)
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch)
+TEST_F(TemplateRuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch)
 {
     auto& registry = BlockRegistry::instance();
     Block* block = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -1320,7 +1320,7 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_AlwaysMatch)
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch)
+TEST_F(TemplateRuleTestTest, RandomBlockMatchRuleTest_NeverMatch)
 {
     auto& registry = BlockRegistry::instance();
     Block* block = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -1336,7 +1336,7 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_NeverMatch)
     }
 }
 
-TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock)
+TEST_F(TemplateRuleTestTest, RandomBlockMatchRuleTest_WrongBlock)
 {
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -1356,7 +1356,7 @@ TEST_F(RuleTestTest, RandomBlockMatchRuleTest_WrongBlock)
 // PosRuleTest 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, AlwaysTruePosRuleTest)
+TEST_F(TemplateRuleTestTest, AlwaysTruePosRuleTest)
 {
     AlwaysTruePosRuleTest test;
     math::Random rng(12345);
@@ -1366,7 +1366,7 @@ TEST_F(RuleTestTest, AlwaysTruePosRuleTest)
     EXPECT_EQ(test.getTypeId(), 0u);
 }
 
-TEST_F(RuleTestTest, AlwaysTruePosRuleTest_Clone)
+TEST_F(TemplateRuleTestTest, AlwaysTruePosRuleTest_Clone)
 {
     AlwaysTruePosRuleTest original;
     auto clone = original.clone();
@@ -1376,7 +1376,7 @@ TEST_F(RuleTestTest, AlwaysTruePosRuleTest_Clone)
     EXPECT_TRUE(clone->test(BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight)
+TEST_F(TemplateRuleTestTest, LinearPosRuleTest_MinHeight)
 {
     // 在最小高度时使用最小概率
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
@@ -1385,7 +1385,7 @@ TEST_F(RuleTestTest, LinearPosRuleTest_MinHeight)
     EXPECT_EQ(test.getTypeId(), 1u);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation)
+TEST_F(TemplateRuleTestTest, LinearPosRuleTest_Interpolation)
 {
     // 测试线性插值：在 Y=50 时概率应为 0.5，此处仅验证函数不崩溃
     LinearPosRuleTest test(0, 100, 0.0f, 1.0f);
@@ -1393,7 +1393,7 @@ TEST_F(RuleTestTest, LinearPosRuleTest_Interpolation)
     test.test(BlockPos(0, 50, 0), BlockPos(0, 50, 0), BlockPos(0, 0, 0), rng);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights)
+TEST_F(TemplateRuleTestTest, LinearPosRuleTest_EqualHeights)
 {
     // 当 minHeight == maxHeight 时，应使用 minProbability
     LinearPosRuleTest test(50, 50, 0.5f, 1.0f);
@@ -1404,7 +1404,7 @@ TEST_F(RuleTestTest, LinearPosRuleTest_EqualHeights)
     test.test(BlockPos(0, 100, 0), BlockPos(0, 100, 0), BlockPos(0, 0, 0), rng);
 }
 
-TEST_F(RuleTestTest, LinearPosRuleTest_Clone)
+TEST_F(TemplateRuleTestTest, LinearPosRuleTest_Clone)
 {
     LinearPosRuleTest original(10, 20, 0.3f, 0.7f);
     auto clone = original.clone();
@@ -1416,7 +1416,7 @@ TEST_F(RuleTestTest, LinearPosRuleTest_Clone)
 // RuleEntry 测试
 // ============================================================================
 
-TEST_F(RuleTestTest, RuleEntry_AllTrue)
+TEST_F(TemplateRuleTestTest, RuleEntry_AllTrue)
 {
     auto inputTest = std::make_unique<AlwaysTrueRuleTest>();
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
@@ -1434,7 +1434,7 @@ TEST_F(RuleTestTest, RuleEntry_AllTrue)
     EXPECT_EQ(entry.outputStateId(), 42u);
 }
 
-TEST_F(RuleTestTest, RuleEntry_InputPredicateFails)
+TEST_F(TemplateRuleTestTest, RuleEntry_InputPredicateFails)
 {
     auto& registry = BlockRegistry::instance();
     Block* stoneBlock = registry.getBlock(ResourceLocation("minecraft:stone"));
@@ -1455,7 +1455,7 @@ TEST_F(RuleTestTest, RuleEntry_InputPredicateFails)
     EXPECT_FALSE(entry.matches(state, state, BlockPos(0, 0, 0), BlockPos(0, 0, 0), BlockPos(0, 0, 0), rng));
 }
 
-TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
+TEST_F(TemplateRuleTestTest, RuleEntry_TwoArgConstructor)
 {
     auto inputTest = std::make_unique<AlwaysTrueRuleTest>();
     auto locationTest = std::make_unique<AlwaysTrueRuleTest>();
@@ -1473,7 +1473,7 @@ TEST_F(RuleTestTest, RuleEntry_TwoArgConstructor)
     EXPECT_NE(entry.posPredicate(), nullptr);
 }
 
-TEST_F(RuleTestTest, RuleEntry_NullStateDoesNotMatch)
+TEST_F(TemplateRuleTestTest, RuleEntry_NullStateDoesNotMatch)
 {
     // mc::RuleTest 为引用风格，方块状态为空时谓词视为不匹配
     auto inputTest = std::make_unique<BlockMatchRuleTest>(VanillaBlocks::STONE);
@@ -1671,7 +1671,7 @@ TEST_F(TemplateTest, ProcessorChain_Integration)
 // TagMatchRuleTest 测试（template 命名空间版本，复用 mc::TagMatchRuleTest）
 // ============================================================================
 
-TEST_F(RuleTestTest, TagMatchRuleTest_MatchesBaseStoneOverworldTag)
+TEST_F(TemplateRuleTestTest, TagMatchRuleTest_MatchesBaseStoneOverworldTag)
 {
     // BlockTags::initialize() 已在 VanillaBlocks::initialize() 中调用
     // 原版 1.21.11 没有 `stone` 标签，石头类方块归在 #base_stone_overworld。
@@ -1689,7 +1689,7 @@ TEST_F(RuleTestTest, TagMatchRuleTest_MatchesBaseStoneOverworldTag)
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::COBBLESTONE), rng));
 }
 
-TEST_F(RuleTestTest, TagMatchRuleTest_MatchesLogsTag)
+TEST_F(TemplateRuleTestTest, TagMatchRuleTest_MatchesLogsTag)
 {
     TagMatchRuleTest test(ResourceLocation("minecraft", "logs"));
     math::Random rng(12345);
@@ -1705,7 +1705,7 @@ TEST_F(RuleTestTest, TagMatchRuleTest_MatchesLogsTag)
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::DIRT), rng));
 }
 
-TEST_F(RuleTestTest, TagMatchRuleTest_NonExistentTag)
+TEST_F(TemplateRuleTestTest, TagMatchRuleTest_NonExistentTag)
 {
     // 不存在的标签应该返回 false
     TagMatchRuleTest test(ResourceLocation("minecraft", "nonexistent_tag"));
@@ -1714,7 +1714,7 @@ TEST_F(RuleTestTest, TagMatchRuleTest_NonExistentTag)
     EXPECT_FALSE(test.test(*VanillaBlocks::getState(VanillaBlocks::STONE), rng));
 }
 
-TEST_F(RuleTestTest, TagMatchRuleTest_Clone)
+TEST_F(TemplateRuleTestTest, TagMatchRuleTest_Clone)
 {
     TagMatchRuleTest test(ResourceLocation("minecraft", "logs"));
     auto clone = test.clone();

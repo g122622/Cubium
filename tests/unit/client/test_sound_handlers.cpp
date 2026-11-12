@@ -269,9 +269,9 @@ TEST_F(MusicPlayerTypesTest, MusicSelectorReplaceCurrent)
 // SoundEvents Tests
 // ============================================================================
 
-class SoundEventsTest : public ::testing::Test {};
+class SoundHandlersTest : public ::testing::Test {};
 
-TEST_F(SoundEventsTest, AmbientSoundEvents)
+TEST_F(SoundHandlersTest, AmbientSoundEvents)
 {
     // 测试环境音效事件
     EXPECT_EQ(SoundEvents::AMBIENT_CAVE.toString(), "minecraft:ambient.cave");
@@ -280,7 +280,7 @@ TEST_F(SoundEventsTest, AmbientSoundEvents)
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_EXIT.toString(), "minecraft:ambient.underwater.exit");
 }
 
-TEST_F(SoundEventsTest, EntitySoundEvents)
+TEST_F(SoundHandlersTest, EntitySoundEvents)
 {
     // 测试实体音效事件
     EXPECT_EQ(SoundEvents::ENTITY_BEE_LOOP.toString(), "minecraft:entity.bee.loop");
@@ -289,7 +289,7 @@ TEST_F(SoundEventsTest, EntitySoundEvents)
     EXPECT_EQ(SoundEvents::ITEM_ELYTRA_FLYING.toString(), "minecraft:item.elytra.flying");
 }
 
-TEST_F(SoundEventsTest, MusicSoundEvents)
+TEST_F(SoundHandlersTest, MusicSoundEvents)
 {
     // 测试音乐事件
     EXPECT_EQ(SoundEvents::MUSIC_GAME.toString(), "minecraft:music.game");
@@ -299,7 +299,7 @@ TEST_F(SoundEventsTest, MusicSoundEvents)
     EXPECT_EQ(SoundEvents::MUSIC_DRAGON.toString(), "minecraft:music.dragon");
 }
 
-TEST_F(SoundEventsTest, UnderwaterAdditionsSoundEvents)
+TEST_F(SoundHandlersTest, UnderwaterAdditionsSoundEvents)
 {
     // 测试水下附加音效
     EXPECT_EQ(SoundEvents::AMBIENT_UNDERWATER_LOOP_ADDITIONS.toString(), "minecraft:ambient.underwater.loop.additions");
@@ -309,7 +309,7 @@ TEST_F(SoundEventsTest, UnderwaterAdditionsSoundEvents)
         "minecraft:ambient.underwater.loop.additions.ultra_rare");
 }
 
-TEST_F(SoundEventsTest, NetherMusicSoundEvents)
+TEST_F(SoundHandlersTest, NetherMusicSoundEvents)
 {
     // 测试下界音乐事件
     EXPECT_EQ(SoundEvents::MUSIC_NETHER_BASALT_DELTAS.toString(), "minecraft:music.nether.basalt_deltas");
@@ -318,7 +318,7 @@ TEST_F(SoundEventsTest, NetherMusicSoundEvents)
     EXPECT_EQ(SoundEvents::MUSIC_NETHER_SOUL_SAND_VALLEY.toString(), "minecraft:music.nether.soul_sand_valley");
 }
 
-TEST_F(SoundEventsTest, BlockSoundEvents)
+TEST_F(SoundHandlersTest, BlockSoundEvents)
 {
     // 测试方块音效事件
     EXPECT_EQ(SoundEvents::BLOCK_STONE_BREAK.toString(), "minecraft:block.stone.break");

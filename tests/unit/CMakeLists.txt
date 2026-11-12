@@ -131,6 +131,10 @@ add_executable(mc_tests
     common/item/tag/ItemTagsTest.cpp
     # BedItem 床物品放置测试
     common/item/BedItemTest.cpp
+    # 护甲值：ItemStack/Player 护甲点数的累加与上限
+    common/item/ArmorValueTest.cpp
+    # ItemStack 的 JSON 序列化/反序列化往返
+    common/item/ItemStackJsonTest.cpp
     # BlockItemUseContext 上下文测试（pitch 透传、getNearestLookingDirections 方向排序）
     common/item/BlockItemUseContextTest.cpp
     # ItemTagLoader 数据包标签加载测试
@@ -590,10 +594,14 @@ add_executable(mc_tests
     # GameEvent 服务端集成测试
     server/world/gameevent/GameEventServerTest.cpp
     common/world/lighting/InternalLightUtilsTest.cpp
+    # 天空光照引擎的传播/衰减调试用例
+    lighting/SkyLightDebugTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
     # 头颅方块实体的 note_block_sound 持久化与 ItemStack 组件读写
     common/world/blockentity/SkullBlockEntityNoteBlockSoundTest.cpp
+    # 讲台/唱片机方块实体的交互与状态
+    common/world/blockentity/LecternJukeboxEntityTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
@@ -1233,6 +1241,8 @@ add_executable(mc_tests
     common/entity/effect/SaturationEffectTest.cpp
     # 瞬间效果应用（治疗/伤害基数、距离缩放、亡灵反转）测试
     common/entity/effect/ApplyInstantEffectTest.cpp
+    # 饥饿效果对 Player 消耗值的影响（I/II/III 递增、非玩家实体不受影响）
+    common/entity/effect/HungerEffectTest.cpp
     # FoodStats 饥饿系统 tick 行为测试（消耗/回血/饿死对齐 vanilla FoodData.tick）
     common/entity/food/FoodStatsTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
@@ -1294,6 +1304,8 @@ add_executable(mc_tests
     common/world/gen/PerlinNoisePerfTest.cpp
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/MonsterRoomFeatureTest.cpp
+    # 地物规则测试（RuleTest 各子类：方块匹配/标签/空气/概率）
+    common/world/gen/feature/test_rule_test.cpp
     common/world/gen/feature/RandomSelectorFeatureTest.cpp
     common/world/gen/feature/RandomPatchFeatureTest.cpp
     common/world/gen/feature/SimpleBlockFeatureTest.cpp
@@ -1333,6 +1345,8 @@ add_executable(mc_tests
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/structure/RuinedPortalStructureTest.cpp
     common/world/gen/structure/StructureTagsTest.cpp
+    # 最近结构定位（locate）：StructureSet 搜索半径与弃置条件
+    server/world/FindNearestStructureTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
     common/world/gen/jigsaw/test_pos_rule_test.cpp
@@ -1548,6 +1562,8 @@ add_executable(mc_tests
     # 调试区块生成器测试（文件实际位于 common/world/gen/）
     common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
+    # 密度列采样结果与世界高度限制的边界行为
+    common/world/gen/chunk/DensityColumnTest.cpp
     common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
     # WorldGenRegion测试
     common/world/gen/chunk/WorldGenRegionTest.cpp

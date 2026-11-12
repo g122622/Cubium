@@ -185,7 +185,7 @@ Item* ensureTestItem(const char* path)
 
 // ========== ShulkerBoxBlock 测试 ==========
 
-class ShulkerBoxBlockTest : public ::testing::Test {
+class ShulkerBoxEntityBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -197,7 +197,7 @@ protected:
     std::unique_ptr<blocks::ShulkerBoxBlock> m_shulkerBoxBlock;
 };
 
-TEST_F(ShulkerBoxBlockTest, Create_HasCorrectProperties)
+TEST_F(ShulkerBoxEntityBlockTest, Create_HasCorrectProperties)
 {
     // 验证方块状态容器包含 FACING 属性
     const BlockState& defaultState = m_shulkerBoxBlock->defaultState();
@@ -207,13 +207,13 @@ TEST_F(ShulkerBoxBlockTest, Create_HasCorrectProperties)
     EXPECT_EQ(defaultState.get(BlockStateProperties::FACING()), Direction::Up);
 }
 
-TEST_F(ShulkerBoxBlockTest, Create_HasBlockEntity)
+TEST_F(ShulkerBoxEntityBlockTest, Create_HasBlockEntity)
 {
     EXPECT_TRUE(m_shulkerBoxBlock->hasBlockEntity());
     EXPECT_EQ(m_shulkerBoxBlock->getBlockEntityType(), BlockEntityType::ShulkerBox);
 }
 
-TEST_F(ShulkerBoxBlockTest, CreateBlockEntity_ReturnsShulkerBoxEntity)
+TEST_F(ShulkerBoxEntityBlockTest, CreateBlockEntity_ReturnsShulkerBoxEntity)
 {
     auto entity = m_shulkerBoxBlock->createBlockEntity(BlockPos(10, 20, 30));
     ASSERT_NE(entity, nullptr);
@@ -221,13 +221,13 @@ TEST_F(ShulkerBoxBlockTest, CreateBlockEntity_ReturnsShulkerBoxEntity)
     EXPECT_EQ(entity->getPos(), BlockPos(10, 20, 30));
 }
 
-TEST_F(ShulkerBoxBlockTest, HasComparatorInputOverride_ReturnsTrue)
+TEST_F(ShulkerBoxEntityBlockTest, HasComparatorInputOverride_ReturnsTrue)
 {
     const BlockState& state = m_shulkerBoxBlock->defaultState();
     EXPECT_TRUE(m_shulkerBoxBlock->hasComparatorInputOverride(state));
 }
 
-TEST_F(ShulkerBoxBlockTest, CanProvidePower_ReturnsFalse)
+TEST_F(ShulkerBoxEntityBlockTest, CanProvidePower_ReturnsFalse)
 {
     const BlockState& state = m_shulkerBoxBlock->defaultState();
     EXPECT_FALSE(m_shulkerBoxBlock->canProvidePower(state));
