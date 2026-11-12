@@ -69,15 +69,20 @@ public:
     {}
 
     void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+
     void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+
     void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+
     void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+
     void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
 
-    [[nodiscard]] i32 spawnInitialMobs(
-        WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override
+    [[nodiscard]] i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override
     {
         return 0;
     }

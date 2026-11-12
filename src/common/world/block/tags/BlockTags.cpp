@@ -512,6 +512,15 @@ BlockTag& BlockTags::MUSHROOM_GROW_BLOCK()
     return *tag;
 }
 
+BlockTag& BlockTags::CORAL_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr || !_isLive(tag)) {
+        tag = &registerTag(ResourceLocation("minecraft", "coral_blocks"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::CORALS()
 {
     static BlockTag* tag = nullptr;

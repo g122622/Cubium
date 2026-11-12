@@ -228,6 +228,39 @@ bool _stateInTag(const BlockState& state, BlockTag& tag)
     return BlockTags::isInitialized() && tag.contains(state);
 }
 
+/**
+ * @brief 由珊瑚方块反查它对应的颜色
+ *
+ * 原版 `CoralFeature.place` 先从 `BlockTags.CORAL_BLOCKS` 随机取一个底座方块，
+ * 再用这个方块作为整株珊瑚的底座写入世界——也就是说珊瑚的颜色是由标签抽签结果
+ * 决定的，而不是特征配置里的固定值。这里的反查把这个抽到的方块翻译回颜色枚举，
+ * 供后续形状生成与装饰复用同一种颜色。
+ *
+ * 不在 coral_blocks 标签里的方块返回 std::nullopt（调用方据此放弃放置）。
+ */
+std::optional<blocks::CoralColor> _coralColorFromBlock(const Block& block)
+{
+    struct Entry {
+        const Block* block;
+        blocks::CoralColor color;
+    };
+
+    const Entry entries[] = {
+        {VanillaBlocks::TUBE_CORAL_BLOCK, blocks::CoralColor::Tube},
+        {VanillaBlocks::BRAIN_CORAL_BLOCK, blocks::CoralColor::Brain},
+        {VanillaBlocks::BUBBLE_CORAL_BLOCK, blocks::CoralColor::Bubble},
+        {VanillaBlocks::FIRE_CORAL_BLOCK, blocks::CoralColor::Fire},
+        {VanillaBlocks::HORN_CORAL_BLOCK, blocks::CoralColor::Horn},
+    };
+
+    for (const Entry& entry : entries) {
+        if (entry.block != nullptr && entry.block->blockId() == block.blockId()) {
+            return entry.color;
+        }
+    }
+    return std::nullopt;
+}
+
 i32 findOceanFloorY(WorldGenRegion& world, i32 x, i32 z)
 {
     i32 oceanFloorY = world.getTopBlockY(x, z, HeightmapType::OceanFloorWG);
@@ -359,27 +392,47 @@ bool CoralFeature::place(
         return false;
     }
 
+    // 原版 `CoralFeature.place` 的第一件事：从 `BlockTags.CORAL_BLOCKS` 里均匀随机
+    // 取一个珊瑚方块，用它的颜色作为整株珊瑚的颜色。抽签必须发生在任何形状掷骰
+    // 之前，否则随机流与形状选择都会与原版错位；标签缺失/未初始化时原版直接返回
+    // false（不放置），这里保持一致。
+    const Block* baseCoralBlock = _randomBlockFromTag(BlockTags::CORAL_BLOCKS(), random);
+    if (baseCoralBlock == nullptr) {
+        return false;
+    }
+    const std::optional<blocks::CoralColor> sampledColor = _coralColorFromBlock(*baseCoralBlock);
+    if (!sampledColor.has_value()) {
+        spdlog::warn("[CORAL] coral_blocks tag yielded a non-coral block '{}'; skipping placement",
+            baseCoralBlock->blockLocation().toString());
+        return false;
+    }
+
+    // 后面所有形状生成与装饰都复用抽到的颜色，配置里的 color 不再参与。
+    CoralFeatureConfig sampledConfig = config;
+    sampledConfig.color = *sampledColor;
+
     bool placed = false;
     switch (random.nextInt(3)) {
         case 0: {
             CoralTreeFeature feature;
-            placed = feature.place(world, random, placePos, config);
+            placed = feature.place(world, random, placePos, sampledConfig);
             break;
         }
         case 1: {
             CoralMushroomFeature feature;
-            placed = feature.place(world, random, placePos, config);
+            placed = feature.place(world, random, placePos, sampledConfig);
             break;
         }
         default: {
             CoralClawFeature feature;
-            placed = feature.place(world, random, placePos, config);
+            placed = feature.place(world, random, placePos, sampledConfig);
             break;
         }
     }
 
     if (!placed) {
-        placed = placeCoralWithDecorations(world, random, placePos, config.color, config.isDead, config.includeWallFan);
+        placed = placeCoralWithDecorations(
+            world, random, placePos, sampledConfig.color, sampledConfig.isDead, sampledConfig.includeWallFan);
     }
 
     return placed;
