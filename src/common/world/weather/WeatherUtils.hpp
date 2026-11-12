@@ -126,29 +126,29 @@ namespace WeatherUtils {
 [[nodiscard]] bool canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos);
 
 /**
- * @brief 获取随机天气持续时间
+ * @brief 获取随机天气持续时间（闭区间）
  *
  * @param rng 随机数生成器
- * @param minTime 最小时间 (ticks)
- * @param maxTime 最大时间 (ticks)
+ * @param minTime 最小时间 (ticks，包含)
+ * @param maxTime 最大时间 (ticks，包含)
  * @return 随机持续时间
  */
 [[nodiscard]] i32 getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime);
 
 /**
- * @brief 生成随机晴天持续时间
+ * @brief 生成"不在下雨"状态下雨计时器的重置值
  *
- * 范围: 12000 - 168000 ticks (10-140分钟)
+ * 闭区间: 12000 - 180000 ticks (10-150分钟)
  *
  * @param rng 随机数生成器
  * @return 随机持续时间
  */
-[[nodiscard]] i32 getRandomClearDuration(mc::math::IRandom& rng);
+[[nodiscard]] i32 getRandomRainDelay(math::IRandom& rng);
 
 /**
  * @brief 生成随机降雨持续时间
  *
- * 范围: 12000 - 24000 ticks (10-20分钟)
+ * 闭区间: 12000 - 24000 ticks (10-20分钟)
  *
  * @param rng 随机数生成器
  * @return 随机持续时间
@@ -156,9 +156,19 @@ namespace WeatherUtils {
 [[nodiscard]] i32 getRandomRainDuration(math::IRandom& rng);
 
 /**
+ * @brief 生成"不在雷暴"状态下雷暴计时器的重置值
+ *
+ * 闭区间: 12000 - 180000 ticks (10-150分钟)
+ *
+ * @param rng 随机数生成器
+ * @return 随机持续时间
+ */
+[[nodiscard]] i32 getRandomThunderDelay(math::IRandom& rng);
+
+/**
  * @brief 生成随机雷暴持续时间
  *
- * 范围: 3600 - 15600 ticks (3-13分钟)
+ * 闭区间: 3600 - 15600 ticks (3-13分钟)
  *
  * @param rng 随机数生成器
  * @return 随机持续时间

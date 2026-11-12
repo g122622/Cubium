@@ -114,23 +114,29 @@ i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, 
     if (minTime >= maxTime) {
         return minTime;
     }
-    i32 range = maxTime - minTime;
-    return minTime + rng.nextInt(range);
+    // 原版 UniformInt 是闭区间，必须用 nextInt(min, max) 而不是 nextInt(max - min)。
+    return rng.nextInt(minTime, maxTime);
 }
 
-i32 WeatherUtils::getRandomClearDuration(mc::math::IRandom& rng)
+i32 WeatherUtils::getRandomRainDelay(math::IRandom& rng)
 {
-    return getRandomWeatherDuration(rng, WeatherConstants::MIN_CLEAR_TIME, WeatherConstants::MAX_CLEAR_TIME);
+    return getRandomWeatherDuration(rng, WeatherConstants::RAIN_DELAY_MIN, WeatherConstants::RAIN_DELAY_MAX);
 }
 
-i32 WeatherUtils::getRandomRainDuration(mc::math::IRandom& rng)
+i32 WeatherUtils::getRandomRainDuration(math::IRandom& rng)
 {
-    return getRandomWeatherDuration(rng, WeatherConstants::MIN_RAIN_TIME, WeatherConstants::MAX_RAIN_TIME);
+    return getRandomWeatherDuration(rng, WeatherConstants::RAIN_DURATION_MIN, WeatherConstants::RAIN_DURATION_MAX);
 }
 
-i32 WeatherUtils::getRandomThunderDuration(mc::math::IRandom& rng)
+i32 WeatherUtils::getRandomThunderDelay(math::IRandom& rng)
 {
-    return getRandomWeatherDuration(rng, WeatherConstants::MIN_THUNDER_TIME, WeatherConstants::MAX_THUNDER_TIME);
+    return getRandomWeatherDuration(rng, WeatherConstants::THUNDER_DELAY_MIN, WeatherConstants::THUNDER_DELAY_MAX);
+}
+
+i32 WeatherUtils::getRandomThunderDuration(math::IRandom& rng)
+{
+    return getRandomWeatherDuration(
+        rng, WeatherConstants::THUNDER_DURATION_MIN, WeatherConstants::THUNDER_DURATION_MAX);
 }
 
 f32 WeatherUtils::calculateStarBrightness(f32 rainStrength, i64 dayTime)

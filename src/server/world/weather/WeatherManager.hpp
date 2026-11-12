@@ -23,25 +23,24 @@
 
 #pragma once
 
-#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/AxisAlignedBB.hpp"
-#include "common/util/math/Vector3.hpp"
-#include "common/util/math/random/BlockPositionRandom.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
-#include <cstddef>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
-#include <vector>
 
 // 前向声明
 namespace mc {
 class BlockPos;
 class IWorld;
+
+namespace world::chunk {
+class ChunkData;
+} // namespace world::chunk
 } // namespace mc
 
 namespace mc::server {
@@ -49,13 +48,6 @@ namespace mc::server {
 // 从 weather 命名空间导入类型
 using mc::weather::WeatherState;
 using mc::weather::WeatherType;
-
-/**
- * @brief 闪电生成回调类型
- *
- * 参数：闪电位置
- */
-using LightningSpawnCallback = std::function<void(const mc::BlockPos&)>;
 
 /**
  * @brief 天气变化回调类型
@@ -75,8 +67,8 @@ using WeatherChangeCallback = std::function<void(WeatherType, WeatherType)>;
  *
  * 使用示例：
  * @code
- * WeatherManager weather(world);
- * weather.initialize(seed);
+ * WeatherManager weather;
+ * weather.initialize(seed, true);
  *
  * // 主循环
  * while (running) {
@@ -117,21 +109,26 @@ public:
     /**
      * @brief 初始化天气管理器
      *
-     * @param seed 随机种子
-     */
-    void initialize(u64 seed);
-
-    /**
-     * @brief 设置关联的世界
+     * 新世界的计时器与原版一致从 0 开始：首个 tick 会按 RAIN_DELAY /
+     * THUNDER_DELAY 采样第一次降雨/雷暴的等待时间。
      *
-     * @param world 世界指针（不获取所有权）
+     * @param seed 随机种子
+     * @param canHaveWeather 该维度是否允许天气演算
+     *        （有天空光照、无天花板、且不是末地）
      */
-    void setWorld(mc::IWorld* world)
-    {
-        m_world = world;
-    }
+    void initialize(u64 seed, bool canHaveWeather);
 
     // ========== 天气状态查询 ==========
+
+    /**
+     * @brief 该维度是否允许天气演算
+     *
+     * 对应原版 Level.canHaveWeather：有天空光照、无天花板、且不是末地。
+     */
+    [[nodiscard]] bool canHaveWeather() const
+    {
+        return m_canHaveWeather;
+    }
 
     /**
      * @brief 获取当前天气状态
@@ -143,18 +140,22 @@ public:
 
     /**
      * @brief 是否正在降雨（强度检查）
+     *
+     * 无天气演算能力的维度恒为 false（对应原版 Level.isRaining 的 canHaveWeather 门控）。
      */
     [[nodiscard]] bool isRaining() const
     {
-        return m_state.isRaining();
+        return m_canHaveWeather && m_state.isRaining();
     }
 
     /**
      * @brief 是否正在雷暴（强度检查）
+     *
+     * 无天气演算能力的维度恒为 false（对应原版 Level.isThundering 的 canHaveWeather 门控）。
      */
     [[nodiscard]] bool isThundering() const
     {
-        return m_state.isThundering();
+        return m_canHaveWeather && m_state.isThundering();
     }
 
     /**
@@ -169,10 +170,10 @@ public:
     }
 
     /**
-     * @brief 获取雷暴强度
+     * @brief 获取雷暴强度（已乘降雨强度，对应原版 Level.getThunderLevel）
      *
      * @param partialTick 部分 tick (0.0 - 1.0)
-     * @return 插值后的强度值
+     * @return 插值后的有效强度值
      */
     [[nodiscard]] f32 thunderStrength(f32 partialTick = 0.0f) const
     {
@@ -180,11 +181,26 @@ public:
     }
 
     /**
+     * @brief 获取原始雷暴强度（未乘降雨强度）
+     *
+     * 网络广播 ThunderStrengthChange 时使用，对应原版发送 level.thunderLevel 字段。
+     *
+     * @param partialTick 部分 tick (0.0 - 1.0)
+     * @return 插值后的原始强度值
+     */
+    [[nodiscard]] f32 rawThunderStrength(f32 partialTick = 0.0f) const
+    {
+        return m_state.getRawThunderStrength(partialTick);
+    }
+
+    /**
      * @brief 获取当前天气类型
+     *
+     * 无天气演算能力的维度恒为晴天。
      */
     [[nodiscard]] WeatherType weatherType() const
     {
-        return m_state.weatherType();
+        return m_canHaveWeather ? m_state.weatherType() : WeatherType::Clear;
     }
 
     /**
@@ -212,35 +228,55 @@ public:
     /**
      * @brief 设置晴天
      *
-     * 对应 /weather clear [duration]
+     * 对应 /weather clear [duration]。未提供 duration 时按 RAIN_DELAY 采样，
+     * 与 /weather clear 的缺省行为一致。
      *
-     * @param duration 持续时间 (ticks)，0 表示使用默认值
+     * @param duration 持续时间 (ticks)，<= 0 表示未提供
+     * @return 实际应用持续时间 (ticks)
      */
-    void setClear(i32 duration = 0);
+    i32 setClear(i32 duration);
 
     /**
      * @brief 设置降雨
      *
-     * 对应 /weather rain [duration]
+     * 对应 /weather rain [duration]。未提供 duration 时按 RAIN_DURATION 采样。
+     * rainTime 与 thunderTime 都被写成同一 duration（雷暴计时器用于随后结束降雨）。
      *
-     * @param duration 持续时间 (ticks)，0 表示使用默认值
+     * @param duration 持续时间 (ticks)，<= 0 表示未提供
+     * @return 实际应用持续时间 (ticks)
      */
-    void setRain(i32 duration = 0);
+    i32 setRain(i32 duration);
 
     /**
      * @brief 设置雷暴
      *
-     * 对应 /weather thunder [duration]
-     * 注意：雷暴会自动启用降雨
+     * 对应 /weather thunder [duration]。未提供 duration 时按 THUNDER_DURATION 采样。
+     * 雷暴会自动启用降雨，rainTime 与 thunderTime 都被写成同一 duration。
      *
-     * @param duration 持续时间 (ticks)，0 表示使用默认值
+     * @param duration 持续时间 (ticks)，<= 0 表示未提供
+     * @return 实际应用持续时间 (ticks)
      */
-    void setThunder(i32 duration = 0);
+    i32 setThunder(i32 duration);
 
     /**
-     * @brief 重置天气（玩家睡觉后调用）
+     * @brief 从存档恢复天气状态
      *
-     * 清除所有天气效果，恢复晴天
+     * 直接写入 level.dat 中保存的四个天气字段，并按原版 prepareWeather 的规则
+     * 恢复强度：正在下雨时降雨强度置 1，正在雷暴时雷暴强度置 1。
+     *
+     * @param clearWeatherTime 强制晴天剩余时间
+     * @param rainTime 降雨剩余时间
+     * @param raining 是否正在下雨
+     * @param thunderTime 雷暴剩余时间
+     * @param thundering 是否正在雷暴
+     */
+    void restoreState(i32 clearWeatherTime, i32 rainTime, bool raining, i32 thunderTime, bool thundering);
+
+    /**
+     * @brief 重置天气周期（玩家睡醒后调用）
+     *
+     * 对应原版 ServerLevel.resetWeatherCycle：清空降雨/雷暴计时器与状态标志，
+     * 保留 clearWeatherTime，强度随后自然渐变到 0。
      */
     void resetWeather();
 
@@ -276,26 +312,24 @@ public:
      */
     void tick();
 
-    // ========== 闪电生成 ==========
+    // ========== 闪电落点 ==========
 
     /**
-     * @brief 尝试生成闪电
+     * @brief 计算一次闪电的落点
      *
-     * 雷暴时每tick调用，有概率生成闪电。
+     * 对应原版 ServerLevel.findLightningTargetAround：先按 MOTION_BLOCKING 高度图
+     * 取随机列的最高方块，再优先寻找 128 格内位于世界表面的避雷针，其次在膨胀 3 格的
+     * 柱状范围内随机挑一个可见天空的生物。最终落点必须允许降水，否则返回 nullopt。
      *
-     * @return 闪电生成位置，如果没有生成则返回无效位置
+     * 概率判定（1/100000）与随机列生成由调用方（ServerWorld）完成，本方法只负责落点。
+     *
+     * @param world 世界
+     * @param chunk 随机列所在区块
+     * @param randomPos 随机列（X/Z 位于 chunk 内，Y 无意义）
+     * @return 闪电落点；无有效落点时为 nullopt
      */
-    [[nodiscard]] std::pair<bool, BlockPos> trySpawnLightning();
-
-    /**
-     * @brief 设置闪电生成回调
-     *
-     * @param callback 闪电生成时调用的回调函数
-     */
-    void setLightningCallback(LightningSpawnCallback callback)
-    {
-        m_lightningCallback = std::move(callback);
-    }
+    [[nodiscard]] std::optional<BlockPos> findLightningTarget(
+        mc::IWorld& world, const mc::world::chunk::ChunkData& chunk, const BlockPos& randomPos);
 
     /**
      * @brief 设置天气变化回调
@@ -307,50 +341,18 @@ public:
         m_weatherChangeCallback = std::move(callback);
     }
 
-    // ========== 序列化 ==========
-
-    /**
-     * @brief 序列化天气状态
-     *
-     * 用于世界存档
-     *
-     * @param data 输出数据缓冲区
-     */
-    void serialize(std::vector<u8>& data) const;
-
-    /**
-     * @brief 反序列化天气状态
-     *
-     * 用于加载世界存档
-     *
-     * @param data 输入数据缓冲区
-     * @param offset 数据偏移
-     * @return 成功或错误
-     */
-    [[nodiscard]] Result<void> deserialize(const std::vector<u8>& data, size_t& offset);
-
 private:
     /**
-     * @brief 在指定位置周围寻找闪电目标
+     * @brief 在 128 格内查找位于世界表面的避雷针
      *
-     * 查找附近的生物实体，如果找到则返回其位置，否则返回原始位置。
+     * 对应原版 ServerLevel.findLightningRod：要求避雷针所在 Y 等于该列
+     * WORLD_SURFACE 高度图的最高方块 Y，并在多个候选中取距离最近者。
      *
-     * @param pos 原始位置
-     * @return 调整后的位置
+     * @param world 世界
+     * @param pos 搜索中心（闪电随机列的最高方块位置）
+     * @return 避雷针上方一格（闪电落点）；未找到时为 nullopt
      */
-    [[nodiscard]] BlockPos _findLightningTargetAround(const BlockPos& pos) const;
-
-    /**
-     * @brief 获取随机方块位置
-     *
-     * 在区块内生成随机位置。
-     *
-     * @param chunkX 区块 X 起点（方块坐标）
-     * @param sectionY 区块段 Y 起点（方块坐标）
-     * @param chunkZ 区块 Z 起点（方块坐标）
-     * @return 随机方块位置
-     */
-    [[nodiscard]] BlockPos _getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ);
+    [[nodiscard]] std::optional<BlockPos> _findLightningRod(mc::IWorld& world, const BlockPos& pos) const;
 
     // ========== 内部方法 ==========
     /**
@@ -371,21 +373,17 @@ private:
 private:
     WeatherState m_state;                        ///< 天气状态
     std::unique_ptr<mc::math::IRandom> m_random; ///< 随机数生成器
-    mc::IWorld* m_world = nullptr;               ///< 关联的世界（不拥有）
+    bool m_canHaveWeather = false;               ///< 维度是否允许天气演算
 
     // 变化标志（每tick后重置）
     bool m_weatherChanged = false;  ///< 降雨/雷暴状态是否变化
     bool m_strengthChanged = false; ///< 强度是否变化
 
     // 回调
-    LightningSpawnCallback m_lightningCallback;
     WeatherChangeCallback m_weatherChangeCallback;
 
     // 天气变化检测状态
     bool m_lastRaining = false; ///< 上一帧的降雨状态
-
-    // LCG 状态（用于随机位置生成）
-    math::BlockPositionRandom m_blockPositionRandom{0}; ///< 位置采样的 32 位状态
 };
 
 } // namespace mc::server

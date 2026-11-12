@@ -32,7 +32,7 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/block/core/Block.hpp"
-#include "common/world/weather/WeatherConstants.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include <cmath>
 #include <optional>
 #include <vector>
@@ -44,22 +44,9 @@ namespace entity {
 
 bool SleepManager::canSleepAtTime(i64 dayTime, bool isThundering, bool isRaining)
 {
-    // 雷暴时任何时间都可以睡眠
-    if (isThundering) {
-        return true;
-    }
-
-    // 使用 WeatherConstants 中定义的时间范围
-    if (isRaining) {
-        // 降雨时睡眠时间范围更宽: 12010 - 23991
-        // 降雨范围在同一日内，使用 AND 判断
-        return dayTime >= weather::WeatherConstants::RAIN_BED_START_TIME &&
-            dayTime <= weather::WeatherConstants::RAIN_BED_END_TIME;
-    }
-
-    // 晴天时只能在夜间睡眠: 12542 - 23459
-    return dayTime >= weather::WeatherConstants::CLEAR_BED_START_TIME &&
-        dayTime <= weather::WeatherConstants::CLEAR_BED_END_TIME;
+    // 原版 BedRule.WHEN_DARK -> Level.isDarkOutside()：天空减暗 >= 4 即可入睡。
+    // 降雨/雷暴通过天气加成的天空减暗自然扩大可睡时段，不使用固定时间窗。
+    return InternalLightUtils::calculateSkyDarkening(dayTime, isRaining, isThundering) >= 4;
 }
 
 std::optional<Vector3> SleepManager::findWakeUpPosition(const IWorld& world,

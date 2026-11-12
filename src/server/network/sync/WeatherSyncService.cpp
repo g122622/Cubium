@@ -50,60 +50,49 @@ void WeatherSyncService::tick()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Tick, "sendWeatherUpdate", "phase", "weather_sync");
 
-    // 天气仅存在于主世界
-    auto* overworld = m_server.dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
-        return;
-    }
-
-    auto& weatherMgr = *overworld->world()->weatherManager();
-    f32 rainStrength = weatherMgr.rainStrength();
-    f32 thunderStrength = weatherMgr.thunderStrength();
-
     constexpr f32 STRENGTH_THRESHOLD = 0.001f;
-    bool rainChanged = std::abs(rainStrength - m_lastSentRainStrength) > STRENGTH_THRESHOLD;
-    bool thunderChanged = std::abs(thunderStrength - m_lastSentThunderStrength) > STRENGTH_THRESHOLD;
 
-    if (rainChanged) {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 7; // RainStrengthChange
-        evt.value = rainStrength;
-        m_server.broadcastPacket(mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(evt)},
-        });
-        m_lastSentRainStrength = rainStrength;
-    }
+    // 每个有天气能力的维度独立演算、独立广播（对应原版逐维度
+    // ServerLevel.advanceWeatherCycle + PlayerList.broadcastAll(packet, dimension)）。
+    for (DimensionId dimensionId : m_server.dimensionManager().getDimensionIds()) {
+        auto* dimension = m_server.dimensionManager().getDimension(dimensionId);
+        if (dimension == nullptr) {
+            continue;
+        }
 
-    if (thunderChanged) {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 8; // ThunderStrengthChange
-        evt.value = thunderStrength;
-        m_server.broadcastPacket(mc::network::ir::IrPacket{
-            mc::network::protocol::ConnectionProtocol::Play,
-            mc::network::ir::PlayPacket{std::move(evt)},
-        });
-        m_lastSentThunderStrength = thunderStrength;
-    }
+        auto* world = dimension->world();
+        auto* weatherMgr = world != nullptr ? world->weatherManager() : nullptr;
+        if (weatherMgr == nullptr) {
+            continue;
+        }
 
-    if (weatherMgr.hasWeatherChanged()) {
-        auto weatherType = weatherMgr.weatherType();
-        if (weatherType == weather::WeatherType::Clear) {
-            mc::network::ir::play::GameEvent evt;
-            evt.event = 1; // EndRaining
-            evt.value = 0.0f;
-            m_server.broadcastPacket(mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
-        } else if (weatherType == weather::WeatherType::Rain || weatherType == weather::WeatherType::Thunder) {
-            mc::network::ir::play::GameEvent evt;
-            evt.event = 2; // BeginRaining
-            evt.value = 0.0f;
-            m_server.broadcastPacket(mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
+        DimensionShadow& shadow = m_shadows[dimensionId];
+        const f32 rainStrength = weatherMgr->rainStrength(1.0f);
+        // 原版广播 thunderLevel 原始值，客户端 getThunderLevel 再乘降雨强度。
+        const f32 thunderStrength = weatherMgr->rawThunderStrength(1.0f);
+
+        if (std::abs(rainStrength - shadow.lastRainStrength) > STRENGTH_THRESHOLD) {
+            _broadcastGameEvent(dimensionId, 7, rainStrength); // RainStrengthChange
+            shadow.lastRainStrength = rainStrength;
+        }
+
+        if (std::abs(thunderStrength - shadow.lastThunderStrength) > STRENGTH_THRESHOLD) {
+            _broadcastGameEvent(dimensionId, 8, thunderStrength); // ThunderStrengthChange
+            shadow.lastThunderStrength = thunderStrength;
+        }
+
+        if (weatherMgr->hasWeatherChanged()) {
+            if (weatherMgr->weatherType() == weather::WeatherType::Clear) {
+                _broadcastGameEvent(dimensionId, 1, 0.0f); // EndRaining
+            } else {
+                _broadcastGameEvent(dimensionId, 2, 0.0f); // BeginRaining
+            }
+
+            // 原版天气切换时补发当前强度，避免强度变化未超过阈值时客户端状态滞后。
+            _broadcastGameEvent(dimensionId, 7, rainStrength);
+            _broadcastGameEvent(dimensionId, 8, thunderStrength);
+            shadow.lastRainStrength = rainStrength;
+            shadow.lastThunderStrength = thunderStrength;
         }
     }
 }
@@ -112,37 +101,56 @@ void WeatherSyncService::sendInitialWeatherStateToPlayer(PlayerId playerId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Player, "SendInitialWeatherState", "phase", "weather_sync");
 
-    // 天气仅存在于主世界
-    auto* overworld = m_server.dimensionManager().getOverworld();
-    if (!overworld || !overworld->world() || !overworld->world()->weatherManager()) {
+    // 使用玩家当前维度，而不是固定主世界。
+    const DimensionId dimensionId = m_server.dimensionManager().getPlayerDimension(playerId);
+    auto* dimension = m_server.dimensionManager().getDimension(dimensionId);
+    auto* world = dimension != nullptr ? dimension->world() : nullptr;
+    auto* weatherMgr = world != nullptr ? world->weatherManager() : nullptr;
+    if (weatherMgr == nullptr) {
         return;
     }
 
-    auto& weatherMgr = *overworld->world()->weatherManager();
-    f32 rainStrength = weatherMgr.rainStrength();
-    f32 thunderStrength = weatherMgr.thunderStrength();
-
-    {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 7; // RainStrengthChange
-        evt.value = rainStrength;
-        m_server.sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
+    // 原版 PlayerList.sendLevelInfo：仅在该维度正在下雨时下发天气包整簇。
+    if (!weatherMgr->isRaining()) {
+        return;
     }
 
-    {
-        mc::network::ir::play::GameEvent evt;
-        evt.event = 8; // ThunderStrengthChange
-        evt.value = thunderStrength;
-        m_server.sendPacketToPlayer(playerId,
-            mc::network::ir::IrPacket{
-                mc::network::protocol::ConnectionProtocol::Play,
-                mc::network::ir::PlayPacket{std::move(evt)},
-            });
+    _sendGameEvent(playerId, 2, 0.0f); // BeginRaining
+    _sendGameEvent(playerId, 7, weatherMgr->rainStrength(1.0f));
+    // 原版初始同步发送 getThunderLevel(1.0F)，即已乘降雨强度的值。
+    _sendGameEvent(playerId, 8, weatherMgr->thunderStrength(1.0f));
+}
+
+void WeatherSyncService::_broadcastGameEvent(DimensionId dimensionId, i32 event, f32 value)
+{
+    auto* dimension = m_server.dimensionManager().getDimension(dimensionId);
+    if (dimension == nullptr) {
+        return;
     }
+
+    mc::network::ir::play::GameEvent evt;
+    evt.event = event;
+    evt.value = value;
+    const mc::network::ir::IrPacket packet{
+        mc::network::protocol::ConnectionProtocol::Play,
+        mc::network::ir::PlayPacket{std::move(evt)},
+    };
+
+    for (PlayerId playerId : dimension->players()) {
+        m_server.sendPacketToPlayer(playerId, packet);
+    }
+}
+
+void WeatherSyncService::_sendGameEvent(PlayerId playerId, i32 event, f32 value)
+{
+    mc::network::ir::play::GameEvent evt;
+    evt.event = event;
+    evt.value = value;
+    m_server.sendPacketToPlayer(playerId,
+        mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play,
+            mc::network::ir::PlayPacket{std::move(evt)},
+        });
 }
 
 } // namespace mc::server::sync

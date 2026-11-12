@@ -50,9 +50,9 @@ enum class WeatherType : u8 {
  *
  * 天气周期逻辑：
  * 1. clearWeatherTime > 0 时，强制晴天
- * 2. rainTime 倒计时控制降雨状态切换
- * 3. thunderTime 倒计时控制雷暴状态切换
- * 4. rainStrength/thunderStrength 用于平滑过渡渲染
+ * 2. rainTime 倒计时控制降雨状态切换；耗尽后按原版 RAIN_DELAY / RAIN_DURATION 重新采样
+ * 3. thunderTime 倒计时控制雷暴状态切换；耗尽后按原版 THUNDER_DELAY / THUNDER_DURATION 重新采样
+ * 4. rainStrength/thunderStrength 用于平滑过渡渲染；雷暴强度对外使用时需乘以降雨强度
  *
  * @note 线程安全：此类不保证线程安全，调用者需自行同步
  */
@@ -72,17 +72,17 @@ public:
     /**
      * @brief 降雨计时器
      *
-     * 倒计时到 0 时切换降雨状态。
-     * 正常周期: 12000-24000 ticks (10-20分钟)
+     * 倒计时到 0 时切换降雨状态。耗尽后：正在下雨时间隔按 RAIN_DURATION
+     * (12000-24000 ticks) 重新采样，否则按 RAIN_DELAY (12000-180000 ticks) 采样。
      */
     i32 rainTime = 0;
 
     /**
      * @brief 雷暴计时器
      *
-     * 倒计时到 0 时切换雷暴状态。
-     * 正常周期: 3600-15600 ticks (3-13分钟)
-     * 注意：雷暴只有在降雨时才有效果
+     * 倒计时到 0 时切换雷暴状态。耗尽后：正在雷暴时间隔按 THUNDER_DURATION
+     * (3600-15600 ticks) 重新采样，否则按 THUNDER_DELAY (12000-180000 ticks) 采样。
+     * 注意：雷暴只有在降雨时才对外可见（雷暴强度需乘以降雨强度）
      */
     i32 thunderTime = 0;
 
@@ -177,13 +177,13 @@ public:
     /**
      * @brief 是否正在雷暴（强度检查）
      *
-     * 使用强度阈值判断，比状态标志更准确
+     * 使用"雷暴强度 × 降雨强度"与阈值比较，与 Level.getThunderLevel 的语义一致。
      *
-     * @return 如果雷暴强度 > 0.9 返回 true
+     * @return 如果有效雷暴强度 > 0.9 返回 true
      */
     [[nodiscard]] bool isThundering() const noexcept
     {
-        return thunderStrength > WeatherConstants::THUNDER_THRESHOLD;
+        return getThunderStrength(1.0f) > WeatherConstants::THUNDER_THRESHOLD;
     }
 
     /**
@@ -198,75 +198,46 @@ public:
     }
 
     /**
-     * @brief 获取插值后的雷暴强度
+     * @brief 获取插值后的原始雷暴强度（未乘降雨强度）
+     *
+     * 原版广播 ThunderStrengthChange 时发送的是 level.thunderLevel 字段，
+     * 而不是 Level.getThunderLevel 的乘积结果。
      *
      * @param partialTick 部分 tick (0.0 - 1.0)
-     * @return 插值后的强度值
+     * @return 插值后的原始强度值
      */
-    [[nodiscard]] f32 getThunderStrength(f32 partialTick) const noexcept
+    [[nodiscard]] f32 getRawThunderStrength(f32 partialTick) const noexcept
     {
         return mc::math::lerp(prevThunderStrength, thunderStrength, partialTick);
     }
 
     /**
-     * @brief 是否可以睡觉
+     * @brief 获取插值后的雷暴强度
      *
-     * 雷暴时任何时间都可以睡觉。
-     * 降雨时在 12010-23991 ticks 内可以睡觉。
-     * 晴天时在 12542-23459 ticks 内可以睡觉。
+     * 与原版 Level.getThunderLevel 一致：雷暴强度乘以降雨强度。
      *
-     * @param dayTime 当前一天内的时间 (0-23999)
-     * @return 是否可以睡觉
+     * @param partialTick 部分 tick (0.0 - 1.0)
+     * @return 插值后的有效强度值
      */
-    [[nodiscard]] bool canSleep(i64 dayTime) const noexcept
+    [[nodiscard]] f32 getThunderStrength(f32 partialTick) const noexcept
     {
-        // 雷暴时任何时间都可以睡觉
-        if (isThundering()) {
-            return true;
-        }
-
-        // 降雨时的睡眠时间范围
-        if (isRaining()) {
-            return dayTime >= WeatherConstants::RAIN_BED_START_TIME || dayTime <= WeatherConstants::RAIN_BED_END_TIME;
-        }
-
-        // 晴天时的睡眠时间范围
-        return dayTime >= WeatherConstants::CLEAR_BED_START_TIME && dayTime <= WeatherConstants::CLEAR_BED_END_TIME;
-    }
-
-    /**
-     * @brief 获取当前天空光照上限
-     *
-     * 雷暴时上限为 10，降雨时上限为 12，晴天无上限
-     *
-     * @return 天空光照上限 (0-15)，0 表示无限制
-     */
-    [[nodiscard]] u8 skyLightLimit() const noexcept
-    {
-        if (isThundering()) {
-            return WeatherConstants::THUNDER_SKY_LIGHT_LIMIT;
-        }
-        if (isRaining()) {
-            return WeatherConstants::RAIN_SKY_LIGHT_LIMIT;
-        }
-        return 15; // 无限制
+        return getRawThunderStrength(partialTick) * getRainStrength(partialTick);
     }
 
     // ========== 状态重置 ==========
 
     /**
-     * @brief 重置为晴天
+     * @brief 重置天气周期为晴天
      *
-     * 立即清除所有天气效果，用于玩家睡觉后
+     * 对应原版 ServerLevel.resetWeatherCycle：只清空降雨/雷暴计时器与状态标志，
+     * 不清除 clearWeatherTime；强度随后自然渐变到 0。用于玩家睡醒后。
      */
     void resetWeather() noexcept
     {
-        clearWeatherTime = 0;
         rainTime = 0;
         thunderTime = 0;
         raining = false;
         thundering = false;
-        // 强度会自然渐变到 0
     }
 };
 

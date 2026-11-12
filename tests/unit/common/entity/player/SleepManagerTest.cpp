@@ -34,7 +34,6 @@
 #include "common/entity/player/SleepManager.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/weather/WeatherConstants.hpp"
 #include <gtest/gtest.h>
 
 namespace mc {
@@ -45,59 +44,40 @@ namespace {
 
 class SleepManagerTimeTest : public ::testing::Test {
 protected:
-    // 时间常量参考 WeatherConstants.hpp
-    static constexpr i64 CLEAR_START = 12542; // 晴天睡眠开始时间
-    static constexpr i64 CLEAR_END = 23459;   // 晴天睡眠结束时间
-    static constexpr i64 RAIN_START = 12010;  // 降雨睡眠开始时间
-    static constexpr i64 RAIN_END = 23991;    // 降雨睡眠结束时间
-    static constexpr i64 DAY_LENGTH = 24000;  // 一天的长度
+    // 睡眠判定跟随天空减暗因子（BedRule.WHEN_DARK -> isDarkOutside：减暗 >= 4）。
+    // 下列时间点的期望值由 InternalLightUtils::calculateSkyDarkening 的曲线决定。
 };
 
-TEST_F(SleepManagerTimeTest, CanSleepDuringClearNight)
+TEST_F(SleepManagerTimeTest, CanSleepWhenSkyIsDark)
 {
-    // 晴天夜间应该可以睡眠
-    EXPECT_TRUE(SleepManager::canSleepAtTime(12542, false, false)); // 刚好进入夜间
-    EXPECT_TRUE(SleepManager::canSleepAtTime(13000, false, false)); // 深夜
-    EXPECT_TRUE(SleepManager::canSleepAtTime(18000, false, false)); // 午夜
-    EXPECT_TRUE(SleepManager::canSleepAtTime(23459, false, false)); // 夜间结束
+    EXPECT_TRUE(SleepManager::canSleepAtTime(11000, false, false));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(12000, false, false));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(18000, false, false));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(23459, false, false));
 }
 
-TEST_F(SleepManagerTimeTest, CannotSleepDuringDay)
+TEST_F(SleepManagerTimeTest, CannotSleepAtBrightNoon)
 {
-    // 白天不应该能睡眠
-    EXPECT_FALSE(SleepManager::canSleepAtTime(0, false, false));     // 日出
-    EXPECT_FALSE(SleepManager::canSleepAtTime(5000, false, false));  // 中午
-    EXPECT_FALSE(SleepManager::canSleepAtTime(10000, false, false)); // 下午
-    EXPECT_FALSE(SleepManager::canSleepAtTime(12541, false, false)); // 夜间前一 tick
+    EXPECT_FALSE(SleepManager::canSleepAtTime(6000, false, false));
+    EXPECT_FALSE(SleepManager::canSleepAtTime(8400, false, false));
+    EXPECT_FALSE(SleepManager::canSleepAtTime(10000, false, false));
+    EXPECT_FALSE(SleepManager::canSleepAtTime(10500, false, false));
 }
 
-TEST_F(SleepManagerTimeTest, CanSleepAnytimeDuringThunder)
+TEST_F(SleepManagerTimeTest, ThunderAllowsSleepAtNoon)
 {
-    // 雷暴时任何时间都可以睡眠
-    EXPECT_TRUE(SleepManager::canSleepAtTime(0, true, false));     // 白天雷暴
-    EXPECT_TRUE(SleepManager::canSleepAtTime(6000, true, false));  // 中午雷暴
-    EXPECT_TRUE(SleepManager::canSleepAtTime(12000, true, false)); // 傍晚雷暴
+    // 雷暴给天空减暗 +10，正午也能达到入睡阈值。
+    EXPECT_TRUE(SleepManager::canSleepAtTime(6000, true, false));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(3000, true, false));
 }
 
-TEST_F(SleepManagerTimeTest, CanSleepEarlierDuringRain)
+TEST_F(SleepManagerTimeTest, RainDarkensSkyButNotEnoughAtNoon)
 {
-    // 降雨时睡眠时间范围更宽
-    EXPECT_TRUE(SleepManager::canSleepAtTime(12010, false, true)); // 降雨开始时间
-    EXPECT_TRUE(SleepManager::canSleepAtTime(23991, false, true)); // 降雨结束时间
-
-    // 降雨时间范围外不能睡眠
-    EXPECT_FALSE(SleepManager::canSleepAtTime(12000, false, true)); // 降雨开始前
-    EXPECT_FALSE(SleepManager::canSleepAtTime(12009, false, true)); // 降雨开始前一 tick
-}
-
-TEST_F(SleepManagerTimeTest, RainSleepTimeDoesNotCrossMidnight)
-{
-    // 根据 WeatherConstants，降雨时间范围是 12010-23991，不跨午夜
-    // 午夜后（0-12009）不能睡眠
-    EXPECT_FALSE(SleepManager::canSleepAtTime(0, false, true));
-    EXPECT_FALSE(SleepManager::canSleepAtTime(100, false, true));
-    EXPECT_FALSE(SleepManager::canSleepAtTime(10000, false, true));
-    EXPECT_FALSE(SleepManager::canSleepAtTime(12009, false, true));
+    // 降雨给天空减暗 +3：正午仍不足 4，下午晚些时候才达到阈值。
+    EXPECT_FALSE(SleepManager::canSleepAtTime(6000, false, true));
+    EXPECT_FALSE(SleepManager::canSleepAtTime(8000, false, true));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(8400, false, true));
+    EXPECT_TRUE(SleepManager::canSleepAtTime(10000, false, true));
 }
 
 // ========== isPlayerNearBed 测试 ==========

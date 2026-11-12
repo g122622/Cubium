@@ -8,7 +8,8 @@
 //   if (isThundering) return min(baseDarkening + 10, 11);
 //   if (isRaining)    return min(baseDarkening + 3, 11);
 //   return baseDarkening;  // baseDarkening 由 celestialAngle sin 曲线算（正午0）
-// 关键：只查 isRaining()/isThundering() 布尔，不查 rainStrength，故 setRain/setThunder 后立即生效（无需渐变）。
+// 关键：isRaining()/isThundering() 是强度阈值判定（rainStrength>0.2；雷暴强度×降雨强度>0.9），
+// /weather 命令后需要等待强度渐变：雨天约 20 tick，雷暴约 95 tick，故用 pollUntilSucceed 轮询。
 //
 // GameTest 天气控制：GameTestServer 只为 day/night batch 注册 Clear 环境，无 rain/thunder batch。
 // 但 SimulatedPlayer.chat(command) 以创造模式权限级别2执行命令（SimulatedPlayer.cpp:182-192 isCreative()?2:0），
@@ -26,8 +27,9 @@
 // 玩家放置：grass_pen 内部 7×7 x,z∈[1,7]，玩家放角落 (1,2,1) 不挡露天格 (4,4,3) 的天空光
 // （实体不挡天空光，仅方块挡；且 (1,2,1) 远离 (4,4,3)）。创造模式 GameMode.creative 获取权限2。
 //
-// 命令异步：chat 执行命令后天气即时生效（布尔门控），但命令派发可能跨 tick，pollUntilSucceed 轮询等到
-// brightness 达预期。onTimeout 打印实际 skyLight/brightness 便于诊断（命令失败→天气不变→brightness 仍15）。
+// 命令异步：chat 执行命令后还要等强度渐变到阈值（雨天约 20 tick，雷暴约 95 tick），
+// pollUntilSucceed 轮询等到 brightness 达预期。onTimeout 打印实际 skyLight/brightness
+// 便于诊断（命令失败→天气不变→brightness 仍15）。
 //
 // 跨服务端：brightness/skyLight 是 Cubium 专有，基岩端 one-sided。SimulatedPlayer.chat 是 Cubium 补全
 // （基岩 BDS SimulatedPlayer 无 chat），天气衰减测试基岩侧无法跑，one-sided。
@@ -98,7 +100,7 @@ function thunderOpenSkyBrightnessIsFive(test: Test): void {
         {
             startTick: 5,
             interval: 4,
-            maxTick: 120,
+            maxTick: 160,
             onTimeout: () => {
                 test.assert(
                     false,

@@ -28,77 +28,56 @@
 namespace mc::weather {
 
 /**
- * @brief 天气持续时间常量
+ * @brief 天气常量
  *
- * 所有时间单位为 ticks (20 ticks = 1秒)
+ * 天气周期使用与原版 ServerLevel 相同的四组区间，均为闭区间：
+ * - 降雨等待/持续：RAIN_DELAY / RAIN_DURATION
+ * - 雷暴等待/持续：THUNDER_DELAY / THUNDER_DURATION
  *
- * 时间分布计算：
- * - 晴天: 平均约 84545 ticks (约 70 分钟)
- * - 降雨: 平均约 18000 ticks (约 15 分钟)
- * - 雷暴: 平均约 9600 ticks (约 8 分钟)
- *
- * 概率：
- * - 晴天: 109/121 ≈ 90.1%
- * - 降雨: 1/11 ≈ 9.1%
- * - 雷暴: 1/121 ≈ 0.8%
+ * 所有时间单位为 ticks (20 ticks = 1秒)。天气强度每 tick 变化
+ * ±STRENGTH_CHANGE_RATE，并夹取到 [0, 1]。
  */
 namespace WeatherConstants {
 
-/// 晴天最短持续时间 (ticks) - 约 10 分钟
-constexpr i32 MIN_CLEAR_TIME = 12000;
+// ========== 天气周期区间（闭区间） ==========
 
-/// 晴天最长持续时间 (ticks) - 约 140 分钟
-constexpr i32 MAX_CLEAR_TIME = 168000;
+/// 不在下雨时，rainTime 的重置范围 (10-150 分钟)
+constexpr i32 RAIN_DELAY_MIN = 12000;
+constexpr i32 RAIN_DELAY_MAX = 180000;
 
-/// 降雨最短持续时间 (ticks) - 约 10 分钟
-constexpr i32 MIN_RAIN_TIME = 12000;
+/// 正在下雨时，rainTime 的重置范围 (10-20 分钟)
+constexpr i32 RAIN_DURATION_MIN = 12000;
+constexpr i32 RAIN_DURATION_MAX = 24000;
 
-/// 降雨最长持续时间 (ticks) - 约 20 分钟
-constexpr i32 MAX_RAIN_TIME = 24000;
+/// 不在雷暴时，thunderTime 的重置范围 (10-150 分钟)
+constexpr i32 THUNDER_DELAY_MIN = 12000;
+constexpr i32 THUNDER_DELAY_MAX = 180000;
 
-/// 雷暴最短持续时间 (ticks) - 约 3 分钟
-constexpr i32 MIN_THUNDER_TIME = 3600;
+/// 正在雷暴时，thunderTime 的重置范围 (3-13 分钟)
+constexpr i32 THUNDER_DURATION_MIN = 3600;
+constexpr i32 THUNDER_DURATION_MAX = 15600;
 
-/// 雷暴最长持续时间 (ticks) - 约 13 分钟
-constexpr i32 MAX_THUNDER_TIME = 15600;
+// ========== 强度 ==========
 
-/// 默认命令持续时间 (ticks) - 5 分钟
-constexpr i32 DEFAULT_COMMAND_DURATION = 6000;
-
-/// 天气强度渐变速率 (每 tick)
-/// 从 0.0 到 1.0 需要 100 ticks (5秒)
+/// 天气强度渐变速率 (每 tick)，从 0.0 到 1.0 需要 100 ticks (5秒)
 constexpr f32 STRENGTH_CHANGE_RATE = 0.01f;
 
-/// 闪电生成概率分母 (每 tick)
-/// 雷暴时每 tick 有 1/100000 概率生成闪电
+/// 降雨强度阈值（超过此值认为正在下雨，对应原版 Level.isRaining 的 0.2）
+constexpr f32 RAIN_THRESHOLD = 0.2f;
+
+/// 雷暴强度阈值（超过此值认为正在雷暴，对应原版 Level.isThundering 的 0.9；
+/// 判定使用"雷暴强度 × 降雨强度"，与 Level.getThunderLevel 一致）
+constexpr f32 THUNDER_THRESHOLD = 0.9f;
+
+// ========== 闪电 ==========
+
+/// 闪电生成概率分母：每个实体 ticking 区块每 tick 判定 1/100000
 constexpr i32 LIGHTNING_CHANCE_DENOMINATOR = 100000;
 
-/// 骷髅马陷阱难度系数（对齐 vanilla ServerLevel.tickThunder 的
-/// `difficultyInstance.getEffectiveDifficulty() * 0.01`）
-/// 雷暴闪电落点处，以"区域有效难度 × 本系数"的概率生成陷阱骷髅马（闪电随之只作视觉效果）。
+/// 骷髅马陷阱难度系数：区域有效难度 × 本系数即为陷阱生成概率
 /// 区域难度随难度与居住时间在 0.75~1.5（简单）/1.5~4（普通）/2.25~6.75（困难）区间变化，
 /// 因此实际概率约为 0.75%~1.5% / 1.5%~4% / 2.25%~6.75%。
 constexpr f32 SKELETON_HORSE_TRAP_CHANCE = 0.01f;
-
-/// 降雨开始时玩家可睡觉的时间范围
-constexpr i64 RAIN_BED_START_TIME = 12010;
-constexpr i64 RAIN_BED_END_TIME = 23991;
-
-/// 晴天时玩家可睡觉的时间范围
-constexpr i64 CLEAR_BED_START_TIME = 12542;
-constexpr i64 CLEAR_BED_END_TIME = 23459;
-
-/// 雷暴时天空光照上限
-constexpr u8 THUNDER_SKY_LIGHT_LIMIT = 10;
-
-/// 降雨时天空光照上限
-constexpr u8 RAIN_SKY_LIGHT_LIMIT = 12;
-
-/// 降雨强度阈值（超过此值认为正在下雨）
-constexpr f32 RAIN_THRESHOLD = 0.2f;
-
-/// 雷暴强度阈值（超过此值认为正在雷暴）
-constexpr f32 THUNDER_THRESHOLD = 0.9f;
 
 } // namespace WeatherConstants
 

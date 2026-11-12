@@ -22,28 +22,28 @@
  */
 
 #include "WeatherManager.hpp"
-#include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/Biome.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
+#include "common/world/village/VillageManager.hpp"
+#include "common/world/village/poi/PointOfInterestStorage.hpp"
+#include "common/world/village/poi/PointOfInterestType.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include "common/world/weather/WeatherUtils.hpp"
 #include <algorithm>
 #include <cmath>
-#include <cstddef>
-#include <cstring>
+#include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -57,17 +57,18 @@ WeatherManager::WeatherManager()
 
 WeatherManager::~WeatherManager() = default;
 
-void WeatherManager::initialize(u64 seed)
+void WeatherManager::initialize(u64 seed, bool canHaveWeather)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "WeatherManager::initialize");
 
     m_random = std::make_unique<mc::math::Random>(seed);
+    m_canHaveWeather = canHaveWeather;
 
-    // 初始化天气状态
-    // 初始为晴天，设置随机时间
+    // 原版新世界的 level.dat 天气字段全为 0（晴天、计时器为 0），
+    // 首个 tick 才按 RAIN_DELAY / THUNDER_DELAY 采样第一次天气变化的等待时间。
     m_state.clearWeatherTime = 0;
-    m_state.rainTime = mc::weather::WeatherUtils::getRandomRainDuration(*m_random);
-    m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
+    m_state.rainTime = 0;
+    m_state.thunderTime = 0;
     m_state.raining = false;
     m_state.thundering = false;
     m_state.rainStrength = 0.0f;
@@ -78,6 +79,7 @@ void WeatherManager::initialize(u64 seed)
 
     m_weatherChanged = false;
     m_strengthChanged = false;
+    m_lastRaining = false;
 }
 
 void WeatherManager::tick()
@@ -92,13 +94,13 @@ void WeatherManager::tick()
     m_state.prevRainStrength = m_state.rainStrength;
     m_state.prevThunderStrength = m_state.thunderStrength;
 
-    // 处理天气周期
-    if (m_state.weatherCycleEnabled) {
-        _tickWeatherCycle();
+    // 原版 advanceWeatherCycle：周期推进与强度渐变都只在有天气能力的维度执行。
+    if (m_canHaveWeather) {
+        if (m_state.weatherCycleEnabled) {
+            _tickWeatherCycle();
+        }
+        _updateStrength();
     }
-
-    // 更新强度渐变
-    _updateStrength();
 
     // 检查天气变化
     _checkWeatherChange();
@@ -106,45 +108,37 @@ void WeatherManager::tick()
 
 void WeatherManager::_tickWeatherCycle()
 {
-    // 处理晴天计时器
+    // 处理强制晴天计时器
     if (m_state.clearWeatherTime > 0) {
         --m_state.clearWeatherTime;
-        // 强制晴天时，重置降雨/雷暴计时器
-        m_state.rainTime = m_state.raining ? 0 : 1;
+        // 强制晴天时把仍在持续的计时器压到 0/1，使下一次 tick 立即按等待区间采样。
         m_state.thunderTime = m_state.thundering ? 0 : 1;
-        m_state.raining = false;
+        m_state.rainTime = m_state.raining ? 0 : 1;
         m_state.thundering = false;
+        m_state.raining = false;
     } else {
-        // 处理雷暴计时器
+        // 雷暴计时器：正在雷暴时用 THUNDER_DURATION，否则用 THUNDER_DELAY。
         if (m_state.thunderTime > 0) {
             --m_state.thunderTime;
             if (m_state.thunderTime == 0) {
-                // 切换雷暴状态
                 m_state.thundering = !m_state.thundering;
             }
         } else if (m_state.thundering) {
-            // 雷暴结束，设置新的雷暴间隔
             m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
         } else {
-            // 晴天，设置到下次雷暴的时间
-            m_state.thunderTime = m_random->nextInt(
-                mc::weather::WeatherConstants::MIN_THUNDER_TIME, mc::weather::WeatherConstants::MAX_THUNDER_TIME);
+            m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDelay(*m_random);
         }
 
-        // 处理降雨计时器
+        // 降雨计时器：正在下雨时用 RAIN_DURATION，否则用 RAIN_DELAY。
         if (m_state.rainTime > 0) {
             --m_state.rainTime;
             if (m_state.rainTime == 0) {
-                // 切换降雨状态
                 m_state.raining = !m_state.raining;
             }
         } else if (m_state.raining) {
-            // 降雨结束，设置到下次降雨的时间
             m_state.rainTime = mc::weather::WeatherUtils::getRandomRainDuration(*m_random);
         } else {
-            // 晴天，设置到下次降雨的时间
-            m_state.rainTime = m_random->nextInt(
-                mc::weather::WeatherConstants::MIN_RAIN_TIME, mc::weather::WeatherConstants::MAX_RAIN_TIME);
+            m_state.rainTime = mc::weather::WeatherUtils::getRandomRainDelay(*m_random);
         }
     }
 }
@@ -162,8 +156,9 @@ void WeatherManager::_updateStrength()
             std::max(0.0f, m_state.rainStrength - mc::weather::WeatherConstants::STRENGTH_CHANGE_RATE);
     }
 
-    // 更新雷暴强度（依赖于降雨）
-    if (m_state.thundering && m_state.raining) {
+    // 更新雷暴强度：原版只看 thundering 标志。对外可见性由 isThundering
+    // 乘以降雨强度决定，因此"雷暴但未下雨"时内部强度仍会正常上升。
+    if (m_state.thundering) {
         m_state.thunderStrength =
             std::min(1.0f, m_state.thunderStrength + mc::weather::WeatherConstants::STRENGTH_CHANGE_RATE);
     } else {
@@ -179,15 +174,16 @@ void WeatherManager::_updateStrength()
 
 void WeatherManager::_checkWeatherChange()
 {
-    // 检查降雨状态变化
-    bool currentlyRaining = m_state.isRaining();
+    // 检查降雨状态变化（使用带维度门控的查询）
+    const bool currentlyRaining = isRaining();
 
     if (currentlyRaining != m_lastRaining) {
         m_weatherChanged = true;
         if (m_weatherChangeCallback) {
-            WeatherType oldType = m_lastRaining ? (m_state.isThundering() ? WeatherType::Thunder : WeatherType::Rain)
-                                                : WeatherType::Clear;
-            WeatherType newType = currentlyRaining ? (m_state.isThundering() ? WeatherType::Thunder : WeatherType::Rain)
+            const bool currentlyThundering = isThundering();
+            WeatherType oldType =
+                m_lastRaining ? (currentlyThundering ? WeatherType::Thunder : WeatherType::Rain) : WeatherType::Clear;
+            WeatherType newType = currentlyRaining ? (currentlyThundering ? WeatherType::Thunder : WeatherType::Rain)
                                                    : WeatherType::Clear;
             m_weatherChangeCallback(oldType, newType);
         }
@@ -195,295 +191,189 @@ void WeatherManager::_checkWeatherChange()
     }
 }
 
-void WeatherManager::setClear(i32 duration)
+i32 WeatherManager::setClear(i32 duration)
 {
-    // /weather clear [duration] - duration 单位是秒，乘以 20 转换为 ticks
+    // 原版 /weather clear 未提供 duration 时按 RAIN_DELAY 采样。
     if (duration <= 0) {
-        duration = mc::weather::WeatherConstants::DEFAULT_COMMAND_DURATION;
+        duration = mc::weather::WeatherUtils::getRandomRainDelay(*m_random);
     }
 
+    // 原版 setWeatherParameters(clearTime, 0, false, false)：两个天气计时器都写 0。
     m_state.clearWeatherTime = duration;
+    m_state.rainTime = 0;
+    m_state.thunderTime = 0;
     m_state.raining = false;
     m_state.thundering = false;
-    m_state.rainTime = mc::weather::WeatherUtils::getRandomRainDuration(*m_random);
-    m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
 
-    // 注意：设置 clearWeatherTime 后，tick() 会处理计时器递减
     // 强度会自然渐变到 0
+    return duration;
 }
 
-void WeatherManager::setRain(i32 duration)
+i32 WeatherManager::setRain(i32 duration)
 {
     if (duration <= 0) {
-        duration = mc::weather::WeatherConstants::DEFAULT_COMMAND_DURATION;
+        duration = mc::weather::WeatherUtils::getRandomRainDuration(*m_random);
     }
 
+    // 原版 setWeatherParameters(0, duration, true, false)：rainTime 与 thunderTime 都写 duration。
     m_state.clearWeatherTime = 0;
     m_state.raining = true;
     m_state.thundering = false;
     m_state.rainTime = duration;
-    m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
+    m_state.thunderTime = duration;
 
     // 强度会自然渐变到 1
+    return duration;
 }
 
-void WeatherManager::setThunder(i32 duration)
+i32 WeatherManager::setThunder(i32 duration)
 {
     if (duration <= 0) {
-        duration = mc::weather::WeatherConstants::DEFAULT_COMMAND_DURATION;
+        duration = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
     }
 
-    // 雷暴需要同时启用降雨
+    // 原版 setWeatherParameters(0, duration, true, true)：雷暴同时启用降雨，
+    // rainTime 与 thunderTime 相同，因此雷暴结束后会立即转入晴天计时。
     m_state.clearWeatherTime = 0;
     m_state.raining = true;
     m_state.thundering = true;
     m_state.rainTime = duration;
     m_state.thunderTime = duration;
 
-    // 注意：/weather thunder 命令会使 rainTime 和 thunderTime 相同
-    // 这样雷暴结束后晴天会开始
+    return duration;
+}
+
+void WeatherManager::restoreState(i32 clearWeatherTime, i32 rainTime, bool raining, i32 thunderTime, bool thundering)
+{
+    m_state.clearWeatherTime = clearWeatherTime;
+    m_state.rainTime = rainTime;
+    m_state.raining = raining;
+    m_state.thunderTime = thunderTime;
+    m_state.thundering = thundering;
+
+    // 原版 Level.prepareWeather：正在下雨/雷暴时强度直接置 1，其余情况保持 0。
+    m_state.rainStrength = raining ? 1.0f : 0.0f;
+    m_state.thunderStrength = thundering ? 1.0f : 0.0f;
+    m_state.prevRainStrength = m_state.rainStrength;
+    m_state.prevThunderStrength = m_state.thunderStrength;
+
+    // 恢复后不应把存档里已存在的天气误报为"本 tick 刚发生的变化"。
+    m_lastRaining = isRaining();
 }
 
 void WeatherManager::resetWeather()
 {
     m_state.resetWeather();
 
-    // 设置新的随机计时器
-    m_state.rainTime = mc::weather::WeatherUtils::getRandomRainDuration(*m_random);
-    m_state.thunderTime = mc::weather::WeatherUtils::getRandomThunderDuration(*m_random);
-
+    // 计时器归零后，下一个 tick 会按 WAIT 区间重新采样；强度自然渐变到 0。
     m_weatherChanged = true;
 }
 
-std::pair<bool, BlockPos> WeatherManager::trySpawnLightning()
+std::optional<BlockPos> WeatherManager::findLightningTarget(
+    mc::IWorld& world, const mc::world::chunk::ChunkData& chunk, const BlockPos& randomPos)
 {
-    // 雷暴时每tick有 1/100000 概率生成闪电
+    MC_ASSERT_RELEASE(m_canHaveWeather);
 
-    if (!m_state.isThundering() || !m_state.isRaining()) {
-        return {false, BlockPos(0, 0, 0)};
-    }
+    const i32 chunkStartX = chunk.x() * world::CHUNK_WIDTH;
+    const i32 chunkStartZ = chunk.z() * world::CHUNK_WIDTH;
+    const BlockCoord localX = randomPos.x - chunkStartX;
+    const BlockCoord localZ = randomPos.z - chunkStartZ;
 
-    // 概率检查：每 tick 有 1/100000 概率尝试生成闪电
-    if (m_random->nextInt(mc::weather::WeatherConstants::LIGHTNING_CHANCE_DENOMINATOR) != 0) {
-        return {false, BlockPos(0, 0, 0)};
-    }
-
-    // 需要有效的世界
-    if (m_world == nullptr) {
-        return {false, BlockPos(0, 0, 0)};
-    }
-
-    // 选择加载的区块进行闪电生成
-    // 走玩家专表 O(玩家数)（EntityManager::getPlayers 内部走 3D section 空间索引的玩家专表），
-    // 替代原先以原点为中心、CHUNK_LOAD_RADIUS*16 的巨型球查全服实体再手挑 PLAYER 的 O(全服实体) 扫描。
-    auto players = m_world->getPlayers();
-
-    // 过滤出活着的玩家
-    std::vector<Entity*> playerEntities;
-    for (Entity* entity : players) {
-        if (entity && entity->isAlive()) {
-            playerEntities.push_back(entity);
-        }
-    }
-
-    // 如果没有玩家，无法生成闪电
-    if (playerEntities.empty()) {
-        return {false, BlockPos(0, 0, 0)};
-    }
-
-    // 选择一个随机玩家
-    Entity* randomPlayer = playerEntities[m_random->nextInt(static_cast<i32>(playerEntities.size()))];
-    Vector3 playerPos = randomPlayer->position();
-
-    // 区块坐标
-    ChunkCoord playerChunkX = static_cast<ChunkCoord>(std::floor(playerPos.x / static_cast<f32>(world::CHUNK_WIDTH)));
-    ChunkCoord playerChunkZ = static_cast<ChunkCoord>(std::floor(playerPos.z / static_cast<f32>(world::CHUNK_WIDTH)));
-
-    // 获取该区块
-    const ChunkData* chunk = m_world->chunkManager()->tryToGetChunkInMem(playerChunkX, playerChunkZ);
-    if (chunk == nullptr) {
-        return {false, BlockPos(0, 0, 0)};
-    }
-
-    // 在区块内随机选择位置
-    i32 chunkStartX = playerChunkX * world::CHUNK_WIDTH;
-    i32 chunkStartZ = playerChunkZ * world::CHUNK_WIDTH;
-
-    // 获取区块内的随机位置
-    // 传入 0 作为 Y 起点，然后使用高度图获取正确的 Y
-    BlockPos randomPos = _getBlockRandomPos(chunkStartX, 0, chunkStartZ);
-
-    // 获取该位置的最高可站立方块
-    i32 topY = chunk->getTopBlockY(HeightmapType::MotionBlocking, randomPos.x - chunkStartX, randomPos.z - chunkStartZ);
-
-    if (topY < world::MIN_BUILD_HEIGHT) {
-        return {false, BlockPos(0, 0, 0)};
-    }
-
+    // 原版 getHeightmapPos(MOTION_BLOCKING, pos)：取该列最高运动阻挡方块。
+    i32 topY = chunk.getTopBlockY(HeightmapType::MotionBlocking, localX, localZ);
     BlockPos targetPos(randomPos.x, topY, randomPos.z);
-
-    // 调整位置到附近实体
-    BlockPos adjustedPos = _findLightningTargetAround(targetPos);
-
-    // 检查该位置是否可以降雨（生物群系检查）
-    if (!m_world->canRainAt(adjustedPos)) {
-        return {false, BlockPos(0, 0, 0)};
+    if (topY < world::MIN_BUILD_HEIGHT) {
+        // 原版对空列返回 getMinY()-1，随后 above(2) 抬到 minY+1。
+        targetPos = BlockPos(randomPos.x, world::MIN_BUILD_HEIGHT + 1, randomPos.z);
     }
 
-    // 检查位置是否可以看到天空
-    if (!mc::weather::WeatherUtils::canSeeSky(*m_world, adjustedPos)) {
-        return {false, BlockPos(0, 0, 0)};
-    }
+    // 落点优先选择世界表面的避雷针；否则在柱状范围内随机挑一个可见天空的生物。
+    if (auto rod = _findLightningRod(world, targetPos); rod.has_value()) {
+        targetPos = *rod;
+    } else {
+        // 原版 AABB.encapsulatingFullBlocks(pos, pos.atY(getMaxY()+1)).inflate(3)。
+        const f32 minX = static_cast<f32>(targetPos.x) - 3.0f;
+        const f32 maxX = static_cast<f32>(targetPos.x) + 1.0f + 3.0f;
+        const f32 minY = static_cast<f32>(targetPos.y) - 3.0f;
+        const f32 maxY = static_cast<f32>(world.getMaxBuildHeight()) + 1.0f + 3.0f;
+        const f32 minZ = static_cast<f32>(targetPos.z) - 3.0f;
+        const f32 maxZ = static_cast<f32>(targetPos.z) + 1.0f + 3.0f;
+        const AxisAlignedBB searchBox(minX, minY, minZ, maxX, maxY, maxZ);
 
-    // 成功生成闪电
-    return {true, adjustedPos};
-}
+        // 原版只按 LivingEntity 过滤（玩家也属于 LivingEntity），不排除其他实体类型。
+        std::vector<Entity*> candidates;
+        for (Entity* entity : world.getEntitiesInAABB(searchBox, nullptr)) {
+            auto* living = dynamic_cast<LivingEntity*>(entity);
+            if (living == nullptr || !living->isAlive()) {
+                continue;
+            }
 
-BlockPos WeatherManager::_findLightningTargetAround(const BlockPos& pos) const
-{
-    // 在位置周围搜索生物实体
-
-    if (m_world == nullptr) {
-        return pos;
-    }
-
-    // 获取高度
-    i32 height = m_world->getHeight(pos.x, pos.z);
-
-    // 闪电目标搜索范围（水平半径）
-    constexpr f32 LIGHTNING_SEARCH_RADIUS = 3.0f;
-
-    // 创建搜索范围：从地面到世界高度限制
-    AxisAlignedBB searchBox(static_cast<f32>(pos.x) - LIGHTNING_SEARCH_RADIUS,
-        static_cast<f32>(height),
-        static_cast<f32>(pos.z) - LIGHTNING_SEARCH_RADIUS,
-        static_cast<f32>(pos.x) + LIGHTNING_SEARCH_RADIUS,
-        static_cast<f32>(world::MAX_BUILD_HEIGHT),
-        static_cast<f32>(pos.z) + LIGHTNING_SEARCH_RADIUS);
-
-    // 获取范围内的实体
-    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, nullptr);
-
-    // 过滤出活着的生物实体
-    std::vector<Entity*> livingEntities;
-    for (Entity* entity : entities) {
-        if (entity && entity->isAlive()) {
-            // 检查是否为生物实体（LivingEntity 或其子类）
-            // 使用实体类型指针来判断
-            const entity::EntityType* type = entity->entityType();
-            // 排除玩家和一些特殊实体
-            if (type != entity::VanillaEntityTypeKeys::PLAYER && type != entity::VanillaEntityTypeKeys::ITEM &&
-                type != entity::VanillaEntityTypeKeys::EXPERIENCE_ORB && type != nullptr) {
-                // 检查实体是否可以看到天空
-                BlockPos entityPos(
-                    static_cast<i32>(entity->x()), static_cast<i32>(entity->y()), static_cast<i32>(entity->z()));
-                if (mc::weather::WeatherUtils::canSeeSky(*m_world, entityPos)) {
-                    livingEntities.push_back(entity);
-                }
+            const BlockPos entityPos(static_cast<i32>(std::floor(living->x())),
+                static_cast<i32>(std::floor(living->y())),
+                static_cast<i32>(std::floor(living->z())));
+            if (world.canSeeSky(entityPos)) {
+                candidates.push_back(entity);
             }
         }
+
+        if (!candidates.empty()) {
+            Entity* chosen = candidates[m_random->nextInt(static_cast<i32>(candidates.size()))];
+            targetPos = BlockPos(static_cast<i32>(std::floor(chosen->x())),
+                static_cast<i32>(std::floor(chosen->y())),
+                static_cast<i32>(std::floor(chosen->z())));
+        }
     }
 
-    // 如果找到了实体，随机选择一个
-    if (!livingEntities.empty()) {
-        Entity* target = livingEntities[m_random->nextInt(static_cast<i32>(livingEntities.size()))];
-        return BlockPos(static_cast<i32>(target->x()), static_cast<i32>(target->y()), static_cast<i32>(target->z()));
+    // 原版 isRainingAt(blockpos)：落点必须允许降水，否则本次闪电作废。
+    if (!mc::weather::WeatherUtils::canRainAt(world, targetPos)) {
+        return std::nullopt;
     }
 
-    // 如果没有找到实体，返回原始位置
-    // 如果高度无效，调整一下
-    if (pos.y < world::MIN_BUILD_HEIGHT + 2) {
-        return BlockPos(pos.x, world::MIN_BUILD_HEIGHT + 2, pos.z);
-    }
-
-    return pos;
+    return targetPos;
 }
 
-BlockPos WeatherManager::_getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
+std::optional<BlockPos> WeatherManager::_findLightningRod(mc::IWorld& world, const BlockPos& pos) const
 {
-    const i32 i = m_blockPositionRandom.nextPositionBits();
-
-    // 计算 x, y, z 偏移
-    // x = chunkX + (i & 15)          -> 范围 [0, 15]
-    // y = sectionY + ((i >> 16) & 15) -> 范围 [0, 15]
-    // z = chunkZ + ((i >> 8) & 15)   -> 范围 [0, 15]
-    return BlockPos(chunkX + (i & world::CHUNK_MASK),
-        sectionY + ((i >> 16) & world::CHUNK_MASK),
-        chunkZ + ((i >> 8) & world::CHUNK_MASK));
-}
-
-void WeatherManager::serialize(std::vector<u8>& data) const
-{
-    // 简单的二进制序列化
-    // 格式: [clearWeatherTime(4)] [rainTime(4)] [thunderTime(4)]
-    //       [raining(1)] [thundering(1)] [weatherCycleEnabled(1)]
-    //       [rainStrength(4)] [thunderStrength(4)]
-
-    auto writeI32 = [&data](i32 value) {
-        data.push_back(static_cast<u8>(value & 0xFF));
-        data.push_back(static_cast<u8>((value >> 8) & 0xFF));
-        data.push_back(static_cast<u8>((value >> 16) & 0xFF));
-        data.push_back(static_cast<u8>((value >> 24) & 0xFF));
-    };
-
-    auto writeF32 = [&data](f32 value) {
-        u32 bits;
-        std::memcpy(&bits, &value, sizeof(f32));
-        data.push_back(static_cast<u8>(bits & 0xFF));
-        data.push_back(static_cast<u8>((bits >> 8) & 0xFF));
-        data.push_back(static_cast<u8>((bits >> 16) & 0xFF));
-        data.push_back(static_cast<u8>((bits >> 24) & 0xFF));
-    };
-
-    writeI32(m_state.clearWeatherTime);
-    writeI32(m_state.rainTime);
-    writeI32(m_state.thunderTime);
-    data.push_back(m_state.raining ? 1 : 0);
-    data.push_back(m_state.thundering ? 1 : 0);
-    data.push_back(m_state.weatherCycleEnabled ? 1 : 0);
-    writeF32(m_state.rainStrength);
-    writeF32(m_state.thunderStrength);
-}
-
-Result<void> WeatherManager::deserialize(const std::vector<u8>& data, size_t& offset)
-{
-    // 序列化格式：3 * 4 (i32) + 3 (bool) + 2 * 4 (f32) = 23 字节
-    constexpr size_t WEATHER_STATE_SIZE = 23;
-
-    if (data.size() < offset + WEATHER_STATE_SIZE) {
-        return Error(ErrorCode::InvalidData, "Insufficient data for weather state");
+    auto* villageManager = world.villageManager();
+    if (villageManager == nullptr) {
+        return std::nullopt;
     }
 
-    auto readI32 = [&data, &offset]() -> i32 {
-        i32 value = static_cast<i32>(static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
-            (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24));
-        offset += 4;
-        return value;
-    };
+    const auto rods = villageManager->getPOIStorage().findAllInRange(
+        pos, 128.0f, world::village::poi::PointOfInterestType::LightningRod);
 
-    auto readF32 = [&data, &offset]() -> f32 {
-        u32 bits = static_cast<u32>(data[offset]) | (static_cast<u32>(data[offset + 1]) << 8) |
-            (static_cast<u32>(data[offset + 2]) << 16) | (static_cast<u32>(data[offset + 3]) << 24);
-        offset += 4;
-        f32 value;
-        std::memcpy(&value, &bits, sizeof(f32));
-        return value;
-    };
+    // 原版 PoiManager.findClosest 取 3D 距离平方最小者，并要求避雷针位于世界表面：
+    // poi.y == getHeight(WORLD_SURFACE, x, z) - 1，即 poi.y 等于该列最高非空气方块 Y。
+    const world::village::poi::PointOfInterest* nearest = nullptr;
+    f32 nearestDistanceSq = std::numeric_limits<f32>::max();
+    for (const auto* rod : rods) {
+        const BlockPos rodPos = rod->getPosition();
+        const auto* rodChunk = world.chunkManager()->tryToGetChunkInMem(rodPos.chunkX(), rodPos.chunkZ());
+        if (rodChunk == nullptr) {
+            continue;
+        }
 
-    m_state.clearWeatherTime = readI32();
-    m_state.rainTime = readI32();
-    m_state.thunderTime = readI32();
-    m_state.raining = data[offset++] != 0;
-    m_state.thundering = data[offset++] != 0;
-    m_state.weatherCycleEnabled = data[offset++] != 0;
-    m_state.rainStrength = readF32();
-    m_state.thunderStrength = readF32();
+        const i32 surfaceY = rodChunk->getTopBlockY(HeightmapType::WorldSurface, rodPos.localX(), rodPos.localZ());
+        if (rodPos.y != surfaceY) {
+            continue;
+        }
 
-    // 初始化前一帧强度
-    m_state.prevRainStrength = m_state.rainStrength;
-    m_state.prevThunderStrength = m_state.thunderStrength;
+        const f32 dx = static_cast<f32>(rodPos.x - pos.x);
+        const f32 dy = static_cast<f32>(rodPos.y - pos.y);
+        const f32 dz = static_cast<f32>(rodPos.z - pos.z);
+        const f32 distanceSq = dx * dx + dy * dy + dz * dz;
+        if (distanceSq < nearestDistanceSq) {
+            nearestDistanceSq = distanceSq;
+            nearest = rod;
+        }
+    }
 
-    return {};
+    if (nearest == nullptr) {
+        return std::nullopt;
+    }
+
+    // 原版 findLightningRod 返回避雷针上方一格作为闪电落点。
+    return nearest->getPosition().up();
 }
 
 } // namespace mc::server

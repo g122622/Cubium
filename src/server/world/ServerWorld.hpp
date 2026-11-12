@@ -334,6 +334,16 @@ public:
 
 private:
     /**
+     * @brief 对单个实体 ticking 区块执行一次闪电判定
+     *
+     * 对应原版 ServerLevel.tickThunder：每区块每 tick 1/100000 概率触发，
+     * 随机列由世界 LCG 产生，落点由 WeatherManager 计算。
+     *
+     * @param chunk 实体 ticking 范围内的区块
+     */
+    void _tickThunder(ChunkData& chunk);
+
+    /**
      * @brief 执行方块实体tick
      *
      * 遍历所有已加载区块中的方块实体，对 needsTick() 返回 true

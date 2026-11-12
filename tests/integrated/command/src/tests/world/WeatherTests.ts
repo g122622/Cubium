@@ -54,7 +54,8 @@ function weatherRain(test: Test): void {
 }
 
 // /weather thunder 设置雷暴，等强度渐变后断言 isThundering()=true。
-// 雷暴阈值 THUNDER_THRESHOLD=0.9，渐变需 90 tick，maxTick 200 足够。
+// 雷暴判定为 雷暴强度 × 降雨强度 > 0.9，两者同时从 0 渐变，约 95 tick 达标，
+// maxTick 200 足够。
 // Ref: wiki commands/weather.txt（weather thunder）
 function weatherThunder(test: Test): void {
     const player = test.spawnSimulatedPlayer(PLAYER_POS, "op");
