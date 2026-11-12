@@ -127,10 +127,11 @@ void WorldGenRegion::scheduleTick(
     // 区域外的调度同样交给对应区块的 ChunkPrimer 记录。
     auto* primer = const_cast<ChunkPrimer*>(_findPrimer(pos));
     if (primer == nullptr) {
-        // 目标区块不是生成中的 proto chunk（例如已发布区块）：无 proto 容器可记录，
-        // 且生成期不允许写入世界 TickManager（主线程独占），因此直接丢弃。
-        // TODO(gen-schedule-outside-region): vanilla 对已加载邻居走 ServerLevel.scheduleTick，
-        //   本项目的区域外调度场景（特性跨区块放置）尚未出现，出现后需补充。
+        // 目标区块不在本生成区域内，或不是生成中的 proto chunk：直接丢弃，这与原版一致。
+        // 原版 WorldGenRegion 的 blockTicks 是 WorldGenTickAccess，内部就是
+        // getChunk(pos).getBlockTicks()——区域外位置取不到区块会直接失败，不会转发给
+        // ServerLevel。生成期也不允许写世界 TickManager（主线程独占状态），所以「丢弃」是对的语义，
+        // 不是待补的缺口：真正落到区域外邻居的刻，会在那个区块自己的生成流程里被调度。
         return;
     }
     primer->addPendingBlockTick(pos, block, currentTick(), delay, priority);
@@ -142,7 +143,7 @@ void WorldGenRegion::scheduleTick(
     // 与方块刻同一语义：写入目标区块的待执行流体刻容器，随区块发布转交世界 TickManager。
     auto* primer = const_cast<ChunkPrimer*>(_findPrimer(pos));
     if (primer == nullptr) {
-        // TODO(gen-schedule-outside-region): 同方块刻，区域外/已发布区块的调度暂直接丢弃。
+        // 与方块刻同一语义：区域外/非 proto 区块直接丢弃，不转发到世界（见上方说明）。
         return;
     }
     primer->addPendingFluidTick(pos, fluid, currentTick(), delay, priority);

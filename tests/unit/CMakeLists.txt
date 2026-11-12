@@ -1572,6 +1572,7 @@ add_executable(mc_tests
     # WorldGenRegion测试
     common/world/gen/chunk/WorldGenRegionTest.cpp
     # WorldGenRegion详细单元测试
+    common/world/gen/chunk/WorldGenRegionTickScheduleTest.cpp
     common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
     # WorldGenRegion区块访问窗口验证测试
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
