@@ -119,7 +119,8 @@ protected:
         rawBlockInfo.blockStateId = VanillaBlocks::STONE->defaultState().stateId();
         BlockInfo blockInfo = rawBlockInfo;
 
-        const auto processed = processor.process(BlockPos(0, 0, 0), BlockPos(1, 0, 1), rawBlockInfo, blockInfo, settings);
+        const auto processed =
+            processor.process(BlockPos(0, 0, 0), BlockPos(1, 0, 1), rawBlockInfo, blockInfo, settings);
         EXPECT_TRUE(processed.has_value());
         return processed.has_value() ? processed->pos.y : -999;
     }

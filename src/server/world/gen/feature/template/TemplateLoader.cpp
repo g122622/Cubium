@@ -88,6 +88,15 @@ std::vector<i32> readIntSequence(const nbt::Tag& tag)
     return result;
 }
 
+/// 一个基岩属性映射出的全部 Java 属性（多数属性只产出一项，拉杆的 direction 会拆成两项）
+using BedrockJavaProps = std::vector<std::pair<std::string, std::string>>;
+
+/// 构造只含一项映射结果的便捷函数
+inline BedrockJavaProps oneJavaProp(std::string key, std::string value)
+{
+    return BedrockJavaProps{std::make_pair(std::move(key), std::move(value))};
+}
+
 // 基岩版整型属性 → Java 属性 (key, value) 字符串。
 // 已覆盖：
 // - facing_direction (i32 0-5: 0=down,1=up,2=north,3=south,4=east,5=west)：基岩通用 6 向 → Java facing
@@ -100,28 +109,23 @@ std::vector<i32> readIntSequence(const nbt::Tag& tag)
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认数字字符串转换。
 // 两个映射函数都已按方块类型分派（形参 javaBlockName），可处理"同一基岩属性名在不同方块上
 // 语义不同"的情形。已落实的修正：拉杆的 open_bit → powered（Java 拉杆没有 open 属性）。
-// TODO: 拉杆的 face（wall/floor/ceiling）需要从基岩 `direction` 的高位推出，当前只映射了
-//   facing。缺口在于基岩拉杆 direction 的位布局在项目内没有可靠来源（LeviLamina 逆向头文件
-//   里没有 LeverBlock，数据包也不含拉杆），凭猜测写会把错误编码固化下来，故暂按默认
-//   ATTACH_FACE=wall 处理。拿到可靠位布局后应在此补 face 推导。
-//   其余"同属性名不同语义"的方块如果发现，按拉杆的做法在对应分支里加 javaBlockName 判定。
-std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
+std::optional<BedrockJavaProps> bedrockIntStateToJava(
     const std::string& javaBlockName, const std::string& bedrockKey, i32 intVal)
 {
     if (bedrockKey == "facing_direction") {
         switch (intVal) {
             case 0:
-                return std::make_pair(std::string("facing"), std::string("down"));
+                return oneJavaProp(std::string("facing"), std::string("down"));
             case 1:
-                return std::make_pair(std::string("facing"), std::string("up"));
+                return oneJavaProp(std::string("facing"), std::string("up"));
             case 2:
-                return std::make_pair(std::string("facing"), std::string("north"));
+                return oneJavaProp(std::string("facing"), std::string("north"));
             case 3:
-                return std::make_pair(std::string("facing"), std::string("south"));
+                return oneJavaProp(std::string("facing"), std::string("south"));
             case 4:
-                return std::make_pair(std::string("facing"), std::string("east"));
+                return oneJavaProp(std::string("facing"), std::string("east"));
             case 5:
-                return std::make_pair(std::string("facing"), std::string("west"));
+                return oneJavaProp(std::string("facing"), std::string("west"));
             default:
                 break;
         }
@@ -129,13 +133,13 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
         // 基岩 stairs 朝向 → Java stairs facing
         switch (intVal) {
             case 0:
-                return std::make_pair(std::string("facing"), std::string("east"));
+                return oneJavaProp(std::string("facing"), std::string("east"));
             case 1:
-                return std::make_pair(std::string("facing"), std::string("west"));
+                return oneJavaProp(std::string("facing"), std::string("west"));
             case 2:
-                return std::make_pair(std::string("facing"), std::string("south"));
+                return oneJavaProp(std::string("facing"), std::string("south"));
             case 3:
-                return std::make_pair(std::string("facing"), std::string("north"));
+                return oneJavaProp(std::string("facing"), std::string("north"));
             default:
                 break;
         }
@@ -152,20 +156,47 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
             "north_west",
             "north_east"};
         if (intVal >= 0 && intVal <= 9) {
-            return std::make_pair(std::string("shape"), std::string(kRailShapes[intVal]));
+            return oneJavaProp(std::string("shape"), std::string(kRailShapes[intVal]));
         }
     } else if (bedrockKey == "direction") {
+        // 拉杆的 direction 不是 CommonDirection，而是 LeverDirection（0-7）：
+        //   0=DownEastWest, 1=East, 2=West, 3=South, 4=North,
+        //   5=UpNorthSouth, 6=UpEastWest, 7=DownNorthSouth
+        // 一个值同时编码「附着面」与「朝向」，Java 侧拆成 ATTACH_FACE + HORIZONTAL_FACING
+        // 两个属性，所以这里必须返回两个属性。该枚举取自基岩逆向头文件 LeverDirection.h。
+        if (javaBlockName == "minecraft:lever") {
+            // 附着面（Java ATTACH_FACE）与朝向（Java HORIZONTAL_FACING）的逐值对应：
+            //   0 DownEastWest   → ceiling, north（朝下、沿东西摆动）
+            //   1 East           → wall,    east
+            //   2 West           → wall,    west
+            //   3 South          → wall,    south
+            //   4 North          → wall,    north
+            //   5 UpNorthSouth   → floor,   north（朝上、沿南北摆动）
+            //   6 UpEastWest     → floor,   east （朝上、沿东西摆动）
+            //   7 DownNorthSouth → ceiling, north（朝下、沿南北摆动）
+            // 摆动方向只用水平朝向表达；南北/东西无法同时表达时统一以正交的水平方向补齐，
+            // 与 Java 拉杆只有 HORIZONTAL_FACING 一个水平属性的事实一致。
+            static const char* kLeverFaces[8] = {
+                "ceiling", "wall", "wall", "wall", "wall", "floor", "floor", "ceiling"};
+            static const char* kLeverFacings[8] = {"north", "east", "west", "south", "north", "north", "east", "north"};
+            if (intVal >= 0 && intVal < 8) {
+                return BedrockJavaProps{std::make_pair(std::string("face"), std::string(kLeverFaces[intVal])),
+                    std::make_pair(std::string("facing"), std::string(kLeverFacings[intVal]))};
+            }
+            return std::nullopt;
+        }
+
         // 基岩 CommonDirection 0-3: 0=North,1=East,2=South,3=West → Java facing
         // 注意：vanilla 门/楼梯的 facing 表示"方块朝向哪一边"，与基岩 direction 语义一致直接映射。
         switch (intVal) {
             case 0:
-                return std::make_pair(std::string("facing"), std::string("north"));
+                return oneJavaProp(std::string("facing"), std::string("north"));
             case 1:
-                return std::make_pair(std::string("facing"), std::string("east"));
+                return oneJavaProp(std::string("facing"), std::string("east"));
             case 2:
-                return std::make_pair(std::string("facing"), std::string("south"));
+                return oneJavaProp(std::string("facing"), std::string("south"));
             case 3:
-                return std::make_pair(std::string("facing"), std::string("west"));
+                return oneJavaProp(std::string("facing"), std::string("west"));
             default:
                 break;
         }
@@ -174,7 +205,7 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
         // 基岩 height=N 表示 N+1 层雪（与 Java layers 语义偏移 1）。映射后由 bedrockBlockNameToJava
         // 把 snow_layer 改名为 snow，此处仅做属性名+值转换。
         if (intVal >= 0 && intVal <= 7) {
-            return std::make_pair(std::string("layers"), std::to_string(intVal + 1));
+            return oneJavaProp(std::string("layers"), std::to_string(intVal + 1));
         }
     }
     return std::nullopt;
@@ -194,21 +225,21 @@ std::optional<std::pair<std::string, std::string>> bedrockIntStateToJava(
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
 // TODO: 基岩字节属性到 Java 枚举的映射仅覆盖上述常见项，其他（如 top_slot_bit、direction 的 byte
 // 变体等）需逐类补全。
-std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(
+std::optional<BedrockJavaProps> bedrockByteStateToJava(
     const std::string& javaBlockName, const std::string& bedrockKey, i8 byteVal)
 {
     const bool b = (byteVal != 0);
     if (bedrockKey == "upside_down_bit") {
         // 0=正放(bottom), 1=倒置(top)
-        return std::make_pair(std::string("half"), b ? std::string("top") : std::string("bottom"));
+        return oneJavaProp(std::string("half"), b ? std::string("top") : std::string("bottom"));
     }
     if (bedrockKey == "upper_block_bit") {
         // 门：0=下半(lower), 1=上半(upper)
-        return std::make_pair(std::string("half"), b ? std::string("upper") : std::string("lower"));
+        return oneJavaProp(std::string("half"), b ? std::string("upper") : std::string("lower"));
     }
     if (bedrockKey == "door_hinge_bit") {
         // 门铰链：0=左(left), 1=右(right)
-        return std::make_pair(std::string("hinge"), b ? std::string("right") : std::string("left"));
+        return oneJavaProp(std::string("hinge"), b ? std::string("right") : std::string("left"));
     }
     if (bedrockKey == "open_bit") {
         // 拉杆是这里唯一的反例：基岩拉杆用 open_bit 表示通断，而 Java 拉杆
@@ -216,23 +247,23 @@ std::optional<std::pair<std::string, std::string>> bedrockByteStateToJava(
         // 若沿用下面的通用映射，拉杆会拿到一个不存在的 open 属性并被静默丢弃，
         // 通断状态随之丢失。故单独分派到 powered。
         if (javaBlockName == "minecraft:lever") {
-            return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+            return oneJavaProp(std::string("powered"), b ? std::string("true") : std::string("false"));
         }
         // 门/栅栏门/活板门开合：重命名为 open，值 0/1 → false/true
-        return std::make_pair(std::string("open"), b ? std::string("true") : std::string("false"));
+        return oneJavaProp(std::string("open"), b ? std::string("true") : std::string("false"));
     }
     if (bedrockKey == "button_pressed_bit") {
         // 按钮/压力板按下：重命名为 powered，值 0/1 → false/true
-        return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+        return oneJavaProp(std::string("powered"), b ? std::string("true") : std::string("false"));
     }
     if (bedrockKey == "rail_data_bit") {
         // 基岩 golden_rail/activator_rail/detector_rail 的充能位 rail_data_bit（byte 0/1）
         // → Java powered（动力铁轨是否被红石充能）。重命名 + 布尔值转换。
-        return std::make_pair(std::string("powered"), b ? std::string("true") : std::string("false"));
+        return oneJavaProp(std::string("powered"), b ? std::string("true") : std::string("false"));
     }
     if (bedrockKey == "conditional_bit") {
         // 命令方块条件：重命名为 conditional，值 0/1 → false/true
-        return std::make_pair(std::string("conditional"), b ? std::string("true") : std::string("false"));
+        return oneJavaProp(std::string("conditional"), b ? std::string("true") : std::string("false"));
     }
     return std::nullopt;
 }
@@ -1143,11 +1174,13 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                         // 基岩方向属性（facing_direction/weirdo_direction 等）是 i32，Java facing 取字符串值，
                         // 需先做属性名+值的映射；未命中映射则按原逻辑转数字字符串（适用于 axis 等少数属性）。
                         if (auto mapped = bedrockIntStateToJava(javaBlockName, key, iv)) {
-                            javaKey = mapped->first;
-                            strVal = mapped->second;
-                        } else {
-                            strVal = std::to_string(iv);
+                            // 一个基岩属性可能拆成多个 Java 属性（如拉杆 direction → face + facing）。
+                            for (const auto& [mappedKey, mappedValue] : *mapped) {
+                                stringProps->value.emplace(mappedKey, std::make_unique<nbt::StringTag>(mappedValue));
+                            }
+                            continue;
                         }
+                        strVal = std::to_string(iv);
                         break;
                     }
                     case nbt::TagId::Byte: {
@@ -1155,11 +1188,12 @@ u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEnt
                         // 枚举型（如 upside_down_bit → half）需做属性名+值的映射。
                         const i8 bv = dynamic_cast<const nbt::ByteTag&>(*valueTag).value;
                         if (auto mapped = bedrockByteStateToJava(javaBlockName, key, bv)) {
-                            javaKey = mapped->first;
-                            strVal = mapped->second;
-                        } else {
-                            strVal = (bv != 0) ? "true" : "false";
+                            for (const auto& [mappedKey, mappedValue] : *mapped) {
+                                stringProps->value.emplace(mappedKey, std::make_unique<nbt::StringTag>(mappedValue));
+                            }
+                            continue;
                         }
+                        strVal = (bv != 0) ? "true" : "false";
                         break;
                     }
                     default:

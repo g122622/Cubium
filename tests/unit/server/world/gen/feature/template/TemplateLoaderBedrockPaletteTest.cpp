@@ -8,8 +8,11 @@
 #include "common/world/block/state/BlockState.hpp"
 #include "server/world/gen/feature/template/TemplateLoader.hpp"
 
+#include <array>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::test {
 
@@ -92,4 +95,61 @@ TEST_F(TemplateLoaderBedrockPaletteTest, DoorOpenBitStillMapsToOpen)
     const auto* state = mc::BlockRegistry::instance().getBlockState(id);
     ASSERT_NE(state, nullptr);
     EXPECT_EQ(state->get(mc::BlockStateProperties::OPEN()), true) << "door open_bit must still map to open=true";
+}
+
+// 拉杆的 direction 是基岩 LeverDirection（0-7），一个值同时编码附着面与朝向，
+// Java 侧要拆成 ATTACH_FACE + HORIZONTAL_FACING 两个属性。
+TEST_F(TemplateLoaderBedrockPaletteTest, LeverDirectionSplitsIntoFaceAndFacing)
+{
+    ASSERT_NE(mc::VanillaBlocks::LEVER, nullptr) << "lever must be registered";
+
+    struct Expectation {
+        mc::i32 direction;
+        mc::BlockStateProperties::AttachFace face;
+        mc::Direction facing;
+    };
+
+    // 逐值对照基岩 LeverDirection 枚举（含相邻值语义相反的 UpEastWest / DownNorthSouth）。
+    const std::array<Expectation, 8> expectations = {
+        {{0, mc::BlockStateProperties::AttachFace::Ceiling, mc::Direction::North},
+            {1, mc::BlockStateProperties::AttachFace::Wall, mc::Direction::East},
+            {2, mc::BlockStateProperties::AttachFace::Wall, mc::Direction::West},
+            {3, mc::BlockStateProperties::AttachFace::Wall, mc::Direction::South},
+            {4, mc::BlockStateProperties::AttachFace::Wall, mc::Direction::North},
+            {5, mc::BlockStateProperties::AttachFace::Floor, mc::Direction::North},
+            {6, mc::BlockStateProperties::AttachFace::Floor, mc::Direction::East},
+            {7, mc::BlockStateProperties::AttachFace::Ceiling, mc::Direction::North}}};
+
+    for (const auto& expected : expectations) {
+        auto entry = std::make_unique<mc::nbt::tags::compound_tag>();
+        entry->put("name", std::string("minecraft:lever"));
+        auto states = std::make_unique<mc::nbt::tags::compound_tag>();
+        states->put("direction", expected.direction);
+        entry->value["states"] = std::move(states);
+
+        const mc::u32 id = mc::test::TemplateLoaderTestAccessor::parseBedrockPaletteEntry(*entry);
+        const auto* state = mc::BlockRegistry::instance().getBlockState(id);
+        ASSERT_NE(state, nullptr) << "direction=" << expected.direction;
+        EXPECT_EQ(state->get(mc::BlockStateProperties::ATTACH_FACE()), expected.face)
+            << "direction=" << expected.direction;
+        EXPECT_EQ(state->get(mc::BlockStateProperties::HORIZONTAL_FACING()), expected.facing)
+            << "direction=" << expected.direction;
+    }
+}
+
+// 非拉杆方块走原 CommonDirection 映射，方向的成绩不受拉杆分支影响。
+TEST_F(TemplateLoaderBedrockPaletteTest, DoorDirectionKeepsCommonDirectionMapping)
+{
+    ASSERT_NE(mc::VanillaBlocks::OAK_DOOR, nullptr) << "oak_door must be registered";
+
+    auto entry = std::make_unique<mc::nbt::tags::compound_tag>();
+    entry->put("name", std::string("minecraft:wooden_door"));
+    auto states = std::make_unique<mc::nbt::tags::compound_tag>();
+    states->put("direction", 2);
+    entry->value["states"] = std::move(states);
+
+    const mc::u32 id = mc::test::TemplateLoaderTestAccessor::parseBedrockPaletteEntry(*entry);
+    const auto* state = mc::BlockRegistry::instance().getBlockState(id);
+    ASSERT_NE(state, nullptr);
+    EXPECT_EQ(state->get(mc::BlockStateProperties::HORIZONTAL_FACING()), mc::Direction::South);
 }
