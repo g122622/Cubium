@@ -60,6 +60,20 @@ namespace task {
 namespace action {
 
 using mc::entity::ai::brain::memory::MemoryModuleStatus;
+
+// 本文件集中放"主动行为"类 Brain 任务，实例化状态差异很大，新增使用前先确认：
+//
+//   已接入（有实体注册）：AttackTask（2 处）；
+//   零实例化（已实现但无任何实体注册）：
+//      BreedTask        —— 动物繁殖由 Goal 版 BreedGoal 承担（TurtleMateGoal 等派生）；
+//      EatTask          —— 占位实现，shouldExecute 恒返 false（缺饥饿系统，见类注释）；
+//      PlayDeadTask     —— 美西螈装死由 AxolotlPlayDeadGoal 承担；
+//      JumpTask         —— 各类长跳/跳跃由 BreezeLongJumpGoal、FrogLongJumpGoal、
+//                          GoatLongJumpGoal、DolphinJumpGoal 等专用 Goal 承担；
+//      KickTask         —— 无对应 Goal，无实体使用。
+//   根因同 InteractTasks：这些目标实体只接 Goal 系统、没有 Brain。
+//   注意 EatTask 与其余四个不同——它是**功能未完成**（恒返 false），
+//   就算注册进 Brain 也不会触发；其余四个是功能完整但没接线。
 using mc::entity::ai::brain::memory::MemoryModuleTypes;
 using mc::entity::ai::goal::constants::BREED_DETECTION_RANGE;
 using mc::entity::ai::goal::constants::BREED_DISTANCE_SQ;
@@ -235,7 +249,8 @@ private:
  *
  * TODO: 当 AnimalEntity 集成 Brain 系统后，需在对应实体的 initializeBrain() 中
  * 注册此任务和配套传感器（如扩展 BabySensor 以写入 BREED_TARGET）。
- * 当前仅 VillagerEntity 拥有 brain()，动物实体仍使用 Goal 系统的 BreedGoal。
+ * **当前全仓零实例化**——动物实体仍使用 Goal 系统的 BreedGoal（TurtleMateGoal
+ * 等由它派生），只有 VillagerEntity 有 Brain 且用的是自己的 VillagerBreedGoal。
  *
  * 记忆模块要求：
  * - VISIBLE_MOBS (VALUE_PRESENT): 必须有可见实体列表以寻找伴侣
@@ -642,7 +657,8 @@ private:
  * PLAY_DEAD_TICKS 由外部系统（如受到伤害时）设置，本任务响应并执行装死逻辑。
  *
  * TODO: 当美西螈（AxolotlEntity）等实体集成 Brain 系统后，需在对应实体的
- * initializeBrain() 中注册此任务。当前这些实体仍使用 Goal 系统。
+ * initializeBrain() 中注册此任务。**当前全仓零实例化**——美西螈装死由
+ * AxolotlPlayDeadGoal 承担。
  *
  * 记忆模块要求：
  * - PLAY_DEAD_TICKS (VALUE_PRESENT): 必须有装死计时器
@@ -738,6 +754,10 @@ private:
  * 控制实体跳跃行为。当实体在地面且冷却时间已过时执行跳跃。
  * 通过 JUMP_COOLDOWN 记忆的 TTL 机制管理冷却时间。
  *
+ * TODO: **当前全仓零实例化**。各类跳跃由专用 Goal 承担（BreezeLongJumpGoal、
+ * FrogLongJumpGoal、GoatLongJumpGoal、DolphinJumpGoal），它们各自有跳跃曲线与
+ * 条件，本任务这种"够冷却就跳"的通用实现无法覆盖，因此没有实体注册它。
+ *
  * 记忆模块要求：
  * - JUMP_COOLDOWN (VALUE_ABSENT): 冷却期间不能跳跃
  *
@@ -810,6 +830,10 @@ private:
  * 控制马等实体的踢击攻击行为。当攻击目标在近距离范围内时，
  * 对目标造成伤害。通过 ATTACK_TARGET 记忆获取攻击目标，
  * 通过 ATTACK_COOLING_DOWN 记忆管理冷却。
+ *
+ * TODO: **当前全仓零实例化**，也没有对应的 Goal 版本。普通近战走 AttackTask；
+ * 本任务的"踢"（对目标造成一次性伤害 + 冷却）在原版对应的是羊驼吐口水一类的
+ * 特殊攻击，而项目尚未实现任何此类攻击行为，因此没有实体注册它。
  *
  * 记忆模块要求：
  * - ATTACK_TARGET (VALUE_PRESENT): 必须有攻击目标
