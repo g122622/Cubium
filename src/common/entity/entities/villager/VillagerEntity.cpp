@@ -773,11 +773,11 @@ void VillagerEntity::initializeBrain()
         {});
 
     // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、近战攻击、移动到目标
-    // 注意：这两个活动目前**不可达**。门槛是 ATTACK_TARGET 记忆，而该记忆没有任何
-    // 写入点（详见 MobEntity::setAttackTarget 上的文档注释：攻击目标存在
-    // m_attackTarget 与 Brain 记忆两套互不同步的存储）；同时也没有任何代码
-    // 对村民调用 setAttackTarget（村民本身是和平生物）。这两处注册属于为将来
-    // 袭击/反击行为预留的脚手架。
+    // 注意：这两个活动目前**不会触发**，但原因不是记忆没写入方——本类的
+    // setAttackTarget override 会把目标同步进 ATTACK_TARGET，写入链路是通的。
+    // 真正的原因是没有任何代码对村民调用 setAttackTarget（村民本身是和平生物，
+    // 没有反击或袭击行为去设置攻击目标）。这两处注册属于为将来的袭击/反击行为
+    // 预留的脚手架：一旦有代码给村民设攻击目标，它们就会立即生效。
     m_brain->registerActivity(ai::brain::schedule::Activity::FIGHT,
         0,
         makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
@@ -819,12 +819,13 @@ void VillagerEntity::initializeBrain()
     // 现在 Brain::_tryEventActivity 会在时间采样之后按优先级检查各活动的
     // 记忆要求并切换过去，因此它们**已具备被选中的能力**。
     //
-    // 但"能被选中"不等于"会运行"——它们各自还缺上游写入方（见下面各项注释）：
-    //   FIGHT / RAID 依赖 ATTACK_TARGET，而没有代码给村民设攻击目标；
-    //   AVOID / HIDE / PANIC 依赖 AVOID_TARGET，其写入方 AvoidEntitySensor 未注册
-    //     （其中 AVOID 与 PANIC 的活动级 requirements 就是 AVOID_TARGET；
-    //     PANIC 的优先级 0 那档已核实声明了该要求，优先级 -1 那档只有开门任务、
-    //     无 requirements，属于时间线活动不会被 _tryEventActivity 选中）。
+    // 但"能被选中"不等于"会运行"——还要看各自的记忆写入方是否到位：
+    //   FIGHT / RAID 依赖 ATTACK_TARGET：写入方是本类的 setAttackTarget override，
+    //     它把目标同步进记忆，因此这两个活动可以正常触发；
+    //   AVOID / PANIC 依赖 NEAREST_HOSTILE：写入方是 VillagerHostilesSensor
+    //     （initializeBrain 里已注册，每 tick 刷新），可正常触发；
+    //   HIDE 没有声明任何活动级 requirements，由 FindHiddenBlockTask 自身判定
+    //     （看 HURT_BY / 附近钟声），不在此列。
     // ----------------------------------------------------
 
     // ---- AVOID 活动 ----

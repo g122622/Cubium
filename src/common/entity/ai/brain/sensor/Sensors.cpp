@@ -846,8 +846,15 @@ template class OwnerHurtBySensor<VillagerEntity>;
 // 有定义、单测可链接。切勿因为"村民没有主人"就删掉这行：删了会让该单测链接失败。
 // TODO: WolfEntity / CatEntity 等 TameableEntity 子类接入 Brain 系统后，需在它们的
 // initializeBrain() 中注册 OwnerHurtBySensor，并在此处补显式实例化对应类型。
-// TODO: TemptingPlayerSensor 和 FollowParentTask/BabySensor 需要在 AnimalEntity 子类（如
-// CowEntity、PigEntity、SheepEntity 等） 集成 Brain 系统后进行注册和实例化。
+// 当前它们仍走 Goal 版 OwnerHurtByTargetGoal，因此本传感器只有 VillagerEntity 的
+// 显式实例化，且如上方注释所说，村民侧只是为了让单测能链接。
+// TODO: TemptingPlayerSensor 目前只有 VillagerEntity 的显式实例化（同样只是为了让
+// 模板在本 TU 有定义），村民不会被物品诱惑，运行时不会注册它。AnimalEntity 子类
+// （CowEntity、PigEntity、SheepEntity 等）接入 Brain 后需要注册它并补实例化；
+// 注意它的构造函数要求一个 ItemPredicate，各类动物的诱惑物品表要一并提供。
+// BabySensor 则已经对村民注册（VillagerEntity::initializeBrain），动物侧接入时
+// 只需补 registerSensor 与对应实例化。请勿因"动物还没接"就把 VillagerEntity
+// 那两份实例化删掉——那会让对应的传感器单测链接失败。
 
 } // namespace sensor
 } // namespace brain
