@@ -283,7 +283,6 @@ std::optional<BedrockJavaProps> bedrockByteStateToJava(
 // - minecraft:stained_glass_pane + color → minecraft:<color>_stained_glass_pane
 // - 纯改名（无变体）：wooden_door→oak_door、golden_rail→powered_rail、lit_pumpkin→jack_o_lantern、
 //   grass→short_grass、grass_path→dirt_path
-// TODO: minecraft:sapling 等基岩独有方块仍待补全映射。
 // 详见 GameTest 结构扫描结论（memory: gametest-stairs-orientation-filtered-clone-fix）。
 struct BedrockBlockMapping {
     std::string javaName;                                         // 映射后的 Java 方块名（空表示无需改名）
@@ -341,6 +340,31 @@ BedrockBlockMapping bedrockBlockNameToJava(const std::string& bedrockName, const
         // （基岩 old_leaf_type: oak/spruce/birch/jungle，Java 同名 leaves 变体）
         std::string leafType = bedrockStringState(bedrockStates, "old_leaf_type", "oak");
         return {std::string("minecraft:") + leafType + "_leaves", {}};
+    }
+    if (bedrockName == "minecraft:sapling") {
+        // 基岩把全部树苗收在一个 minecraft:sapling 里，树种由 `sapling_type` 字符串决定；
+        // Java 是每个树种一个方块（minecraft:<type>_sapling）。基岩的 age_bit 是生长阶段
+        // （byte 0/1），Java 侧对应属性名为 stage（IntegerProperty 0-1）。
+        //
+        // 基岩独有的树种在 Java 里没有对应方块：
+        // - "acacia" / "dark_oak" 有对应，但基岩用的是 "acacia"、"dark_oak"；
+        // - "mangrove_propagule"、"cherry" 等新树种在基岩同样以独立方块名出现，不走这里。
+        // 遇到未知 sapling_type 时返回空 javaName，由调用方回退到通用路径（找不到方块即空气），
+        // 不会静默生成一个错误树种。
+        const std::string saplingType = bedrockStringState(bedrockStates, "sapling_type", "oak");
+        static const std::unordered_map<std::string, std::string> kSaplingTypes = {
+            {"oak", "oak_sapling"},
+            {"spruce", "spruce_sapling"},
+            {"birch", "birch_sapling"},
+            {"jungle", "jungle_sapling"},
+            {"acacia", "acacia_sapling"},
+            {"dark_oak", "dark_oak_sapling"},
+        };
+        const auto it = kSaplingTypes.find(saplingType);
+        if (it == kSaplingTypes.end()) {
+            return {};
+        }
+        return {std::string("minecraft:") + it->second, {{"age_bit", "stage"}}};
     }
     if (bedrockName == "minecraft:stone") {
         // 基岩 stone + stone_type →

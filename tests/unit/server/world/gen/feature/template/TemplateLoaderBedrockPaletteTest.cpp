@@ -153,3 +153,49 @@ TEST_F(TemplateLoaderBedrockPaletteTest, DoorDirectionKeepsCommonDirectionMappin
     ASSERT_NE(state, nullptr);
     EXPECT_EQ(state->get(mc::BlockStateProperties::HORIZONTAL_FACING()), mc::Direction::South);
 }
+
+/// 构造带字符串状态值的基岩 block_palette 项
+std::unique_ptr<mc::nbt::tags::compound_tag> makeBedrockPaletteEntryWithString(
+    const std::string& name, const std::vector<std::pair<std::string, std::string>>& stringStates)
+{
+    auto entry = std::make_unique<mc::nbt::tags::compound_tag>();
+    entry->put("name", name);
+
+    auto states = std::make_unique<mc::nbt::tags::compound_tag>();
+    for (const auto& [key, value] : stringStates) {
+        states->put(key, value);
+    }
+    entry->value["states"] = std::move(states);
+    return entry;
+}
+
+// 基岩把全部树苗收在 minecraft:sapling 里，树种由 sapling_type 决定；Java 每个树种一个方块。
+TEST_F(TemplateLoaderBedrockPaletteTest, SaplingTypeMapsToPerSpeciesBlock)
+{
+    ASSERT_NE(mc::VanillaBlocks::OAK_SAPLING, nullptr);
+    ASSERT_NE(mc::VanillaBlocks::BIRCH_SAPLING, nullptr);
+    ASSERT_NE(mc::VanillaBlocks::DARK_OAK_SAPLING, nullptr);
+
+    const std::vector<std::pair<std::string, mc::Block*>> cases = {
+        {"oak", mc::VanillaBlocks::OAK_SAPLING},
+        {"birch", mc::VanillaBlocks::BIRCH_SAPLING},
+        {"dark_oak", mc::VanillaBlocks::DARK_OAK_SAPLING},
+    };
+    for (const auto& [bedrockType, expectedBlock] : cases) {
+        const auto entry = makeBedrockPaletteEntryWithString("minecraft:sapling", {{"sapling_type", bedrockType}});
+        const mc::u32 id = mc::test::TemplateLoaderTestAccessor::parseBedrockPaletteEntry(*entry);
+        const auto* state = mc::BlockRegistry::instance().getBlockState(id);
+        ASSERT_NE(state, nullptr) << "sapling_type=" << bedrockType;
+        EXPECT_EQ(&state->getBlock(), expectedBlock) << "sapling_type=" << bedrockType;
+    }
+}
+
+// 未知树种不能静默变成某一种树苗：没有可解析的方块名时回退为空气。
+TEST_F(TemplateLoaderBedrockPaletteTest, UnknownSaplingTypeFallsBackToAir)
+{
+    const auto entry = makeBedrockPaletteEntryWithString("minecraft:sapling", {{"sapling_type", "not_a_tree"}});
+    const mc::u32 id = mc::test::TemplateLoaderTestAccessor::parseBedrockPaletteEntry(*entry);
+    const auto* state = mc::BlockRegistry::instance().getBlockState(id);
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(state->isAir()) << "unknown sapling_type must not resolve to a real block";
+}
