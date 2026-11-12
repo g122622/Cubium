@@ -90,19 +90,20 @@ TEST(ChunkStatus, GetAll)
     const auto& all = ChunkStatus::getAll();
     EXPECT_EQ(all.size(), 12u); // 12个阶段
 
-    // 验证顺序
-    EXPECT_EQ(all[0], ChunkStatuses::EMPTY);
-    EXPECT_EQ(all[1], ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(all[2], ChunkStatuses::STRUCTURE_REFERENCES);
-    EXPECT_EQ(all[3], ChunkStatuses::BIOMES);
-    EXPECT_EQ(all[4], ChunkStatuses::NOISE);
-    EXPECT_EQ(all[5], ChunkStatuses::SURFACE);
-    EXPECT_EQ(all[6], ChunkStatuses::CARVERS);
-    EXPECT_EQ(all[7], ChunkStatuses::FEATURES);
-    EXPECT_EQ(all[8], ChunkStatuses::INITIALIZE_LIGHT);
-    EXPECT_EQ(all[9], ChunkStatuses::LIGHT);
-    EXPECT_EQ(all[10], ChunkStatuses::SPAWN);
-    EXPECT_EQ(all[11], ChunkStatuses::FULL);
+    // 验证顺序。同时断言返回的是**单例的地址**：getAll() 曾把 ChunkStatuses 拷贝进
+    // vector，交出副本地址，使"同一状态 = 同一指针"这一隐含约定失效。
+    EXPECT_EQ(all[0], &ChunkStatuses::EMPTY);
+    EXPECT_EQ(all[1], &ChunkStatuses::STRUCTURE_STARTS);
+    EXPECT_EQ(all[2], &ChunkStatuses::STRUCTURE_REFERENCES);
+    EXPECT_EQ(all[3], &ChunkStatuses::BIOMES);
+    EXPECT_EQ(all[4], &ChunkStatuses::NOISE);
+    EXPECT_EQ(all[5], &ChunkStatuses::SURFACE);
+    EXPECT_EQ(all[6], &ChunkStatuses::CARVERS);
+    EXPECT_EQ(all[7], &ChunkStatuses::FEATURES);
+    EXPECT_EQ(all[8], &ChunkStatuses::INITIALIZE_LIGHT);
+    EXPECT_EQ(all[9], &ChunkStatuses::LIGHT);
+    EXPECT_EQ(all[10], &ChunkStatuses::SPAWN);
+    EXPECT_EQ(all[11], &ChunkStatuses::FULL);
 }
 
 TEST(ChunkStatus, NewStages)

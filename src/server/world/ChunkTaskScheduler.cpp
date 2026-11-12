@@ -185,7 +185,7 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(ChunkCoord x, ChunkCoord z, S
     if (nextOrdinal >= static_cast<i32>(allStatuses.size())) {
         return nullptr; // 已是最高状态
     }
-    const ChunkStatus& toStatus = allStatuses[static_cast<size_t>(nextOrdinal)];
+    const ChunkStatus& toStatus = *allStatuses[static_cast<size_t>(nextOrdinal)];
     if (toStatus.ordinal() > targetStatus.ordinal()) {
         return nullptr; // 目标已达到（防御性）
     }

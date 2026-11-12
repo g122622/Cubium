@@ -141,7 +141,13 @@ public:
         return a.isAfter(b) ? a : b;
     }
 
-    [[nodiscard]] static const std::vector<ChunkStatus>& getAll();
+    /**
+     * @brief 按 ordinal 顺序返回全部生成状态
+     *
+     * 元素是指向 ChunkStatuses 单例的指针，因此 `&status == &ChunkStatuses::FULL`
+     * 这类指针身份比较可靠——调用方持有的 ChunkStatus* 都可以放心按地址比较。
+     */
+    [[nodiscard]] static const std::vector<const ChunkStatus*>& getAll();
     [[nodiscard]] static const ChunkStatus* byName(const std::string& name);
     [[nodiscard]] static const ChunkStatus* byOrdinal(i32 ordinal);
 

@@ -85,34 +85,36 @@ ChunkStatus::ChunkStatus(
 // 静态方法
 // ============================================================================
 
-const std::vector<ChunkStatus>& ChunkStatus::getAll()
+const std::vector<const ChunkStatus*>& ChunkStatus::getAll()
 {
-    // TODO: 这里的元素是 ChunkStatuses::X 的**副本**（聚合拷贝到堆上的 vector），因此调用方能取到
-    // 指向副本的指针而非各状态单例的指针。目前所有比较都走 ordinal()，功能正确；但持有 ChunkStatus
-    // 指针的调用方（SingleChunkLifecycleManager::m_currentGenStatus/m_scheduledStatus、
-    // PendingReschedule::target 等）隐含"指针即静态单例"的假设，一旦引入指针相等比较就会静默失效。
-    // 应改为保存指向单例的指针（如 std::vector<const ChunkStatus*>）。
-    static const std::vector<ChunkStatus> allStatuses = {ChunkStatuses::EMPTY,
-        ChunkStatuses::STRUCTURE_STARTS,
-        ChunkStatuses::STRUCTURE_REFERENCES,
-        ChunkStatuses::BIOMES,
-        ChunkStatuses::NOISE,
-        ChunkStatuses::SURFACE,
-        ChunkStatuses::CARVERS,
-        ChunkStatuses::FEATURES,
-        ChunkStatuses::INITIALIZE_LIGHT,
-        ChunkStatuses::LIGHT,
-        ChunkStatuses::SPAWN,
-        ChunkStatuses::FULL};
+    // 返回指向 ChunkStatuses 单例的指针，而不是把单例拷贝进 vector。
+    //
+    // 拷贝版本曾让 byName()/byOrdinal()/getAll() 交出"副本元素的地址"：那些指针与
+    // &ChunkStatuses::NOISE 之类不相等，而持有 ChunkStatus* 的调用方
+    // （SingleChunkLifecycleManager 的 m_currentGenStatus/m_scheduledStatus、
+    // PendingReschedule::target、waitingNeighbours() 的第二个字段）天然假定
+    // "同一状态 = 同一地址"。只要有人写 `ptr == &ChunkStatuses::FULL` 就会静默失效。
+    // 现在指针身份与单例一致，这类比较是安全的。
+    static const std::vector<const ChunkStatus*> allStatuses = {&ChunkStatuses::EMPTY,
+        &ChunkStatuses::STRUCTURE_STARTS,
+        &ChunkStatuses::STRUCTURE_REFERENCES,
+        &ChunkStatuses::BIOMES,
+        &ChunkStatuses::NOISE,
+        &ChunkStatuses::SURFACE,
+        &ChunkStatuses::CARVERS,
+        &ChunkStatuses::FEATURES,
+        &ChunkStatuses::INITIALIZE_LIGHT,
+        &ChunkStatuses::LIGHT,
+        &ChunkStatuses::SPAWN,
+        &ChunkStatuses::FULL};
     return allStatuses;
 }
 
 const ChunkStatus* ChunkStatus::byName(const std::string& name)
 {
-    const auto& all = getAll();
-    for (const auto& status : all) {
-        if (status.name() == name) {
-            return &status;
+    for (const ChunkStatus* status : getAll()) {
+        if (status->name() == name) {
+            return status;
         }
     }
     return nullptr;
@@ -122,7 +124,7 @@ const ChunkStatus* ChunkStatus::byOrdinal(i32 ordinal)
 {
     const auto& all = getAll();
     if (ordinal >= 0 && ordinal < static_cast<i32>(all.size())) {
-        return &all[static_cast<size_t>(ordinal)];
+        return all[static_cast<size_t>(ordinal)];
     }
     return nullptr;
 }

@@ -75,7 +75,8 @@ void expectByRadiusMatchesAccumulated(const ChunkStatus& target)
 TEST(ChunkStepByRadiusTest, GenerationPyramidBuildsByRadiusForAllSteps)
 {
     // generationPyramid() 构造时已为每个步骤调用 buildRequiredStatusByRadius
-    for (const ChunkStatus& status : ChunkStatus::getAll()) {
+    for (const ChunkStatus* statusPtr : ChunkStatus::getAll()) {
+        const ChunkStatus& status = *statusPtr;
         const ChunkStep& step = genStep(status);
         EXPECT_TRUE(step.hasRequiredStatusByRadius()) << "step " << status.name() << " missing byRadius[]";
     }
@@ -83,7 +84,8 @@ TEST(ChunkStepByRadiusTest, GenerationPyramidBuildsByRadiusForAllSteps)
 
 TEST(ChunkStepByRadiusTest, NeighbourReadRadiusEqualsAccumulatedRadius)
 {
-    for (const ChunkStatus& status : ChunkStatus::getAll()) {
+    for (const ChunkStatus* statusPtr : ChunkStatus::getAll()) {
+        const ChunkStatus& status = *statusPtr;
         const ChunkStep& step = genStep(status);
         EXPECT_EQ(step.neighbourReadRadius(), step.accumulatedRadius())
             << "neighbourReadRadius should equal accumulatedRadius for " << status.name();
@@ -97,7 +99,8 @@ TEST(ChunkStepByRadiusTest, ByRadiusZeroIsAccumulatedDependencyZero)
     // 所以不能用 status.parent() 判断（EMPTY 会得到自身）。
     // accumulatedDependencies.get(0) 对 EMPTY 返回 nullptr，对其他状态返回前一步状态，
     // 这正是 byRadius[0] 应有的语义。
-    for (const ChunkStatus& status : ChunkStatus::getAll()) {
+    for (const ChunkStatus* statusPtr : ChunkStatus::getAll()) {
+        const ChunkStatus& status = *statusPtr;
         const ChunkStep& step = genStep(status);
         const ChunkStatus* byRadius0 = step.getRequiredStatusAtRadius(0);
         const ChunkStatus* accDep0 = step.accumulatedDependencies().get(0);
@@ -113,7 +116,8 @@ TEST(ChunkStepByRadiusTest, ByRadiusZeroIsAccumulatedDependencyZero)
 
 TEST(ChunkStepByRadiusTest, ByRadiusMatchesAccumulatedDepsForAllSteps)
 {
-    for (const ChunkStatus& status : ChunkStatus::getAll()) {
+    for (const ChunkStatus* statusPtr : ChunkStatus::getAll()) {
+        const ChunkStatus& status = *statusPtr;
         expectByRadiusMatchesAccumulated(status);
     }
 }
@@ -272,7 +276,8 @@ TEST(ChunkStepByRadiusTest, GetRadiusOfReturnsLastCoveringRadius)
 
 TEST(ChunkStepByRadiusTest, LoadingPyramidBuildsByRadiusForAllSteps)
 {
-    for (const ChunkStatus& status : ChunkStatus::getAll()) {
+    for (const ChunkStatus* statusPtr : ChunkStatus::getAll()) {
+        const ChunkStatus& status = *statusPtr;
         const ChunkStep& step = ChunkPyramid::loadingPyramid().getStepTo(status);
         EXPECT_TRUE(step.hasRequiredStatusByRadius()) << "loading step " << status.name() << " missing byRadius[]";
         // 加载金字塔 byRadius[] 也应与 accumulatedDependencies 一致
