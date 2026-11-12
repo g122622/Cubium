@@ -184,10 +184,28 @@ bool GeodeFeature::place(
                     // d6 < d4 时跳过（外层壁之外）。
                 } else if (generateCrack && d7 >= d5 && d6 < d1) {
                     safeSetBlock(world, blockpos3, nullptr, cannotReplace);
-                    // TODO(geode-fluid-tick): 原版对 crack 邻居流体调 scheduleTick(blockpos2, fluid, 0)
-                    // 使其立即流填补裂缝；当前仅依赖区块后处理流水线（ServerChunkManager::_postProcessChunk
-                    // 扫描 isLiquid 方块调 scheduleFluidTick）补偿。WorldGenRegion 现已支持生成期调度，
-                    // 该定向调度可以补齐。
+
+                    // 凿开裂缝后，六个方向上已有的流体立即排版一次，让流体流进新空腔。
+                    // 生成期 WorldGenRegion 不支持零延迟的立即执行：调度请求会写进目标区块的
+                    // 待执行流体刻列表，区块发布后由世界 TickManager 执行；非生成期世界（单元
+                    // 测试的桩）没有待执行刻容器，直接跳过。
+                    // 方向顺序必须是 Direction.values() 的枚举序（DOWN/UP/NORTH/SOUTH/WEST/EAST）。
+                    if (auto* region = dynamic_cast<WorldGenRegion*>(&world)) {
+                        for (Direction direction : Directions::all()) {
+                            const BlockPos neighbor = blockpos3.offset(direction);
+                            // 流体状态必须从目标方块的 `getFluidState` 取：水源方块（WATER、
+                            // 含水方块）在 `getBlockState` 中报的是「源为空的流动水」，直接读它
+                            // 会被 `isEmpty()` 误判成没有流体。
+                            const BlockState* neighborState = world.getBlockState(neighbor);
+                            if (neighborState == nullptr) {
+                                continue;
+                            }
+                            const fluid::FluidState* fluidState = neighborState->getFluidState();
+                            if (fluidState != nullptr && !fluidState->isEmpty()) {
+                                region->scheduleTick(neighbor, fluidState->getFluid(), 0);
+                            }
+                        }
+                    }
                 } else if (d6 >= d1) {
                     const BlockState* state =
                         blocks.fillingProvider->getState(world, random, blockpos3.x, blockpos3.y, blockpos3.z);
