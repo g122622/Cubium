@@ -52,8 +52,18 @@ public:
         const std::vector<u8>& nbtData, ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
-    [[nodiscard]] Result<void> _readSections(
-        const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight);
+    /**
+     * @brief 读取全部段，并把段内光照导入区块
+     *
+     * @param outLightComplete 出参：所有合法段都带完整的天空光与方块光时为 true。
+     *        只有 true 才可调用 `ChunkData::setLightCorrect(true)` 跳过光照重算——
+     *        任何一段缺光照，重算都必须进行，否则会出现整段全黑或漏光。
+     */
+    [[nodiscard]] Result<void> _readSections(const nbt::tags::compound_tag& columnNbt,
+        ChunkData& chunk,
+        i32 dimMinHeight,
+        i32 dimMaxHeight,
+        bool& outLightComplete);
     [[nodiscard]] Result<void> _readBiomes(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
     void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 heightOffset);
     void _readEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);

@@ -181,9 +181,16 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
     _readHeightmaps(columnNbt, chunk, dimMinHeight);
     _readEntities(columnNbt, chunk);
     _readBlockEntities(columnNbt, chunk);
-    auto sectionsResult = _readSections(columnNbt, chunk, dimMinHeight, dimMaxHeight);
+    bool lightComplete = true;
+    auto sectionsResult = _readSections(columnNbt, chunk, dimMinHeight, dimMaxHeight, lightComplete);
     if (sectionsResult.failed()) {
         return sectionsResult.error();
+    }
+
+    // 存档自带完整光照时标记为"光照正确"，ChunkLoadLightTask 会走只重载边缘的快路径，
+    // 省掉整块 320 高度的全量光照计算。任一缺失则保持 false，照常全量重算。
+    if (lightComplete) {
+        chunk.setLightCorrect(true);
     }
 
     // 读取居住时间（InhabitedTime）
@@ -201,8 +208,9 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
 }
 
 Result<void> JavaColumnReader::_readSections(
-    const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight)
+    const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight, bool& outLightComplete)
 {
+    outLightComplete = false;
     const list_tag* sections = getList(columnNbt, "Sections");
     if (sections == nullptr) {
         sections = getList(columnNbt, "sections");
@@ -213,6 +221,9 @@ Result<void> JavaColumnReader::_readSections(
 
     const i32 minSectionY = dimMinHeight / world::CHUNK_SECTION_HEIGHT;
     const i32 maxSectionY = (dimMaxHeight - 1) / world::CHUNK_SECTION_HEIGHT;
+
+    bool allSectionsHaveLight = true;
+    i32 validSectionCount = 0;
 
     for (size_t i = 0; i < sections->size(); ++i) {
         const auto entry = (*sections)[i];
@@ -236,7 +247,8 @@ Result<void> JavaColumnReader::_readSections(
             continue;
         }
 
-        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY);
+        bool sectionLightComplete = false;
+        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY, sectionLightComplete);
         if (result.failed()) {
             spdlog::warn("JavaColumnReader: Failed to read section {} for chunk ({}, {}): {}",
                 sectionY,
@@ -244,7 +256,15 @@ Result<void> JavaColumnReader::_readSections(
                 chunk.z(),
                 result.error().message());
         }
+        // 只要有一个合法段没带完整光照，整块就必须重算——否则缺光的那段会全黑。
+        if (result.failed() || !sectionLightComplete) {
+            allSectionsHaveLight = false;
+        }
+        ++validSectionCount;
     }
+
+    // 必须有段、且每个合法段都带了完整光照，才敢声明"光照已正确"。
+    outLightComplete = validSectionCount > 0 && allSectionsHaveLight;
 
     return {};
 }

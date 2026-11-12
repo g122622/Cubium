@@ -35,6 +35,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "server/world/storage/reader/java/JavaBiomeMapper.hpp"
 #include "server/world/storage/reader/java/JavaBlockStateMapper.hpp"
 #include <algorithm>
@@ -137,9 +138,25 @@ std::vector<u32> JavaChunkReader::unpackPaddedLongArray(const std::vector<i64>& 
     return result;
 }
 
-Result<void> JavaChunkReader::readSection(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
+Result<void> JavaChunkReader::readSection(
+    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool& outLightComplete)
 {
-    return readBlockStates(sectionNbt, chunk, sectionY);
+    MC_TRY(readBlockStates(sectionNbt, chunk, sectionY));
+
+    // 出参语义是"本段光照是否完整"，由本函数整体决定，不继承调用方传入的值。
+    outLightComplete = true;
+
+    // 读取光照数据
+    // SkyLight/BlockLight 是 2048 字节的 nibble 数组，布局与 SWMRNibbleArray 完全一致
+    // （每字节两个 4 位值，低半字节在前）。历史版本丢弃它们、加载后全量重算光照，
+    // 而 Java 存档本就带着正确光照，重算是纯粹的浪费。
+    const bool skyPresent = readSectionLight(sectionNbt, chunk, sectionY, "SkyLight", true);
+    const bool blockPresent = readSectionLight(sectionNbt, chunk, sectionY, "BlockLight", false);
+    if (!skyPresent || !blockPresent) {
+        outLightComplete = false;
+    }
+
+    return {};
 }
 
 Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
@@ -244,13 +261,65 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
         }
     }
 
-    // 读取光照数据
-    // TODO: Java 存档的 SkyLight/BlockLight 当前不导入——ChunkSection 不再持有光照
-    //   （归 ChunkData 的 SWMRNibbleArray），且加载后 ChunkData::m_lightCorrect 默认为 false，
-    //   ChunkLoadLightTask 必然全量重算并覆盖，导入即被丢弃。若日后要做"光照已正确则跳过重算"，需在此把 nibble 灌进
-    //   chunk.skyNibbleAt(sectionIndex)/blockNibbleAt(sectionIndex) 并置 setLightCorrect(true)。
-
     return {};
+}
+
+bool JavaChunkReader::readSectionLight(
+    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, const char* field, bool isSkyLight)
+{
+    const auto it = sectionNbt.value.find(field);
+    if (it == sectionNbt.value.end()) {
+        // 该段没有光照数据。调用方据此判定整块光照是否完整，这里不报错：
+        // 空段本来就可以省略光照。
+        return false;
+    }
+
+    const auto* bytes = dynamic_cast<const bytearray_tag*>(it->second.get());
+    if (bytes == nullptr) {
+        // 类型不对说明存档异常，但光照不是地形数据，降级为"该段无光照"让上层重算即可，
+        // 不要因为光照字段异常而让整个区块加载失败。
+        spdlog::warn("JavaChunkReader: section {} '{}' is not a byte array, light will be recomputed", sectionY, field);
+        return false;
+    }
+
+    if (bytes->value.size() != SWMRNibbleArray::ARRAY_SIZE) {
+        spdlog::warn("JavaChunkReader: section {} '{}' has {} bytes (expected {}), light will be recomputed",
+            sectionY,
+            field,
+            bytes->value.size(),
+            SWMRNibbleArray::ARRAY_SIZE);
+        return false;
+    }
+
+    const i32 sectionIndex = sectionY - (world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT);
+    // 索引换算与 ChunkData::skyNibbleAt 必须一致。sectionY 的合法性由调用方
+    // _readSections 过滤过，这里只是防御存档中的脏数据，不越界断言。
+    if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+        return false;
+    }
+
+    auto& nibble = isSkyLight ? chunk.skyNibbleAt(sectionIndex) : chunk.blockNibbleAt(sectionIndex);
+    // 全零的 nibble 直接置 Zero（方块光整段无光源、或天空光被完全遮蔽时很常见），
+    // 省掉 4096 次逐位 set()。
+    bool allZero = true;
+    for (const std::int8_t raw : bytes->value) {
+        if (raw != 0) {
+            allZero = false;
+            break;
+        }
+    }
+    if (allZero) {
+        nibble.setZero();
+    } else {
+        nibble.setNonNull();
+        // 元素 i 落在第 i/2 字节的 (i&1)*4 位上，与 SWMRNibbleArray::set(index, value) 一致。
+        for (i32 i = 0; i < static_cast<i32>(SWMRNibbleArray::VALUE_COUNT); ++i) {
+            const u8 packed = static_cast<u8>(bytes->value[static_cast<size_t>(i >> 1)]);
+            const u8 value = static_cast<u8>((packed >> static_cast<u32>((i & 1) * 4)) & 0x0F);
+            nibble.set(i, value);
+        }
+    }
+    return true;
 }
 
 BiomeId JavaChunkReader::mapBiomeName(const std::string& biomeName) const

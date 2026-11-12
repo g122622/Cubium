@@ -81,7 +81,14 @@ public:
      * @param chunk 目标区块数据
      * @param sectionY Section 的 Y 坐标
      */
-    Result<void> readSection(const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY);
+    /**
+     * @brief 读取单个段：方块状态 + 光照
+     *
+     * @param outLightComplete 出参：该段的天空光与方块光都成功导入时为 true；
+     *        任一缺失或格式不符会置 false（此时不报错，由调用方决定重算光照）。
+     */
+    Result<void> readSection(
+        const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool& outLightComplete);
 
     [[nodiscard]] BiomeId mapBiomeName(const std::string& biomeName) const;
     [[nodiscard]] BiomeId mapBiomeId(i32 biomeId) const;
@@ -289,6 +296,23 @@ private:
      * @brief 读取方块状态调色板和数据
      */
     Result<void> readBlockStates(const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY);
+
+    /**
+     * @brief 把段内的 nibble 光照数组（SkyLight/BlockLight）导入区块
+     *
+     * Java 存档的 2048 字节 nibble 布局与 SWMRNibbleArray 一致，可逐值搬运。
+     * 字段缺失、类型不符或长度不符时不报错，只记 warn 并按"该段无光照"处理，
+     * 由调用方决定是否整块重算光照。
+     *
+     * @param sectionNbt 段 NBT
+     * @param chunk 目标区块
+     * @param sectionY 段的 Y 索引
+     * @param field 字段名（"SkyLight" 或 "BlockLight"）
+     * @param isSkyLight true 写天空光，false 写方块光
+     * @return 该字段是否成功导入
+     */
+    [[nodiscard]] bool readSectionLight(
+        const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, const char* field, bool isSkyLight);
 
     JavaBlockStateMapper& m_blockMapper;
     JavaBiomeMapper& m_biomeMapper;
