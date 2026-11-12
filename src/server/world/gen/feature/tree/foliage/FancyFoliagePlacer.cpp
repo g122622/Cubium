@@ -54,7 +54,9 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     for (i32 y = offset; y >= offset - foliageHeight; --y) {
         const i32 layerRadius = radius + (y != offset && y != offset - foliageHeight ? 1 : 0);
@@ -65,7 +67,9 @@ void FancyFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
             foliageBlocks,
             foliagePos.pos.y + y,
             foliagePos.trunkTop,
-            foliageBlock);
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet);
     }
 }
 

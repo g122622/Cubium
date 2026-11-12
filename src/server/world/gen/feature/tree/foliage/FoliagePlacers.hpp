@@ -62,7 +62,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -103,7 +105,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -148,7 +152,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -191,7 +197,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -238,7 +246,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -274,7 +284,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -310,7 +322,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -343,7 +357,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;

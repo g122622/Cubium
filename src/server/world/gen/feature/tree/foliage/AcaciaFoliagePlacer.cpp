@@ -51,7 +51,9 @@ void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 金合欢有3层树叶，不同的半径和Y偏移
     bool trunkTop = foliagePos.trunkTop;
@@ -64,14 +66,33 @@ void AcaciaFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
         -1 - foliageHeight,
         foliageBlocks,
         foliageBlock,
+        foliageProvider,
+        leafPositionSet,
         trunkTop);
 
     // 第二层，半径=radius-1，Y偏移=-foliageHeight
-    _placeFoliageLayer(world, random, foliagePos, radius - 1, -foliageHeight, foliageBlocks, foliageBlock, trunkTop);
+    _placeFoliageLayer(world,
+        random,
+        foliagePos,
+        radius - 1,
+        -foliageHeight,
+        foliageBlocks,
+        foliageBlock,
+        foliageProvider,
+        leafPositionSet,
+        trunkTop);
 
     // 第三层，半径=radius+radiusBonus-1，Y偏移=0
-    _placeFoliageLayer(
-        world, random, foliagePos, radius + foliagePos.radiusBonus - 1, 0, foliageBlocks, foliageBlock, trunkTop);
+    _placeFoliageLayer(world,
+        random,
+        foliagePos,
+        radius + foliagePos.radiusBonus - 1,
+        0,
+        foliageBlocks,
+        foliageBlock,
+        foliageProvider,
+        leafPositionSet,
+        trunkTop);
 }
 
 void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
@@ -81,6 +102,8 @@ void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     i32 yOffset,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet,
     bool trunkTop)
 {
     for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -89,8 +112,8 @@ void AcaciaFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
                 continue;
             }
 
-            BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
-            foliageBlocks.insert(pos);
+            const BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
+            tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
         }
     }
 }

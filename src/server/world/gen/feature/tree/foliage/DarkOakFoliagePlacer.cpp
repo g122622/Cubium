@@ -52,7 +52,9 @@ void DarkOakFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 深色橡树有多层不同半径的树叶
     bool trunkTop = foliagePos.trunkTop;
@@ -60,21 +62,75 @@ void DarkOakFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     if (trunkTop) {
         // trunkTop为true时的层叠
         // 第一层，半径=radius+2，Y偏移=-1
-        _placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            radius + 2,
+            -1,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            trunkTop);
         // 第二层，半径=radius+3，Y偏移=0
-        _placeFoliageLayer(world, random, foliagePos, radius + 3, 0, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            radius + 3,
+            0,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            trunkTop);
         // 第三层，半径=radius+2，Y偏移=1
-        _placeFoliageLayer(world, random, foliagePos, radius + 2, 1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            radius + 2,
+            1,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            trunkTop);
         // 可选第四层，半径=radius，Y偏移=2
         if (random.nextBoolean()) {
-            _placeFoliageLayer(world, random, foliagePos, radius, 2, foliageBlocks, foliageBlock, trunkTop);
+            _placeFoliageLayer(world,
+                random,
+                foliagePos,
+                radius,
+                2,
+                foliageBlocks,
+                foliageBlock,
+                foliageProvider,
+                leafPositionSet,
+                trunkTop);
         }
     } else {
         // trunkTop为false时的层叠
         // 第一层，半径=radius+2，Y偏移=-1
-        _placeFoliageLayer(world, random, foliagePos, radius + 2, -1, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            radius + 2,
+            -1,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            trunkTop);
         // 第二层，半径=radius+1，Y偏移=0
-        _placeFoliageLayer(world, random, foliagePos, radius + 1, 0, foliageBlocks, foliageBlock, trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            radius + 1,
+            0,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            trunkTop);
     }
 }
 
@@ -85,6 +141,8 @@ void DarkOakFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     i32 yOffset,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet,
     bool trunkTop)
 {
     for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -93,8 +151,8 @@ void DarkOakFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
                 continue;
             }
 
-            BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
-            foliageBlocks.insert(pos);
+            const BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
+            tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
         }
     }
 }

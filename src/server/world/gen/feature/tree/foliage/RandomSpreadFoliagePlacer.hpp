@@ -88,7 +88,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     /// 本放置器不走 layer 路径，shouldSkip 始终返回 false
     [[nodiscard]] bool shouldSkip(

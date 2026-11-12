@@ -208,8 +208,8 @@ TEST(GeodeFeatureTest, CrackWithoutSurroundingFluidSchedulesNothing)
     auto config = makeCrackedGeodeConfig();
     GeodeFeature geode;
     math::JavaLegacyRandom random(42);
-    ASSERT_TRUE(geode.place(
-        fixture.region(), fixture.generator(), random, BlockPos(kOriginX, kOriginY, kOriginZ), *config));
+    ASSERT_TRUE(
+        geode.place(fixture.region(), fixture.generator(), random, BlockPos(kOriginX, kOriginY, kOriginZ), *config));
 
     EXPECT_EQ(fixture.pendingFluidTickCount(), 0U);
 }

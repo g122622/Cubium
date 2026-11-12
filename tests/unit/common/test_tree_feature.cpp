@@ -688,7 +688,8 @@ TEST_F(TreeFeaturePlacementWorldTest, BlobRowsMatchJavaCornersAndRandomConsumpti
         shape,
         &VanillaBlocks::OAK_LEAVES->defaultState(),
         nullptr,
-        leaves);
+        leaves,
+        nullptr);
     // 独立 Java Random(42) 按从上至下、X/Z 升序生成得到的角落与总量。
     EXPECT_EQ(leaves.size(), 57u);
     EXPECT_FALSE(leaves.contains(BlockPos(7, 5, 7)));
@@ -713,7 +714,8 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyRowsUseFixedHeightAndSquaredCircularB
         shape,
         &VanillaBlocks::OAK_LEAVES->defaultState(),
         nullptr,
-        leaves);
+        leaves,
+        nullptr);
     EXPECT_EQ(leaves.size(), 73u);
     EXPECT_FALSE(leaves.contains(BlockPos(10, 6, 8)));
     EXPECT_TRUE(leaves.contains(BlockPos(10, 5, 9)));
@@ -727,10 +729,11 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyCanopySupportsProviderWithoutFallback
     FancyFoliagePlacer placer(FeatureSpread::of(ConstantInt::create(2)), FeatureSpread::of(ConstantInt::create(0)), 4);
     world::gen::feature::state::SimpleBlockStateProvider provider(&VanillaBlocks::BIRCH_LEAVES->defaultState());
     math::JavaLegacyRandom rng(42);
+
     const auto shape = placer.sampleShape(rng, 8);
     std::set<BlockPos> leaves;
     placer.placeFoliage(
-        *m_region, rng, 8, {FoliagePosition(BlockPos(8, 6, 8), 0, false)}, shape, nullptr, &provider, leaves);
+        *m_region, rng, 8, {FoliagePosition(BlockPos(8, 6, 8), 0, false)}, shape, nullptr, &provider, leaves, nullptr);
     ASSERT_EQ(leaves.size(), 73u);
     for (const auto& pos : leaves) {
         EXPECT_TRUE(m_region->getBlockState(pos)->is(VanillaBlocks::BIRCH_LEAVES));

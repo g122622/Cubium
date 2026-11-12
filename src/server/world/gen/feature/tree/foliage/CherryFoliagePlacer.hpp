@@ -78,7 +78,9 @@ protected:
         i32 radius,
         i32 offset,
         std::set<BlockPos>& foliageBlocks,
-        const BlockState* foliageBlock) override;
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet) override;
 
     [[nodiscard]] bool shouldSkip(
         math::IRandom& random, i32 dx, i32 dy, i32 dz, i32 radius, bool trunkTop) const override;
@@ -106,8 +108,25 @@ private:
         i32 y,
         std::set<BlockPos>& foliageBlocks,
         const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        ISet* leafPositionSet,
         f32 hangingChance,
         f32 extensionChance);
+
+    /**
+     * @brief 在指定位置落一片垂叶
+     *
+     * 垂叶只允许落在空气里，且与主树叶层共用状态采样/落位流程。
+     *
+     * @return 是否真的落位
+     */
+    bool _tryPlaceHangingLeaf(WorldGenRegion& world,
+        math::IRandom& random,
+        const BlockPos& pos,
+        const BlockState* foliageBlock,
+        const world::gen::feature::state::BlockStateProvider* foliageProvider,
+        std::set<BlockPos>& foliageBlocks,
+        ISet* leafPositionSet);
 
     i32 m_height;
     f32 m_wideBottomLayerHoleChance;

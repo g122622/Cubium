@@ -67,7 +67,9 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 有效半径
     i32 effectiveRadius = radius + foliagePos.radiusBonus - 1;
@@ -82,7 +84,9 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
             foliageBlocks,
             basePos.y + foliageHeight - 3,
             foliagePos.trunkTop,
-            foliageBlock);
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet);
     }
 
     // 第 foliageHeight-4 层：半径 effectiveRadius-1
@@ -94,13 +98,23 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
             foliageBlocks,
             basePos.y + foliageHeight - 4,
             foliagePos.trunkTop,
-            foliageBlock);
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet);
     }
 
     // 第 foliageHeight-5 到 0 层：满半径
     for (i32 y = foliageHeight - 5; y >= 0; --y) {
-        placeFoliageLayer(
-            world, random, basePos, effectiveRadius, foliageBlocks, basePos.y + y, foliagePos.trunkTop, foliageBlock);
+        placeFoliageLayer(world,
+            random,
+            basePos,
+            effectiveRadius,
+            foliageBlocks,
+            basePos.y + y,
+            foliagePos.trunkTop,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet);
     }
 
     // 第 -1 层：满半径 + 垂叶
@@ -111,6 +125,8 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
         basePos.y - 1,
         foliageBlocks,
         foliageBlock,
+        foliageProvider,
+        leafPositionSet,
         m_hangingLeavesChance,
         m_hangingLeavesExtensionChance);
 
@@ -122,6 +138,8 @@ void CherryFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
         basePos.y - 2,
         foliageBlocks,
         foliageBlock,
+        foliageProvider,
+        leafPositionSet,
         m_hangingLeavesChance,
         m_hangingLeavesExtensionChance);
 }
@@ -162,11 +180,14 @@ void CherryFoliagePlacer::placeLeavesRowWithHangingLeavesBelow(WorldGenRegion& w
     i32 y,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet,
     f32 hangingChance,
     f32 extensionChance)
 {
     // 先放置主树叶层
-    placeFoliageLayer(world, random, centerPos, radius, foliageBlocks, y, false, foliageBlock);
+    placeFoliageLayer(
+        world, random, centerPos, radius, foliageBlocks, y, false, foliageBlock, foliageProvider, leafPositionSet);
 
     // 然后在边缘位置尝试放置垂叶
     i32 radiusOffset = 0; // doubleTrunk = false，所以 offset = 0
@@ -242,37 +263,60 @@ void CherryFoliagePlacer::placeLeavesRowWithHangingLeavesBelow(WorldGenRegion& w
                     continue;
                 }
 
-                // 以 hangingChance 概率放置垂叶
+                // 以 hangingChance 概率放置垂叶；垂叶只允许落在空气里，且与上方主树叶层
+                // 共用同一套状态采样与落位流程（各消耗一次状态采样）。
                 if (random.nextFloat() < hangingChance) {
-                    // 检查位置是否可放置
-                    if (edgePos.y >= world::MIN_BUILD_HEIGHT && edgePos.y < world::MAX_BUILD_HEIGHT) {
-                        const BlockState* state = world.getBlockState(edgePos.x, edgePos.y, edgePos.z);
-                        if (state == nullptr || state->isAir()) {
-                            if (foliageBlock != nullptr) {
-                                world.setBlockState(edgePos, foliageBlock);
-                                foliageBlocks.insert(edgePos);
-
-                                // 以 extensionChance 概率向下延伸一格
-                                BlockPos belowPos = edgePos.down();
-                                i32 belowManhattan = std::abs(belowPos.x - referencePos.x) +
-                                    std::abs(belowPos.y - referencePos.y) + std::abs(belowPos.z - referencePos.z);
-                                if (belowManhattan < 7 && random.nextFloat() < extensionChance) {
-                                    if (belowPos.y >= world::MIN_BUILD_HEIGHT && belowPos.y < world::MAX_BUILD_HEIGHT) {
-                                        const BlockState* belowState =
-                                            world.getBlockState(belowPos.x, belowPos.y, belowPos.z);
-                                        if (belowState == nullptr || belowState->isAir()) {
-                                            world.setBlockState(belowPos, foliageBlock);
-                                            foliageBlocks.insert(belowPos);
-                                        }
-                                    }
-                                }
-                            }
+                    if (_tryPlaceHangingLeaf(
+                            world, random, edgePos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet)) {
+                        // 以 extensionChance 概率向下延伸一格
+                        BlockPos belowPos = edgePos.down();
+                        i32 belowManhattan = std::abs(belowPos.x - referencePos.x) +
+                            std::abs(belowPos.y - referencePos.y) + std::abs(belowPos.z - referencePos.z);
+                        if (belowManhattan < 7 && random.nextFloat() < extensionChance) {
+                            _tryPlaceHangingLeaf(
+                                world, random, belowPos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
                         }
                     }
                 }
             }
         }
     }
+}
+
+bool CherryFoliagePlacer::_tryPlaceHangingLeaf(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    std::set<BlockPos>& foliageBlocks,
+    ISet* leafPositionSet)
+{
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+        return false;
+    }
+
+    // 垂叶只在空气里生成，上方主树叶层已经落过的位置也不再覆盖。
+    if (leafPositionSet != nullptr && leafPositionSet->isSet(pos)) {
+        return false;
+    }
+    const BlockState* existing = world.getBlockState(pos.x, pos.y, pos.z);
+    if (existing != nullptr && !existing->isAir()) {
+        return false;
+    }
+
+    // 状态采样必须与落位同处（且仅在真正落位时发生），否则加权提供者会打乱随机流。
+    const BlockState* state =
+        foliageProvider != nullptr ? foliageProvider->getState(world, random, pos.x, pos.y, pos.z) : foliageBlock;
+    if (state == nullptr) {
+        return false;
+    }
+
+    world.setBlockState(pos, state);
+    foliageBlocks.insert(pos);
+    if (leafPositionSet != nullptr) {
+        leafPositionSet->set(pos, *state);
+    }
+    return true;
 }
 
 std::unique_ptr<FoliagePlacer> CherryFoliagePlacer::clone() const

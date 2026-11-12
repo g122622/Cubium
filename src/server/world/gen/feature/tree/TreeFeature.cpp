@@ -37,6 +37,7 @@
 #include "common/world/fluid/FluidTags.hpp"
 #include "foliage/BlobFoliagePlacer.hpp"
 #include "foliage/CherryFoliagePlacer.hpp"
+#include "foliage/FoliagePlacer.hpp"
 #include "foliage/FoliagePlacers.hpp"
 #include "foliage/RandomSpreadFoliagePlacer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -153,7 +154,32 @@ bool TreeFeature::place(WorldGenRegion& world,
     }
 
     // 放置树叶
+    //
+    // 树叶在形状遍历中逐个落位，同时把「本棵树落过叶的位置 + 当时的状态」记进 leafStates：
+    // 该登记用于避免多根树干共用的树冠被重复采样（同一位置只落一次叶）。
     std::set<BlockPos> foliageBlocks;
+    std::map<BlockPos, const BlockState*> leafStates;
+
+    struct LeafPositionSet final : ISet {
+        explicit LeafPositionSet(std::map<BlockPos, const BlockState*>& states)
+            : m_states(states)
+        {}
+
+        [[nodiscard]] bool isSet(const BlockPos& pos) const override
+        {
+            return m_states.contains(pos);
+        }
+
+        void set(const BlockPos& pos, const BlockState& state) override
+        {
+            m_states.emplace(pos, &state);
+        }
+
+    private:
+        std::map<BlockPos, const BlockState*>& m_states;
+    };
+
+    LeafPositionSet leafPositionSet(leafStates);
     config.foliagePlacer->placeFoliage(world,
         random,
         trunkHeight,
@@ -161,7 +187,8 @@ bool TreeFeature::place(WorldGenRegion& world,
         foliageShape,
         config.foliageBlock,
         config.foliageProvider.get(),
-        foliageBlocks);
+        foliageBlocks,
+        &leafPositionSet);
 
     // 设置树叶距离属性（用于树叶腐烂机制）
     _setFoliageDistance(world, trunkBlocks, foliageBlocks);

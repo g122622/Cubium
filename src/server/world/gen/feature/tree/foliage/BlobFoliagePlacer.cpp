@@ -49,7 +49,9 @@ void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 从上到下生成树叶层
     i32 startOffset = offset;
@@ -66,7 +68,9 @@ void BlobFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
             foliageBlocks,
             foliagePos.pos.y + y,
             foliagePos.trunkTop,
-            foliageBlock);
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet);
     }
 }
 

@@ -54,7 +54,7 @@ i32 RandomSpreadFoliagePlacer::getFoliageHeight(math::IRandom& random, i32 /*tru
     return m_foliageHeight->sample(random);
 }
 
-void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& /*world*/,
+void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     math::IRandom& random,
     i32 /*trunkHeight*/,
     const FoliagePosition& foliagePos,
@@ -62,9 +62,11 @@ void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& /*world*/,
     i32 radius,
     i32 /*offset*/,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* /*foliageBlock*/)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
-    // 子类只负责收集坐标，实际放置由基类 placeFoliage 末尾统一执行。
+    // 每次尝试都当场落位：随机流顺序必须与「取样 → 落位」交替一致。
     // 偏移公式：nextInt(bound) - nextInt(bound)
     //   - bound > 0 时，范围 [-(bound-1), bound-1]，对称三角分布
     //   - bound == 0 时，nextInt(0) 非法，特判为 0
@@ -77,8 +79,8 @@ void RandomSpreadFoliagePlacer::placeFoliageInternal(WorldGenRegion& /*world*/,
         i32 dy = verticalBound > 0 ? (random.nextInt(verticalBound) - random.nextInt(verticalBound)) : 0;
         i32 dz = horizontalBound > 0 ? (random.nextInt(horizontalBound) - random.nextInt(horizontalBound)) : 0;
 
-        BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + dy, foliagePos.pos.z + dz);
-        foliageBlocks.insert(pos);
+        const BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + dy, foliagePos.pos.z + dz);
+        tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
     }
 }
 

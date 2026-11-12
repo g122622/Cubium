@@ -53,7 +53,9 @@ void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 offset,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 云杉树叶从顶部向下层叠，半径从顶部开始逐渐增大
     i32 currentRadius = random.nextInt(2);
@@ -62,8 +64,16 @@ void SpruceFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
 
     for (i32 y = offset; y >= -foliageHeight; --y) {
         // 放置当前层的树叶
-        _placeFoliageLayer(
-            world, random, foliagePos, currentRadius, y, foliageBlocks, foliageBlock, foliagePos.trunkTop);
+        _placeFoliageLayer(world,
+            random,
+            foliagePos,
+            currentRadius,
+            y,
+            foliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            leafPositionSet,
+            foliagePos.trunkTop);
 
         // 半径递增逻辑
         if (currentRadius >= minRadius) {
@@ -83,6 +93,8 @@ void SpruceFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
     i32 yOffset,
     std::set<BlockPos>& foliageBlocks,
     const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet,
     bool trunkTop)
 {
     for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -91,8 +103,8 @@ void SpruceFoliagePlacer::_placeFoliageLayer(WorldGenRegion& world,
                 continue;
             }
 
-            BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
-            foliageBlocks.insert(pos);
+            const BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + yOffset, foliagePos.pos.z + dz);
+            tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
         }
     }
 }

@@ -53,7 +53,9 @@ void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
     i32 radius,
     i32 /*offset*/,
     std::set<BlockPos>& foliageBlocks,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 丛林木：较稀疏的单层树叶
     for (i32 y = 0; y < foliageHeight; ++y) {
@@ -63,8 +65,8 @@ void JungleFoliagePlacer::placeFoliageInternal(WorldGenRegion& world,
                     continue;
                 }
 
-                BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + y, foliagePos.pos.z + dz);
-                foliageBlocks.insert(pos);
+                const BlockPos pos(foliagePos.pos.x + dx, foliagePos.pos.y + y, foliagePos.pos.z + dz);
+                tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
             }
         }
     }

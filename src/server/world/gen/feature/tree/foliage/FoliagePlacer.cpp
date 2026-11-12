@@ -42,8 +42,17 @@ namespace mc {
 
 namespace {
 
-bool _canReplaceFoliage(WorldGenRegion& world, const BlockPos& pos)
+bool _canReplaceFoliage(WorldGenRegion& world, const BlockPos& pos, const ISet* leafPositionSet)
 {
+    if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
+        return false;
+    }
+
+    // 已由本棵树落过叶的位置（例如多根树干共用的树冠）不再重复落位。
+    if (leafPositionSet != nullptr && leafPositionSet->isSet(pos)) {
+        return false;
+    }
+
     const BlockState* state = world.getBlockState(pos);
     const bool persistent = state != nullptr && state->hasProperty(BlockStateProperties::PERSISTENT()) &&
         state->get(BlockStateProperties::PERSISTENT());
@@ -94,36 +103,56 @@ void FoliagePlacer::placeFoliage(WorldGenRegion& world,
     const FoliageShape& shape,
     const BlockState* foliageBlock,
     const world::gen::feature::state::BlockStateProvider* foliageProvider,
-    std::set<BlockPos>& outFoliageBlocks)
+    std::set<BlockPos>& outFoliageBlocks,
+    ISet* outLeafPositionSet)
 {
-    for (const auto& foliagePos : foliagePositions) {
-        const i32 offset = m_offset.get(random);
-        placeFoliageInternal(
-            world, random, trunkHeight, foliagePos, shape.height, shape.radius, offset, outFoliageBlocks, foliageBlock);
-    }
-
-    // 子类只负责计算并收集树叶坐标，这里统一执行实际放置。
-    // 允许覆盖标签中的植被，保留持久树叶与实心方块。
-    // 当 foliageProvider 非空时，每个叶片独立采样；否则使用 foliageBlock。
-    // TODO: 状态提供者须在每个叶片落位时采样，以保持加权提供者与形状采样的随机数顺序。
-    const bool useProvider = foliageProvider != nullptr;
-    if (!useProvider && foliageBlock == nullptr) {
+    if (foliageProvider == nullptr && foliageBlock == nullptr) {
         return;
     }
 
-    for (const auto& pos : outFoliageBlocks) {
-        if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
-            continue;
-        }
-
-        if (_canReplaceFoliage(world, pos)) {
-            const BlockState* stateToPlace =
-                useProvider ? foliageProvider->getState(world, random, pos.x, pos.y, pos.z) : foliageBlock;
-            if (stateToPlace != nullptr) {
-                _placeLeaf(world, pos, *stateToPlace);
-            }
-        }
+    // 每个附着点先采样偏移，再在形状遍历中逐个候选位置落位（状态采样也在遍历中发生）。
+    for (const auto& foliagePos : foliagePositions) {
+        const i32 offset = m_offset.get(random);
+        placeFoliageInternal(world,
+            random,
+            trunkHeight,
+            foliagePos,
+            shape.height,
+            shape.radius,
+            offset,
+            outFoliageBlocks,
+            foliageBlock,
+            foliageProvider,
+            outLeafPositionSet);
     }
+}
+
+bool FoliagePlacer::tryPlaceLeaf(WorldGenRegion& world,
+    math::IRandom& random,
+    const BlockPos& pos,
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    std::set<BlockPos>& foliageBlocks,
+    ISet* leafPositionSet)
+{
+    if (!_canReplaceFoliage(world, pos, leafPositionSet)) {
+        return false;
+    }
+
+    // 状态提供者必须在这里采样，且只在真正落位时采样：加权提供者会消耗随机数，
+    // 采样次数与时机直接决定后续附着点/装饰器的随机流。
+    const BlockState* state =
+        foliageProvider != nullptr ? foliageProvider->getState(world, random, pos.x, pos.y, pos.z) : foliageBlock;
+    if (state == nullptr) {
+        return false;
+    }
+
+    _placeLeaf(world, pos, *state);
+    foliageBlocks.insert(pos);
+    if (leafPositionSet != nullptr) {
+        leafPositionSet->set(pos, *state);
+    }
+    return true;
 }
 
 void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
@@ -133,7 +162,9 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
     std::set<BlockPos>& foliageBlocks,
     i32 y,
     bool trunkTop,
-    const BlockState* foliageBlock)
+    const BlockState* foliageBlock,
+    const world::gen::feature::state::BlockStateProvider* foliageProvider,
+    ISet* leafPositionSet)
 {
     // 遍历半径范围内的所有方块
     i32 radiusOffset = trunkTop ? 1 : 0;
@@ -150,22 +181,8 @@ void FoliagePlacer::placeFoliageLayer(WorldGenRegion& world,
             pos.y = y;
             pos.z = centerPos.z + dz;
 
-            // 检查位置是否在有效范围内
-            if (pos.y < world::MIN_BUILD_HEIGHT || pos.y >= world::MAX_BUILD_HEIGHT) {
-                continue;
-            }
-
-            // 检查是否可以放置树叶
-            if (!_canReplaceFoliage(world, pos)) {
-                continue;
-            }
-
-            // 放置树叶
-            if (foliageBlock != nullptr) {
-                _placeLeaf(world, pos, *foliageBlock);
-            }
-            // 提供者可以独立决定叶片状态，坐标收集不能依赖兜底方块。
-            foliageBlocks.insert(pos);
+            // 越界、持久树叶与已落位检查、状态采样均在 tryPlaceLeaf 内完成
+            tryPlaceLeaf(world, random, pos, foliageBlock, foliageProvider, foliageBlocks, leafPositionSet);
         }
     }
 }
