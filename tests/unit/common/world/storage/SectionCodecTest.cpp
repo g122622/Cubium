@@ -207,6 +207,7 @@ TEST_F(SectionCodecTest, BiomesAreSavedPerSectionWithoutFlatteningWholeChunk)
         for (size_t i = 0; i < biomes.size(); ++i) {
             biomes[i] = static_cast<BiomeId>(index * 100 + static_cast<i32>(i));
         }
+        source.getBiomes().setSectionData(index, biomes);
         auto bytes = _encode(source, index);
         ASSERT_TRUE(SectionCodec::restore(bytes, restored, index).success());
         EXPECT_TRUE(std::ranges::equal(source.getBiomes().sectionData(index), restored.getBiomes().sectionData(index)));
@@ -271,7 +272,7 @@ TEST_F(SectionCodecTest, RejectsInRangeCountersThatDisagreeWithBlocks)
 TEST_F(SectionCodecTest, BiomeOnlyRecordsDoNotAllocateBlockSections)
 {
     ChunkData source(0, 0);
-    source.getBiomes().sectionData(0).front() = 23;
+    source.getBiomes().setBiome(0, 0, 0, 0, 23);
     const auto bytes = _encode(source, 0);
     EXPECT_EQ(bytes.size(), 8 * sizeof(u32) + BiomeContainer::SECTION_BIOME_SIZE * sizeof(BiomeId));
     ChunkData restored(0, 0);

@@ -380,7 +380,9 @@ TEST_F(SingleLevelStorageManagerTest, BiomesSurviveAcrossAbsentSectionsAndEmptyC
             source.createSection(0)->fill(100);
         }
         for (i32 section = 0; section < world::CHUNK_SECTIONS; ++section) {
-            std::ranges::fill(source.getBiomes().sectionData(section), static_cast<BiomeId>(section + 5));
+            std::array<BiomeId, BiomeContainer::SECTION_BIOME_SIZE> biomes;
+            biomes.fill(static_cast<BiomeId>(section + 5));
+            source.getBiomes().setSectionData(section, biomes);
         }
         ASSERT_TRUE(storage.saveChunk(source, 0).success());
     }

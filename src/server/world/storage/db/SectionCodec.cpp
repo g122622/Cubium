@@ -76,6 +76,13 @@ rocksdb::Slice _slice(std::span<T, Extent> values)
     return rocksdb::Slice(values.empty() ? "" : reinterpret_cast<const char*>(values.data()), values.size_bytes());
 }
 
+void _restoreBiomes(const u8* bytes, ChunkData& chunk, i32 sectionIndex)
+{
+    std::array<BiomeId, BiomeContainer::SECTION_BIOME_SIZE> biomes;
+    std::memcpy(biomes.data(), bytes, _biomeBytes);
+    chunk.getBiomes().setSectionData(sectionIndex, biomes);
+}
+
 } // namespace
 
 size_t SectionCodec::encodedSize(const ChunkSection* section)
@@ -111,12 +118,13 @@ Result<void> SectionCodec::appendToBatch(rocksdb::WriteBatch& batch,
         section == nullptr ? 0u : section->blockTickRefCount(),
         section == nullptr ? 0u : section->fluidRefCount()};
     const auto keyBytes = key.serialize();
+    const auto biomes = chunk.getBiomes().sectionData(sectionIndex);
     const std::array<rocksdb::Slice, 1> keyParts{_slice(std::span(keyBytes))};
     const std::array<rocksdb::Slice, 5> valueParts{_slice(std::span(header)),
         _slice(packed.palette),
         _slice(packed.storage),
         _slice(packed.hashMap),
-        _slice(chunk.getBiomes().sectionData(sectionIndex))};
+        _slice(std::span(biomes))};
     const auto status = batch.Put(columnFamily,
         rocksdb::SliceParts(keyParts.data(), static_cast<int>(keyParts.size())),
         rocksdb::SliceParts(valueParts.data(), static_cast<int>(valueParts.size())));
@@ -150,7 +158,7 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
         if (header[1] != 0 || header[3] != 0 || header[4] != 0 || header[5] != 0 || header[6] != 0 || header[7] != 0) {
             return Error(ErrorCode::InvalidData, "Biome-only section contains block data");
         }
-        std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + _headerSize, _biomeBytes);
+        _restoreBiomes(bytes.data() + _headerSize, chunk, sectionIndex);
         return {};
     }
     size_t offset = _headerSize;
@@ -214,7 +222,7 @@ Result<void> SectionCodec::restore(std::span<const u8> bytes, ChunkData& chunk, 
     auto* section = chunk.createSection(sectionIndex);
     section->restoreBlockStates(
         std::move(states), static_cast<u16>(header[5]), static_cast<u16>(header[6]), static_cast<u16>(header[7]));
-    std::memcpy(chunk.getBiomes().sectionData(sectionIndex).data(), bytes.data() + offset, _biomeBytes);
+    _restoreBiomes(bytes.data() + offset, chunk, sectionIndex);
     return {};
 }
 

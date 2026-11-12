@@ -27,9 +27,9 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -380,11 +380,7 @@ void dumpNibbleStats(const mc::server::ServerChunkManager& manager, i32 threadCo
 
 /// 统计所有 lifecycleManager 的 primer 状态与暂存数据持有情况。
 ///
-/// 【为何需要】稳态实测显示 `ChunkPrimer` ctor 占每区块边际成本的 33%（23.4 KB/区块），
-/// 而 primers 数量（2916）是目标区块数（1024）的 2.85 倍 —— 差额是调度器为满足依赖
-/// 创建的邻居 primer。`m_biomes`/`m_heightmaps` 只在 FULL 的 `toChunkData()` 里 reset，
-/// `m_noiseChunk` 在 CARVERS 后释放。若大量 primer 停在中间状态，它们持有的这些
-/// 暂存数据就是稳态的可削项；若几乎都是 FULL，则不可削。
+/// 群系与高度图均由 ChunkData 单份持有；按阶段汇总群系实际字节及 NoiseChunk 保留情况。
 void dumpPrimerStats(const mc::server::ServerChunkManager& manager, i32 threadCount, i32 side)
 {
     const std::filesystem::path outputPath = std::filesystem::current_path() / "benchmark_results" / "primer_stats" /
@@ -398,21 +394,20 @@ void dumpPrimerStats(const mc::server::ServerChunkManager& manager, i32 threadCo
         return;
     }
 
-    output << "chunk_x,chunk_z,gen_status,req_status,has_primer,has_local_biomes,has_local_heightmaps,has_noise_chunk,"
+    output << "chunk_x,chunk_z,gen_status,req_status,has_primer,biome_bytes,has_noise_chunk,"
               "has_carving_mask,safe_to_unload,should_load\n";
 
     const auto rows = manager.debugCollectPrimerStats();
 
     for (const auto& r : rows) {
         output << r.x << ',' << r.z << ',' << r.genStatus << ',' << r.reqStatus << ',' << (r.hasPrimer ? 1 : 0) << ','
-               << (r.hasLocalBiomes ? 1 : 0) << ',' << (r.hasLocalHeightmaps ? 1 : 0) << ','
-               << (r.hasNoiseChunk ? 1 : 0) << ',' << (r.hasCarvingMask ? 1 : 0) << ',' << (r.safeToUnload ? 1 : 0)
-               << ',' << (r.shouldLoad ? 1 : 0) << '\n';
+               << r.biomeBytes << ',' << (r.hasNoiseChunk ? 1 : 0) << ',' << (r.hasCarvingMask ? 1 : 0) << ','
+               << (r.safeToUnload ? 1 : 0) << ',' << (r.shouldLoad ? 1 : 0) << '\n';
     }
     output.close();
 
     // 汇总：按 gen_status 分组，统计各状态下 primer 数与暂存数据持有数
-    std::map<std::string, std::array<size_t, 4>> byStatus; // {count, localBiomes, localHeightmaps, noiseChunk}
+    std::map<std::string, std::array<size_t, 3>> byStatus; // {count, biomeBytes, noiseChunk}
     size_t primerCount = 0;
     for (const auto& r : rows) {
         if (!r.hasPrimer) {
@@ -421,26 +416,19 @@ void dumpPrimerStats(const mc::server::ServerChunkManager& manager, i32 threadCo
         ++primerCount;
         auto& agg = byStatus[r.genStatus];
         agg[0]++;
-        if (r.hasLocalBiomes) {
-            agg[1]++;
-        }
-        if (r.hasLocalHeightmaps) {
-            agg[2]++;
-        }
+        agg[1] += r.biomeBytes;
         if (r.hasNoiseChunk) {
-            agg[3]++;
+            agg[2]++;
         }
     }
 
     spdlog::info("primer_stats: holders={} primers={} -> {}", rows.size(), primerCount, outputPath.string());
     for (const auto& [status, agg] : byStatus) {
-        spdlog::info(
-            "primer_stats:   status={:<18} primers={:<6} localBiomes={:<6} localHeightmaps={:<6} noiseChunk={}",
+        spdlog::info("primer_stats:   status={:<18} primers={:<6} biomeBytes={:<8} noiseChunk={}",
             status,
             agg[0],
             agg[1],
-            agg[2],
-            agg[3]);
+            agg[2]);
     }
 }
 
@@ -499,7 +487,7 @@ void ChunkGeneration(::benchmark::State& state)
     mc::benchmark::PerfettoProfilerAdapter::setCaseName(
         fmt::format("chunk_generation/threads={}/batch={}", state.range(0), side));
 
-// 每个 (threads, batch) 档位每个进程只导出一次 CSV。
+    // 每个 (threads, batch) 档位每个进程只导出一次 CSV。
     // 注册了 MemoryManager 后 google/benchmark 会把基准函数跑两遍（内存指标一遍 + 计时一遍），
     // 用进程级静态集合去重，避免同一文件被重复写、日志出现两行。
     static std::set<std::string> s_dumpedPaletteBits;
@@ -583,7 +571,7 @@ void ChunkGeneration(::benchmark::State& state)
             }
         }
 
-// 首次迭代生成完成后导出整批区块的全部 section 调色板位数。
+        // 首次迭代生成完成后导出整批区块的全部 section 调色板位数。
         // 放在 PauseTiming 区间内：CSV 的 I/O 不进入测量口径。
         if (!paletteBitsDumped) {
             state.PauseTiming();
@@ -593,7 +581,7 @@ void ChunkGeneration(::benchmark::State& state)
             paletteBitsDumped = true;
         }
 
-// 同一次快照上导出 nibble 缓冲统计（常量态优化的收益上限）。
+        // 同一次快照上导出 nibble 缓冲统计（常量态优化的收益上限）。
         if (!nibbleStatsDumped) {
             state.PauseTiming();
             dumpNibbleStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
@@ -602,7 +590,7 @@ void ChunkGeneration(::benchmark::State& state)
             nibbleStatsDumped = true;
         }
 
-// 同一次快照上导出 primer 状态普查（判定暂存数据是否可提前释放）。
+        // 同一次快照上导出 primer 状态普查（判定暂存数据是否可提前释放）。
         if (!primerStatsDumped) {
             state.PauseTiming();
             dumpPrimerStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
@@ -611,17 +599,17 @@ void ChunkGeneration(::benchmark::State& state)
             primerStatsDumped = true;
         }
 
-// MC_BENCH_DRAIN_TICK_LISTS=1 时推进游戏刻排空 ServerTickList，
-// 用于验证"7.1 MB 的 ScheduledTick 是基准口径产物"这一判断。
+        // MC_BENCH_DRAIN_TICK_LISTS=1 时推进游戏刻排空 ServerTickList，
+        // 用于验证"7.1 MB 的 ScheduledTick 是基准口径产物"这一判断。
         if (std::getenv("MC_BENCH_DRAIN_TICK_LISTS") != nullptr && g_fixture.world != nullptr) {
             state.PauseTiming();
             drainTickLists(*g_fixture.world, 1000);
             state.ResumeTiming();
         }
 
-// MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与
-// atexit），使 heaptrack 的"未释放"报告即稳态存活分配的真实构成。
-// 用于给稳态做逐项归因（massif 的 detailed 子树在本版本不可用）。
+        // MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与
+        // atexit），使 heaptrack 的"未释放"报告即稳态存活分配的真实构成。
+        // 用于给稳态做逐项归因（massif 的 detailed 子树在本版本不可用）。
         if (std::getenv("MC_BENCH_FREEZE_STEADY") != nullptr) {
             std::_Exit(0);
         }

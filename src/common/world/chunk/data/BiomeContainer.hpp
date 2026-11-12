@@ -29,6 +29,7 @@
 #include <array>
 #include <cstddef>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace mc::world::chunk {
@@ -52,6 +53,28 @@ public:
     static constexpr i32 TOTAL_SIZE = SECTION_BIOME_SIZE * SECTION_COUNT; // 1536
 
     BiomeContainer() = default;
+    BiomeContainer(const BiomeContainer&) = default;
+    BiomeContainer& operator=(const BiomeContainer&) = default;
+
+    /** @brief 转移紧凑存储，源容器恢复为全零均匀态。 */
+    BiomeContainer(BiomeContainer&& other) noexcept
+        : m_uniform(std::exchange(other.m_uniform, 0))
+        , m_bits(std::exchange(other.m_bits, 0))
+        , m_palette(std::move(other.m_palette))
+        , m_storage(std::move(other.m_storage))
+    {}
+
+    /** @brief 转移紧凑存储并释放目标的旧数组。 */
+    BiomeContainer& operator=(BiomeContainer&& other) noexcept
+    {
+        if (this != &other) {
+            m_uniform = std::exchange(other.m_uniform, 0);
+            m_bits = std::exchange(other.m_bits, 0);
+            m_palette = std::move(other.m_palette);
+            m_storage = std::move(other.m_storage);
+        }
+        return *this;
+    }
 
     /**
      * @brief 设置指定区块段的生物群系
@@ -82,11 +105,17 @@ public:
      */
     [[nodiscard]] BiomeId getBiomeAtBlock(i32 x, i32 y, i32 z) const;
 
-    /** @brief 借用指定段的连续生物群系数组。 */
-    [[nodiscard]] std::span<const BiomeId, SECTION_BIOME_SIZE> sectionData(i32 sectionIndex) const;
+    /** @brief 展开指定段到调用方持有的短期数组，不物化常驻副本。 */
+    [[nodiscard]] std::array<BiomeId, SECTION_BIOME_SIZE> sectionData(i32 sectionIndex) const;
 
-    /** @brief 获取指定段的最终生物群系存储，供批量恢复。 */
-    [[nodiscard]] std::span<BiomeId, SECTION_BIOME_SIZE> sectionData(i32 sectionIndex);
+    /** @brief 从连续采样数据恢复一段，保留其余段。 */
+    void setSectionData(i32 sectionIndex, std::span<const BiomeId, SECTION_BIOME_SIZE> biomes);
+
+    /** @brief 删除已经不再使用的调色板条目，并收缩为最小表示。 */
+    void compact();
+
+    /** @brief 当前对象及其独立分配的字节数，不含分配器开销。 */
+    [[nodiscard]] size_t estimatedMemoryUsage() const noexcept;
 
     /**
      * @brief 序列化
@@ -95,8 +124,23 @@ public:
     static Result<BiomeContainer> deserialize(const u8* data, size_t size);
 
 private:
-    // 存储所有 section 的生物群系 ID，初始化为 0
-    std::array<BiomeId, TOTAL_SIZE> m_biomes{};
+    // 均匀态不分配；低基数使用小调色板；超过 512 种时直接保存 u16，限制最坏开销。
+    // 条目不跨 u64 边界，与 Heightmap 的位布局一致。
+    BiomeId m_uniform = 0;
+    u8 m_bits = 0;
+    std::vector<BiomeId> m_palette;
+    std::vector<u64> m_storage;
+
+    /** @brief 读取有效线性采样索引。 */
+    [[nodiscard]] BiomeId _get(size_t index) const;
+    /** @brief 写入线性索引，按值种类自动选择表示。 */
+    void _set(size_t index, BiomeId biome);
+    /** @brief 读取非均匀表示中的索引或直接 ID。 */
+    [[nodiscard]] u16 _getPacked(size_t index) const;
+    /** @brief 写入已分配位数组中的条目。 */
+    void _setPacked(size_t index, u16 value);
+    /** @brief 改变位宽，切到直接存储时展开调色板索引。 */
+    void _repack(u8 bits);
 };
 
 } // namespace mc::world::chunk

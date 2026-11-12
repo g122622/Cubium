@@ -237,35 +237,22 @@ public:
     // 生物群系管理
     // ============================================================================
 
-    /**
-     * @brief 设置生物群系容器
-     *
-     * 生成路径（m_biomes 非空）写入 primer 侧副本，FULL 收尾时再整体转入 ChunkData；
-     * 存档路径（m_biomes 为空，数据已在 ChunkData）直写 ChunkData。
-     */
+    /** @brief 将群系数据交给唯一所有者 ChunkData。 */
     void setBiomes(BiomeContainer biomes) noexcept
     {
-        if (m_biomes) {
-            *m_biomes = std::move(biomes);
-        } else {
-            m_data->setBiomes(std::move(biomes));
-        }
+        m_data->setBiomes(std::move(biomes));
     }
 
-    /**
-     * @brief 获取生物群系容器
-     *
-     * 生成路径返回 primer 侧副本；存档路径（副本恒空）与 FULL 收尾后返回 ChunkData 的
-     * 槽位。邻居在 FEATURES 阶段经 WorldGenRegion 读取本区块的 biome，两条路径都必须有效。
-     */
+    /** @brief 读取区块持有的权威群系容器。 */
     [[nodiscard]] const BiomeContainer& getBiomes() const noexcept
     {
-        return m_biomes ? *m_biomes : m_data->getBiomes();
+        return m_data->getBiomes();
     }
 
+    /** @brief 生成阶段直接填写权威群系数据。 */
     [[nodiscard]] BiomeContainer& getBiomes() noexcept
     {
-        return m_biomes ? *m_biomes : m_data->getBiomes();
+        return m_data->getBiomes();
     }
 
     /**
@@ -280,9 +267,7 @@ public:
     /**
      * @brief 获取高度图
      *
-     * 生成路径返回 primer 侧副本（生成期唯一可变访问入口，FULL 收尾后副本释放，
-     * 可变访问即非法，故非 const 重载断言）；存档路径副本恒空，同样命中断言——
-     * 该路径的高度图在构造时即已写入 ChunkData，此后经只读接口委托读取。
+     * 全阶段委托 ChunkData，同一种高度图不保留生成侧副本。
      */
     [[nodiscard]] Heightmap& getHeightmap(HeightmapType type);
     [[nodiscard]] const Heightmap& getHeightmap(HeightmapType type) const;
@@ -645,35 +630,6 @@ public:
     }
 
     // ============================================================================
-    // 生成期暂存数据的持有状态查询
-    // ============================================================================
-
-    /**
-     * @brief 是否仍持有 primer 侧的 BiomeContainer 暂存副本
-     *
-     * FULL 阶段的 toChunkData() 会把它移到 ChunkData 并置空。
-     *
-     * 这三项持有状态由基准测试（ChunkGenerationBenchmark 的 dumpPrimerStats）汇总成
-     * CSV，用来回答"停在中间状态的 primer 是否长期占着暂存数据"——即每区块
-     * 23.4 KB 的 primer 开销里哪些是可提前释放的。它们只回答状态，不改变行为，
-     * 生产路径不得依赖其返回值做逻辑分支。
-     */
-    [[nodiscard]] bool hasLocalBiomes() const noexcept
-    {
-        return m_biomes != nullptr;
-    }
-
-    /**
-     * @brief 是否仍持有 primer 侧的 Heightmap[7] 暂存副本
-     *
-     * 与 hasLocalBiomes 同属暂存数据归因用的状态查询，见该处说明。
-     */
-    [[nodiscard]] bool hasLocalHeightmaps() const noexcept
-    {
-        return m_heightmaps != nullptr;
-    }
-
-    // ============================================================================
     // 转换方法
     // ============================================================================
 
@@ -687,9 +643,7 @@ public:
      * 不移走 m_data，ChunkPrimer 仍可正常访问（getChunkData/getBlockState 等）。
      * m_spawnedEntities 仍清空（实体数据已在收尾前由调用方提取）。
      *
-     * 收尾末尾会释放 primer 侧的 biomes / 高度图副本（约 10 KiB/区块）：二者已全量写入
-     * m_data，此后相关的读取一律委托 m_data。因此**本方法对每个 primer 只应调用一次**，
-     * 再次调用会命中收尾入口的断言。
+     * 收尾重建权威高度图并紧凑化群系数据；同一 primer 只完成一次收尾。
      *
      * @return 共享同一份 ChunkData 的 shared_ptr
      */
@@ -728,11 +682,7 @@ public:
     /**
      * @brief 共享底层 ChunkData 的所有权（非破坏性，不触发收尾）
      *
-     * 与 toChunkData() 的区别：toChunkData() 先完成收尾（setBiomes/setFullyGenerated/
-     * setStatus/addPackedPostProcessing 等，会修改 ChunkData），用于生成 FULL 完成路径。
-     * 本方法仅返回 m_data 的共享副本，不修改任何状态，用于存档命中路径——存档加载的
-     * ChunkData 已是完整持久化状态，不应被 primer 收尾逻辑覆盖（如 toChunkData 的
-     * m_data->setBiomes(*m_biomes) 会用 primer 未填充的 biomes 清空存档的生物群系）。
+     * 仅返回共享所有权，不运行生成收尾，不重建存档高度图或重设生成状态。
      *
      * @return 共享同一份 ChunkData 的 shared_ptr
      */
@@ -779,27 +729,6 @@ private:
     const ChunkStatus* m_persistedStatus = &ChunkStatuses::EMPTY;
     ChunkLoadStatus m_status = ChunkLoadStatus::Empty;
     bool m_modified = false;
-
-    // 生物群系（3072 B）。堆持有而非内联：FULL 收尾（toChunkData）后内容已全量转入
-    // ChunkData，此处 reset 才能真正归还内存（内联数组成员无法归还，白占 3 KiB/区块）。
-    // 释放后所有读取经 getBiomes()/getBiomeAtBlock() 委托 m_data。
-    //
-    // 存档路径（两个接收 ChunkData 的构造）**恒为 nullptr**：存档已带真实生物群系，
-    // 而本副本从未被填充（默认全 0），分配它只会让 FULL 邻居经 getBiomeAtBlock 读到
-    // 生物群系 0。置空后该路径直接委托 ChunkData，无需额外分支。
-    std::unique_ptr<BiomeContainer> m_biomes;
-
-    // 高度图（7 × 1028 = 7196 B）。按 HeightmapType 枚举索引，O(1) 访问；生成路径构造时
-    // 全量初始化全部类型，故所有槽位恒存在，无需 find/emplace/回退。与 ChunkData::m_heightmaps
-    // 风格一致。
-    // 堆持有的理由同 m_biomes：FULL 后本地副本与 ChunkData 完全重复，reset 才能归还
-    // 约 7 KiB/区块。释放后 getTopBlockY/getHeightmapFirstAvailable 委托 m_data。
-    //
-    // 存档路径**恒为 nullptr**：该路径在构造时用临时栈数组重建一次、写入 ChunkData 后即弃，
-    // 不驻留副本（省 8 KiB/区块）；此后读取同样委托 m_data。因此
-    // getHeightmap(HeightmapType) 的非 const 重载在存档路径上会命中断言，调用方应改走
-    // ChunkData（生成期才有可变访问需求）。
-    std::unique_ptr<std::array<Heightmap, HEIGHTMAP_TYPE_COUNT>> m_heightmaps;
 
     // 区块生成时生成的实体
     std::vector<SpawnedEntityData> m_spawnedEntities;

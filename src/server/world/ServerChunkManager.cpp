@@ -668,7 +668,7 @@ void ServerChunkManager::_onChunkLoadComplete(ChunkCoord x,
             // （如中心区块 STRUCTURE_REFERENCES/FEATURES 读邻居）会在 buildNeighbourCache 取
             // getCurrentChunk()，若为空触发 "neighbour primer missing" 断言。primer 与 m_chunks
             // 共享同一份 ChunkData（shareChunkData 非破坏性，不触发 toChunkData 收尾，避免 setBiomes
-            // 用 primer 未填充的 m_biomes 清空存档生物群系）。primer 构造置 chunkStatus=FULL、
+            // 生成收尾会重建高度图，不能覆盖存档中的权威数据）。primer 构造置 chunkStatus=FULL、
             // status=Loaded，与 markLoadedFromStorageReady(FULL) 的 currentGenStatus 一致。
             //
             // primer 必须在推进来源状态之前构造完毕：publishStorageLoaded 在同一临界区内安装 primer
@@ -1019,6 +1019,7 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         m_generator->generateStructureReferences(region, chunk);
     } else if (status == ChunkStatuses::BIOMES) {
         m_generator->generateBiomes(region, chunk);
+        chunk.getBiomes().compact();
     } else if (status == ChunkStatuses::NOISE) {
         m_generator->generateNoise(region, chunk);
     } else if (status == ChunkStatuses::SURFACE) {
@@ -1239,9 +1240,10 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
 {
     // 生成期调度的方块刻/流体刻：主线程转交世界 TickManager（世界 tick 列表为主线程独占状态）。
     // 延迟自调度时刻起算；此处把已流逝的游戏刻折算进剩余延迟，避免生成耗时时长改变刻的执行时机。
-    if (m_world != nullptr && !chunk.pendingBlockTicks().empty()) {
+    const auto pendingBlockTicks = chunk.takePendingBlockTicks();
+    if (m_world != nullptr && !pendingBlockTicks.empty()) {
         const u64 now = m_world->currentTick();
-        for (const world::chunk::PendingBlockTick& tick : chunk.pendingBlockTicks()) {
+        for (const world::chunk::PendingBlockTick& tick : pendingBlockTicks) {
             const u64 scheduledAt = static_cast<u64>(tick.scheduledTick);
             const u64 dueTick = scheduledAt + static_cast<u64>(tick.delay);
             const i32 remainingDelay =
@@ -1249,11 +1251,10 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
             m_world->tickManager().scheduleBlockTick(tick.pos, *tick.block, remainingDelay, tick.priority);
         }
     }
-    chunk.clearPendingBlockTicks();
-
-    if (m_world != nullptr && !chunk.pendingFluidTicks().empty()) {
+    const auto pendingFluidTicks = chunk.takePendingFluidTicks();
+    if (m_world != nullptr && !pendingFluidTicks.empty()) {
         const u64 now = m_world->currentTick();
-        for (const world::chunk::PendingFluidTick& tick : chunk.pendingFluidTicks()) {
+        for (const world::chunk::PendingFluidTick& tick : pendingFluidTicks) {
             const u64 scheduledAt = static_cast<u64>(tick.scheduledTick);
             const u64 dueTick = scheduledAt + static_cast<u64>(tick.delay);
             const i32 remainingDelay =
@@ -1261,7 +1262,6 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
             m_world->tickManager().scheduleFluidTick(tick.pos, *tick.fluid, remainingDelay, tick.priority);
         }
     }
-    chunk.clearPendingFluidTicks();
 
     // LevelChunk.postProcessGeneration(ServerLevel)
     // 遍历所有后处理位置，调度流体 tick 和方块形状更新
@@ -2352,8 +2352,7 @@ std::vector<ServerChunkManager::PrimerStatsRow> ServerChunkManager::debugCollect
         const mc::world::chunk::ChunkPrimer* primer = lm->getCurrentChunk();
         if (primer != nullptr) {
             row.hasPrimer = true;
-            row.hasLocalBiomes = primer->hasLocalBiomes();
-            row.hasLocalHeightmaps = primer->hasLocalHeightmaps();
+            row.biomeBytes = primer->getBiomes().estimatedMemoryUsage();
             row.hasNoiseChunk = primer->hasNoiseChunk();
             row.hasCarvingMask = primer->hasCarvingMask();
         }

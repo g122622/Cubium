@@ -170,7 +170,10 @@ void SingleChunkLifecycleManager::addBlockingNeighbour(SingleChunkLifecycleManag
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr) {
-        m_blockingNeighbours.insert(neighbour);
+        if (std::find(m_blockingNeighbours.begin(), m_blockingNeighbours.end(), neighbour) ==
+            m_blockingNeighbours.end()) {
+            m_blockingNeighbours.push_back(neighbour);
+        }
         _notifyUnloadStateChanged();
     }
 }
@@ -180,7 +183,15 @@ void SingleChunkLifecycleManager::addWaitingNeighbour(
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (neighbour != nullptr) {
-        m_waitingNeighbours[neighbour] = requiredStatus;
+        const auto found =
+            std::find_if(m_waitingNeighbours.begin(), m_waitingNeighbours.end(), [neighbour](const auto& edge) {
+                return edge.first == neighbour;
+            });
+        if (found == m_waitingNeighbours.end()) {
+            m_waitingNeighbours.emplace_back(neighbour, requiredStatus);
+        } else {
+            found->second = requiredStatus;
+        }
         _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
@@ -189,7 +200,10 @@ void SingleChunkLifecycleManager::addWaitingNeighbour(
 void SingleChunkLifecycleManager::removeBlockingNeighbour(SingleChunkLifecycleManager* neighbour)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (neighbour != nullptr && m_blockingNeighbours.erase(neighbour) > 0) {
+    if (neighbour != nullptr && std::erase(m_blockingNeighbours, neighbour) > 0) {
+        if (m_blockingNeighbours.empty()) {
+            decltype(m_blockingNeighbours){}.swap(m_blockingNeighbours);
+        }
         _notifyUnloadStateChanged();
     }
 }
@@ -198,7 +212,7 @@ void SingleChunkLifecycleManager::clearBlockingNeighbours()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (!m_blockingNeighbours.empty()) {
-        m_blockingNeighbours.clear();
+        decltype(m_blockingNeighbours){}.swap(m_blockingNeighbours);
         _notifyUnloadStateChanged();
     }
 }
@@ -208,16 +222,17 @@ std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSati
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<SingleChunkLifecycleManager*> removed;
-    for (auto it = m_waitingNeighbours.begin(); it != m_waitingNeighbours.end();) {
-        const ChunkStatus* requiredStatus = it->second;
-        if (requiredStatus == nullptr || completedStatus.isAtLeast(*requiredStatus)) {
-            removed.push_back(it->first);
-            it = m_waitingNeighbours.erase(it);
-        } else {
-            ++it;
+    std::erase_if(m_waitingNeighbours, [&removed, &completedStatus](const auto& edge) {
+        if (edge.second == nullptr || completedStatus.isAtLeast(*edge.second)) {
+            removed.push_back(edge.first);
+            return true;
         }
-    }
+        return false;
+    });
     if (!removed.empty()) {
+        if (m_waitingNeighbours.empty()) {
+            decltype(m_waitingNeighbours){}.swap(m_waitingNeighbours);
+        }
         _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
@@ -228,13 +243,8 @@ std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>>
 SingleChunkLifecycleManager::takeWaitingNeighbours()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>> result;
-    result.reserve(m_waitingNeighbours.size());
-    for (auto& [neighbour, requiredStatus] : m_waitingNeighbours) {
-        result.emplace_back(neighbour, requiredStatus);
-    }
-    if (!m_waitingNeighbours.empty()) {
-        m_waitingNeighbours.clear();
+    auto result = std::exchange(m_waitingNeighbours, {});
+    if (!result.empty()) {
         _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
@@ -244,7 +254,12 @@ SingleChunkLifecycleManager::takeWaitingNeighbours()
 void SingleChunkLifecycleManager::removeWaitingNeighbour(SingleChunkLifecycleManager* neighbour)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (neighbour != nullptr && m_waitingNeighbours.erase(neighbour) > 0) {
+    if (neighbour != nullptr && std::erase_if(m_waitingNeighbours, [neighbour](const auto& edge) {
+            return edge.first == neighbour;
+        }) > 0) {
+        if (m_waitingNeighbours.empty()) {
+            decltype(m_waitingNeighbours){}.swap(m_waitingNeighbours);
+        }
         _refreshGenerationTargetLocked();
         _notifyUnloadStateChanged();
     }
@@ -253,12 +268,7 @@ void SingleChunkLifecycleManager::removeWaitingNeighbour(SingleChunkLifecycleMan
 std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::blockingNeighbours() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    std::vector<SingleChunkLifecycleManager*> result;
-    result.reserve(m_blockingNeighbours.size());
-    for (auto* neighbour : m_blockingNeighbours) {
-        result.push_back(neighbour);
-    }
-    return result;
+    return m_blockingNeighbours;
 }
 
 // ============================================================================
@@ -309,18 +319,19 @@ void SingleChunkLifecycleManager::clearGenerationTask()
 bool SingleChunkLifecycleManager::pinGenerationNeighbour(SingleChunkLifecycleManager& neighbour)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    const bool inserted = m_generationNeighbours.insert(&neighbour).second;
-    if (inserted) {
-        _notifyUnloadStateChanged();
+    if (std::find(m_generationNeighbours.begin(), m_generationNeighbours.end(), &neighbour) !=
+        m_generationNeighbours.end()) {
+        return false;
     }
-    return inserted;
+    m_generationNeighbours.push_back(&neighbour);
+    _notifyUnloadStateChanged();
+    return true;
 }
 
 std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::takeGenerationNeighbours()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    std::vector<SingleChunkLifecycleManager*> neighbours(m_generationNeighbours.begin(), m_generationNeighbours.end());
-    m_generationNeighbours.clear();
+    auto neighbours = std::exchange(m_generationNeighbours, {});
     _notifyUnloadStateChanged();
     return neighbours;
 }

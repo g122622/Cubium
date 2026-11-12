@@ -298,9 +298,9 @@ public:
      *
      * @note 返回**副本**并持锁读取。不能返回内部容器的引用：worker 线程会在持调度区域锁时
      * 增删该映射，而诊断路径（ServerChunkManager 的卡死转储）不持有任何锁，暴露内部容器
-     * 会让两者并发读写同一个 unordered_map。
+     * 会让两者并发读写同一个依赖容器。
      */
-    [[nodiscard]] std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> waitingNeighbours() const
+    [[nodiscard]] std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>> waitingNeighbours() const
     {
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
         return m_waitingNeighbours;
@@ -665,9 +665,10 @@ private:
     bool m_hasFailedGeneration = false;
 
     // === 双向邻居依赖图 ===
-    std::unordered_set<SingleChunkLifecycleManager*> m_blockingNeighbours;                    // 我正在等待的邻居
-    std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> m_waitingNeighbours; // 等我的邻居及所需状态
-    std::unordered_set<SingleChunkLifecycleManager*> m_generationNeighbours; // 从依赖扫描至步骤结束保活的邻居
+    std::vector<SingleChunkLifecycleManager*> m_blockingNeighbours; // 我正在等待的邻居
+    std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>>
+        m_waitingNeighbours;                                          // 等我的邻居及所需状态
+    std::vector<SingleChunkLifecycleManager*> m_generationNeighbours; // 从依赖扫描至步骤结束保活的邻居
 
     // === 邻居引用计数 ===
     // 原子：worker 线程（scheduleStatusStep add / releaseNeighbourRefCounts remove，持调度锁）

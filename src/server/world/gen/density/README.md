@@ -208,3 +208,5 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
     与 `PerlinLayer::noiseWithSmear` 逐位一致，否则 BlendedNoise 边界 floor 跨越致远超 1e-9 漂移
 11. **EndIslands 种子**：使用 `LegacyRandomSource(seed).consumeCount(17292)` 初始化 SimplexNoise，
     确保与 Java 版生成相同的世界
+
+- 预表面高度采用 absl::flat_hash_map 保存任意 quart 对齐坐标；含水层会查询区块外坐标，不能替换为本区块固定数组。使用 NoiseChunk 的目标通过 mc_gen 取得该链接依赖。

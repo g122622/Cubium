@@ -240,6 +240,9 @@ public:
      */
     void initializeMissingHeightmaps();
 
+    /** @brief 重建选中的权威高度图，供生成阶段和存档准备共用。 */
+    void rebuildHeightmaps(const std::array<bool, HEIGHTMAP_TYPE_COUNT>& enabled);
+
     /**
      * @brief 读取指定类型高度图的原始存储数据（Y+1 或 NO_BLOCK_SENTINEL）
      *
@@ -268,12 +271,19 @@ public:
     /**
      * @brief 获取指定类型的高度图对象（只读）
      *
-     * 与 getHeightmapData 的区别：返回整个 Heightmap，而非其内部数组。
-     * 供 ChunkPrimer 在 FULL 收尾释放本地高度图副本后，把只读访问委托过来。
+     * 返回区块持有的权威高度图，生成与运行时共用该存储。
      */
     [[nodiscard]] const Heightmap& getHeightmap(HeightmapType type) const
     {
         return m_heightmaps[static_cast<size_t>(type)];
+    }
+
+    /** @brief 生成期修改权威槽位；调用方保证区块写入独占。 */
+    [[nodiscard]] Heightmap& getHeightmap(HeightmapType type)
+    {
+        const size_t index = static_cast<size_t>(type);
+        m_heightmapInitialized[index] = true;
+        return m_heightmaps[index];
     }
 
     // 区块状态 (IChunk 接口)
@@ -654,19 +664,18 @@ public:
     }
 
     /**
-     * @brief 追加待执行方块刻（从 ChunkPrimer 转移）
+     * @brief 接管 ChunkPrimer 的一次性方块刻缓冲
      */
-    void addPendingBlockTicks(const std::vector<PendingBlockTick>& ticks)
+    void setPendingBlockTicks(std::vector<PendingBlockTick> ticks)
     {
-        m_pendingBlockTicks.insert(m_pendingBlockTicks.end(), ticks.begin(), ticks.end());
+        MC_ASSERT_RELEASE(m_pendingBlockTicks.empty());
+        m_pendingBlockTicks = std::move(ticks);
     }
 
-    /**
-     * @brief 清空待执行方块刻（转交 TickManager 后调用）
-     */
-    void clearPendingBlockTicks() noexcept
+    /** @brief 取出一次性待执行方块刻，同时释放本对象的暂存容量。 */
+    [[nodiscard]] std::vector<PendingBlockTick> takePendingBlockTicks() noexcept
     {
-        m_pendingBlockTicks.clear();
+        return std::exchange(m_pendingBlockTicks, {});
     }
 
     /**
@@ -678,19 +687,18 @@ public:
     }
 
     /**
-     * @brief 追加待执行流体刻（从 ChunkPrimer 转移）
+     * @brief 接管 ChunkPrimer 的一次性流体刻缓冲
      */
-    void addPendingFluidTicks(const std::vector<PendingFluidTick>& ticks)
+    void setPendingFluidTicks(std::vector<PendingFluidTick> ticks)
     {
-        m_pendingFluidTicks.insert(m_pendingFluidTicks.end(), ticks.begin(), ticks.end());
+        MC_ASSERT_RELEASE(m_pendingFluidTicks.empty());
+        m_pendingFluidTicks = std::move(ticks);
     }
 
-    /**
-     * @brief 清空待执行流体刻（转交 TickManager 后调用）
-     */
-    void clearPendingFluidTicks() noexcept
+    /** @brief 取出一次性待执行流体刻，同时释放本对象的暂存容量。 */
+    [[nodiscard]] std::vector<PendingFluidTick> takePendingFluidTicks() noexcept
     {
-        m_pendingFluidTicks.clear();
+        return std::exchange(m_pendingFluidTicks, {});
     }
 
     void clearPostProcessingForSection(i32 sectionIndex);
@@ -781,29 +789,7 @@ private:
     void _setBlockStateUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
     void _setBlockStateIdUnlocked(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId);
 
-    // 生成态专用变体：与 _setBlockStateUnlocked/_setBlockStateIdUnlocked 相同，但
-    // **跳过末尾 updateHeightMap(x,z) 整列重扫**。
-    //
-    // 【为何生成态可跳过】updateHeightMap 维护的是 ChunkData::m_heightmaps 的 5 种 final
-    // 高度图（WorldSurface/OceanFloor/MotionBlocking/MotionBlockingNoLeaves/LightBlocking），
-    // 其正当用途是运行时（FULL 之后）玩家改方块后整列重算。但生成阶段（NOISE→FEATURES）
-    // 所有高度图读取都走 ChunkPrimer::m_heightmaps（含 final 槽位，由
-    // _updateHeightmapsForCurrentStatus 增量维护）；且 primeHeightmaps(POST_FEATURES)
-    // （FEATURES 前）与 updateAllHeightmaps（FULL 时 toChunkData）会全量重建并同步到
-    // ChunkData，覆盖所有生成阶段写入的方块。故生成阶段对 ChunkData::m_heightmaps 的
-    // 增量维护是纯浪费。
-    //
-    // 【FULL 之后】ChunkPrimer 在 toChunkData 收尾时释放自己的高度图副本，此后（含邻居经
-    // WorldGenRegion 的读取）改读 ChunkData::m_heightmaps，见 ChunkPrimer::getTopBlockY。
-    // 但那条路径不经过本变体——本变体只在生成态（FULL 之前）被调用。
-    //
-    // 【收益】updateHeightMap 整列重扫每方块 384 次 getBlockState + 最多 5×384 次
-    // Heightmap::update，占 setBlockState 单次耗时（~1769ns）的 60-75%，是 FillNoiseCells
-    // 逐方块循环体的最大可定位子段。生成态改调本变体后，单次 setBlockState 预期降至
-    // ~500-600ns。
-    //
-    // 【运行时不受影响】运行时改方块走 ChunkData::setBlockState（加锁版）→ 原版
-    // _setBlockStateUnlocked（含 updateHeightMap），运行时无全量重建步骤，必须保留整列重扫。
+    // 生成态跳过运行时整列高度图重扫，由 ChunkPrimer 按阶段增量维护权威高度图。
     void _setBlockStateUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, const BlockState* state);
     void _setBlockStateIdUnlockedGen(BlockCoord x, BlockCoord y, BlockCoord z, u32 stateId);
 

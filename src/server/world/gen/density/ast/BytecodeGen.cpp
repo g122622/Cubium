@@ -309,7 +309,7 @@ private:
     RegOrConst emitEndIslands(const Ptr& node)
     {
         const auto* n = static_cast<const EndIslandsNode*>(node.get());
-        const u32 objIdx = addObject(RuntimeObject{nullptr, n->endIslands(), nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.densityFunction = n->endIslands()});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::EndIslands;
@@ -324,7 +324,7 @@ private:
         const auto* n = static_cast<const BlendedNoiseNode*>(node.get());
         // BlendedNoise 是 DensityFunction 子类，复用 densityFunction 槽。
         // newInstance 时无需特殊处理：BlendedNoise 的三层 PerlinNoise 维度级不可变，深拷贝 objects 自动带上。
-        const u32 objIdx = addObject(RuntimeObject{nullptr, n->blendedNoise(), nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.densityFunction = n->blendedNoise()});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::BlendedNoise;
@@ -340,7 +340,7 @@ private:
         const u32 rx = asReg(emitNode(n->inputX()));
         const u32 ry = asReg(emitNode(n->inputY()));
         const u32 rz = asReg(emitNode(n->inputZ()));
-        const u32 objIdx = addObject(RuntimeObject{n->noise(), nullptr, nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.noise = n->noise()});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::NoiseSample;
@@ -359,7 +359,7 @@ private:
         const u32 rx = asReg(emitNode(n->inputX()));
         const u32 ry = asReg(emitNode(n->inputY()));
         const u32 rz = asReg(emitNode(n->inputZ()));
-        const u32 objIdx = addObject(RuntimeObject{n->noise(), nullptr, nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.noise = n->noise()});
 
         // 1. 采样原始噪声值。
         const u32 sampled = allocReg();
@@ -415,7 +415,7 @@ private:
     {
         const auto* n = static_cast<const WeirdScaledSamplerNode*>(node.get());
         const u32 rInput = asReg(emitNode(n->input()));
-        const u32 objIdx = addObject(RuntimeObject{n->noise(), nullptr, nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.noise = n->noise()});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::WeirdSampler;
@@ -431,7 +431,7 @@ private:
     RegOrConst emitDelegate(const Ptr& node)
     {
         const auto* n = static_cast<const DelegateNode*>(node.get());
-        const u32 objIdx = addObject(RuntimeObject{nullptr, n->densityFunction(), nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.densityFunction = n->densityFunction()});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::Delegate;
@@ -447,7 +447,7 @@ private:
         // 维度级 finalDensity 树不含 BeardifierMarker，故生产路径 BEARDIFIER 指令不触发。
         // 保留供 McToAst 映射 BeardifierNode 的完整性，登记 nullptr 占位，eval 返回 0.0。
         m_hasMarkerOrBeardifier = true;
-        const u32 objIdx = addObject(RuntimeObject{nullptr, nullptr, nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.beardifier = nullptr});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::Beardifier;
@@ -697,7 +697,7 @@ private:
         const u32 subIdx = addSubEvaluator(std::move(delegateSub));
 
         // objIdx 占位：维度级 densityFunction==nullptr（占位），区块级 newInstance 注入缓存对象。
-        const u32 objIdx = addObject(RuntimeObject{nullptr, nullptr, nullptr});
+        const u32 objIdx = addObject(RuntimeObject{.densityFunction = nullptr});
         const u32 dst = allocReg();
         Op op{};
         op.code = OpCode::Marker;

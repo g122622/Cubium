@@ -82,3 +82,5 @@ Adapter 桥接：CompiledDensityFunctionAdapter 把编译产物包装为 Density
 5. **维度级与区块级共享同一 Op 缓冲与 JIT 代码**：`m_ops` 是 `shared_ptr<const vector<Op>>`，`newInstance` 拷贝指针即共享（零字节复制），故必然复用 `m_jitFn`，只重建 `DensityEvalContext`。MARKER 翻译时生成运行时判空（`cacheObj != null` 走 compute / 否则走 delegate eval），维度级（占位）与区块级（注入缓存）两种路径都覆盖。**Op 序列必须保持构造后不可变**——`const` 已由编译器强制；若将来有需求要按区块改写 Op，必须回到按值持有（并接受每区块一份整序列的内存代价，实测占生成峰值堆 41%）。
 6. **浮点累加顺序必须 bit-exact**：逐条 Op 顺序翻译 + asmjit 不重排保证浮点累加顺序不变 → JIT 与解释器 1e-9 一致。两操作数指令须先 `movsd(dst,a)` 再 `*sd(dst,b)`（x64 两操作数破坏 dst）。macOS ARM64 JIT 留 TODO，须注意避免 fmadd 融合破坏 bit-exact。
 7. **临时性能插桩已整体移除（2026-08-27）**：曾用 `DensityEvalProfiler.hpp`（双桶差值法 interpreterCycles=topLevelCycles−externalCycles，量化 JIT 收益）在 eval 顶层 + 5 个 A 类叶子外部调用（解释器 evalImpl case + JIT trampoline）per-call `readTsc` 计时。profiler 量化使命完成（JIT 1.59×、external 占 54.9% 已坐实，见 `docs/iterations/密度函数求值器JIT可行性评估.md` 第 7、8 节）后整体删除——每帧约 5.8 万次/区块的噪声采样各 2× rdtsc 计时开销淹没 SoA 向量化收益（详见评估文档第 8.5 节）。evalImpl 5 个 A 类 case 现仅保留核心求值逻辑，无任何计时。Marker 是"递归外部调用"（B 类）曾不可计时，误归 A 类计时致双重计数（externalCycles>totalCycles 悖论）的历史教训记录在评估文档第 6 节。
+
+- RuntimeObject 只保存一个带类型的指针槽，活动成员由对应 OpCode 决定；构造时显式选择 union 成员，解释器与 JIT 必须使用同一类型，不能读取非活动成员。
