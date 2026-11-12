@@ -77,9 +77,11 @@ i32 ListCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
         });
     }
 
-    std::ostringstream ss;
-    ss << "There are " << playerCount << " player(s) online";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.list.players = "There are %s of a max of %s players online: %s"
+    const i32 maxPlayers = source.server() != nullptr ? source.server()->maxPlayers() : static_cast<i32>(playerCount);
+    source.sendSuccess(::mc::text::translatable("commands.list.players",
+                           {std::to_string(playerCount), std::to_string(maxPlayers), std::string{}}),
+        false);
 
     return static_cast<i32>(playerCount);
 }
@@ -96,12 +98,18 @@ i32 ListCommand::_listPlayerUuids(CommandContext<ServerCommandSource>& context)
         });
     }
 
-    std::ostringstream ss;
-    ss << "There are " << players.size() << " of a max of " << players.size() << " players online:";
+    std::string namesText;
     for (const auto& [name, uuid] : players) {
-        ss << " " << name << " (" << uuid << ")";
+        if (!namesText.empty()) {
+            namesText += ", ";
+        }
+        namesText += name + " (" + uuid + ")";
     }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    const i32 maxPlayers =
+        source.server() != nullptr ? source.server()->maxPlayers() : static_cast<i32>(players.size());
+    source.sendSuccess(::mc::text::translatable("commands.list.players",
+                           {std::to_string(players.size()), std::to_string(maxPlayers), namesText}),
+        false);
 
     return static_cast<i32>(players.size());
 }

@@ -328,33 +328,25 @@ i32 FunctionCommand::_executeFunctions(
         const auto& tagId = result.id();
 
         if (!functionManager.hasTag(tagId)) {
-            std::ostringstream ss;
-            ss << "Unknown function tag '" << tagId.toString() << "'";
-            source.sendFailure(::mc::text::literal(ss.str()));
+            source.sendFailure(::mc::text::translatable("commands.function.scheduled.no_functions", tagId.toString()));
             return 0;
         }
 
         // 执行标签中的所有函数
         const auto& functionIds = functionManager.getTag(tagId);
         i32 totalSuccess = 0;
-        i32 totalFailure = 0;
         Size executedCount = 0;
 
         for (const auto& funcId : functionIds) {
             auto execResult = functionManager.execute(funcId, source, arguments);
             totalSuccess += execResult.successCount;
-            totalFailure += execResult.failureCount;
             ++executedCount;
         }
 
-        std::ostringstream ss;
-        ss << "Executed " << executedCount << " functions from tag '" << tagId.toString() << "' (" << totalSuccess
-           << " commands succeeded";
-        if (totalFailure > 0) {
-            ss << ", " << totalFailure << " failed";
-        }
-        ss << ")";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        // commands.function.success.multiple = "Executed %s command(s) from %s functions"
+        source.sendSuccess(::mc::text::translatable("commands.function.success.multiple",
+                               {std::to_string(totalSuccess), std::to_string(executedCount)}),
+            true);
 
         return totalSuccess;
     }
@@ -364,23 +356,17 @@ i32 FunctionCommand::_executeFunctions(
 
     // 检查函数是否存在
     if (!functionManager.hasFunction(functionId)) {
-        std::ostringstream ss;
-        ss << "Unknown function '" << functionId.toString() << "'";
-        source.sendFailure(::mc::text::literal(ss.str()));
+        source.sendFailure(::mc::text::translatable("commands.function.scheduled.no_functions", functionId.toString()));
         return 0;
     }
 
     // 执行函数
     auto execResult = functionManager.execute(functionId, source, arguments);
 
-    // 反馈执行结果
-    std::ostringstream ss;
-    ss << "Executed function '" << functionId.toString() << "' (" << execResult.successCount << " commands succeeded";
-    if (execResult.failureCount > 0) {
-        ss << ", " << execResult.failureCount << " failed";
-    }
-    ss << ")";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 反馈执行结果：commands.function.success.single = "Executed %s command(s) from function '%s'"
+    source.sendSuccess(::mc::text::translatable("commands.function.success.single",
+                           {std::to_string(execResult.successCount), functionId.toString()}),
+        true);
 
     return execResult.successCount;
 }

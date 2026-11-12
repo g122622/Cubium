@@ -187,7 +187,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
 
     // 发送成功消息
     if (successCount == 0) {
-        source.sendFailure(::mc::text::literal("Could not enchant any items"));
+        source.sendFailure(::mc::text::translatable("commands.enchant.failed"));
         return 0;
     }
 
@@ -195,15 +195,10 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
     const std::string enchantDisplayName =
         item::enchant::EnchantmentHelper::getFullName(*enchantment, level, enchantment->isCurse());
 
-    if (successCount == 1) {
-        std::ostringstream ss;
-        ss << "Applied " << enchantDisplayName << " to 1 player";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
-    } else {
-        std::ostringstream ss;
-        ss << "Applied " << enchantDisplayName << " to " << successCount << " players";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
-    }
+    // commands.enchant.success.multiple = "Applied enchantment %s to %s entities"
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.enchant.success.multiple", {enchantDisplayName, std::to_string(successCount)}),
+        true);
 
     return successCount;
 }

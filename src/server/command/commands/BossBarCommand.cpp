@@ -57,12 +57,6 @@ namespace command {
 
 namespace {
 
-/// 语言文件加载器（反馈文本复用原版 commands.bossbar.* 键）
-const LanguageManager& _lang()
-{
-    return LanguageManager::instance();
-}
-
 /**
  * @brief 查找 Boss 栏；不存在时向命令源发送未知 ID 错误
  */
@@ -71,7 +65,7 @@ server::CustomServerBossInfo* _findBossBar(ServerCommandSource& source, const st
     ResourceLocation id(idStr);
     auto* bossInfo = source.server()->bossBarManager().get(id);
     if (bossInfo == nullptr) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.unknown", {idStr})));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.unknown", {idStr}));
     }
     return bossInfo;
 }
@@ -288,20 +282,20 @@ i32 BossBarCommand::_addBossBar(CommandContext<ServerCommandSource>& context)
 
     // vanilla：ID 已存在时抛 create.failed（不覆盖既有 Boss 栏）。
     if (manager.get(id) != nullptr) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.create.failed", {idStr})));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.create.failed", {idStr}));
         return 0;
     }
 
     auto name = std::make_unique<text::StringTextComponent>(nameStr);
     auto bossInfo = manager.create(id, std::move(name));
     if (bossInfo == nullptr) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.create.failed", {idStr})));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.create.failed", {idStr}));
         return 0;
     }
 
     manager.add(std::move(bossInfo));
     source.sendSuccess(
-        ::mc::text::literal(_lang().get("commands.bossbar.create.success", {_displayName(*manager.get(id))})), false);
+        ::mc::text::translatable("commands.bossbar.create.success", {_displayName(*manager.get(id))}), false);
     return static_cast<i32>(manager.size());
 }
 
@@ -319,7 +313,7 @@ i32 BossBarCommand::_removeBossBar(CommandContext<ServerCommandSource>& context)
     auto& manager = source.server()->bossBarManager();
     manager.remove(*bossInfo);
 
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.remove.success", {displayName})), false);
+    source.sendSuccess(::mc::text::translatable("commands.bossbar.remove.success", {displayName}), false);
     return static_cast<i32>(manager.size());
 }
 
@@ -330,7 +324,7 @@ i32 BossBarCommand::_listBossBars(CommandContext<ServerCommandSource>& context)
 
     const auto ids = manager.getIds();
     if (ids.empty()) {
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.list.bars.none")), false);
+        source.sendSuccess(::mc::text::translatable("commands.bossbar.list.bars.none"), false);
         return 0;
     }
 
@@ -343,8 +337,8 @@ i32 BossBarCommand::_listBossBars(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    source.sendSuccess(::mc::text::literal(_lang().get(
-                           "commands.bossbar.list.bars.some", {std::to_string(ids.size()), _joinPlayerNames(names)})),
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.bossbar.list.bars.some", {std::to_string(ids.size()), _joinPlayerNames(names)}),
         false);
     return static_cast<i32>(ids.size());
 }
@@ -363,13 +357,13 @@ i32 BossBarCommand::_setName(CommandContext<ServerCommandSource>& context)
     // vanilla：名称未变化时抛 set.name.unchanged。
     auto newName = std::make_unique<text::StringTextComponent>(nameStr);
     if (bossInfo->name().getFormattedText() == newName->getFormattedText()) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.name.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.name.unchanged"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setName(std::move(newName));
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.set.name.success", {displayName})), false);
+    source.sendSuccess(::mc::text::translatable("commands.bossbar.set.name.success", {displayName}), false);
     return 0;
 }
 
@@ -384,13 +378,13 @@ i32 BossBarCommand::_setColor(CommandContext<ServerCommandSource>& context, serv
     }
 
     if (bossInfo->color() == color) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.color.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.color.unchanged"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setColor(color);
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.set.color.success", {displayName})), false);
+    source.sendSuccess(::mc::text::translatable("commands.bossbar.set.color.success", {displayName}), false);
     return 0;
 }
 
@@ -405,13 +399,13 @@ i32 BossBarCommand::_setStyle(CommandContext<ServerCommandSource>& context, serv
     }
 
     if (bossInfo->overlay() == overlay) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.style.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.style.unchanged"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setOverlay(overlay);
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.set.style.success", {displayName})), false);
+    source.sendSuccess(::mc::text::translatable("commands.bossbar.set.style.success", {displayName}), false);
     return 0;
 }
 
@@ -427,15 +421,14 @@ i32 BossBarCommand::_setValue(CommandContext<ServerCommandSource>& context)
     }
 
     if (bossInfo->value() == value) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.value.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.value.unchanged"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setValue(value);
     source.sendSuccess(
-        ::mc::text::literal(_lang().get("commands.bossbar.set.value.success", {displayName, std::to_string(value)})),
-        false);
+        ::mc::text::translatable("commands.bossbar.set.value.success", {displayName, std::to_string(value)}), false);
     return value;
 }
 
@@ -451,15 +444,14 @@ i32 BossBarCommand::_setMax(CommandContext<ServerCommandSource>& context)
     }
 
     if (bossInfo->max() == max) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.max.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.max.unchanged"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setMax(max);
     source.sendSuccess(
-        ::mc::text::literal(_lang().get("commands.bossbar.set.max.success", {displayName, std::to_string(max)})),
-        false);
+        ::mc::text::translatable("commands.bossbar.set.max.success", {displayName, std::to_string(max)}), false);
     return max;
 }
 
@@ -475,17 +467,16 @@ i32 BossBarCommand::_setVisible(CommandContext<ServerCommandSource>& context)
     }
 
     if (bossInfo->visible() == visible) {
-        source.sendFailure(
-            ::mc::text::literal(_lang().get(visible ? "commands.bossbar.set.visibility.unchanged.visible"
-                                                    : "commands.bossbar.set.visibility.unchanged.hidden")));
+        source.sendFailure(::mc::text::translatable(visible ? "commands.bossbar.set.visibility.unchanged.visible"
+                                                            : "commands.bossbar.set.visibility.unchanged.hidden"));
         return 0;
     }
 
     const std::string displayName = _displayName(*bossInfo);
     bossInfo->setVisible(visible);
-    source.sendSuccess(::mc::text::literal(_lang().get(visible ? "commands.bossbar.set.visible.success.visible"
-                                                               : "commands.bossbar.set.visible.success.hidden",
-                           {displayName})),
+    source.sendSuccess(::mc::text::translatable(visible ? "commands.bossbar.set.visible.success.visible"
+                                                        : "commands.bossbar.set.visible.success.hidden",
+                           {displayName}),
         false);
     return 0;
 }
@@ -523,16 +514,15 @@ i32 BossBarCommand::_setPlayers(CommandContext<ServerCommandSource>& context)
     }
     const std::string displayName = _displayName(*bossInfo);
     if (!bossInfo->setPlayers(players)) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.bossbar.set.players.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.bossbar.set.players.unchanged"));
         return 0;
     }
 
     if (players.empty()) {
-        source.sendSuccess(
-            ::mc::text::literal(_lang().get("commands.bossbar.set.players.success.none", {displayName})), false);
+        source.sendSuccess(::mc::text::translatable("commands.bossbar.set.players.success.none", {displayName}), false);
     } else {
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.set.players.success.some",
-                               {displayName, std::to_string(players.size()), _joinPlayerNames(names)})),
+        source.sendSuccess(::mc::text::translatable("commands.bossbar.set.players.success.some",
+                               {displayName, std::to_string(players.size()), _joinPlayerNames(names)}),
             false);
     }
     return static_cast<i32>(players.size());
@@ -548,8 +538,8 @@ i32 BossBarCommand::_getValue(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendSuccess(::mc::text::literal(_lang().get(
-                           "commands.bossbar.get.value", {_displayName(*bossInfo), std::to_string(bossInfo->value())})),
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.bossbar.get.value", {_displayName(*bossInfo), std::to_string(bossInfo->value())}),
         false);
     return bossInfo->value();
 }
@@ -564,8 +554,8 @@ i32 BossBarCommand::_getMax(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendSuccess(::mc::text::literal(_lang().get(
-                           "commands.bossbar.get.max", {_displayName(*bossInfo), std::to_string(bossInfo->max())})),
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.bossbar.get.max", {_displayName(*bossInfo), std::to_string(bossInfo->max())}),
         false);
     return bossInfo->max();
 }
@@ -581,9 +571,9 @@ i32 BossBarCommand::_getVisible(CommandContext<ServerCommandSource>& context)
     }
 
     const bool visible = bossInfo->visible();
-    source.sendSuccess(::mc::text::literal(_lang().get(
+    source.sendSuccess(::mc::text::translatable(
                            visible ? "commands.bossbar.get.visible.visible" : "commands.bossbar.get.visible.hidden",
-                           {_displayName(*bossInfo)})),
+                           {_displayName(*bossInfo)}),
         false);
     return visible ? 1 : 0;
 }
@@ -601,7 +591,7 @@ i32 BossBarCommand::_getPlayers(CommandContext<ServerCommandSource>& context)
     const std::string displayName = _displayName(*bossInfo);
     const auto& playerIds = bossInfo->players();
     if (playerIds.empty()) {
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.get.players.none", {displayName})), false);
+        source.sendSuccess(::mc::text::translatable("commands.bossbar.get.players.none", {displayName}), false);
         return 0;
     }
 
@@ -614,8 +604,8 @@ i32 BossBarCommand::_getPlayers(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.bossbar.get.players.some",
-                           {displayName, std::to_string(playerIds.size()), _joinPlayerNames(names)})),
+    source.sendSuccess(::mc::text::translatable("commands.bossbar.get.players.some",
+                           {displayName, std::to_string(playerIds.size()), _joinPlayerNames(names)}),
         false);
     return static_cast<i32>(playerIds.size());
 }

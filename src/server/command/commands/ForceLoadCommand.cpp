@@ -197,14 +197,14 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
 
     if (totalChunks > MAX_FORCE_LOAD_CHUNKS) {
         std::ostringstream ss;
-        ss << "commands.forceload.failed.tooManyChunks:" << MAX_FORCE_LOAD_CHUNKS << ":" << totalChunks;
-        source.sendFailure(::mc::text::literal(ss.str()));
+        source.sendFailure(::mc::text::translatable(
+            "commands.forceload.toobig", {std::to_string(MAX_FORCE_LOAD_CHUNKS), std::to_string(totalChunks)}));
         return 0;
     }
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string_view dimensionName = _getDimensionName(dimensionId);
+    const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 添加强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -225,15 +225,16 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     ticketManager.processUpdates();
 
     // 发送反馈消息
+    const std::string firstChunkText = "[" + std::to_string(firstChunk.x) + ", " + std::to_string(firstChunk.z) + "]";
+    const std::string fromText = "[" + std::to_string(minChunkX) + ", " + std::to_string(minChunkZ) + "]";
+    const std::string toText = "[" + std::to_string(maxChunkX) + ", " + std::to_string(maxChunkZ) + "]";
     if (successCount == 1) {
-        std::ostringstream ss;
-        ss << "commands.forceload.added.single:[" << firstChunk.x << ", " << firstChunk.z << "]," << dimensionName;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.forceload.added.single", {firstChunkText, dimensionName}), true);
     } else {
-        std::ostringstream ss;
-        ss << "commands.forceload.added.multiple:" << successCount << "," << dimensionName << ",[" << minChunkX << ", "
-           << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.forceload.added.multiple",
+                               {std::to_string(successCount), dimensionName, fromText, toText}),
+            true);
     }
 
     return successCount;
@@ -286,7 +287,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string_view dimensionName = _getDimensionName(dimensionId);
+    const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 移除强制加载
     auto& ticketManager = chunkManager->ticketManager();
@@ -311,15 +312,16 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     }
 
     // 发送反馈消息
+    const std::string removedChunkText = "[" + std::to_string(minChunkX) + ", " + std::to_string(minChunkZ) + "]";
+    const std::string removedFromText = "[" + std::to_string(minChunkX) + ", " + std::to_string(minChunkZ) + "]";
+    const std::string removedToText = "[" + std::to_string(maxChunkX) + ", " + std::to_string(maxChunkZ) + "]";
     if (removedCount == 1) {
-        std::ostringstream ss;
-        ss << "commands.forceload.removed.single:[" << minChunkX << ", " << minChunkZ << "]," << dimensionName;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.forceload.removed.single", {removedChunkText, dimensionName}), true);
     } else {
-        std::ostringstream ss;
-        ss << "commands.forceload.removed.multiple:" << removedCount << "," << dimensionName << ",[" << minChunkX
-           << ", " << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.forceload.removed.multiple",
+                               {std::to_string(removedCount), dimensionName, removedFromText, removedToText}),
+            true);
     }
 
     return removedCount;
@@ -353,23 +355,20 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string_view dimensionName = _getDimensionName(dimensionId);
+    const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 查询强制加载状态
     auto& ticketManager = chunkManager->ticketManager();
     bool isForced = ticketManager.isForcedChunk(chunkX, chunkZ);
 
+    const std::string chunkText = "[" + std::to_string(chunkX) + ", " + std::to_string(chunkZ) + "]";
     if (isForced) {
-        std::ostringstream ss;
-        ss << "commands.forceload.query.success:[" << chunkX << ", " << chunkZ << "]," << dimensionName;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.forceload.query.success", {chunkText, dimensionName}), false);
         return 1;
-    } else {
-        std::ostringstream ss;
-        ss << "commands.forceload.query.failed:[" << chunkX << ", " << chunkZ << "]," << dimensionName;
-        source.sendFailure(::mc::text::literal(ss.str()));
-        return 0;
     }
+    source.sendFailure(::mc::text::translatable("commands.forceload.query.failure", {chunkText, dimensionName}));
+    return 0;
 }
 
 i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& context)
@@ -392,7 +391,7 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string_view dimensionName = _getDimensionName(dimensionId);
+    const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 获取所有强制加载区块
     auto& ticketManager = chunkManager->ticketManager();
@@ -401,9 +400,7 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     i32 count = static_cast<i32>(forcedChunks.size());
 
     if (count == 0) {
-        std::ostringstream ss;
-        ss << "commands.forceload.list.none:" << dimensionName;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.forceload.added.none", dimensionName), false);
         return 0;
     }
 
@@ -425,13 +422,12 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     }
 
     if (count == 1) {
-        std::ostringstream ss;
-        ss << "commands.forceload.list.single:" << dimensionName << "," << chunkList.str();
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.forceload.list.single", {dimensionName, chunkList.str()}), false);
     } else {
-        std::ostringstream ss;
-        ss << "commands.forceload.list.multiple:" << count << "," << dimensionName << "," << chunkList.str();
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.forceload.list.multiple",
+                               {std::to_string(count), dimensionName, chunkList.str()}),
+            false);
     }
 
     return count;
@@ -457,7 +453,7 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
 
     // 获取维度信息
     auto dimensionId = world->dimension();
-    std::string_view dimensionName = _getDimensionName(dimensionId);
+    const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 获取所有强制加载区块并移除
     auto& ticketManager = chunkManager->ticketManager();

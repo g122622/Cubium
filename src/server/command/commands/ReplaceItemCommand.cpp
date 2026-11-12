@@ -500,18 +500,20 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     }
 
     // 反馈消息（对齐 vanilla commands.item.entity.set.success.single / .multiple 语义）。
-    std::ostringstream ss;
-    if (isAirClear) {
-        ss << "Cleared slot " << describeSlot(slot) << " for ";
-    } else {
-        ss << "Replaced slot " << describeSlot(slot) << " with " << count << "x " << item->getName() << " for ";
-    }
+    std::unique_ptr<::mc::text::ITextComponent> itemComponent =
+        item != nullptr ? ::mc::text::translatable(item->getTranslationKey()) : ::mc::text::literal("air");
     if (changedEntities.size() == 1) {
-        ss << changedEntities.front()->getDisplayName()->getFormattedText();
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+        args.push_back(changedEntities.front()->getDisplayName());
+        args.push_back(std::move(itemComponent));
+        source.sendSuccess(::mc::text::translatable("commands.item.entity.set.success.single", std::move(args)), true);
     } else {
-        ss << changedEntities.size() << " entities";
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+        args.push_back(::mc::text::literal(std::to_string(changedEntities.size())));
+        args.push_back(std::move(itemComponent));
+        source.sendSuccess(
+            ::mc::text::translatable("commands.item.entity.set.success.multiple", std::move(args)), true);
     }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return static_cast<i32>(changedEntities.size());
 }
@@ -593,15 +595,15 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
         return 0;
     }
 
-    // 发送反馈消息
-    std::ostringstream ss;
-    if (isAirClear) {
-        ss << "Cleared slot " << slotIndex << " at (" << blockPos.x << ", " << blockPos.y << ", " << blockPos.z << ")";
-    } else {
-        ss << "Replaced slot " << slotIndex << " with " << count << "x " << item->getName() << " at (" << blockPos.x
-           << ", " << blockPos.y << ", " << blockPos.z << ")";
-    }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 发送反馈消息：commands.item.block.set.success = "Replaced a slot at %s, %s, %s with %s"
+    std::unique_ptr<::mc::text::ITextComponent> itemComponent =
+        item != nullptr ? ::mc::text::translatable(item->getTranslationKey()) : ::mc::text::literal("air");
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(std::to_string(blockPos.x)));
+    args.push_back(::mc::text::literal(std::to_string(blockPos.y)));
+    args.push_back(::mc::text::literal(std::to_string(blockPos.z)));
+    args.push_back(std::move(itemComponent));
+    source.sendSuccess(::mc::text::translatable("commands.item.block.set.success", std::move(args)), true);
 
     return 1;
 }

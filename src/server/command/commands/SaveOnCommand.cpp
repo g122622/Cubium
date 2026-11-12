@@ -70,7 +70,7 @@ i32 SaveOnCommand::_enableAutoSave(CommandContext<ServerCommandSource>& context)
     }
 
     server->setAutoSaveEnabled(true);
-    source.sendSuccess(::mc::text::literal("Automatic saving is now enabled"), false);
+    source.sendSuccess(::mc::text::translatable("commands.save.enabled"), true);
     return 1;
 }
 

@@ -142,7 +142,7 @@ ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
             return ItemStack::EMPTY;
         }
         // 非 LivingEntity 实体没有手持物品，抛出 ERROR_NO_HELD_ITEMS
-        source.sendFailure(::mc::text::literal("No held item to use as a loot parameter"));
+        source.sendFailure(::mc::text::translatable("commands.drop.no_held_items"));
         return ItemStack::EMPTY;
     }
 
@@ -281,7 +281,7 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     // 获取目标实体的战利品表ID
     std::string lootTableId = target->getLootTableId();
     if (lootTableId.empty()) {
-        source.sendFailure(::mc::text::literal("Entity " + target->getTypeId() + " has no loot table"));
+        source.sendFailure(::mc::text::translatable("commands.drop.no_loot_table", target->getTypeId()));
         return {};
     }
 
@@ -528,14 +528,17 @@ void sendSuccessMessage(ServerCommandSource& source, const std::vector<ItemStack
 {
     if (items.size() == 1) {
         const auto& item = items[0];
-        std::ostringstream ss;
-        ss << "Dropped " << item.getCount() << " [" << (item.getItem() ? item.getItem()->getName() : "unknown") << "]"
-           << " from " << sourceDesc;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        // commands.drop.success.single_with_table = "Dropped %s %s from loot table %s"
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+        args.push_back(::mc::text::literal(std::to_string(item.getCount())));
+        args.push_back(item.getItem() != nullptr ? ::mc::text::translatable(item.getItem()->getTranslationKey())
+                                                 : ::mc::text::literal("unknown"));
+        args.push_back(::mc::text::literal(sourceDesc));
+        source.sendSuccess(::mc::text::translatable("commands.drop.success.single_with_table", std::move(args)), false);
     } else if (items.size() > 1) {
-        std::ostringstream ss;
-        ss << "Dropped " << items.size() << " items from " << sourceDesc;
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable(
+                               "commands.drop.success.multiple_with_table", {std::to_string(items.size()), sourceDesc}),
+            false);
     } else {
         source.sendSuccess(::mc::text::literal("No items generated"), false);
     }

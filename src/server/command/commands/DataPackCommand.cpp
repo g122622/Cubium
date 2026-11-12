@@ -156,17 +156,17 @@ i32 DataPackCommand::_enableDataPack(CommandContext<ServerCommandSource>& contex
     }
 
     if (matchedPath.empty()) {
-        source.sendSuccess(::mc::text::literal("Unknown data pack '" + name + "'"), false);
+        source.sendFailure(::mc::text::translatable("commands.datapack.unknown", name));
         return 0;
     }
 
     if (dataPacks.setEnabled(matchedPath, true)) {
         server::net::setRegistryDatapackSource(dataPacks);
-        source.sendSuccess(::mc::text::literal("Enabled data pack '" + name + "'"), false);
+        source.sendSuccess(::mc::text::translatable("commands.datapack.modify.enable", name), true);
         return 1;
     }
 
-    source.sendSuccess(::mc::text::literal("Failed to enable data pack '" + name + "'"), false);
+    source.sendFailure(::mc::text::translatable("commands.datapack.enable.failed", name));
     return 0;
 }
 
@@ -194,17 +194,17 @@ i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& conte
     }
 
     if (matchedPath.empty()) {
-        source.sendSuccess(::mc::text::literal("Unknown data pack '" + name + "'"), false);
+        source.sendFailure(::mc::text::translatable("commands.datapack.unknown", name));
         return 0;
     }
 
     if (dataPacks.setEnabled(matchedPath, false)) {
         server::net::setRegistryDatapackSource(dataPacks);
-        source.sendSuccess(::mc::text::literal("Disabled data pack '" + name + "'"), false);
+        source.sendSuccess(::mc::text::translatable("commands.datapack.modify.disable", name), true);
         return 1;
     }
 
-    source.sendSuccess(::mc::text::literal("Failed to disable data pack '" + name + "'"), false);
+    source.sendFailure(::mc::text::translatable("commands.datapack.disable.failed", name));
     return 0;
 }
 
@@ -216,7 +216,7 @@ i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& contex
     for (const char c : id) {
         const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
         if (!ok) {
-            source.sendFailure(::mc::text::literal("Invalid data pack id: " + id + " (only [a-z0-9_-] are allowed)"));
+            source.sendFailure(::mc::text::translatable("commands.datapack.create.invalid_name", id));
             return 0;
         }
     }
@@ -230,13 +230,13 @@ i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& contex
     std::error_code ec;
     const std::filesystem::path dir = std::filesystem::path("datapacks") / id;
     if (std::filesystem::exists(dir, ec)) {
-        source.sendFailure(::mc::text::literal("A data pack with id '" + id + "' already exists"));
+        source.sendFailure(::mc::text::translatable("commands.datapack.create.already_exists", id));
         return 0;
     }
 
     std::filesystem::create_directories(dir / "data", ec);
     if (ec) {
-        source.sendFailure(::mc::text::literal("Failed to create data pack '" + id + "': " + ec.message()));
+        source.sendFailure(::mc::text::translatable("commands.datapack.create.io_failure", id));
         return 0;
     }
 
@@ -248,11 +248,11 @@ i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& contex
     auto& dataPacks = server->dataPackList();
     const auto added = dataPacks.addPack(dir, true, 0);
     if (!added.success()) {
-        source.sendFailure(::mc::text::literal("Failed to create data pack '" + id + "'"));
+        source.sendFailure(::mc::text::translatable("commands.datapack.create.io_failure", id));
         return 0;
     }
     server::net::setRegistryDatapackSource(dataPacks);
-    source.sendSuccess(::mc::text::literal("Created empty data pack '" + id + "'"), false);
+    source.sendSuccess(::mc::text::translatable("commands.datapack.create.success", id), true);
     return 1;
 }
 
@@ -263,7 +263,7 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
 
     auto* server = source.server();
     if (!server) {
-        source.sendSuccess(::mc::text::literal("No data packs available"), false);
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.available.none"), false);
         return 0;
     }
 
@@ -271,7 +271,7 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
     auto allPacks = dataPacks.getAllPacks();
 
     if (allPacks.empty()) {
-        source.sendSuccess(::mc::text::literal("There are no data packs available"), false);
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.available.none"), false);
         return 0;
     }
 
@@ -303,22 +303,22 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
 
     if (filter == "available") {
         // 原版 available = 所有可用的包（含已启用）。
-        source.sendSuccess(
-            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.enabled.success",
+                               {std::to_string(enabledCount), enabledList.str()}),
             false);
-        source.sendSuccess(
-            ::mc::text::literal("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str()),
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.available.success",
+                               {std::to_string(disabledCount), disabledList.str()}),
             false);
     } else if (filter == "enabled") {
-        source.sendSuccess(
-            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.enabled.success",
+                               {std::to_string(enabledCount), enabledList.str()}),
             false);
     } else {
-        source.sendSuccess(
-            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.enabled.success",
+                               {std::to_string(enabledCount), enabledList.str()}),
             false);
-        source.sendSuccess(
-            ::mc::text::literal("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str()),
+        source.sendSuccess(::mc::text::translatable("commands.datapack.list.available.success",
+                               {std::to_string(disabledCount), disabledList.str()}),
             false);
     }
     return 1;

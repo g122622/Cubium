@@ -492,9 +492,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
 
     // 检查目标是否已存在
     if (scoreboard->hasObjective(name)) {
-        std::ostringstream ss;
-        ss << "An objective with the name '" << name << "' already exists";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("commands.scoreboard.objectives.add.duplicate"));
         return 0;
     }
 
@@ -521,8 +519,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
     }
 
     std::ostringstream ss;
-    ss << "Created new objective '" << name << "' with criteria '" << criteria << "'";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.add.success", name), true);
 
     return 1;
 }
@@ -542,9 +539,7 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
     // 获取目标
     auto* objective = scoreboard->getObjective(name);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << name << "'";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", name));
         return 0;
     }
 
@@ -552,8 +547,7 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
     scoreboard->removeObjective(*objective);
 
     std::ostringstream ss;
-    ss << "Removed objective '" << name << "'";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.remove.success", name), true);
 
     return 1;
 }
@@ -571,19 +565,20 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
 
     auto objectives = scoreboard->getObjectives();
     if (objectives.empty()) {
-        source.sendSuccess(::mc::text::literal("There are no objectives"), false);
+        source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.list.empty"), false);
         return 1;
     }
 
-    std::ostringstream ss;
-    ss << "There are " << objectives.size() << " objective(s): ";
+    std::string namesText;
     for (size_t i = 0; i < objectives.size(); ++i) {
         if (i > 0) {
-            ss << ", ";
+            namesText += ", ";
         }
-        ss << objectives[i]->getName();
+        namesText += objectives[i]->getName();
     }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.list.success",
+                           {std::to_string(objectives.size()), namesText}),
+        false);
 
     return 1;
 }
@@ -605,9 +600,7 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     // 获取目标
     auto* objective = scoreboard->getObjective(objectiveName);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << objectiveName << "'";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
@@ -628,8 +621,9 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     scoreObj->setScorePoints(score);
 
     std::ostringstream ss;
-    ss << "Set " << target << "'s score in '" << objectiveName << "' to " << score;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.set.success.single",
+                           {objectiveName, target, std::to_string(score)}),
+        true);
 
     return 1;
 }
@@ -651,9 +645,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     // 获取目标
     auto* objective = scoreboard->getObjective(objectiveName);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << objectiveName << "'";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
@@ -673,10 +665,10 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     }
     scoreObj->addScore(score);
 
-    std::ostringstream ss;
-    ss << "Added " << score << " to " << target << "'s score in '" << objectiveName << "' (now "
-       << scoreObj->getScorePoints() << ")";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.scoreboard.players.add.success.single = "Added %s to %s for %s (now %s)"
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.add.success.single",
+                           {std::to_string(score), objectiveName, target, std::to_string(scoreObj->getScorePoints())}),
+        true);
 
     return 1;
 }
@@ -698,9 +690,7 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     // 获取目标
     auto* objective = scoreboard->getObjective(objectiveName);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << objectiveName << "'";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
@@ -720,10 +710,10 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     }
     scoreObj->subtractScore(score);
 
-    std::ostringstream ss;
-    ss << "Subtracted " << score << " from " << target << "'s score in '" << objectiveName << "' (now "
-       << scoreObj->getScorePoints() << ")";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.scoreboard.players.remove.success.single = "Removed %s from %s for %s (now %s)"
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.remove.success.single",
+                           {std::to_string(score), objectiveName, target, std::to_string(scoreObj->getScorePoints())}),
+        true);
 
     return 1;
 }
@@ -752,8 +742,7 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
     }
 
     std::ostringstream ss;
-    ss << "Reset scores for " << target;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.reset.all.single", target), true);
 
     return 1;
 }
@@ -817,18 +806,14 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     // 获取目标
     auto* objective = scoreboard->getObjective(objectiveName);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << objectiveName << "'";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
     // 检查判据是否为 trigger 类型
     auto& criteria = objective->getCriteria();
     if (criteria.getName() != scoreboard::TriggerCriteria::NAME) {
-        std::ostringstream ss;
-        ss << "Objective '" << objectiveName << "' is not a trigger objective";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("commands.scoreboard.players.enable.invalid"));
         return 0;
     }
 
@@ -843,8 +828,8 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     score->setLocked(false);
 
     std::ostringstream ss;
-    ss << "Enabled trigger '" << objectiveName << "' for " << target;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.players.enable.success.single", {objectiveName, target}), true);
 
     return 1;
 }
@@ -867,27 +852,26 @@ i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context
     // 获取玩家的所有目标名称
     auto objectiveNames = scoreboard->getPlayerObjectives(target);
     if (objectiveNames.empty()) {
-        std::ostringstream ss;
-        ss << target << " has no scores recorded";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.list.entity.empty", target), false);
         return 1;
     }
 
-    std::ostringstream ss;
-    ss << target << " has " << objectiveNames.size() << " score(s): ";
+    std::string entries;
     for (size_t i = 0; i < objectiveNames.size(); ++i) {
         if (i > 0) {
-            ss << ", ";
+            entries += ", ";
         }
         auto* objective = scoreboard->getObjective(objectiveNames[i]);
         auto* score = objective ? scoreboard->getScore(target, *objective) : nullptr;
+        entries += objectiveNames[i];
         if (score) {
-            ss << objectiveNames[i] << "=" << score->getScorePoints();
-        } else {
-            ss << objectiveNames[i];
+            entries += "=" + std::to_string(score->getScorePoints());
         }
     }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    auto listMessage = ::mc::text::translatable(
+        "commands.scoreboard.players.list.entity.success", {target, std::to_string(objectiveNames.size())});
+    listMessage->append(::mc::text::literal(entries));
+    source.sendSuccess(std::move(listMessage), false);
 
     return 1;
 }
@@ -905,12 +889,12 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", name));
         return 0;
     }
     objective->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
     source.sendSuccess(
-        ::mc::text::literal("Set display name of objective '" + name + "' to '" + displayName + "'"), false);
+        ::mc::text::translatable("commands.scoreboard.objectives.modify.displayname", {name, displayName}), false);
     return 1;
 }
 
@@ -927,7 +911,7 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCo
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", name));
         return 0;
     }
 
@@ -952,16 +936,14 @@ i32 ScoreboardCommand::_setObjectiveRenderType(
 
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", name));
         return 0;
     }
 
     // 原版仅在类型真正变化时才写入并回报，避免重复设置时刷屏。
     if (objective->getRenderType() != renderType) {
         objective->setRenderType(renderType);
-        source.sendSuccess(::mc::text::literal("Set render type of objective '" + name + "' to '" +
-                               scoreboard::renderTypeToString(renderType) + "'"),
-            false);
+        source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.modify.rendertype", name), true);
     }
 
     return 0;
@@ -982,18 +964,19 @@ i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& cont
     if (!context.hasArgument("objective")) {
         // /scoreboard objectives setdisplay <slot>：清空该槽位。
         scoreboard->setObjectiveInDisplaySlot(slot, nullptr);
-        source.sendSuccess(::mc::text::literal("Cleared display slot '" + slotName + "'"), false);
+        source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.display.cleared", slotName), true);
         return 1;
     }
     auto* objective = scoreboard->getObjective(context.getArgument<std::string>("objective"));
     if (objective == nullptr) {
-        source.sendSuccess(
-            ::mc::text::literal("Unknown objective '" + context.getArgument<std::string>("objective") + "'"), false);
+        source.sendFailure(
+            ::mc::text::translatable("arguments.objective.notFound", context.getArgument<std::string>("objective")));
         return 0;
     }
     scoreboard->setObjectiveInDisplaySlot(slot, objective);
     source.sendSuccess(
-        ::mc::text::literal("Set display slot '" + slotName + "' to objective '" + objective->getName() + "'"), false);
+        ::mc::text::translatable("commands.scoreboard.objectives.display.set", {slotName, objective->getName()}),
+        false);
     return 1;
 }
 
@@ -1011,15 +994,19 @@ i32 ScoreboardCommand::_listAllPlayers(CommandContext<ServerCommandSource>& cont
         names.insert(name);
     }
     if (names.empty()) {
-        source.sendSuccess(::mc::text::literal("There are no tracked players"), false);
+        source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.list.empty"), false);
         return 0;
     }
-    std::ostringstream ss;
-    ss << "There are " << names.size() << " tracked entities:";
+    std::string namesText;
     for (const auto& name : names) {
-        ss << " " << name;
+        if (!namesText.empty()) {
+            namesText += ", ";
+        }
+        namesText += name;
     }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.players.list.success", {std::to_string(names.size()), namesText}),
+        false);
     return static_cast<i32>(names.size());
 }
 
@@ -1036,7 +1023,7 @@ i32 ScoreboardCommand::_modifyObjectiveNumberFormat(
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendFailure(::mc::text::literal("Unknown objective '" + name + "'"));
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", name));
         return 0;
     }
 
@@ -1044,9 +1031,11 @@ i32 ScoreboardCommand::_modifyObjectiveNumberFormat(
 
     // 原版对「设置」与「清除」分别回报（objectiveFormat.set / .clear）。
     if (objective->getNumberFormat().has_value()) {
-        source.sendSuccess(::mc::text::literal("Set number format of objective '" + name + "'"), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.scoreboard.objectives.modify.objectiveFormat.set", name), false);
     } else {
-        source.sendSuccess(::mc::text::literal("Cleared number format of objective '" + name + "'"), false);
+        source.sendSuccess(
+            ::mc::text::translatable("commands.scoreboard.objectives.modify.objectiveFormat.clear", name), false);
     }
     return 1;
 }
@@ -1065,7 +1054,7 @@ i32 ScoreboardCommand::_modifyPlayerNumberFormat(
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendFailure(::mc::text::literal("Unknown objective '" + objectiveName + "'"));
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
@@ -1121,7 +1110,7 @@ i32 ScoreboardCommand::_modifyPlayerDisplayName(
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendFailure(::mc::text::literal("Unknown objective '" + objectiveName + "'"));
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
@@ -1178,13 +1167,13 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
     auto* objective = scoreboard->getObjective(objectiveName);
     auto* sourceObjective = scoreboard->getObjective(sourceObjectiveName);
     if (objective == nullptr || sourceObjective == nullptr) {
-        source.sendSuccess(::mc::text::literal("Unknown objective"), false);
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
     auto* targetScore = scoreboard->getScore(targets, *objective);
     auto* sourceScore = scoreboard->getScore(sourceName, *sourceObjective);
     if (targetScore == nullptr || sourceScore == nullptr) {
-        source.sendSuccess(::mc::text::literal("Could not get score"), false);
+        source.sendFailure(::mc::text::literal("Could not get score"));
         return 0;
     }
 

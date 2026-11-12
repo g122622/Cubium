@@ -442,7 +442,8 @@ Result<void> ClientPlayVisitor::handleConfiguration(const mc::network::ir::IrPac
                 }
                 return Result<void>::ok();
             } else if constexpr (std::is_same_v<C, mc::network::ir::configuration::Disconnect>) {
-                spdlog::warn("[Configuration] Disconnected by server: {}", cfg.reason);
+                spdlog::warn(
+                    "[Configuration] Disconnected by server: {}", ::mc::text::componentNbtBytesToPlainText(cfg.reason));
                 return Result<void>::ok();
             } else {
                 // RegistryData/UpdateTags/UpdateEnabledFeatures/ClientInformation(不应收到)：忽略。
@@ -506,7 +507,8 @@ Result<void> ClientPlayVisitor::handle(const mc::network::ir::IrPacket& packet)
             // ---- 断开 ----
             else if constexpr (std::is_same_v<T, irplay::Disconnect>) {
                 const auto& p = pkt;
-                const std::string reason(p.reason.begin(), p.reason.end());
+                // reason 是 Component NBT wire 字节：还原为纯文本用于日志。
+                const std::string reason = ::mc::text::componentNbtBytesToPlainText(p.reason);
                 spdlog::info("Disconnected from server: {}", reason);
 
                 if (m_app.m_stateMachine.isLeavingWorld()) {

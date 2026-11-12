@@ -95,22 +95,23 @@ void sendStopSoundPacket(server::PacketSender& connMgr,
  *
  * 根据 category 和 soundId 是否为空，返回不同格式的反馈文本。
  */
-std::string buildStopSoundFeedback(
+std::unique_ptr<::mc::text::ITextComponent> buildStopSoundFeedback(
     const std::optional<sound::SoundCategory>& category, const std::optional<ResourceLocation>& soundId)
 {
     if (category.has_value()) {
-        std::string categoryName(sound::getSoundCategoryName(category.value()));
+        const std::string categoryName(sound::getSoundCategoryName(category.value()));
         if (soundId.has_value()) {
-            return fmt::format("Stopped sound '{}' in category '{}'", soundId.value().toString(), categoryName);
+            return ::mc::text::translatable(
+                "commands.stopsound.success.source.sound", {soundId.value().toString(), categoryName});
         }
-        return fmt::format("Stopped all sounds in category '{}'", categoryName);
+        return ::mc::text::translatable("commands.stopsound.success.source.any", categoryName);
     }
 
     if (soundId.has_value()) {
-        return fmt::format("Stopped sound '{}' across all categories", soundId.value().toString());
+        return ::mc::text::translatable("commands.stopsound.success.sourceless.sound", soundId.value().toString());
     }
 
-    return "Stopped all sounds";
+    return ::mc::text::translatable("commands.stopsound.success.sourceless.any");
 }
 
 } // namespace
@@ -180,7 +181,7 @@ i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& contex
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 
@@ -191,7 +192,7 @@ i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& contex
         sendStopSoundPacket(connMgr, playerId, std::nullopt, std::nullopt);
     }
 
-    source.sendSuccess(::mc::text::literal(buildStopSoundFeedback(std::nullopt, std::nullopt)), false);
+    source.sendSuccess(buildStopSoundFeedback(std::nullopt, std::nullopt), false);
     return static_cast<i32>(playerIds.size());
 }
 
@@ -204,7 +205,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 
@@ -215,7 +216,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
         sendStopSoundPacket(connMgr, playerId, soundId, category);
     }
 
-    source.sendSuccess(::mc::text::literal(buildStopSoundFeedback(category, soundId)), false);
+    source.sendSuccess(buildStopSoundFeedback(category, soundId), false);
     return static_cast<i32>(playerIds.size());
 }
 

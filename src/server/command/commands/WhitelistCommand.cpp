@@ -186,20 +186,19 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
         return 1;
     }
 
-    std::ostringstream ss;
-    ss << "There are " << names.size() << " whitelisted players: ";
-
     // 按名称排序
     std::sort(names.begin(), names.end());
 
+    std::string namesText;
     for (size_t i = 0; i < names.size(); ++i) {
         if (i > 0) {
-            ss << ", ";
+            namesText += ", ";
         }
-        ss << names[i];
+        namesText += names[i];
     }
 
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.whitelist.list", {std::to_string(names.size()), namesText}), false);
     return static_cast<i32>(names.size());
 }
 
@@ -271,8 +270,7 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
         }
 
         std::ostringstream ss;
-        ss << "Added " << playerName << " to the whitelist";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.whitelist.add.success", playerName), true);
 
         return 1;
     }
@@ -332,8 +330,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
         }
 
         std::ostringstream ss;
-        ss << "Removed " << playerName << " from the whitelist";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendSuccess(::mc::text::translatable("commands.whitelist.remove.success", playerName), true);
 
         // 踢出不在白名单的玩家（如果白名单已启用）
         if (whitelistManager.whitelistIsEnabled()) {

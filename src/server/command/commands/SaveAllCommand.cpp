@@ -116,7 +116,7 @@ i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendSuccess(::mc::text::literal("Saving the game (this may take a moment)..."), false);
+    source.sendSuccess(::mc::text::translatable("commands.save.saving"), false);
 
     auto* storage = getSharedStorage(*server);
     if (storage == nullptr) {
@@ -139,9 +139,7 @@ i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
 
     const size_t savedPlayers = server->playerManager().playerCount();
 
-    source.sendSuccess(
-        ::mc::text::literal(fmt::format("Saved the game ({} sections, {} players)", totalSections, savedPlayers)),
-        false);
+    source.sendSuccess(::mc::text::translatable("commands.save.success"), false);
     spdlog::info("Game saved by {} ({} sections, {} players)", source.name(), totalSections, savedPlayers);
 
     return 1;
@@ -157,7 +155,7 @@ i32 SaveAllCommand::_saveAllFlush(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendSuccess(::mc::text::literal("Saving the game with flush (this may take a moment)..."), false);
+    source.sendSuccess(::mc::text::translatable("commands.save.saving"), false);
 
     auto* storage = getSharedStorage(*server);
     if (storage == nullptr) {

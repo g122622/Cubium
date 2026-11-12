@@ -67,9 +67,7 @@ i32 SeedCommand::_showSeed(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "Seed: [" << seed << "]";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.seed.success", "[" + std::to_string(seed) + "]"), false);
 
     return 1;
 }

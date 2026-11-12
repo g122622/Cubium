@@ -92,43 +92,40 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
     size_t total = bannedPlayers.size() + bannedIps.size();
 
     if (total == 0) {
-        source.sendSuccess(::mc::text::literal("There are no banned players or IPs"), false);
+        source.sendSuccess(::mc::text::translatable("commands.banlist.none"), false);
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "There are " << total << " total ban(s): ";
-
-    // 列出封禁的玩家
+    // commands.banlist.list = "There are %s ban(s):"；具体条目作为子组件附在后面。
+    std::string details;
     if (!bannedPlayers.empty()) {
         std::sort(bannedPlayers.begin(), bannedPlayers.end());
-        ss << "Players [";
+        details += " Players [";
         for (size_t i = 0; i < bannedPlayers.size(); ++i) {
             if (i > 0) {
-                ss << ", ";
+                details += ", ";
             }
-            ss << bannedPlayers[i];
+            details += bannedPlayers[i];
         }
-        ss << "]";
+        details += "]";
     }
-
-    // 列出封禁的 IP
     if (!bannedIps.empty()) {
-        if (!bannedPlayers.empty()) {
-            ss << ", ";
-        }
         std::sort(bannedIps.begin(), bannedIps.end());
-        ss << "IPs [";
+        details += " IPs [";
         for (size_t i = 0; i < bannedIps.size(); ++i) {
             if (i > 0) {
-                ss << ", ";
+                details += ", ";
             }
-            ss << bannedIps[i];
+            details += bannedIps[i];
         }
-        ss << "]";
+        details += "]";
     }
 
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    auto listMessage = ::mc::text::translatable("commands.banlist.list", std::to_string(total));
+    if (!details.empty()) {
+        listMessage->append(::mc::text::literal(details));
+    }
+    source.sendSuccess(std::move(listMessage), false);
     return static_cast<i32>(total);
 }
 

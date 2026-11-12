@@ -37,6 +37,7 @@
 #include "common/network/transport/Endpoint.hpp"
 #include "common/network/transport/LocalTransport.hpp"
 #include "common/network/transport/TcpTransport.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -266,7 +267,7 @@ Result<void> ClientNetwork::_handleLoginPacket(const mc::network::ir::LoginPacke
 
     if (std::holds_alternative<mc::network::ir::login::Disconnect>(pkt)) {
         const auto& dc = std::get<mc::network::ir::login::Disconnect>(pkt);
-        spdlog::info("ClientNetwork: login disconnect: {}", dc.reason);
+        spdlog::info("ClientNetwork: login disconnect: {}", ::mc::text::componentNbtBytesToPlainText(dc.reason));
         disconnect("Login disconnect");
         return Result<void>::ok();
     }

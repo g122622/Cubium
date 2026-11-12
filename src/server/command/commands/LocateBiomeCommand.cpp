@@ -135,17 +135,15 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         i32 dz = result->z - searchCenter.z;
         i32 distance = static_cast<i32>(std::sqrt(static_cast<f64>(dx * dx + dz * dz)));
 
-        std::ostringstream resultSs;
-        resultSs << "Found " << biomeName << " at (" << result->x << ", " << result->z << ") "
-                 << "(" << distance << " blocks away)";
-        source.sendSuccess(::mc::text::literal(resultSs.str()), false);
+        // commands.locate.biome.success = "The nearest %s is at %s (%s blocks away)"
+        const std::string posText = "(" + std::to_string(result->x) + ", " + std::to_string(result->z) + ")";
+        source.sendSuccess(
+            ::mc::text::translatable("commands.locate.biome.success", {biomeName, posText, std::to_string(distance)}),
+            false);
         return 1;
-    } else {
-        std::ostringstream errorSs;
-        errorSs << "Could not find biome '" << biomeName << "' within " << SEARCH_RADIUS << " blocks";
-        source.sendFailure(::mc::text::literal(errorSs.str()));
-        return 0;
     }
+    source.sendFailure(::mc::text::translatable("commands.locate.biome.not_found", biomeName));
+    return 0;
 }
 
 std::optional<BiomeId> LocateBiomeCommand::_parseBiomeId(const std::string& name) noexcept

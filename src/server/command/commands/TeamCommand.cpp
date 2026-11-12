@@ -336,13 +336,13 @@ i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
 
     // 对齐 vanilla：同名队伍已存在时抛出 duplicate 错误。
     if (scoreboard->hasTeam(teamName)) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.team.add.duplicate")));
+        source.sendFailure(::mc::text::translatable("commands.team.add.duplicate"));
         return 0;
     }
 
     auto* team = scoreboard->createTeam(teamName);
     if (team == nullptr) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.team.add.duplicate")));
+        source.sendFailure(::mc::text::translatable("commands.team.add.duplicate"));
         return 0;
     }
 
@@ -352,8 +352,7 @@ i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
             std::make_unique<text::StringTextComponent>(context.getArgument<ComponentTextPtr>("displayName")->text));
     }
 
-    source.sendSuccess(
-        ::mc::text::literal(_lang().get("commands.team.add.success", {_formattedTeamName(*team)})), false);
+    source.sendSuccess(::mc::text::translatable("commands.team.add.success", {_formattedTeamName(*team)}), false);
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
@@ -374,7 +373,7 @@ i32 TeamCommand::_removeTeam(CommandContext<ServerCommandSource>& context)
 
     const std::string displayName = _formattedTeamName(*team);
     scoreboard->removeTeam(*team);
-    source.sendSuccess(::mc::text::literal(_lang().get("commands.team.remove.success", {displayName})), false);
+    source.sendSuccess(::mc::text::translatable("commands.team.remove.success", {displayName}), false);
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
@@ -398,14 +397,13 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
         const auto& members = team->getMembers();
         const std::string displayName = _formattedTeamName(*team);
         if (members.empty()) {
-            source.sendSuccess(
-                ::mc::text::literal(_lang().get("commands.team.list.members.empty", {displayName})), false);
+            source.sendSuccess(::mc::text::translatable("commands.team.list.members.empty", {displayName}), false);
             return 0;
         }
 
         const std::vector<std::string> memberNames(members.begin(), members.end());
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.list.members.success",
-                               {displayName, std::to_string(members.size()), _joinList(memberNames)})),
+        source.sendSuccess(::mc::text::translatable("commands.team.list.members.success",
+                               {displayName, std::to_string(members.size()), _joinList(memberNames)}),
             false);
         return static_cast<i32>(members.size());
     }
@@ -413,7 +411,7 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
     // /team list：列出全部队伍
     const auto teams = scoreboard->getTeams();
     if (teams.empty()) {
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.list.teams.empty")), false);
+        source.sendSuccess(::mc::text::translatable("commands.team.list.teams.empty"), false);
         return 0;
     }
 
@@ -424,8 +422,8 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
             teamNames.push_back(_formattedTeamName(*team));
         }
     }
-    source.sendSuccess(::mc::text::literal(_lang().get(
-                           "commands.team.list.teams.success", {std::to_string(teams.size()), _joinList(teamNames)})),
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.team.list.teams.success", {std::to_string(teams.size()), _joinList(teamNames)}),
         false);
     return static_cast<i32>(teams.size());
 }
@@ -449,7 +447,7 @@ i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
     // 复制成员列表，避免在遍历中修改成员集合。
     const std::vector<std::string> members(team->getMembers().begin(), team->getMembers().end());
     if (members.empty()) {
-        source.sendFailure(::mc::text::literal(_lang().get("commands.team.empty.unchanged")));
+        source.sendFailure(::mc::text::translatable("commands.team.empty.unchanged"));
         return 0;
     }
 
@@ -458,8 +456,7 @@ i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
     }
 
     source.sendSuccess(
-        ::mc::text::literal(_lang().get("commands.team.empty.success", {std::to_string(members.size()), displayName})),
-        false);
+        ::mc::text::translatable("commands.team.empty.success", {std::to_string(members.size()), displayName}), false);
     return static_cast<i32>(members.size());
 }
 
@@ -488,7 +485,7 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
         playerIds.push_back(source.playerId());
     }
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -503,10 +500,10 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     const std::string displayName = _formattedTeamName(*team);
     if (playerIds.size() == 1) {
         source.sendSuccess(
-            ::mc::text::literal(_lang().get("commands.team.join.success.single", {names.front(), displayName})), false);
+            ::mc::text::translatable("commands.team.join.success.single", {names.front(), displayName}), false);
     } else {
-        source.sendSuccess(::mc::text::literal(_lang().get(
-                               "commands.team.join.success.multiple", {std::to_string(playerIds.size()), displayName})),
+        source.sendSuccess(::mc::text::translatable(
+                               "commands.team.join.success.multiple", {std::to_string(playerIds.size()), displayName}),
             false);
     }
     return static_cast<i32>(playerIds.size());
@@ -531,7 +528,7 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
         playerIds.push_back(source.playerId());
     }
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -545,11 +542,10 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerIds.size() == 1) {
-        source.sendSuccess(
-            ::mc::text::literal(_lang().get("commands.team.leave.success.single", {names.front()})), false);
+        source.sendSuccess(::mc::text::translatable("commands.team.leave.success.single", {names.front()}), false);
     } else {
-        source.sendSuccess(::mc::text::literal(
-                               _lang().get("commands.team.leave.success.multiple", {std::to_string(playerIds.size())})),
+        source.sendSuccess(
+            ::mc::text::translatable("commands.team.leave.success.multiple", {std::to_string(playerIds.size())}),
             false);
     }
     return static_cast<i32>(playerIds.size());
@@ -576,32 +572,30 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         const std::string colorStr = context.getArgument<std::string>("value");
         const text::TextFormatting color = text::fromName(colorStr);
         if (color == text::TextFormatting::None) {
-            source.sendFailure(::mc::text::literal("Unknown color '" + colorStr + "'"));
+            source.sendFailure(::mc::text::translatable("argument.color.invalid", colorStr));
             return 0;
         }
         if (team->getColor() == color) {
-            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.color.unchanged")));
+            source.sendFailure(::mc::text::translatable("commands.team.option.color.unchanged"));
             return 0;
         }
         team->setColor(color);
         source.sendSuccess(
-            ::mc::text::literal(_lang().get("commands.team.option.color.success", {displayName, text::toName(color)})),
-            false);
+            ::mc::text::translatable("commands.team.option.color.success", {displayName, text::toName(color)}), false);
         return 0;
     }
 
     if (option == "friendlyFire") {
         const bool enabled = context.getArgument<bool>("allowed");
         if (team->getAllowFriendlyFire() == enabled) {
-            source.sendFailure(
-                ::mc::text::literal(_lang().get(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
-                                                        : "commands.team.option.friendlyfire.alreadyDisabled")));
+            source.sendFailure(::mc::text::translatable(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
+                                                                : "commands.team.option.friendlyfire.alreadyDisabled"));
             return 0;
         }
         team->setAllowFriendlyFire(enabled);
-        source.sendSuccess(::mc::text::literal(_lang().get(enabled ? "commands.team.option.friendlyfire.enabled"
-                                                                   : "commands.team.option.friendlyfire.disabled",
-                               {displayName})),
+        source.sendSuccess(::mc::text::translatable(enabled ? "commands.team.option.friendlyfire.enabled"
+                                                            : "commands.team.option.friendlyfire.disabled",
+                               {displayName}),
             false);
         return 0;
     }
@@ -609,16 +603,15 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
     if (option == "seeFriendlyInvisibles") {
         const bool enabled = context.getArgument<bool>("allowed");
         if (team->canSeeFriendlyInvisibles() == enabled) {
-            source.sendFailure(::mc::text::literal(
-                _lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
-                                    : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled")));
+            source.sendFailure(
+                ::mc::text::translatable(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
+                                                 : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled"));
             return 0;
         }
         team->setSeeFriendlyInvisibles(enabled);
-        source.sendSuccess(
-            ::mc::text::literal(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.enabled"
-                                                    : "commands.team.option.seeFriendlyInvisibles.disabled",
-                {displayName})),
+        source.sendSuccess(::mc::text::translatable(enabled ? "commands.team.option.seeFriendlyInvisibles.enabled"
+                                                            : "commands.team.option.seeFriendlyInvisibles.disabled",
+                               {displayName}),
             false);
         return 0;
     }
@@ -634,12 +627,12 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         }
         const auto visibility = *parsed;
         if (team->getNameTagVisibility() == visibility) {
-            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.nametagVisibility.unchanged")));
+            source.sendFailure(::mc::text::translatable("commands.team.option.nametagVisibility.unchanged"));
             return 0;
         }
         team->setNameTagVisibility(visibility);
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.nametagVisibility.success",
-                               {displayName, _visibilityDisplayName(visibility)})),
+        source.sendSuccess(::mc::text::translatable("commands.team.option.nametagVisibility.success",
+                               {displayName, _visibilityDisplayName(visibility)}),
             false);
         return 0;
     }
@@ -655,13 +648,12 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         }
         const auto visibility = *parsed;
         if (team->getDeathMessageVisibility() == visibility) {
-            source.sendFailure(
-                ::mc::text::literal(_lang().get("commands.team.option.deathMessageVisibility.unchanged")));
+            source.sendFailure(::mc::text::translatable("commands.team.option.deathMessageVisibility.unchanged"));
             return 0;
         }
         team->setDeathMessageVisibility(visibility);
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.deathMessageVisibility.success",
-                               {displayName, _visibilityDisplayName(visibility)})),
+        source.sendSuccess(::mc::text::translatable("commands.team.option.deathMessageVisibility.success",
+                               {displayName, _visibilityDisplayName(visibility)}),
             false);
         return 0;
     }
@@ -677,12 +669,12 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         }
         const auto rule = *parsedRule;
         if (team->getCollisionRule() == rule) {
-            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.collisionRule.unchanged")));
+            source.sendFailure(::mc::text::translatable("commands.team.option.collisionRule.unchanged"));
             return 0;
         }
         team->setCollisionRule(rule);
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.collisionRule.success",
-                               {displayName, _collisionDisplayName(rule)})),
+        source.sendSuccess(::mc::text::translatable("commands.team.option.collisionRule.success",
+                               {displayName, _collisionDisplayName(rule)}),
             false);
         return 0;
     }
@@ -690,14 +682,14 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
     if (option == "prefix") {
         const std::string prefix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setPrefix(std::make_unique<text::StringTextComponent>(prefix));
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.prefix.success", {prefix})), false);
+        source.sendSuccess(::mc::text::translatable("commands.team.option.prefix.success", {prefix}), false);
         return 1;
     }
 
     if (option == "suffix") {
         const std::string suffix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setSuffix(std::make_unique<text::StringTextComponent>(suffix));
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.suffix.success", {suffix})), false);
+        source.sendSuccess(::mc::text::translatable("commands.team.option.suffix.success", {suffix}), false);
         return 1;
     }
 
@@ -705,11 +697,11 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         const std::string newDisplayName = context.getArgument<ComponentTextPtr>(option)->text;
         const text::ITextComponent* current = team->getDisplayName();
         if (current != nullptr && current->getFormattedText() == newDisplayName) {
-            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.name.unchanged")));
+            source.sendFailure(::mc::text::translatable("commands.team.option.name.unchanged"));
             return 0;
         }
         team->setDisplayName(std::make_unique<text::StringTextComponent>(newDisplayName));
-        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.name.success", {displayName})), false);
+        source.sendSuccess(::mc::text::translatable("commands.team.option.name.success", {displayName}), false);
         return 0;
     }
 

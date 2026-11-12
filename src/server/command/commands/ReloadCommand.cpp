@@ -73,11 +73,11 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (!server) {
-        source.sendSuccess(::mc::text::literal("Failed to reload: server not available"), false);
+        source.sendFailure(::mc::text::translatable("commands.reload.failure"));
         return 0;
     }
 
-    source.sendSuccess(::mc::text::literal("Reloading server resources..."), false);
+    source.sendSuccess(::mc::text::translatable("commands.reload.success"), false);
 
     auto& dataPacks = server->dataPackList();
 

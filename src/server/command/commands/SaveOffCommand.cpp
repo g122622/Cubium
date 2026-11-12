@@ -71,7 +71,7 @@ i32 SaveOffCommand::_disableAutoSave(CommandContext<ServerCommandSource>& contex
     }
 
     server->setAutoSaveEnabled(false);
-    source.sendSuccess(::mc::text::literal("Automatic saving is now disabled"), false);
+    source.sendSuccess(::mc::text::translatable("commands.save.disabled"), true);
     return 1;
 }
 
