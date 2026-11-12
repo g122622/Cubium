@@ -141,10 +141,9 @@ void SkyStarLightEngine::initNibble(i32 chunkX, i32 chunkY, i32 chunkZ, bool ext
 
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble == nullptr) {
+        // initRemovedNibbles 为假说明调用方违反了"只有 cache 外的 nibble 才自动创建"
+        // 这一前提。断言已经终止进程，不再补 if 兜底——那会把违约静默变成"什么都不做"。
         MC_ASSERT_RELEASE(initRemovedNibbles);
-        if (!initRemovedNibbles) {
-            return;
-        }
         // 先以 NULL 状态创建，再在 initNibble(...) 中决定是否变为 UNINIT/INIT
         m_ownedNibbles.emplace_back(std::make_unique<SWMRNibbleArray>(nullptr, true));
         nibble = m_ownedNibbles.back().get();

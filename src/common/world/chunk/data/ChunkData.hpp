@@ -375,8 +375,10 @@ public:
     /**
      * @brief 取指定段索引对应的天空光照 nibble（可变）
      *
-     * 段索引 0..CHUNK_SECTIONS-1 对应光照数组下标 1..CHUNK_SECTIONS —— 光照数组
-     * （LIGHT_SECTIONS = CHUNK_SECTIONS + 2）在下界外多留一段缓冲，故整体偏移 1。
+     * 段索引 0..CHUNK_SECTIONS-1 对应光照数组下标 1..CHUNK_SECTIONS。光照数组比区块
+     * 段多两段（LIGHT_SECTIONS = CHUNK_SECTIONS + 2），首尾各留一段缓冲——下方那段
+     * 用来接收从 y=MIN_BUILD_HEIGHT 下方传播上来的光，上方那段同理用于顶部之上，
+     * 因此整体偏移 1。
      */
     [[nodiscard]] SWMRNibbleArray& skyNibbleAt(i32 sectionIndex)
     {

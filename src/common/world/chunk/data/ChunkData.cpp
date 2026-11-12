@@ -905,6 +905,9 @@ void ChunkData::setSkyEmptinessMap(const bool* map)
         return;
     }
 
+    // 调用方（光照引擎）按自己的段边界算出数组长度，这里必须与 LIGHT_SECTIONS 一致；
+    // 两者都是 CHUNK_SECTIONS + 2，但一处运行时算、一处编译期常量，日后改
+    // MIN/MAX_BUILD_HEIGHT 时若只改一边，这里就会越界读。
     std::copy_n(map, LIGHT_SECTIONS, m_skyEmptinessMap.begin());
     m_hasSkyEmptinessMap = true;
 }

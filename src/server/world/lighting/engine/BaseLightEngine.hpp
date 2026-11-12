@@ -587,6 +587,28 @@ protected:
     i32 m_minLightSection = m_minSection - 1;
     i32 m_maxLightSection = m_maxSection + 1;
 
+    /**
+     * @brief 光照段总数（含上下缓冲段）
+     *
+     * 空映射数组的长度必须与 ChunkData 侧的 LIGHT_SECTIONS 一致——两边都是
+     * "CHUNK_SECTIONS + 2"，但一边由运行时段边界算出、一边是编译期常量。
+     * 统一走这个访问器，并由下面的 static_assert 锁死两者相等，避免日后
+     * 改 MIN/MAX_BUILD_HEIGHT 时只改一边导致空映射静默错位。
+     */
+    [[nodiscard]] i32 lightSectionCount() const
+    {
+        // 段边界推导出的段数必须等于 ChunkData::LIGHT_SECTIONS（= CHUNK_SECTIONS + 2），
+        // 否则 ChunkData::setSkyEmptinessMap 的 copy_n 会越界读。这里不直接引用
+        // ChunkData（common 不依赖 server），改用与其定义同源的表达式。
+        // 主世界：minSection = -64>>4 = -4、maxSection = 319>>4 = 19，
+        // 故光照段为 -5..20 共 26 段，与 384/16 + 2 一致。
+        static_assert(world::CHUNK_SECTIONS + 2 ==
+                ((world::MAX_BUILD_HEIGHT - 1) >> world::SECTION_SHIFT) + 2 -
+                    (world::MIN_BUILD_HEIGHT >> world::SECTION_SHIFT) + 1,
+            "light section count must equal CHUNK_SECTIONS + 2");
+        return m_maxLightSection - m_minLightSection + 1;
+    }
+
     // 编码偏移（用于坐标压缩）
     i32 m_encodeOffsetX = 0;
     i32 m_encodeOffsetY = 0;
