@@ -744,10 +744,10 @@ void VillagerEntity::initializeBrain()
     // 注意优先级 -1 这一档的 requirements 是空集合，但这**不是** bug：
     //   - activity 级的记忆要求存在 m_requiredMemoryStates[activity] 里，
     //     由"带非空 requirements 的那次 registerActivity"写入——这里就是下面
-    //     优先级 0 的那次（写了 {{AVOID_TARGET, VALUE_PRESENT}}）。
+    //     优先级 0 的那次（写了 {{NEAREST_HOSTILE, VALUE_PRESENT}}）。
     //   - 而任务是按 m_tasks[priority][activity] 分开存的，_startTasks 会把
     //     当前活动的**所有优先级**里的任务一起考虑。
-    //   所以 PANIC 一旦被 AVOID_TARGET 触发，-1 档的开门任务照常参与调度，
+    //   所以 PANIC 一旦被 NEAREST_HOSTILE 触发，-1 档的开门任务照常参与调度，
     //   只是它本身不携带门槛。不要在 -1 档上重复声明 requirements（无意义），
     //   也不要因为看到空集合就把它删掉。
     m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
@@ -794,8 +794,6 @@ void VillagerEntity::initializeBrain()
         {{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});
 
-    // AVOID 活动：逃跑、移动到目标
-    // 注意：本活动目前**不可达**。门槛是 AVOID_TARGET 记忆，而该记忆的唯一写入方是
     // ---- 关于下面这批"非时间线活动"的重要前提 ----
     // 本实体注册了 9 个活动：AVOID / FIGHT / HIDE / IDLE / MEET / PANIC / RAID / REST / WORK。
     // 而时间线（common/world/time/timeline/Timelines.cpp）只激活其中 4 个：
