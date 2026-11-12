@@ -25,8 +25,10 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -984,7 +986,7 @@ void MineshaftCorridor::generate(IWorldWriter& world,
     i32 /*chunkX*/,
     i32 /*chunkZ*/,
     const StructureBoundingBox& chunkBounds,
-    ChunkPrimer* /*chunk*/,
+    ChunkPrimer* chunk,
     IChunkGenerator* /*generator*/)
 {
     IWorld* reader = dynamic_cast<IWorld*>(&world);
@@ -1036,10 +1038,10 @@ void MineshaftCorridor::generate(IWorldWriter& world,
         _maybePlaceCobWeb(world, chunkBounds, rng, 0.05F, 2, 2, sectionZ + 2);
 
         if (rng.nextInt(100) == 0) {
-            _createChest(world, *reader, rng, 2, 0, sectionZ - 1, chunkBounds);
+            _createChest(world, *reader, rng, 2, 0, sectionZ - 1, chunkBounds, chunk);
         }
         if (rng.nextInt(100) == 0) {
-            _createChest(world, *reader, rng, 0, 0, sectionZ + 1, chunkBounds);
+            _createChest(world, *reader, rng, 0, 0, sectionZ + 1, chunkBounds, chunk);
         }
 
         if (m_hasSpiders && !m_spawnerPlaced) {
@@ -1105,7 +1107,8 @@ void MineshaftCorridor::_createChest(IWorldWriter& world,
     i32 x,
     i32 y,
     i32 z,
-    const StructureBoundingBox& chunkBounds)
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* chunk)
 {
     const BlockPos pos(getXWithOffset(x, z), getYWithOffset(y), getZWithOffset(x, z));
     const BlockState* atPos = reader.getBlockState(pos);
@@ -1120,10 +1123,30 @@ void MineshaftCorridor::_createChest(IWorldWriter& world,
         rng.nextBoolean() ? BlockStateProperties::RailShape::NorthSouth : BlockStateProperties::RailShape::EastWest);
     setBlockState(world, &rail, x, y, z, chunkBounds);
 
-    // 原版在这里生成一辆宝箱矿车，并用 nextLong() 播种它的战利品表。
-    // 结构探针的空世界没有实体容器，下一行只保留随机流消费以保证后续抽样一致。
-    // TODO: 接入实体系统，在真实服务端里把宝箱矿车实体真正加进世界。
-    (void)rng.nextLong();
+    // 战利品表种子必须在任何可能提前返回之前抽出来：原版先抽 nextLong() 播种战利品表，
+    // 再创建实体；种子若因缺容器而跳过抽取，后续所有抽样都会错位。
+    const i64 lootTableSeed = rng.nextLong();
+
+    // 宝箱矿车是实体，世界生成阶段没有实体容器，按项目既有的延迟生成机制记进
+    // ChunkPrimer 的待生成实体表，区块发布后由 ServerWorld 在主线程真正创建。
+    if (chunk == nullptr) {
+        // 缺少 ChunkPrimer（结构探针等不带区块的调用方）：随机流已按原版消费，只是不产生实体。
+        return;
+    }
+
+    SpawnedEntityData minecart(std::string("minecraft:chest_minecart"),
+        static_cast<f32>(pos.x) + 0.5f,
+        static_cast<f32>(pos.y) + 0.5f,
+        static_cast<f32>(pos.z) + 0.5f,
+        world::spawn::SpawnReason::ChunkGeneration);
+    // 战利品表的懒解包依赖 NBT：ChestMinecart 在 readFromNBT 里读到 LootTable/LootTableSeed
+    // 后，玩家首次打开时才填充物品。
+    nbt::tags::compound_tag entityNbt;
+    entityNbt.put(
+        ::mc::entity::serialization::nbt_keys::LOOT_TABLE, std::string("minecraft:chests/abandoned_mineshaft"));
+    entityNbt.put(::mc::entity::serialization::nbt_keys::LOOT_TABLE_SEED, lootTableSeed);
+    minecart.nbt = std::move(entityNbt);
+    chunk->addSpawnedEntity(std::move(minecart));
 }
 
 void MineshaftCorridor::buildComponent(

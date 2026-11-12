@@ -343,7 +343,8 @@ private:
         i32 x,
         i32 y,
         i32 z,
-        const StructureBoundingBox& chunkBounds);
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk);
 
     bool m_hasRails;
     bool m_hasSpiders;

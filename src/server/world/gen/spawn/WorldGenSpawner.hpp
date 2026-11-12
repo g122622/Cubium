@@ -26,10 +26,12 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,6 +70,13 @@ struct SpawnedEntityData {
 
     /// 生成原因（默认为区块生成）
     world::spawn::SpawnReason spawnReason = world::spawn::SpawnReason::ChunkGeneration;
+
+    /// 实体 NBT（可选）
+    ///
+    /// 结构生成的实体（如废弃矿井的宝箱矿车）需要带上战利品表、旋转等初始数据。
+    /// 这里只保存序列化后的 NBT，避免世界生成阶段的延迟生成路径依赖实体类型的具体实现；
+    /// 真正创建实体时由 ServerWorld 调 `readFromNBT` 还原。
+    std::optional<nbt::tags::compound_tag> nbt;
 
     SpawnedEntityData() = default;
 
