@@ -823,6 +823,52 @@ public:
         return nameable->value("allow_name_tag_renaming", true);
     }
 
+    /**
+     * @brief 命名变更时派发 minecraft:nameable.default_trigger
+     *
+     * 基岩的 default_trigger 语义是"该实体被命名时触发一次指定事件"，与具体名字无关。
+     * 所有命名路径（/data、命名牌等）都经由 Entity::setCustomNameComponent 这个虚入口，
+     * 因此在这里覆写即可覆盖全部来源，不需要在 NameTagItem 侧单独挂接。
+     *
+     * 只在"从无名字变成有名字"和"改成另一个名字"时触发；清除名字（传 nullptr）不触发，
+     * 名字未变化时也不重复触发。
+     *
+     * TODO: name_actions（按名字匹配后触发不同事件）仍未派发：它的 JSON 形状在仓库内
+     *   和 LeviLamina 逆向头文件中都找不到官方 schema，不凭猜测写解析。拿到 schema 后
+     *   在本方法里补一层"先按 name_actions 精确匹配，未命中再落到 default_trigger"。
+     */
+    void setCustomNameComponent(std::unique_ptr<mc::text::ITextComponent> name) override
+    {
+        const std::string previousName = customNameText();
+        mc::AgeableEntity::setCustomNameComponent(std::move(name));
+        const std::string currentName = customNameText();
+
+        if (currentName.empty() || currentName == previousName) {
+            return;
+        }
+
+        const auto* components = tryGetComponent<AddonEntityComponents>();
+        const nlohmann::json* nameable = components != nullptr ? components->component("minecraft:nameable") : nullptr;
+        if (nameable == nullptr) {
+            return;
+        }
+        const auto trigger = nameable->find("default_trigger");
+        if (trigger == nameable->end() || !trigger->is_string()) {
+            return;
+        }
+
+        auto* events = tryGetComponent<AddonEntityEvents>();
+        if (events == nullptr) {
+            return;
+        }
+        const auto triggered = events->trigger(*this, trigger->get<std::string>());
+        if (triggered.failed()) {
+            spdlog::warn("minecraft:nameable default_trigger '{}' failed: {}",
+                trigger->get<std::string>(),
+                triggered.error().message());
+        }
+    }
+
     f32 width() const override
     {
         const auto* components = tryGetComponent<AddonEntityComponents>();
@@ -1204,7 +1250,8 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
         } else if (name == "minecraft:nameable") {
             // allow_name_tag_renaming 由 _AddonMob::isNameableByTag 消费（NameTagItem 查询）。
             // always_show 是纯客户端展示（名字常显），客户端已停止维护，因此只校验不落地。
-            // default_trigger / name_actions 的派发缺失与挂接点，见下方 TODO。
+            // default_trigger 由 _AddonMob::setCustomNameComponent 在命名变更时派发；
+            // name_actions 仍缺官方 schema，见下方 TODO。
             MC_TRY(_members(component, {"allow_name_tag_renaming", "always_show", "default_trigger", "name_actions"}));
             MC_TRY(_boolean(component, "allow_name_tag_renaming"));
             MC_TRY(_boolean(component, "always_show"));
@@ -1212,13 +1259,12 @@ Result<void> AddonEntityDefinition::validateComponents(const nlohmann::json& com
                 (!trigger->is_string() || trigger->get_ref<const std::string&>().empty())) {
                 return Error(ErrorCode::InvalidData, "minecraft:nameable default_trigger must be a nonempty string");
             }
-            // TODO: name_actions（按名字匹配触发事件）与 default_trigger 尚未派发。
-            //   挂接点其实是现成的：Entity::setCustomNameComponent 是虚函数，且所有命名路径
-            //   （含 NameTagItem）都经由它（见 Entity.hpp 的注释与 Entity.cpp 的实现），
-            //   _AddonMob 只要覆写它，就能在命名变更时调 AddonEntityEvents::trigger。
-            //   真正卡住的是 **name_actions 的 JSON 形状**：仓库内（含 LeviLamina 逆向头文件）
+            // TODO: name_actions（按名字匹配触发不同事件）仍未派发。
+            //   卡住的是 **name_actions 的 JSON 形状**：仓库内（含 LeviLamina 逆向头文件）
             //   找不到该字段的官方 schema，只有 _members 白名单里那个键名。
-            //   不凭猜测写解析，否则会把错误结构固化下来。拿到 official schema 后按上面方式补。
+            //   不凭猜测写解析，否则会把错误结构固化下来。拿到 official schema 后，在
+            //   _AddonMob::setCustomNameComponent 里按"先精确匹配 name_actions，
+            //   未命中再落到 default_trigger"的顺序补。
         } else if (name == "minecraft:leashable") {
             // 官方 schema 的字段分三类：
             //   - can_be_cut / can_be_stolen / unleash_on_removal / on_unleash_interact_only：布尔，校验；
