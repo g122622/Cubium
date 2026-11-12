@@ -30,6 +30,7 @@
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
 
 #include <nlohmann/json.hpp>
@@ -42,6 +43,30 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace mc {
+
+namespace {
+
+/**
+ * @brief 方块是否计入 MOTION_BLOCKING 高度图
+ *
+ * 判据与 `Heightmap` 对 `HeightmapType::MotionBlocking` 的实现一致：
+ * 阻挡运动（`Block::blocksMotion`，而非 `isSolid`——两者在蜘蛛网、竹笋、树叶上不同），
+ * 或者持有非空流体状态（含水方块与液体，而非 `isLiquid()`——含水台阶自身不是液体）。
+ *
+ * @param state 方块状态
+ * @return 计入高度图时返回 true
+ */
+bool _isMotionBlocking(const BlockState& state)
+{
+    const Block& block = state.owner();
+    if (block.blocksMotion(state)) {
+        return true;
+    }
+    const fluid::FluidState* fluidState = block.getFluidState(state);
+    return fluidState != nullptr && !fluidState->isEmpty();
+}
+
+} // namespace
 
 void FlatLevelGeneratorSettings::updateLayers()
 {
@@ -62,12 +87,11 @@ void FlatLevelGeneratorSettings::updateLayers()
 
         for (i32 i = 0; i < height; ++i) {
             // 运动阻挡的方块（固体，以及水等含流体的方块）保留在展开层列表中；
-            // 非运动阻挡方块（如火把、草径）置为 null，由特性系统在
-            // TOP_LAYER_MODIFICATION 阶段补放。
-            // TODO: 当前判据是 !isSolid && !isLiquid，与运动阻挡高度图的判据
-            //       （blocksMotion() || 含流体）不完全等价：空气层在此被保留为 air，
-            //       含流体但非固体非液体的方块（如海草）会被误判为需补放。需统一判据。
-            if (state != nullptr && !state->isAir() && !state->owner().isSolid(*state) && !state->isLiquid()) {
+            // 非运动阻挡方块（如火把、草径、蜘蛛网）置为 null，由特性系统在
+            // TOP_LAYER_MODIFICATION 阶段补放。判据必须与 MOTION_BLOCKING 高度图完全一致
+            // （见 _isMotionBlocking），否则"平坦世界的这一层"与"这一列的高度图"会对同一个
+            // 方块给出不同结论。
+            if (state != nullptr && !state->isAir() && !_isMotionBlocking(*state)) {
                 // 非运动阻挡方块：由特性系统放置，记录填充层信息
                 m_layers.push_back(nullptr);
                 m_fillLayerEntries.push_back({currentY, state});

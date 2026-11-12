@@ -848,6 +848,29 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_NonMotionBlocking_C
     EXPECT_NE(s.layers()[2], nullptr); // 草方块
 }
 
+// 蜘蛛网 isSolid=true 但 blocksMotion=false（实体可穿行），是「用 isSolid 近似
+// 运动阻挡」时唯一会判断错的常见方块：它必须产生填充层条目，而不是当作实心层。
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_CobwebIsNotMotionBlocking)
+{
+    const BlockState* cobwebState = VanillaBlocks::getState(VanillaBlocks::COBWEB);
+    ASSERT_NE(cobwebState, nullptr);
+    ASSERT_TRUE(cobwebState->owner().isSolid(*cobwebState)) << "cobweb must stay isSolid to keep this test meaningful";
+    ASSERT_FALSE(cobwebState->owner().blocksMotion(*cobwebState)) << "cobweb must not block motion";
+
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::STONE));
+    s.layersInfo().emplace_back(1, cobwebState);
+    s.updateLayers();
+
+    // 蜘蛛网层交给特性系统补放，展开列表里是 nullptr。
+    ASSERT_EQ(s.fillLayerEntries().size(), 1u);
+    EXPECT_EQ(s.fillLayerEntries()[0].height, 1);
+    EXPECT_EQ(s.fillLayerEntries()[0].blockState, cobwebState);
+    ASSERT_EQ(s.layers().size(), 2u);
+    EXPECT_NE(s.layers()[0], nullptr);
+    EXPECT_EQ(s.layers()[1], nullptr);
+}
+
 TEST_F(SettingsTest, FlatLevelGeneratorSettings_FillLayerEntries_DefaultEmpty)
 {
     FlatLevelGeneratorSettings s(Biomes::Plains);

@@ -37,11 +37,11 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
-#include "common/world/fluid/Fluids.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/fluid/Fluids.hpp"
+#include "common/world/tick/base/TickPriority.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/tick/base/TickPriority.hpp"
 
 #include <memory>
 #include <vector>
