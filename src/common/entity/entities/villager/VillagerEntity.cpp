@@ -594,13 +594,17 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_BED);
     m_brain->registerMemory(MemoryModuleTypes::WALK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::LOOK_TARGET);
-    // TODO(brain-memory-writers): 上面几条记忆里有两条目前没有对应的写入方，已逐文件核实：
-    //   - LOOK_TARGET：被 LookAtEntityTask 当门槛（VALUE_ABSENT，因此不阻塞执行）、
-    //     被 AttackTask 当 REGISTERED 依赖，但**全仓无 setMemory**。而 LookAtEntityTask
-    //     自己的文档写的是"概率触发时…设置 LOOK_TARGET 记忆"——代码并未这么做，
-    //     属于文档与实现不符。补齐后它才能记住"正在看谁"，避免每 tick 重选目标。
-    //   - LAST_WORKED_AT_POI：只在此处注册，全仓既不读也不写，属于为将来
-    //     村民工作冷却预留的槽位；在补上读写之前它可以删掉，或就地标注保留意图。
+    // 关于两条没有写入方的记忆（已逐文件核实，结论有效无需再查）：
+    //   - LOOK_TARGET：被 LookAtEntityTask 当门槛、被若干任务当 REGISTERED 依赖，
+    //     但全仓无 setMemory。这不阻塞任何任务——REGISTERED 只要求记忆被注册，
+    //     不看有没有值（见 Brain::hasMemory）。LookAtEntityTask 自己也刻意不写它
+    //     （门槛就是 VALUE_ABSENT，写入会自锁），改用成员记住注视对象。
+    //     原版靠 LookAtTargetSink 每 tick 读它驱动 LookControl，本项目由任务直接
+    //     调 LookController 完成，无需该记忆有值。
+    //   - LAST_WORKED_AT_POI：全仓既不读也不写。原版由 WorkAtPoi 行为写入，
+    //     而本项目的工作站逻辑走 Goal 版（WorkAtJobSiteGoal / FarmerWorkGoal），
+    //     不经过 Brain 的 WORK 活动，因此这条记忆没有落点。保留注册不产生开销，
+    //     但若将来不打算接原版的 WorkAtPoi 链路，可以直接删掉。
     m_brain->registerMemory(MemoryModuleTypes::VISIBLE_MOBS);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_HOSTILE);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_PLAYERS);
@@ -707,10 +711,21 @@ void VillagerEntity::initializeBrain()
 
     // TODO(meet-activity): MEET 活动目前不会真正触发交互。
     //   VillagerInteractTask 的门槛是 INTERACTION_TARGET == VALUE_PRESENT，但全仓库
-    //   只有 registerMemory 与读取，**没有任何写入点**（已逐文件核实），所以该任务
+    //   只有 registerMemory 与读取，没有任何写入点（已逐文件核实），所以该任务
     //   永远过不了 shouldExecute，MEET 活动实际上只剩走位与游荡。
-    //   要补齐需要先确定"村民之间何时建立交互"的触发点（如靠近另一村民且双方空闲），
-    //   再由某个传感器或任务写入该记忆；具体触发时机需对照原版村民社交逻辑确定。
+    //
+    //   对照原版后已确定补齐方向：原版的写入方是 SocializeAtBell——一个一次性行为，
+    //   条件为 1% 概率 + 位于钟（MEETING_POINT）4 格内 + 视野内存在其他村民，
+    //   命中时把最近的村民写进 INTERACTION_TARGET，并同时设置 LOOK_TARGET 与
+    //   WALK_TARGET 走向对方。原版 MEET 活动里的 TradeWithVillager 虽然把
+    //   INTERACTION_TARGET 列为门槛，但它自己也不写，同样依赖 SocializeAtBell。
+    //
+    //   落地前需要先补两个前置条件（本项目当前都没有）：
+    //     1. NEAREST_VISIBLE_LIVING_ENTITIES 记忆——原版 SocializeAtBell 靠它找
+    //        视野内的其他村民，本项目只有 NEAREST_VISIBLE_PLAYER；
+    //     2. MEETING_POINT 的实际写入方——目前只注册、无任何读取或写入，钟的位置
+    //        还没有进入 Brain（原版由 AcquirePoi 取钟写入）。
+    //   两者就位后，按上述条件实现 SocializeAtBell 即可让 MEET 活动真正生效。
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
         makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(3.0f),
