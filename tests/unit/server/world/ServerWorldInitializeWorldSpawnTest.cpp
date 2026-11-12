@@ -76,7 +76,7 @@ world::storage::LevelRuntimeData _makeRuntimeData(const RespawnData& spawnData, 
         world::storage::WorldCompatibility::Current,
         "");
     return world::storage::LevelRuntimeData(
-        std::move(summary), spawnData, 0, 0, 0, 0, false, 0, false, initialized, false);
+        std::move(summary), spawnData, 0, 0, 0, 0, false, 0, false, initialized, false, 24000, 25);
 }
 
 class ServerWorldInitializeWorldSpawnTest : public ::testing::Test {
@@ -362,7 +362,8 @@ TEST_F(ServerWorldInitializeWorldSpawnTest, RespawnData_SurvivesLevelDatRoundTri
     // 世界出生点通过 level.dat 的 spawn 复合标签持久化：写入后重新读取应完全一致。
     const RespawnData written = RespawnData::of(0, BlockPos(123, 70, -456), 45.0f, 20.0f);
     ASSERT_TRUE(
-        m_storage.saveLevelData(0, 0, written, 0, 0, false, 0, false, true, Difficulty::Normal, false).success());
+        m_storage.saveLevelData(0, 0, written, 0, 0, false, 0, false, true, Difficulty::Normal, false, 24000, 25)
+            .success());
 
     auto loaded = m_storage.loadLevelData();
     ASSERT_TRUE(loaded.success()) << loaded.error().message();

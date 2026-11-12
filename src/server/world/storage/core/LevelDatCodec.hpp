@@ -169,6 +169,12 @@ struct LevelRuntimeData {
     /// 难度是否锁定
     bool difficultyLocked;
 
+    /// 流浪商人生成倒计时（tick）。0 表示从未设置——原版据此判定并初始化为 24000。
+    i32 wanderingTraderSpawnDelay;
+
+    /// 流浪商人生成概率（百分比）
+    i32 wanderingTraderSpawnChance;
+
     /**
      * @brief 构造运行时数据
      */
@@ -182,7 +188,9 @@ struct LevelRuntimeData {
         i32 thunderTime,
         bool thundering,
         bool initialized,
-        bool difficultyLocked);
+        bool difficultyLocked,
+        i32 wanderingTraderSpawnDelay,
+        i32 wanderingTraderSpawnChance);
 
     LevelRuntimeData() = delete;
 };
@@ -296,7 +304,9 @@ public:
         bool thundering,
         bool initialized,
         Difficulty difficulty,
-        bool difficultyLocked);
+        bool difficultyLocked,
+        i32 wanderingTraderSpawnDelay,
+        i32 wanderingTraderSpawnChance);
 
     /**
      * @brief 从 level.dat 读取调度事件列表

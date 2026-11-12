@@ -110,6 +110,17 @@ Result<void> ServerDimension::initialize()
     return {};
 }
 
+void ServerDimension::restoreWanderingTraderState(i32 savedSpawnDelay, i32 savedSpawnChance)
+{
+    MC_ASSERT_RELEASE(m_wanderingTraderSpawner != nullptr);
+    // 流浪商人生成是主世界专属的：下界/末地若也持有示例生成器，重建会污染其状态语义。
+    if (id() != 0) {
+        return;
+    }
+    m_wanderingTraderSpawner =
+        std::make_unique<server::spawn::WanderingTraderSpawner>(savedSpawnDelay, savedSpawnChance);
+}
+
 void ServerDimension::shutdown()
 {
     if (!m_initialized) {

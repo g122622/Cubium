@@ -232,6 +232,17 @@ public:
         return m_wanderingTraderSpawner.get();
     }
 
+    /**
+     * @brief 用 level.dat 中持久化的生成状态重建流浪商人生成器
+     *
+     * 必须在任何 tick 之前调用一次；未调用则使用默认值。
+     * 只在主世界生效——流浪商人生成是主世界专属的 CustomSpawner。
+     *
+     * @param savedSpawnDelay 存档中的倒计时（0 表示未保存过）
+     * @param savedSpawnChance 存档中的概率（0 表示未保存过）
+     */
+    void restoreWanderingTraderState(i32 savedSpawnDelay, i32 savedSpawnChance);
+
     // ========== 玩家追踪 ==========
 
     /**

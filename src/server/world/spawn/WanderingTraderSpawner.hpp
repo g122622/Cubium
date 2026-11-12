@@ -49,8 +49,9 @@ namespace server::spawn {
  *
  * 与 vanilla WanderingTraderSpawner 的差异：
  * - POI 会议点检索尚未实现（项目无 POI 管理器），以玩家位置作为游荡目标；
- * - 生成倒计时/概率/商人 UUID 的关卡数据持久化尚未接入，重启世界后从默认值开始。
- *   TODO: 待关卡数据（ServerLevelData 等价物）支持自定义字段后持久化这三项。
+ * - 生成倒计时与概率持久化在 level.dat 的 WanderingTraderSpawnDelay /
+ *   WanderingTraderSpawnChance（由 ServerDimension 载入、随存档写回）。
+ *   商人 UUID 不落盘：原版已不再持久化它。
  */
 class WanderingTraderSpawner {
 public:
@@ -76,6 +77,17 @@ public:
     static constexpr i32 DESPAWN_DELAY = 48000;
 
     WanderingTraderSpawner();
+
+    /**
+     * @brief 从存档恢复生成状态
+     *
+     * 存档里两项同时为 0 表示"从未保存过"（新世界或旧存档），按原版规则初始化为
+     * 24000 / 25% 并回写；只缺一项时按各自的最小合法值兜底，不整体重置。
+     *
+     * @param savedSpawnDelay 存档中的倒计时
+     * @param savedSpawnChance 存档中的概率
+     */
+    explicit WanderingTraderSpawner(i32 savedSpawnDelay, i32 savedSpawnChance);
 
     /**
      * @brief 每 tick 更新

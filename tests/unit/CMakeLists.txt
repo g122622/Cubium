@@ -1501,6 +1501,7 @@ add_executable(mc_tests
     # 环境光遮蔽测试
     # NaturalSpawner 测试
     server/world/spawn/NaturalSpawnerTest.cpp
+    server/world/spawn/WanderingTraderSpawnerStateTest.cpp
     # VillageSiege 测试
     server/world/spawn/VillageSiegeTest.cpp
     # 光照同步测试

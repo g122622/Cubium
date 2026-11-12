@@ -41,6 +41,7 @@
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::spawn {
@@ -56,6 +57,21 @@ WanderingTraderSpawner::WanderingTraderSpawner()
     , m_spawnDelay(DEFAULT_SPAWN_DELAY)
     , m_spawnChance(INITIAL_SPAWN_CHANCE)
 {}
+
+WanderingTraderSpawner::WanderingTraderSpawner(i32 savedSpawnDelay, i32 savedSpawnChance)
+    : m_tickDelay(TICK_DELAY)
+    , m_spawnDelay(savedSpawnDelay)
+    , m_spawnChance(savedSpawnChance)
+{
+    // 两项都为 0 = 存档里没有这项（新世界或尚未保存过）。必须整体初始化为默认值，
+    // 否则倒计时 0 会让下一次 tick 立刻进入"该生成了"分支，概率 0 又几乎必然失败。
+    if (m_spawnDelay <= 0 && m_spawnChance <= 0) {
+        m_spawnDelay = DEFAULT_SPAWN_DELAY;
+        m_spawnChance = INITIAL_SPAWN_CHANCE;
+    }
+    // 概率越界（存档被外部改写）夹回合法区间，避免概率判定永远成立或永远失败。
+    m_spawnChance = std::clamp(m_spawnChance, MIN_SPAWN_CHANCE, MAX_SPAWN_CHANCE);
+}
 
 void WanderingTraderSpawner::tick(server::ServerWorld& world)
 {

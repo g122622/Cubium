@@ -100,7 +100,9 @@ LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
     i32 thunderTime,
     bool thundering,
     bool initialized,
-    bool difficultyLocked)
+    bool difficultyLocked,
+    i32 wanderingTraderSpawnDelay,
+    i32 wanderingTraderSpawnChance)
     : summary(std::move(summary))
     , spawnData(spawnData)
     , gameTime(gameTime)
@@ -112,6 +114,8 @@ LevelRuntimeData::LevelRuntimeData(LevelSummaryData summary,
     , thundering(thundering)
     , initialized(initialized)
     , difficultyLocked(difficultyLocked)
+    , wanderingTraderSpawnDelay(wanderingTraderSpawnDelay)
+    , wanderingTraderSpawnChance(wanderingTraderSpawnChance)
 {}
 
 Result<std::unique_ptr<nbt::tags::compound_tag>> LevelDatCodec::readRootCompound(const std::filesystem::path& filePath)
@@ -769,6 +773,23 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
         }
     }
 
+    // 流浪商人生成状态。缺失时为 0，由生成器按原版规则初始化为 24000 / 25。
+    i32 wanderingTraderSpawnDelay = 0;
+    if (data.value.count("WanderingTraderSpawnDelay") != 0) {
+        auto it = data.value.find("WanderingTraderSpawnDelay");
+        if (it->second->id() == nbt::TagId::Int) {
+            wanderingTraderSpawnDelay = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
+    i32 wanderingTraderSpawnChance = 0;
+    if (data.value.count("WanderingTraderSpawnChance") != 0) {
+        auto it = data.value.find("WanderingTraderSpawnChance");
+        if (it->second->id() == nbt::TagId::Int) {
+            wanderingTraderSpawnChance = dynamic_cast<const nbt::tags::int_tag&>(*it->second).value;
+        }
+    }
+
     return LevelRuntimeData(std::move(summaryResult.value()),
         spawnData,
         gameTime,
@@ -779,7 +800,9 @@ Result<LevelRuntimeData> LevelDatCodec::readRuntimeData(const std::filesystem::p
         thunderTime,
         thundering,
         initialized,
-        difficultyLocked);
+        difficultyLocked,
+        wanderingTraderSpawnDelay,
+        wanderingTraderSpawnChance);
 }
 
 Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& worldDir,
@@ -793,7 +816,9 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     bool thundering,
     bool initialized,
     Difficulty difficulty,
-    bool difficultyLocked)
+    bool difficultyLocked,
+    i32 wanderingTraderSpawnDelay,
+    i32 wanderingTraderSpawnChance)
 {
     std::unique_ptr<nbt::tags::compound_tag> root;
     nbt::tags::compound_tag* data = nullptr;
@@ -827,6 +852,11 @@ Result<void> LevelDatCodec::updateRuntimeData(const std::filesystem::path& world
     // 更新难度与锁定状态（运行时可由玩家切换/锁定，需随存档持久化）
     _writeDifficulty(*data, difficulty);
     data->put("DifficultyLocked", static_cast<i8>(difficultyLocked ? 1 : 0));
+
+    // 流浪商人生成状态：倒计时与概率都由生成器逐次推进，必须随存档持久化，
+    // 否则重启后倒计时回到 24000、概率回到 25%，等于每次重启都重新等一整天。
+    data->put("WanderingTraderSpawnDelay", wanderingTraderSpawnDelay);
+    data->put("WanderingTraderSpawnChance", wanderingTraderSpawnChance);
 
     // 更新最后游玩时间
     auto now = std::chrono::system_clock::now();

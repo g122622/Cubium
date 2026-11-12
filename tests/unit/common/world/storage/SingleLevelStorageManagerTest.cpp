@@ -1006,7 +1006,9 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
             false,
             true,
             Difficulty::Normal,
-            false);
+            false,
+            24000,
+            25);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         bootstrap.close();
     }
@@ -1029,7 +1031,9 @@ TEST_F(SingleLevelStorageManagerTest, ReadonlySaveLevelDataDoesNotPersist)
             true,
             false,
             Difficulty::Normal,
-            false);
+            false,
+            24000,
+            25);
         ASSERT_TRUE(saveResult.success()) << saveResult.error().message();
         readonlyStorage.close();
     }
@@ -1089,8 +1093,8 @@ TEST_F(SingleLevelStorageManagerTest, SaveLevelData_PersistsInitializedFlag)
         SingleLevelStorageConfig config;
         auto openResult = storage.open(testDir, config);
         EXPECT_TRUE(openResult.success()) << openResult.error().message();
-        auto saveResult =
-            storage.saveLevelData(0, 0, RespawnData{}, 0, 0, false, 0, false, initialized, Difficulty::Normal, false);
+        auto saveResult = storage.saveLevelData(
+            0, 0, RespawnData{}, 0, 0, false, 0, false, initialized, Difficulty::Normal, false, 24000, 25);
         EXPECT_TRUE(saveResult.success()) << saveResult.error().message();
         storage.close();
     };

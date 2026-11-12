@@ -1078,7 +1078,9 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
     bool thundering,
     bool initialized,
     Difficulty difficulty,
-    bool difficultyLocked)
+    bool difficultyLocked,
+    i32 wanderingTraderSpawnDelay,
+    i32 wanderingTraderSpawnChance)
 {
     if (!isOpen()) {
         return Error(ErrorCode::InvalidState, "Storage not open");
@@ -1101,7 +1103,9 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
             thundering,
             initialized,
             difficulty,
-            difficultyLocked);
+            difficultyLocked,
+            wanderingTraderSpawnDelay,
+            wanderingTraderSpawnChance);
     }
 
     // 外来格式：只读，不保存

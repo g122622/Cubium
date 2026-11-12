@@ -129,6 +129,7 @@
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
+#include "server/world/spawn/WanderingTraderSpawner.hpp"
 #include "server/world/storage/GlobalStorageManager.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/core/WorldStoragePaths.hpp"
@@ -1017,6 +1018,20 @@ Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
             thundering = weatherState.thundering;
         }
 
+        // 流浪商人生成状态（仅主世界持有有效值；缺失维度用默认值，不影响已保存的内容）。
+        i32 wanderingTraderSpawnDelay = server::spawn::WanderingTraderSpawner::DEFAULT_SPAWN_DELAY;
+        i32 wanderingTraderSpawnChance = server::spawn::WanderingTraderSpawner::INITIAL_SPAWN_CHANCE;
+        m_dimensionManager->forEachDimension([&](Dimension& dim) {
+            auto* serverDim = static_cast<ServerDimension*>(&dim);
+            if (serverDim->id() != 0) {
+                return;
+            }
+            const auto* spawner = serverDim->wanderingTraderSpawner();
+            MC_ASSERT_RELEASE(spawner != nullptr);
+            wanderingTraderSpawnDelay = spawner->spawnDelay();
+            wanderingTraderSpawnChance = spawner->spawnChance();
+        });
+
         // 保存到 level.dat
         auto levelResult = m_storage->saveLevelData(gameTime,
             dayTime,
@@ -1028,7 +1043,9 @@ Result<size_t> MinecraftServer::saveAllWorldData(bool sync)
             thundering,
             m_spawnInitializedThisSession,
             m_difficulty,
-            m_difficultyLocked);
+            m_difficultyLocked,
+            wanderingTraderSpawnDelay,
+            wanderingTraderSpawnChance);
 
         if (levelResult.failed()) {
             spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
@@ -1088,6 +1105,16 @@ Result<void> MinecraftServer::initializeWorld()
             // 直接置字段而非调 setDifficulty/setDifficultyLocked：避免触发广播（此时玩家尚未加入）。
             m_difficulty = runtimeData.summary.difficulty;
             m_difficultyLocked = runtimeData.difficultyLocked;
+
+            // 恢复流浪商人生成倒计时与概率（主世界专属的 CustomSpawner）。
+            // 生成状态随 level.dat 持久化，否则每次重启都从头等一整天。
+            m_dimensionManager->forEachDimension([&](Dimension& dim) {
+                auto* serverDim = static_cast<ServerDimension*>(&dim);
+                if (serverDim->id() == 0) {
+                    serverDim->restoreWanderingTraderState(
+                        runtimeData.wanderingTraderSpawnDelay, runtimeData.wanderingTraderSpawnChance);
+                }
+            });
 
             m_dimensionManager->forEachDimension([&](Dimension& dim) {
                 auto* serverDim = static_cast<ServerDimension*>(&dim);

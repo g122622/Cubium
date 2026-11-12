@@ -329,7 +329,9 @@ public:
         bool thundering,
         bool initialized,
         Difficulty difficulty,
-        bool difficultyLocked);
+        bool difficultyLocked,
+        i32 wanderingTraderSpawnDelay,
+        i32 wanderingTraderSpawnChance);
 
     /**
      * @brief 读取调度事件列表

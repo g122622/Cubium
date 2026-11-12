@@ -304,7 +304,10 @@ Result<LevelRuntimeData> JavaLevelDatReader::_parseRuntimeData(const compound_ta
         thunderTime,
         thundering,
         initialized,
-        difficultyLocked);
+        difficultyLocked,
+        // 外部格式不携带流浪商人生成状态：0 表示未保存过，由生成器按原版规则初始化。
+        0,
+        0);
 }
 
 Result<std::optional<PlayerSaveData>> JavaLevelDatReader::_parseLocalPlayer(const compound_tag& data)
