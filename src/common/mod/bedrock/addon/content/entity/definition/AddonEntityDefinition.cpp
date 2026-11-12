@@ -1744,7 +1744,28 @@ Result<void> AddonEntityDefinition::_initialize(mc::Entity& entity) const
     }
     // TODO: 为 Java 客户端实现自定义类型投影、资源包模型与 client_sync 属性同步。
     // TODO: 按 is_spawnable 生成对应的自定义刷怪蛋及生成规则关联。
-    //   is_spawnable 本身已保存（见 canSpawn()），缺的是刷怪蛋物品注册与生成规则挂接。
+    //   is_spawnable 本身已保存（见 canSpawn()），但没有任何消费方。
+    //
+    //   【已核实的落地条件，接手前务必先读】
+    //   机制是现成的，不需要新造：SpawnEggItem 持有的 EntityType 仅作名称载体，
+    //   真正生成走 EntityRegistry::getType(name)->create()；而 AddonContentManager
+    //   已经把 addon 实体注册进了 EntityRegistry（registerType），所以只要按
+    //   "<namespace>:<identifier>_spawn_egg" 注册一个 SpawnEggItem 就能生效。
+    //   挂接点应在 AddonContentManager::loadEntityDefinitions 里注册实体类型之后，
+    //   并在 rollback / clear 里对称撤销——但这里卡在三个尚未解决的问题上：
+    //
+    //   1) ItemRegistry 是追加式单例：没有 unregister/erase，也没有 reset，
+    //      注册进去的物品无法撤销。而 ScriptManager::reloadScripts() **确实存在**
+    //      （它调 m_content->clear() 清掉实体类型再重新加载），所以热重载后旧
+    //      addon 的刷怪蛋会残留在物品表里、指向已注销的实体类型。这是本条 TODO
+    //      最硬的阻碍：要么给 ItemRegistry 补撤销/重置能力，要么让刷怪蛋的注册
+    //      不进入 ItemRegistry（例如改为按实体类型动态解析持有物品）。
+    //   2) 刷怪蛋的两个颜色（背景色/前景色）在基岩 addon 里没有对应字段，
+    //      原版按 SpawnEggs 的静态表给出。addon 实体要用什么颜色需要先定规则
+    //      （例如从 client_entity 的纹理主色取，或给所有自定义刷怪蛋统一配色）。
+    //   3) 生成规则关联（spawn_rules）是另一件事：它控制自然生成而非刷怪蛋，
+    //      需要解析 behavior pack 的 spawn_rules 并接入 EntitySpawnPlacementRegistry，
+    //      与本条 TODO 的刷怪蛋注册是两项独立工作，不要合并实现。
     return Result<void>::ok();
 }
 
