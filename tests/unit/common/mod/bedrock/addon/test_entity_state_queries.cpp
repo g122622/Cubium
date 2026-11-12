@@ -684,3 +684,19 @@ TEST_F(AddonEntityStateQueryTest, NativeMarkVariantIsNotFakedFromVariant)
     auto markVariant = EntityStateQuery::variant(mooshroom, "minecraft:mark_variant");
     EXPECT_TRUE(markVariant.failed()) << "mark_variant must not be synthesized from the main variant";
 }
+
+// movement / knockback_resistance 都靠"有没有属性表"判定，即 LivingEntity。
+// 此前 movement 在两个分支里各判一次，后一个是死代码——这里把两条口径钉成一致，
+// 避免将来只改其中一处导致 movement 与 knockback_resistance 行为分叉。
+TEST_F(AddonEntityStateQueryTest, MovementAndKnockbackResistanceShareTheSamePredicate)
+{
+    ZombieEntity zombie(EntityInstanceId(20), registry);
+
+    const auto movement = EntityStateQuery::hasComponent(zombie, "minecraft:movement");
+    const auto knockback = EntityStateQuery::hasComponent(zombie, "minecraft:knockback_resistance");
+    ASSERT_TRUE(movement.success()) << movement.error().message();
+    ASSERT_TRUE(knockback.success()) << knockback.error().message();
+    EXPECT_TRUE(movement.value());
+    EXPECT_EQ(movement.value(), knockback.value())
+        << "movement and knockback_resistance must agree: both follow LivingEntity";
+}
