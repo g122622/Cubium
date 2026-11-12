@@ -459,5 +459,44 @@ public:
         IInventory* dispenserInventory) override;
 };
 
+/**
+ * @brief 凋灵骷髅头颅发射行为
+ *
+ * 前方为空气、且「凋灵基座图案」在目标位置匹配时，把头颅按发射方向摆成站立头颅并立即
+ * 调用 `WitherSkullBlock::checkSpawn` 检查召唤；否则发射失败且不消耗物品。
+ * 对应原版 `DispenserBlock` 静态块中 `Items.WITHER_SKELETON_SKULL` 的匿名 Optional 行为。
+ *
+ * 原版失败分支还会尝试 `EquipmentDispenseItemBehavior.dispenseEquipment`（把头颅戴到前方
+ * 生物头上），项目尚无该穿戴体系，失败时直接不消耗物品。
+ */
+class WitherSkeletonSkullDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    WitherSkeletonSkullDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
+};
+
+/**
+ * @brief 雕刻南瓜发射行为
+ *
+ * 前方为空气、且雪傀儡/铁傀儡/铜傀儡的基座图案在目标位置匹配时放置南瓜方块；
+ * 放置触发的 `CarvedPumpkinBlock::onBlockAdded` 会完成傀儡生成。否则发射失败且不消耗物品。
+ * 对应原版 `DispenserBlock` 静态块中 `Blocks.CARVED_PUMPKIN` 的匿名 Optional 行为。
+ */
+class CarvedPumpkinDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    CarvedPumpkinDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
+};
+
 } // namespace blocks
 } // namespace mc

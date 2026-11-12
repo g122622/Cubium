@@ -48,6 +48,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
+#include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "common/world/block/blocks/decorative/SkullBlock.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
 #include "common/world/block/capability/IBucketPickupHandler.hpp"
@@ -57,6 +59,7 @@
 #include "common/world/effect/base/LevelEventId.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <functional>
@@ -797,6 +800,82 @@ ItemStack TNTDispenseBehavior::dispense(
     // 消耗一个 TNT 物品
     stack.shrink(1);
     _setSuccess(true);
+
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
+
+    return stack.isEmpty() ? ItemStack() : stack;
+}
+
+// ============================================================================
+// WitherSkeletonSkullDispenseBehavior
+// ============================================================================
+
+ItemStack WitherSkeletonSkullDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
+{
+    MC_UNUSED(dispenserInventory);
+
+    const Direction direction = state.get(BlockStateProperties::FACING());
+    const BlockPos targetPos = pos.offset(direction);
+
+    const BlockState* targetState = world.getBlockState(targetPos);
+    const bool targetIsAir = targetState != nullptr && targetState->isAir();
+    if (targetIsAir && WitherSkullBlock::canSpawnMob(world, targetPos, stack)) {
+        // 站立头颅的 ROTATION 由放置方向换算（原版 `RotationSegment.convertToSegment`）：
+        // 竖直方向取 0（朝南），水平方向取 `get2DDataValue << 2`，即 SOUTH=0、WEST=4、NORTH=8、EAST=12。
+        const i32 rotation = Directions::isVertical(direction) ? 0 : Directions::get2DDataValue(direction) << 2;
+        const BlockState& skullState =
+            VanillaBlocks::WITHER_SKELETON_SKULL->defaultState().with(BlockStateProperties::ROTATION_0_15(), rotation);
+
+        world.setBlockState(targetPos, &skullState, world::BlockUpdateFlags::UPDATE_ALL);
+        world.gameEvent(gameevent::GameEvents::BLOCK_PLACE, targetPos, &skullState);
+        // 头颅放下后再判定召唤：图案完整时这里会清空图案并生成凋灵。
+        WitherSkullBlock::checkSpawn(world, targetPos);
+
+        stack.shrink(1);
+        _setSuccess(true);
+    } else {
+        // 原版此处回退到 `EquipmentDispenseItemBehavior.dispenseEquipment`（把头颅戴到前方生物头上）。
+        // TODO: 项目尚无「生物装备槽 + equippable 组件」体系，落地后在此补上装备穿戴分支；
+        //       在此之前失败分支既不放置也不消耗物品，与原版「前方没有可穿戴实体」时一致。
+        _setSuccess(false);
+    }
+
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
+
+    return stack.isEmpty() ? ItemStack() : stack;
+}
+
+// ============================================================================
+// CarvedPumpkinDispenseBehavior
+// ============================================================================
+
+ItemStack CarvedPumpkinDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
+{
+    MC_UNUSED(dispenserInventory);
+
+    const Direction direction = state.get(BlockStateProperties::FACING());
+    const BlockPos targetPos = pos.offset(direction);
+
+    const BlockState* targetState = world.getBlockState(targetPos);
+    const bool targetIsAir = targetState != nullptr && targetState->isAir();
+    if (targetIsAir && CarvedPumpkinBlock::canSpawnGolem(world, targetPos)) {
+        // 原版只写默认状态（不按发射方向设朝向），傀儡朝向取自图案前向；
+        // `setBlockState` 触发的 onBlockAdded 会调用 trySpawnGolem 完成生成。
+        const BlockState& pumpkinState = VanillaBlocks::CARVED_PUMPKIN->defaultState();
+        world.setBlockState(targetPos, &pumpkinState, world::BlockUpdateFlags::UPDATE_ALL);
+        world.gameEvent(gameevent::GameEvents::BLOCK_PLACE, targetPos, &pumpkinState);
+
+        stack.shrink(1);
+        _setSuccess(true);
+    } else {
+        // 原版此处同样回退到装备穿戴分支（南瓜可戴在头上）。
+        // TODO: 生物装备槽体系落地后在此补上 `EquipmentDispenseItemBehavior` 等价逻辑。
+        _setSuccess(false);
+    }
 
     _playSound(world, pos);
     _spawnParticles(world, pos, direction);

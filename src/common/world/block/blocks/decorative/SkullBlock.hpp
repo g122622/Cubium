@@ -220,6 +220,22 @@ public:
      * 对应 MC Java 1.21.11 WitherSkullBlock.checkSpawn(Level, BlockPos)。
      */
     static void checkSpawn(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 判断在指定位置放下该物品是否具备召唤凋灵的条件
+     *
+     * 对应原版 `WitherSkullBlock.canSpawnMob(Level, BlockPos, ItemStack)`：物品须是凋灵骷髅头颅、
+     * 位置至少比世界最低高度高 2 格、难度非和平、服务端侧，且「基座图案」在 pos 处匹配
+     * （顶层任意方块、中层 3 个基座、底层 空气-基座-空气）。
+     *
+     * 发射器放置头颅前用它做前置判定：不满足时原版不会放置头颅，而是走装备穿戴分支。
+     *
+     * @param world 世界
+     * @param pos 头颅将要放置的位置（图案顶行中间）
+     * @param stack 待放置的物品堆
+     * @return 是否具备召唤条件
+     */
+    [[nodiscard]] static bool canSpawnMob(IWorld& world, const BlockPos& pos, const ItemStack& stack);
 };
 
 /**

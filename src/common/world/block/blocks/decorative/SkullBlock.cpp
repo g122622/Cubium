@@ -29,6 +29,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/registry/VanillaEntityTypeKeys.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
@@ -143,14 +144,30 @@ const BlockPattern& _witherFullPattern()
     return *pattern;
 }
 
+/// 凋灵召唤的「基座」图案：顶层不约束（空格匹配任意方块），中层 3 个基座，底层 空气-基座-空气。
+/// 对应原版 `WitherSkullBlock.getOrCreateWitherBase`，用于「头颅还没放下，先看基座在不在」。
+const BlockPattern& _witherBasePattern()
+{
+    static const std::unique_ptr<BlockPattern> pattern =
+        BlockPatternBuilder::start()
+            .aisle({"   ", "###", "~#~"})
+            .where('#', BlockInWorld::hasState([](const BlockState& state) {
+                return BlockTags::WITHER_SUMMON_BASE_BLOCKS().contains(state);
+            }))
+            .where('~', BlockInWorld::hasState([](const BlockState& state) {
+                return state.isAir();
+            }))
+            .build();
+    return *pattern;
+}
+
 // 召唤判定（图案匹配、清图案、生成凋灵、无敌阶段、进度触发）已完整落在 checkSpawn 内，
 // 玩家放置站立/墙挂凋灵骷髅头的两条路径都会调用它。
 // 覆盖见 `tests/unit/common/world/block/blocks/WitherSkullBlockTest.cpp`（正/负路径与无敌阶段）。
-// TODO: 发射器放置凋灵骷髅头时也应触发同一判定。原版是在 `DispenserBlock` 的方块放置
-// 行为里走 `BlockItem.place`，从而间接触发 `onBlockPlacedBy`；项目的 dispense 子系统目前
-// 只有 `IDispenseItemBehavior` 接口与注册表，尚无任何具体行为（含"放置方块"），因此这条
-// 路径要等 dispense 行为落地后在此接入——接入点即"放置方块"行为调用
-// `BlockItem::placeBlock`，不要另写一套召唤逻辑。
+// 发射器放置头颅走的是专用发射行为 `WitherSkeletonSkullDispenseBehavior`
+// （`common/world/block/dispense/`）：它先用 `WitherSkullBlock::canSpawnMob` 判定基座图案，
+// 命中才写入头颅方块并调用 checkSpawn，不命中则失败且不消耗物品——与原版
+// `DispenserBlock` 静态块里 `Items.WITHER_SKELETON_SKULL` 的匿名行为一致。
 
 /**
  * @brief 把物品上的 `minecraft:note_block_sound` 组件写入头颅方块实体
@@ -552,6 +569,22 @@ void WitherSkullBlock::checkSpawn(IWorld& world, const BlockPos& pos)
     // 对 50 格内玩家触发 SUMMONED_ENTITY 进度。
     CarvedPumpkinBlock::triggerSummonedEntity(world, *spawnedEntity, 50.0f);
     CarvedPumpkinBlock::updatePatternBlocks(world, *match);
+}
+
+bool WitherSkullBlock::canSpawnMob(IWorld& world, const BlockPos& pos, const ItemStack& stack)
+{
+    // 与 checkSpawn 的前置条件一致，只是把「头颅层」换成不约束（头颅还没放下）：
+    // 物品必须是凋灵骷髅头颅，位置至少要留出 3 层图案（故 +2），难度非和平，且必须在服务端判定。
+    if (stack.getItem() != Items::WITHER_SKELETON_SKULL) {
+        return false;
+    }
+    if (pos.y < world.getMinBuildHeight() + 2) {
+        return false;
+    }
+    if (world.difficulty() == Difficulty::Peaceful || world.isClientSide()) {
+        return false;
+    }
+    return _witherBasePattern().find(world, pos).has_value();
 }
 
 WitherWallSkullBlock::WitherWallSkullBlock(const BlockProperties& properties)

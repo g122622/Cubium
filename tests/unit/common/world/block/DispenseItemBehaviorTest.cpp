@@ -1105,6 +1105,18 @@ public:
         return &fluid::Fluids::EMPTY()->defaultState();
     }
 
+    // BlockPattern 经 chunkManager()->hasChunkInMem 判断区块是否已加载；
+    // 测试桩必须报告已加载，否则 BlockInWorld 会拒绝读取内存方块表（返回 nullptr）。
+    [[nodiscard]] mc::world::chunk::IChunkManager* chunkManager() override
+    {
+        return &m_stubChunks;
+    }
+
+    [[nodiscard]] const mc::world::chunk::IChunkManager* chunkManager() const override
+    {
+        return &m_stubChunks;
+    }
+
     // --- playEvent: 记录事件 ---
     void playEvent(::mc::world::LevelEventId eventId, const BlockPos& pos, i32 data) override
     {
@@ -1211,6 +1223,7 @@ public:
 
 private:
     mc::test::DummyTickManager m_tickManager;
+    mc::test::StubChunkManager m_stubChunks{nullptr, true};
     const BlockState* m_presetBlockState = nullptr;
     bool m_isUltraWarm;
     BlockPos m_lastSetBlockPos{0, 0, 0};
@@ -1974,6 +1987,171 @@ TEST_F(DispenseBehaviorTest, AddToInventoryOrDispense_EmptyStack_NoOp)
     // 空物品堆不应改变库存也不应生成实体
     EXPECT_TRUE(inventory.isEmpty());
     EXPECT_EQ(world.spawnedEntityTypes().size(), static_cast<size_t>(spawnCountBefore));
+}
+
+// ============================================================================
+// 头颅 / 南瓜头发射行为
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, WitherSkull_RegisteredAsOptionalCustomBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    ASSERT_TRUE(registry.hasBehavior("minecraft:wither_skeleton_skull"));
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:wither_skeleton_skull");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_NE(dynamic_cast<WitherSkeletonSkullDispenseBehavior*>(behavior), nullptr);
+    // Optional 行为执行前不打算报告成功：失败时不播发射音效、不消耗物品。
+    EXPECT_FALSE(behavior->isSuccess());
+}
+
+TEST_F(DispenseBehaviorTest, CarvedPumpkin_RegisteredAsOptionalCustomBehavior)
+{
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+    ASSERT_TRUE(registry.hasBehavior("minecraft:carved_pumpkin"));
+    IDispenseItemBehavior* behavior = registry.getBehavior("minecraft:carved_pumpkin");
+    ASSERT_NE(behavior, nullptr);
+    EXPECT_NE(dynamic_cast<CarvedPumpkinDispenseBehavior*>(behavior), nullptr);
+    EXPECT_FALSE(behavior->isSuccess());
+}
+
+/// 按凋灵基座图案摆放：中层 3 个基座、底层 空气-基座-空气。
+static void _buildWitherBase(DispenseTestWorld& world, const BlockPos& skullPos)
+{
+    const BlockState* soulSand = &VanillaBlocks::SOUL_SAND->defaultState();
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        world.setBlockStateAt(BlockPos(skullPos.x + dx, skullPos.y - 1, skullPos.z), soulSand);
+    }
+    world.setBlockStateAt(BlockPos(skullPos.x, skullPos.y - 2, skullPos.z), soulSand);
+}
+
+TEST_F(DispenseBehaviorTest, WitherSkull_BasePatternPresent_PlacesRotatedSkull)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    // 发射器位于 (0,10,0) 朝东：头颅落在 (1,10,0)，基座摆在该位置下方。
+    const BlockPos skullPos(1, 10, 0);
+    _buildWitherBase(world, skullPos);
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::East);
+    ItemStack stack(Items::WITHER_SKELETON_SKULL, 1);
+    WitherSkeletonSkullDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 10, 0), dispenserState, stack, nullptr);
+
+    EXPECT_TRUE(behavior.isSuccess());
+    EXPECT_TRUE(result.isEmpty());
+    EXPECT_EQ(world.setBlockStateCallCount(), 1);
+    EXPECT_EQ(world.lastSetBlockPos(), skullPos);
+
+    const BlockState* placed = world.lastSetBlockState();
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::WITHER_SKELETON_SKULL));
+    // 朝东的发射器把站立头颅转成 ROTATION=12（get2DDataValue(EAST)=3，3<<2=12）。
+    EXPECT_EQ(placed->get(BlockStateProperties::ROTATION_0_15()), 12);
+}
+
+TEST_F(DispenseBehaviorTest, WitherSkull_FacingUp_PlacesSouthFacingSkull)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    const BlockPos skullPos(0, 6, 0);
+    _buildWitherBase(world, skullPos);
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::Up);
+    ItemStack stack(Items::WITHER_SKELETON_SKULL, 1);
+    WitherSkeletonSkullDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 5, 0), dispenserState, stack, nullptr);
+
+    EXPECT_TRUE(behavior.isSuccess());
+    EXPECT_TRUE(result.isEmpty());
+    const BlockState* placed = world.lastSetBlockState();
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::WITHER_SKELETON_SKULL));
+    // 竖直方向没有 2D 数据值，原版 RotationSegment 取 0（朝南）。
+    EXPECT_EQ(placed->get(BlockStateProperties::ROTATION_0_15()), 0);
+}
+
+TEST_F(DispenseBehaviorTest, WitherSkull_NoBasePattern_FailsWithoutConsuming)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::East);
+    ItemStack stack(Items::WITHER_SKELETON_SKULL, 1);
+    WitherSkeletonSkullDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 10, 0), dispenserState, stack, nullptr);
+
+    EXPECT_FALSE(behavior.isSuccess());
+    EXPECT_EQ(result.getCount(), 1);
+    EXPECT_EQ(world.setBlockStateCallCount(), 0);
+}
+
+TEST_F(DispenseBehaviorTest, WitherSkull_TargetOccupied_FailsWithoutConsuming)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    const BlockPos skullPos(1, 10, 0);
+    _buildWitherBase(world, skullPos);
+    world.setBlockStateAt(skullPos, &VanillaBlocks::STONE->defaultState());
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::East);
+    ItemStack stack(Items::WITHER_SKELETON_SKULL, 1);
+    WitherSkeletonSkullDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 10, 0), dispenserState, stack, nullptr);
+
+    EXPECT_FALSE(behavior.isSuccess());
+    EXPECT_EQ(result.getCount(), 1);
+    EXPECT_EQ(world.setBlockStateCallCount(), 0);
+}
+
+TEST_F(DispenseBehaviorTest, CarvedPumpkin_IronGolemBase_PlacesPumpkin)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    // 铁傀儡基座：中层 3 个铁块、底层 空气-铁块-空气，顶层两侧须为空气。
+    const BlockPos headPos(1, 10, 0);
+    const BlockState* iron = &VanillaBlocks::IRON_BLOCK->defaultState();
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        world.setBlockStateAt(BlockPos(headPos.x + dx, headPos.y - 1, headPos.z), iron);
+    }
+    world.setBlockStateAt(BlockPos(headPos.x, headPos.y - 2, headPos.z), iron);
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::East);
+    ItemStack stack(Items::CARVED_PUMPKIN, 1);
+    CarvedPumpkinDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 10, 0), dispenserState, stack, nullptr);
+
+    EXPECT_TRUE(behavior.isSuccess());
+    EXPECT_TRUE(result.isEmpty());
+    EXPECT_EQ(world.setBlockStateCallCount(), 1);
+    EXPECT_EQ(world.lastSetBlockPos(), headPos);
+    const BlockState* placed = world.lastSetBlockState();
+    ASSERT_NE(placed, nullptr);
+    EXPECT_TRUE(placed->is(VanillaBlocks::CARVED_PUMPKIN));
+}
+
+TEST_F(DispenseBehaviorTest, CarvedPumpkin_NoBasePattern_FailsWithoutConsuming)
+{
+    DispenseTestWorld world;
+    world.setPresetBlockState(&VanillaBlocks::AIR->defaultState());
+
+    const BlockState& dispenserState =
+        VanillaBlocks::DISPENSER->defaultState().with(BlockStateProperties::FACING(), Direction::East);
+    ItemStack stack(Items::CARVED_PUMPKIN, 1);
+    CarvedPumpkinDispenseBehavior behavior;
+    const ItemStack result = behavior.dispense(world, BlockPos(0, 10, 0), dispenserState, stack, nullptr);
+
+    EXPECT_FALSE(behavior.isSuccess());
+    EXPECT_EQ(result.getCount(), 1);
+    EXPECT_EQ(world.setBlockStateCallCount(), 0);
 }
 
 } // namespace test

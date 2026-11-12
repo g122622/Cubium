@@ -158,7 +158,6 @@ export const KNOWN_DISPENSE_GAPS: readonly string[] = [
     "minecraft:armor_stand",
     "minecraft:axolotl_bucket",
     "minecraft:brush",
-    "minecraft:carved_pumpkin",
     "minecraft:chest",
     "minecraft:cod_bucket",
     "minecraft:glass_bottle",
@@ -172,5 +171,4 @@ export const KNOWN_DISPENSE_GAPS: readonly string[] = [
     "minecraft:tadpole_bucket",
     "minecraft:tropical_fish_bucket",
     "minecraft:water_bucket",
-    "minecraft:wither_skeleton_skull",
 ];

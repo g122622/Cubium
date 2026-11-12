@@ -190,6 +190,15 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     // 骨粉发射行为
     // ========================================================================
     registerBehavior("minecraft:bone_meal", std::make_unique<BonemealDispenseBehavior>());
+
+    // ========================================================================
+    // 头颅 / 南瓜头放置行为
+    //
+    // 这两条对应原版 `DispenserBlock` 静态块里的匿名 Optional 行为：只有基座图案成立时才
+    // 放置方块（头颅还要立刻判定凋灵召唤），否则失败且不消耗物品。
+    // ========================================================================
+    registerBehavior("minecraft:wither_skeleton_skull", std::make_unique<WitherSkeletonSkullDispenseBehavior>());
+    registerBehavior("minecraft:carved_pumpkin", std::make_unique<CarvedPumpkinDispenseBehavior>());
 }
 
 void DispenseItemBehaviorRegistry::registerProjectileBehavior(const Item& item)

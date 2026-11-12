@@ -162,4 +162,6 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 
 ### SkullBlock 凋灵建造使用 BlockPattern
 
-凋灵结构由 `SkullBlock::checkSpawn` 通过 `world/block/pattern/` 匹配 `^^^` / `###` / `~#~`：`#` 为 `WITHER_SUMMON_BASE_BLOCKS` 标签内的方块（灵魂沙/灵魂土），`~` 必须为空气。匹配成功后定位中间头颅（`getBlock(1,2,0)`），以 `forwards` 决定凋灵朝向，清除图案方块（含 2001 粒子）再生成实体并通知 50 格内玩家。**不要**手写坐标判定；`WitherSkullBlock` 的发射器路径（`getOrCreateWitherBase` / `canSpawnMob`）尚未实现，代码中有 TODO。
+凋灵结构由 `SkullBlock::checkSpawn` 通过 `world/block/pattern/` 匹配 `^^^` / `###` / `~#~`：`#` 为 `WITHER_SUMMON_BASE_BLOCKS` 标签内的方块（灵魂沙/灵魂土），`~` 必须为空气。匹配成功后定位中间头颅（`getBlock(1,2,0)`），以 `forwards` 决定凋灵朝向，清除图案方块（含 2001 粒子）再生成实体并通知 50 格内玩家。**不要**手写坐标判定。
+
+`WitherSkullBlock::canSpawnMob` 用的是同一套 builder 摆出的「基座图案」（顶层为空格=不约束，`###` / `~#~` 不变），只判基座、不要求头颅已经在位；发射器行为 `WitherSkeletonSkullDispenseBehavior`（`world/block/dispense/`）靠它决定「要不要把头颅放下」。因为它绕过了 `BlockItem::placeBlock`，放置后必须显式调用 `checkSpawn`——`WitherSkullBlock` 只重写了 `onBlockPlacedBy`，没有 `onBlockAdded` 重写。

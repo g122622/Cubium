@@ -29,7 +29,9 @@ IDispenseItemBehavior (接口)
         │   ├── PowderSnowBucketDispenseBehavior (放置细雪方块，成功后替换为空桶)
         │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久；tntExplodes=false时点燃失败)
         │   ├── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
-        │   └── TNTDispenseBehavior (TNT物品发射，检查tntExplodes规则后生成点燃的TNT实体)
+        │   ├── TNTDispenseBehavior (TNT物品发射，检查tntExplodes规则后生成点燃的TNT实体)
+        │   ├── WitherSkeletonSkullDispenseBehavior (基座图案成立才放置头颅并立刻判定凋灵召唤)
+        │   └── CarvedPumpkinDispenseBehavior (傀儡基座图案成立才放置南瓜，放置触发傀儡生成)
         ├── ProjectileDispenseBehavior (投掷物发射，通过 ProjectileItem 接口多态创建弹射物)
         └── BoatDispenseBehavior (放置船)
 ```
@@ -88,6 +90,8 @@ IDispenseItemBehavior (接口)
 - `TNTBlock` - TNT 引燃
 - `FireBlock` / `VanillaBlocks` - 火焰放置和方块检测
 - `IGrowable` - 骨粉催熟接口
+- `WitherSkullBlock` - `canSpawnMob`（头颅基座图案判定）与 `checkSpawn`（召唤凋灵）
+- `CarvedPumpkinBlock` - `canSpawnGolem`（傀儡基座图案判定）
 
 **流体系统：**
 - `Fluid` / `FluidState` / `FluidTags::WATER()` - 流体检测和放置
@@ -98,6 +102,7 @@ IDispenseItemBehavior (接口)
 - `Random` - 高斯随机速度计算
 - `Vector3` / `BlockPos` - 位置计算
 - `LevelEventId` - 世界事件 ID（音效、粒子）
+- `GameEvents::BLOCK_PLACE` - 放置头颅/南瓜头时的游戏事件
 - `GameRules` / `GameRuleKeys` - tntExplodes 游戏规则（TNTDispenseBehavior 检查，FlintAndSteelDispenseBehavior 点燃 TNT 时检查）
 
 ## 容易踩的坑
@@ -133,3 +138,5 @@ IDispenseItemBehavior (接口)
 12. **EmptyBucketDispenseBehavior 支持非流体拾取路径**：空桶发射器行为先尝试 `IBucketPickupHandler::pickupFluid()`（拾取水/岩浆等流体），如果返回 nullptr 则继续尝试 `IBucketPickupHandler::pickupItem()`（拾取细雪等非流体方块）。`pickupItem()` 返回的物品（如 `Items::POWDER_SNOW_BUCKET`）作为替换物品写回发射器。`getPickupSound()` 提供拾取音效覆盖。
 
 13. **PowderSnowBucketDispenseBehavior 细雪桶发射器行为**：细雪桶（`minecraft:powder_snow_bucket`）的发射器行为，调用 `PowderSnowBucketItem::emptyContents()` 在目标位置放置细雪方块。成功后通过 `consumeWithRemainder` 将空桶写回发射器。对应 MC Java 的 `DispensibleContainerItem` 接口在发射器中的行为。
+
+14. **头颅/南瓜头行为先判「基座图案」再放置**：`WitherSkeletonSkullDispenseBehavior` 用 `WitherSkullBlock::canSpawnMob`（图案顶层不约束，只看 3 个基座 + 底层 空气-基座-空气）判定，命中才写头颅并**自己调用** `checkSpawn`——`WitherSkullBlock` 没有 `onBlockAdded` 重写，不能指望 `setBlockState` 触发召唤。`CarvedPumpkinDispenseBehavior` 判 `canSpawnGolem` 后只写默认南瓜状态，傀儡由 `setBlockState` 触发的 `CarvedPumpkinBlock::onBlockAdded` 生成。两者都**不走** `BlockItem::placeBlock`。失败分支在原版回退到 `EquipmentDispenseItemBehavior`（把物品戴到前方生物头上），项目尚无该穿戴体系，故失败时不消耗物品（等同原版「前方没有可穿戴实体」的路径）。

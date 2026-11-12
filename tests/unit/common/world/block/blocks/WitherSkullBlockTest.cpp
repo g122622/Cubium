@@ -34,6 +34,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/blocks/decorative/SkullBlock.hpp"
@@ -335,4 +337,90 @@ TEST_F(WitherSkullBlockTest, WitherSpawnedStartsInvulnerablePhase)
     // 进入生成无敌阶段：设置 220 tick 生成无敌计时器（而非永久无敌标志）
     EXPECT_EQ(wither->getInvulTime(), 220);
     EXPECT_FALSE(wither->isInvulnerable());
+}
+
+// ============================================================================
+// canSpawnMob：发射器放置头颅前的前置判定（基座图案，不含头颅层）
+// ============================================================================
+
+class WitherSkullCanSpawnMobTest : public WitherSkullBlockTest {
+protected:
+    /// 以 (cx, cy, cz) 为头颅将要落下的位置，摆出凋灵基座图案。
+    void buildWitherBase(i32 cx, i32 cy, i32 cz, bool alongX)
+    {
+        const i32 dx = alongX ? 1 : 0;
+        const i32 dz = alongX ? 0 : 1;
+        for (i32 i = -1; i <= 1; ++i) {
+            world_->setBlockAt(cx + dx * i, cy - 1, cz + dz * i, VanillaBlocks::SOUL_SAND);
+        }
+        world_->setBlockAt(cx, cy - 2, cz, VanillaBlocks::SOUL_SAND);
+    }
+};
+
+TEST_F(WitherSkullCanSpawnMobTest, BasePatternPresent_ReturnsTrue)
+{
+    Items::ensureInitialized();
+    buildWitherBase(0, 10, 0, /*alongX=*/true);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_TRUE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), skull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, BasePatternPresent_AlongZ_ReturnsTrue)
+{
+    Items::ensureInitialized();
+    buildWitherBase(0, 10, 0, /*alongX=*/false);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_TRUE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), skull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, MissingCenterBase_ReturnsFalse)
+{
+    Items::ensureInitialized();
+    buildWitherBase(0, 10, 0, /*alongX=*/true);
+    // 中层中央换成泥土，基座图案不再成立。
+    world_->setBlockAt(0, 9, 0, VanillaBlocks::DIRT);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_FALSE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), skull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, NonWitherSkullItem_ReturnsFalse)
+{
+    Items::ensureInitialized();
+    buildWitherBase(0, 10, 0, /*alongX=*/true);
+    const ItemStack plainSkull(Items::SKELETON_SKULL, 1);
+
+    EXPECT_FALSE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), plainSkull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, PeacefulDifficulty_ReturnsFalse)
+{
+    Items::ensureInitialized();
+    world_->setDifficulty(Difficulty::Peaceful);
+    buildWitherBase(0, 10, 0, /*alongX=*/true);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_FALSE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), skull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, ClientSide_ReturnsFalse)
+{
+    Items::ensureInitialized();
+    world_->setClientSide(true);
+    buildWitherBase(0, 10, 0, /*alongX=*/true);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_FALSE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, 10, 0), skull));
+}
+
+TEST_F(WitherSkullCanSpawnMobTest, TooCloseToMinBuildHeight_ReturnsFalse)
+{
+    Items::ensureInitialized();
+    const i32 y = world::MIN_BUILD_HEIGHT + 1;
+    buildWitherBase(0, y, 0, /*alongX=*/true);
+    const ItemStack skull(Items::WITHER_SKELETON_SKULL, 1);
+
+    EXPECT_FALSE(WitherSkullBlock::canSpawnMob(*world_, BlockPos(0, y, 0), skull));
 }
