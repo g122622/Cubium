@@ -28,7 +28,9 @@
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
+#include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/entities/passive/tamable/TameableEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -244,12 +246,50 @@ Result<i32> EntityStateQuery::variant(const mc::Entity& entity, const std::strin
         const auto* value = components->component(name);
         return value != nullptr ? value->value("value", i32{0}) : i32{0};
     }
-    if (name == "minecraft:variant") {
-        if (const auto* mooshroom = dynamic_cast<const mc::MooshroomEntity*>(&entity)) {
-            return static_cast<i32>(mooshroom->getMooshroomType());
-        }
+    // 原生实体：必须按基岩的变种编号表映射，**不能**直传项目内部的枚举值。
+    // 各类型的编号顺序与 Java 版并不一致，直传会在"看起来能跑通"的错觉下给出错误变种。
+    if (name == "minecraft:mark_variant") {
+        // 标记变种是纯附加标记，项目尚无原生实体使用它，无编号可映射。
+        return Error(
+            ErrorCode::Unsupported, "Native Bedrock mark_variant mapping is not implemented: " + entity.getTypeId());
     }
-    // TODO: 用基岩各类型的变种编号映射原生实体，不能直接套用 Java 枚举编号。
+
+    if (const auto* mooshroom = dynamic_cast<const mc::MooshroomEntity*>(&entity)) {
+        // 基岩 mooshroom 的 variant 只有 0 = 红色、1 = 棕色，与本项目 MooshroomType 同序，可直接对应。
+        return static_cast<i32>(mooshroom->getMooshroomType());
+    }
+    if (const auto* horse = dynamic_cast<const mc::HorseEntity*>(&entity)) {
+        // 基岩 HorseVariant：White=0 Creamy=1 Chestnut=2 Brown=3 Black=4 Gray=5 Darkbrown=6，
+        // 与本项目 CoatColors 完全同序，可直接对应（马铠/花纹不属于 variant）。
+        return static_cast<i32>(horse->getColor());
+    }
+    if (const auto* panda = dynamic_cast<const mc::PandaEntity*>(&entity)) {
+        // 基岩 PandaVariant：Default=0 Lazy=1 Worried=2 Playful=3 Brown=4 Weak=5 Aggressive=6。
+        // 本项目 PandaEntity::Personality 的顺序是 Aggressive=4 Weak=5 Brown=6，与基岩**不同**，
+        // 直接传值会把"棕色"报成"好斗"，故必须显式换表。
+        switch (static_cast<mc::PandaEntity::Personality>(panda->getMainGene())) {
+            case mc::PandaEntity::Personality::Normal:
+                return 0;
+            case mc::PandaEntity::Personality::Lazy:
+                return 1;
+            case mc::PandaEntity::Personality::Worried:
+                return 2;
+            case mc::PandaEntity::Personality::Playful:
+                return 3;
+            case mc::PandaEntity::Personality::Brown:
+                return 4;
+            case mc::PandaEntity::Personality::Weak:
+                return 5;
+            case mc::PandaEntity::Personality::Aggressive:
+                return 6;
+            case mc::PandaEntity::Personality::AggressiveLazy:
+                // 基岩没有"好斗懒惰"这一变种；它在本项目里是隐藏基因的组合结果，
+                // 作为主变种对外报告时退回 0（默认）。
+                return 0;
+        }
+        return 0;
+    }
+
     return Error(ErrorCode::Unsupported, "Native Bedrock variant mapping is not implemented: " + entity.getTypeId());
 }
 

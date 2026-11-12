@@ -30,6 +30,7 @@
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/horse/HorseEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
+#include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
@@ -617,4 +618,69 @@ TEST_F(AddonEntityStateQueryTest, HasTargetFollowsMobAttackTarget)
     const auto onPlain = EntityStateQuery::molangQuery(plain, "query.has_target");
     ASSERT_TRUE(onPlain.has_value());
     EXPECT_FLOAT_EQ(_molangNumber(onPlain), 0.0f);
+}
+
+// 马的毛色：基岩 HorseVariant 与本项目 CoatColors 同序，逐值核对避免未来任一侧改动后静默错位。
+TEST_F(AddonEntityStateQueryTest, HorseCoatIsReportedAsBedrockVariant)
+{
+    HorseEntity horse(EntityInstanceId(9), registry);
+
+    const std::pair<CoatColors, i32> cases[] = {
+        {CoatColors::White, 0},
+        {CoatColors::Creamy, 1},
+        {CoatColors::Chestnut, 2},
+        {CoatColors::Brown, 3},
+        {CoatColors::Black, 4},
+        {CoatColors::Gray, 5},
+        {CoatColors::DarkBrown, 6},
+    };
+    for (const auto& [coat, expected] : cases) {
+        horse.setColor(coat);
+        auto variant = EntityStateQuery::variant(horse, "minecraft:variant");
+        ASSERT_TRUE(variant.success()) << variant.error().message();
+        EXPECT_EQ(variant.value(), expected) << "coat id " << static_cast<i32>(coat);
+    }
+}
+
+// 熊猫：本项目 Personality 的 Aggressive/Weak/Brown 顺序与基岩 PandaVariant 不同，
+// 必须换表。这里逐值核对，重点覆盖 4/5/6 这三处易错位。
+TEST_F(AddonEntityStateQueryTest, PandaPersonalityIsRemappedToBedrockVariant)
+{
+    PandaEntity panda(EntityInstanceId(10), registry);
+
+    const std::pair<PandaEntity::Personality, i32> cases[] = {
+        {PandaEntity::Personality::Normal, 0},
+        {PandaEntity::Personality::Lazy, 1},
+        {PandaEntity::Personality::Worried, 2},
+        {PandaEntity::Personality::Playful, 3},
+        {PandaEntity::Personality::Brown, 4},      // 本项目 6 → 基岩 4
+        {PandaEntity::Personality::Weak, 5},       // 本项目 5 → 基岩 5
+        {PandaEntity::Personality::Aggressive, 6}, // 本项目 4 → 基岩 6
+    };
+    for (const auto& [personality, expected] : cases) {
+        panda.setMainGene(static_cast<u8>(personality));
+        auto variant = EntityStateQuery::variant(panda, "minecraft:variant");
+        ASSERT_TRUE(variant.success()) << variant.error().message();
+        EXPECT_EQ(variant.value(), expected) << "personality id " << static_cast<i32>(personality);
+    }
+}
+
+// 基岩没有"好斗懒惰"变种；它在本项目里是隐藏基因的组合结果，对外报告时退回默认 0。
+TEST_F(AddonEntityStateQueryTest, PandaAggressiveLazyFallsBackToDefaultVariant)
+{
+    PandaEntity panda(EntityInstanceId(11), registry);
+    panda.setMainGene(static_cast<u8>(PandaEntity::Personality::AggressiveLazy));
+
+    auto variant = EntityStateQuery::variant(panda, "minecraft:variant");
+    ASSERT_TRUE(variant.success()) << variant.error().message();
+    EXPECT_EQ(variant.value(), 0);
+}
+
+// mark_variant 是"附加标记"，项目尚无原生实体使用它，不能拿主变种顶替。
+TEST_F(AddonEntityStateQueryTest, NativeMarkVariantIsNotFakedFromVariant)
+{
+    MooshroomEntity mooshroom(EntityInstanceId(12), registry);
+
+    auto markVariant = EntityStateQuery::variant(mooshroom, "minecraft:mark_variant");
+    EXPECT_TRUE(markVariant.failed()) << "mark_variant must not be synthesized from the main variant";
 }

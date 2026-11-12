@@ -49,12 +49,12 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdio>
 #include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_set>
 #include <vector>
-#include <cstdio>
 
 using namespace mc;
 using namespace mc::world::gen::density;
