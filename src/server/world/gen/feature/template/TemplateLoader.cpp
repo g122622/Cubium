@@ -222,9 +222,8 @@ std::optional<BedrockJavaProps> bedrockIntStateToJava(
 // - button_pressed_bit (byte 0/1)：基岩按钮按下 → Java powered (true/false)
 // - rail_data_bit (byte 0/1)：基岩 golden_rail/activator_rail/detector_rail 充能位 → Java powered (true/false)
 // - conditional_bit (byte 0/1)：基岩命令方块条件 → Java conditional (true/false)
+// - brewing_stand_slot_a/b/c_bit (byte 0/1)：基岩酿造台三个药水槽占用位 → Java has_bottle_0/1/2
 // 返回 nullopt 表示该属性名不在已知映射表内，由调用方走默认布尔转换逻辑。
-// TODO: 基岩字节属性到 Java 枚举的映射仅覆盖上述常见项，其他（如 top_slot_bit、direction 的 byte
-// 变体等）需逐类补全。
 std::optional<BedrockJavaProps> bedrockByteStateToJava(
     const std::string& javaBlockName, const std::string& bedrockKey, i8 byteVal)
 {
@@ -240,6 +239,24 @@ std::optional<BedrockJavaProps> bedrockByteStateToJava(
     if (bedrockKey == "door_hinge_bit") {
         // 门铰链：0=左(left), 1=右(right)
         return oneJavaProp(std::string("hinge"), b ? std::string("right") : std::string("left"));
+    }
+    if (bedrockKey == "brewing_stand_slot_a_bit" || bedrockKey == "brewing_stand_slot_b_bit" ||
+        bedrockKey == "brewing_stand_slot_c_bit") {
+        // 酿造台药水槽占用位：基岩是三个独立布尔位（a/b/c），Java 是三个独立的布尔属性
+        // has_bottle_0/1/2。
+        //
+        // 这里必须一次性给出**全部三个**属性，而不是只给被设置的那一个：基岩模板里只出现
+        // 真实占用过的槽位，未出现的槽位意味着"该槽为空"。若只映射出现的那个位，另外两个
+        // 属性会留在默认状态上——而 Java 侧布尔属性的值索引 0 就代表 true，默认状态是
+        // 全 false 的组合，匹配器会挑到「该位为 true 且其余位也是 true」的状态，凭空多出
+        // 两个有药水的槽位。
+        const bool slotA = bedrockKey == "brewing_stand_slot_a_bit" ? b : false;
+        const bool slotB = bedrockKey == "brewing_stand_slot_b_bit" ? b : false;
+        const bool slotC = bedrockKey == "brewing_stand_slot_c_bit" ? b : false;
+        return BedrockJavaProps{
+            std::make_pair(std::string("has_bottle_0"), slotA ? std::string("true") : std::string("false")),
+            std::make_pair(std::string("has_bottle_1"), slotB ? std::string("true") : std::string("false")),
+            std::make_pair(std::string("has_bottle_2"), slotC ? std::string("true") : std::string("false"))};
     }
     if (bedrockKey == "open_bit") {
         // 拉杆是这里唯一的反例：基岩拉杆用 open_bit 表示通断，而 Java 拉杆
@@ -467,6 +484,7 @@ const BlockState* applyPropertiesToState(
 
         const std::string& value = dynamic_cast<const nbt::StringTag&>(*valueTag).value;
         auto parsedValue = prop->parseValue(value);
+
         if (!parsedValue) {
             continue;
         }

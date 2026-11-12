@@ -199,3 +199,57 @@ TEST_F(TemplateLoaderBedrockPaletteTest, UnknownSaplingTypeFallsBackToAir)
     ASSERT_NE(state, nullptr);
     EXPECT_TRUE(state->isAir()) << "unknown sapling_type must not resolve to a real block";
 }
+
+// 酿造台药水槽占用位：基岩的 brewing_stand_slot_a/b/c_bit 对应 Java 的 has_bottle_0/1/2。
+TEST_F(TemplateLoaderBedrockPaletteTest, BrewingStandSlotBitsMapToHasBottle)
+{
+    ASSERT_NE(mc::VanillaBlocks::BREWING_STAND, nullptr) << "brewing_stand must be registered";
+
+    struct Expectation {
+        const char* bedrockKey;
+        // 该位为 1 时 Java 侧应为 true 的属性
+        bool expect0;
+        bool expect1;
+        bool expect2;
+    };
+
+    const std::array<Expectation, 3> expectations = {{{"brewing_stand_slot_a_bit", true, false, false},
+        {"brewing_stand_slot_b_bit", false, true, false},
+        {"brewing_stand_slot_c_bit", false, false, true}}};
+
+    for (const auto& expected : expectations) {
+        auto entry = std::make_unique<mc::nbt::tags::compound_tag>();
+        entry->put("name", std::string("minecraft:brewing_stand"));
+        auto states = std::make_unique<mc::nbt::tags::compound_tag>();
+        states->put(expected.bedrockKey, static_cast<mc::i8>(1));
+        entry->value["states"] = std::move(states);
+
+        const mc::u32 id = mc::test::TemplateLoaderTestAccessor::parseBedrockPaletteEntry(*entry);
+        const auto* state = mc::BlockRegistry::instance().getBlockState(id);
+        ASSERT_NE(state, nullptr) << "key=" << expected.bedrockKey;
+        EXPECT_EQ(state->get(mc::BlockStateProperties::HAS_BOTTLE_0()), expected.expect0)
+            << "key=" << expected.bedrockKey;
+        EXPECT_EQ(state->get(mc::BlockStateProperties::HAS_BOTTLE_1()), expected.expect1)
+            << "key=" << expected.bedrockKey;
+        EXPECT_EQ(state->get(mc::BlockStateProperties::HAS_BOTTLE_2()), expected.expect2)
+            << "key=" << expected.bedrockKey;
+    }
+}
+
+// 布尔属性的值索引必须自洽：valueToString(i) 解析回来的索引要等于 i。
+// 这条约束是 applyPropertiesToState 按「字符串 → 索引」匹配候选状态的前提。
+TEST_F(TemplateLoaderBedrockPaletteTest, BooleanPropertyIndexRoundTrips)
+{
+    const mc::IProperty& prop = mc::BlockStateProperties::HAS_BOTTLE_0();
+    EXPECT_EQ(prop.valueCount(), 2u);
+    EXPECT_EQ(prop.valueToString(0), "true");
+    EXPECT_EQ(prop.valueToString(1), "false");
+
+    const auto zero = prop.parseValue(prop.valueToString(0));
+    ASSERT_TRUE(zero.has_value());
+    EXPECT_EQ(*zero, 0u) << "valueToString(0) must parse back to index 0";
+
+    const auto one = prop.parseValue(prop.valueToString(1));
+    ASSERT_TRUE(one.has_value());
+    EXPECT_EQ(*one, 1u) << "valueToString(1) must parse back to index 1";
+}
