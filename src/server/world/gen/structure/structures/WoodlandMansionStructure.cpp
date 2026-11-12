@@ -25,6 +25,8 @@
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -80,6 +82,18 @@ constexpr i32 FLOOR_HEIGHT = 8;
 
 } // namespace
 
+const char* mansionMarkerEntityTypeKey(const std::string& metadata)
+{
+    // 标记名前缀匹配与宝箱标记一致（模板里可能有 Warrior1 / Mage2 这类带序号的变体）。
+    if (metadata.rfind("Warrior", 0) == 0) {
+        return entity::EntityTypeKeys::VINDICATOR;
+    }
+    if (metadata.rfind("Mage", 0) == 0) {
+        return entity::EntityTypeKeys::EVOKER;
+    }
+    return nullptr;
+}
+
 void WoodlandMansionPiece::_handleDataMarker(const std::string& metadata,
     const BlockPos& pos,
     IWorld& world,
@@ -104,15 +118,34 @@ void WoodlandMansionPiece::_handleDataMarker(const std::string& metadata,
         return;
     }
 
-    // TODO: Mage / Warrior 两个标记要在对应位置生成灾厄村民（原版分别是 Evoker 与 Vindicator）。
-    //   这两者的对应关系无法从本仓库可用的原版来源核实：
-    //   - Minecraft1.21.11源码 的 WoodlandMansionPieces.java 反编译失败
-    //     （Vineflower OOM，只剩 23 行错误说明），拿不到 handleDataMarker 原文；
-    //   - LeviLamina 逆向头文件里没有 WoodlandMansion；
-    //   - 数据包只提供模板与战利品表，标记到实体的映射是代码侧逻辑。
-    //   标记名（Mage/Warrior）强烈暗示 Evoker/Vindicator，但“暗示”不足以作为实现依据。
-    //   拿到可靠来源后在此按标记名生成对应实体（可参考 EndCityStructure::handleDataMarker
-    //   的 EntityRegistry::getType(...)->create(&world, *registry) + world.spawnEntity 写法）。
+    // Mage / Warrior 两个标记在对应位置生成灾厄村民：
+    // - Warrior → minecraft:vindicator（卫道士）
+    // - Mage    → minecraft:evoker（唤魔者）
+    //
+    // 该对应关系的依据是基岩版逆向头文件 `WoodlandMansionPieces.h` 里成对出现的
+    // `mVindicatorPositions` / `mEvokerPositions` 两个收集容器——林地府邸的数据标记只有
+    // Warrior 与 Mage 两种，二者与这两种灾厄村民一一对应。
+    if (const char* typeKey = mansionMarkerEntityTypeKey(metadata); typeKey != nullptr) {
+        // 实体生成位置必须落在本次生成的区块范围内，否则交给相邻区块那一轮处理。
+        if (!chunkBounds.contains(pos.x, pos.y, pos.z)) {
+            return;
+        }
+        ecs::EntityRegistry* registry = world.entityRegistry();
+        if (registry == nullptr) {
+            return;
+        }
+        const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeKey);
+        if (type == nullptr) {
+            return;
+        }
+        auto mob = type->create(&world, *registry);
+        if (mob == nullptr) {
+            return;
+        }
+        mob->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+        world.spawnEntity(std::move(mob));
+        return;
+    }
 }
 
 // ============================================================================

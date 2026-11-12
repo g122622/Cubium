@@ -481,6 +481,21 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
     EXPECT_EQ(piece.getMirror(), Mirror::None);
 }
 
+TEST_F(NewStructuresTest, WoodlandMansion_MarkerMapsToIllagerType)
+{
+    using namespace mc::world::gen::structure;
+
+    // Warrior -> 卫道士，Mage -> 唤魔者；带序号的变体按前缀匹配，其余标记不映射实体。
+    EXPECT_STREQ(mansionMarkerEntityTypeKey("Warrior"), entity::EntityTypeKeys::VINDICATOR);
+    EXPECT_STREQ(mansionMarkerEntityTypeKey("Warrior2"), entity::EntityTypeKeys::VINDICATOR);
+    EXPECT_STREQ(mansionMarkerEntityTypeKey("Mage"), entity::EntityTypeKeys::EVOKER);
+    EXPECT_STREQ(mansionMarkerEntityTypeKey("Mage3"), entity::EntityTypeKeys::EVOKER);
+
+    EXPECT_EQ(mansionMarkerEntityTypeKey("ChestNorth"), nullptr);
+    EXPECT_EQ(mansionMarkerEntityTypeKey(""), nullptr);
+    EXPECT_EQ(mansionMarkerEntityTypeKey("Sentry"), nullptr);
+}
+
 // ============================================================================
 // 边界和边界测试
 // ============================================================================

@@ -49,6 +49,18 @@ class RoomCollection;
 } // namespace woodland_mansion
 
 /**
+ * @brief 数据标记名到灾厄村民实体类型键的映射
+ *
+ * 林地府邸模板里的 `Warrior` / `Mage` 两个 DATA 标记分别代表卫道士与唤魔者；
+ * 其余标记返回 nullptr。抽成独立函数是为了让映射本身可被单元测试直接覆盖
+ * （实体生成需要世界实体注册表，WorldGenRegion 阶段拿不到）。
+ *
+ * @param metadata 模板数据标记名
+ * @return 对应的实体类型键，无对应关系时返回 nullptr
+ */
+[[nodiscard]] const char* mansionMarkerEntityTypeKey(const std::string& metadata);
+
+/**
  * @brief 林地府邸结构
  *
  * 在黑森林生物群系生成的大型府邸结构。

@@ -366,3 +366,11 @@ DATA 标记方块本身**不参与**正常方块放置（由 BlockIgnore 处理�
 
 Cubium 的写法是 `math::JavaLegacyRandom(level.seed()).forkPositional().at(x, y, z)`——
 `RandomSource.create(long)` 是 **Legacy** flavor，不能换成 `math::Random`（Xoroshiro）。
+
+### 16. 数据标记到实体的映射只查得到一侧证据时，把映射抽成纯函数
+
+林地府邸的 Warrior / Mage 两个 DATA 标记分别生成卫道士与唤魔者，但原版 Java 的反编译产物在
+WoodlandMansionPieces.java 上是 OOM 失败的空壳，映射关系是从基岩版逆向头文件成对出现的
+mVindicatorPositions / mEvokerPositions 得到的。这类「只有间接证据」的判断要写成
+mansionMarkerEntityTypeKey 这样的纯函数并配单元测试，而不是埋进 _handleDataMarker：
+实体生成需要世界实体注册表，WorldGenRegion 阶段拿不到，写在分支内部就无法被测试覆盖。

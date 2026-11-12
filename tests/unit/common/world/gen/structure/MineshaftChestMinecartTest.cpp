@@ -174,7 +174,6 @@ TEST_F(MineshaftChestMinecartTest, CorridorSpawnsChestMinecartWithMineshaftLootT
 
     corridor.generate(*m_region, rng, 0, 0, chunkBounds, &primer, nullptr);
 
-
     const auto& spawned = primer.spawnedEntities();
     ASSERT_FALSE(spawned.empty()) << "the 1% chest branch must record a chest minecart";
 
@@ -187,14 +186,12 @@ TEST_F(MineshaftChestMinecartTest, CorridorSpawnsChestMinecartWithMineshaftLootT
     ASSERT_TRUE(minecart->nbt.has_value());
     const auto& nbt = minecart->nbt.value();
     ASSERT_EQ(nbt.value.count(entity::serialization::nbt_keys::LOOT_TABLE), 1u);
-    EXPECT_EQ(dynamic_cast<const nbt::tags::string_tag&>(
-                  *nbt.value.at(entity::serialization::nbt_keys::LOOT_TABLE))
-                  .value,
+    EXPECT_EQ(
+        dynamic_cast<const nbt::tags::string_tag&>(*nbt.value.at(entity::serialization::nbt_keys::LOOT_TABLE)).value,
         "minecraft:chests/abandoned_mineshaft");
     ASSERT_EQ(nbt.value.count(entity::serialization::nbt_keys::LOOT_TABLE_SEED), 1u);
-    EXPECT_EQ(dynamic_cast<const nbt::tags::long_tag&>(
-                  *nbt.value.at(entity::serialization::nbt_keys::LOOT_TABLE_SEED))
-                  .value,
+    EXPECT_EQ(
+        dynamic_cast<const nbt::tags::long_tag&>(*nbt.value.at(entity::serialization::nbt_keys::LOOT_TABLE_SEED)).value,
         0x5EED1234LL);
 
     // 实体位置是方块中心（原版 setInitialPos(x+0.5, y+0.5, z+0.5)）。
