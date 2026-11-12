@@ -21,7 +21,7 @@ scripts/
 │   ├── tidy.sh                  # Linux：直接使用 compile_commands.json
 │   └── tidy.ps1                 # Windows：注入 MSVC / Windows SDK / vcpkg 头文件路径
 ├── diag/
-│   ├── orphan_sources.ts        # 游离源文件统计：找出未被任何 CMake target 收集的 .cpp/.c
+│   ├── orphan_sources.ts        # 游离源文件统计：找出未被任何 CMake target 收集的 .cpp/.c（CI 的 source-collection job 调用）
 │   └── syntax-check/
 │       └── syntax_check.sh      # 单文件语法检查：复用 compile_commands.json 参数，加 -fsyntax-only 不产出 .o
 ├── iwyu/                        # clang-include-cleaner 工具
@@ -78,4 +78,6 @@ CI 使用说明见 `docs/CI.md`。
   （如把文件塞进某个 `${..._SOURCES}` 列表）时无需改脚本；但若引入脚本不认识的命令语义，
   会体现在输出末尾的 “Parsing warnings” 里——出现告警时不要直接采信游离结论。
   聚合单元（`#include "Xxx.cpp"`）的成员被计入 “Included by aggregate units”，不算游离。
+- 该脚本退出码 1 同时表示「有游离」和「有解析告警」。nightly 的 `source-collection` job 里必须显式
+  `exit 0` 吞掉，否则会把提示性信号变成流水线失败。
 - 测试输出可能很大；CI 解析必须读取完整输入，长度限制只适用于展示结果。

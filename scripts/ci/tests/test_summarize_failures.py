@@ -272,5 +272,64 @@ class SummarizeFailuresTest(unittest.TestCase):
         self.assertIn("heap-use-after-free", body)
 
 
+    def write_source_collection(self, verdict="complete", orphans=()):
+        folder = self.artifacts / "source-collection"
+        folder.mkdir(parents=True, exist_ok=True)
+        report = {"schema_version": 1, "verdict": verdict, "compile_commands_used": True,
+                  "total": 4, "counts": {"compiled": 2, "declared": 1, "aggregated": 0, "orphan": len(orphans)},
+                  "warnings": [], "orphans": list(orphans), "sources": []}
+        (folder / "source-collection.json").write_text(json.dumps(report), encoding="utf-8")
+        return folder
+
+    def test_orphan_scan_is_reported_without_turning_the_job_red(self):
+        """游离扫描 job 恒为 success；结论只能从产物里读出来。"""
+        folder = self.write_source_collection(orphans=["src/a.cpp"])
+        (folder / "source-collection.md").write_text("### 游离源文件扫描\n\n**❌ 存在游离源文件**\n", encoding="utf-8")
+        statuses = {"source-collection": "success"}
+        self.assertEqual(statuses["source-collection"], "success")
+        self.assertTrue(summary.has_failures(statuses, self.artifacts))
+        body = summary.build_body(statuses, self.artifacts, "https://example/run/1", "main", "abc", True)
+        self.assertIn("游离源文件扫描", body)
+        self.assertIn("需要人工跟进", body)
+        self.assertIn("不阻塞", body)
+
+    def test_clean_orphan_scan_keeps_the_run_clean(self):
+        folder = self.write_source_collection()
+        (folder / "source-collection.md").write_text("### 游离源文件扫描\n\n**✅ 无游离源文件**\n", encoding="utf-8")
+        self.assertFalse(self.source_collection_has_failures())
+        body = summary.build_body({"source-collection": "success"}, self.artifacts,
+                                  "https://example/run/1", "main", "abc", True)
+        self.assertIn("无游离源文件", body)
+
+    def test_untrustworthy_verdict_needs_attention_even_without_orphans(self):
+        """零游离但结论不可采信时仍要跟进：漏报风险还在。"""
+        self.write_source_collection(verdict="unverifiable")
+        self.assertTrue(self.source_collection_has_failures())
+
+    def test_corrupt_orphan_report_needs_attention(self):
+        folder = self.artifacts / "source-collection"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "source-collection.json").write_text("{broken", encoding="utf-8")
+        self.assertTrue(self.source_collection_has_failures())
+
+    def test_missing_orphan_scan_is_not_fabricated_as_clean(self):
+        self.assertFalse(self.source_collection_has_failures())
+        body = summary.build_body({"source-collection": "skipped"}, self.artifacts,
+                                  "https://example/run/1", "main", "abc", True)
+        self.assertIn("未提供扫描结论", body)
+        self.assertNotIn("### 游离源文件扫描", body)
+
+    def source_collection_has_failures(self):
+        """只使用与绘图无关的产物，避免依赖 Matplotlib。
+
+        放一条通过用例而不是空 testsuite：空的 CTest 报告本身会被判为
+        “report 不含用例”（见 test_malformed_or_empty_report_cannot_be_clean），
+        那是另一条既有判定，会掩盖这里要测的来源。
+        """
+        (self.artifacts / "ctest-results.xml").write_text(
+            '<testsuite><testcase name="Passed"/></testsuite>', encoding="utf-8")
+        return summary.has_failures({"source-collection": "success"}, self.artifacts)
+
+
 if __name__ == "__main__":
     unittest.main()

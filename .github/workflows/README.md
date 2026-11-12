@@ -5,7 +5,7 @@
 ```text
 workflows/
 ├── ci.yml            # PR 与合并队列的变更 C++ 文件 clang-tidy 门禁
-├── nightly.yml       # pococc 分布式构建、Linux 全量测试、发布和性能汇总
+├── nightly.yml       # pococc 分布式构建、游离源文件扫描、Linux 全量测试、发布和性能汇总
 ├── nightly-legacy.yml # 旧构建流程，仅允许手动触发
 └── code-stats.yml    # 代码行数统计及徽章更新
 ```
@@ -27,9 +27,16 @@ ruleset 中登记的 required status check 是该汇总 job 名。
 据此过滤），区间外的存量告警不影响 job 结果；区间内的告警或错误仍会令 job 失败。
 vcpkg 二进制缓存只由 shard 0 回写，避免四个分片争抢同一 cache key。
 
+`nightly.yml` 的 `source-collection` job 在构建前独立运行：只 configure 生成
+`compile_commands.json`，再跑 `scripts/diag/orphan_sources.ts`，由
+`scripts/ci/verify_source_collection.py` 校验并写入 summary。该 job **恒为 success**，
+存在游离只体现在 summary、artifact 与汇总报告里，不阻塞后续 job。
+
 ## 容易踩的坑
 
 - cron 使用 UTC；北京时间 21:00 对应 `0 13 * * *`。
+- `orphan_sources.ts` 以退出码 1 表示「有游离/有告警」，workflow 里必须显式 `exit 0`，否则会中断 job。
+- 扫描 job 的每一步都要 `continue-on-error: true`，让扫描器自身故障也不阻塞后续 job。
 - 汇总必须使用 `if: always()`，确保前置 job 失败后仍上报。
 - `nightly-report-full.md` 必须随简要报告上传，保留全部失败和跳过用例。
 - 每个 job 在结果上传前用 `if: always()` 记录机器配置；report 同样采集自身配置，再生成 Matplotlib 图表。

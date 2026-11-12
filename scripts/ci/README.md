@@ -5,6 +5,7 @@
 ```text
 ci/
 ├── summarize_failures.py       # 汇总失败、跳过和报告错误，生成简要及完整报告
+├── verify_source_collection.py # 校验游离源文件扫描结论，生成摘要并判定是否可信
 ├── collect_runner_info.py      # 采集各 job 的硬件、系统镜像和实际工具版本
 ├── verify_pococc_build.py       # 核验无 PCH sanitizer 配置与严格编译分发记录
 ├── verify_ccache_replay.py      # 核验 Ninja launcher 和冷/暖缓存的 stderr 重放
@@ -40,6 +41,11 @@ PNG/SVG 汇总到 `_report_charts`，由工作流发布到 `image-data/ci-report
 - 构建工具版本优先读取 CMakeCache 选中的路径；测试机器预装的编译器不是产物编译器。
 - 未运行与未采集的机器配置要明确区分；采集/解析错误只影响配置展示，不改变测试结论。
 - 回归验证入口为 `python -m unittest discover -s scripts/ci/tests`。
+- 游离源文件扫描**不阻塞流水线**：`verify_source_collection.py` 永远返回 0，发现游离只打 `::warning`。
+  只有 `--fail-on-report-error` 才会因报告损坏而失败。
+- 扫描结论分三级：`complete` 才算可信；缺 `compile_commands.json` 为 `degraded`，
+  静态解析有告警为 `unverifiable`（后两者都要人工跟进，即使游离数为 0）。
+- 报告里计数与游离清单长度不一致一律按损坏处理，不要展示自相矛盾的数字。
 - 发布二进制不能含调试节或 sanitizer 符号；测试二进制必须有两种 sanitizer 和调试信息。
 - Release 的通用与配置专用编译/链接参数都须在 strip 前检查；归档保留 Release 链接参数。
 - benchmark 只比较相同 `ci_build_profile` 的结果，避免跨优化配置产生错误告警。

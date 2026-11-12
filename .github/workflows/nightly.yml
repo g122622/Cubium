@@ -38,6 +38,8 @@ jobs:
         run: python3 -m unittest discover -s scripts/ci/tests -p test_run_unit_tests_batched.py
       - name: Verify build contracts and behavior pack dependencies
         run: python3 -m unittest discover -s scripts/ci/tests -p 'test_*build*.py'
+      - name: Verify source collection verdict handling
+        run: python3 -m unittest discover -s scripts/ci/tests -p test_verify_source_collection.py
       - uses: ./.github/actions/setup-pococc-toolchain
         with:
           client-dependencies: 'false'
@@ -75,6 +77,89 @@ jobs:
           name: pococc-prepare-results
           path: prepare-results/
           retention-days: 30
+  # 游离源文件扫描：找出仓库里存在、但没被任何 CMake 目标收集的 .cpp/.c。
+  #
+  # 判定口径（与 unit-tests / integrated-tests 一致）：
+  #   - **不阻塞流水线**。job 恒为 success，发现游离只写进 summary 与 artifact，
+  #     由 report job 汇总进报告和 issue。把它设成门禁会让 nightly 长期红灯，
+  #     而游离文件的正确处置方式是“下一轮补进 CMake 或删除”，不该卡住整条流水线。
+  #   - 扫描器自身崩溃/报告损坏同样不终止流程：后续步骤用 `continue-on-error` 兜住，
+  #     结论留空，report 会按“未采集”如实展示，而不是虚构“无游离”。
+  #
+  # 为什么单独成 job 而不是塞进 build：
+  #   build 走 pococc 分布式编译，配置与构建都在 composite action 里，插扫描要改 action；
+  #   而扫描只需要一份 compile_commands.json。这里做一次“只 configure 不构建”，
+  #   几秒的扫描就能拿到编译数据库，代价远低于复用 build 的产物。
+  source-collection:
+    name: Orphan Source Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ./.github/actions/setup-linux-build-env
+        with:
+          client-dependencies: 'false'
+          cache-scope: ci
+          vcpkg-commit: ${{ env.VCPKG_COMMIT }}
+      # 需要的是编译数据库而非产物：只 configure，不 build。
+      # 客户端默认关闭；但源码清单里有客户端文件，故显式打开，让扫描覆盖全仓库。
+      - name: Configure compilation database
+        id: configure
+        continue-on-error: true
+        run: |
+          cmake --preset linux-clang-ci-tests -B build-scan \
+            -DMC_ENABLE_NATIVE_ARCH=OFF \
+            -DMC_BUILD_CLIENT=ON \
+            -DMC_BUILD_CLIENT_TESTS=OFF \
+            -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
+            -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+      - name: Scan for orphan source files
+        id: scan
+        continue-on-error: true
+        env:
+          # 客户端配置失败时 build-scan 里没有编译数据库，扫描会自动降级为纯静态判定，
+          # 结论标记为 degraded —— 如实反映，而不是跳过整个环节。
+          BUILD_DIR: ${{ steps.configure.outcome == 'success' && 'build-scan' || 'build-scan-missing' }}
+        run: |
+          mkdir -p source-collection
+          node --experimental-strip-types scripts/diag/orphan_sources.ts \
+            --build-dir "$BUILD_DIR" \
+            --report-json source-collection/source-collection.json \
+            --report-md source-collection/scan-raw.md
+          echo "scan exit code: $?"
+          # 扫描器以 1 表示“存在游离”，属于正常结论，不是流水线错误。
+          exit 0
+      - name: Verify scan verdict
+        id: verify
+        continue-on-error: true
+        run: |
+          python3 scripts/ci/verify_source_collection.py \
+            --report source-collection/source-collection.json \
+            --markdown-out source-collection/source-collection.md \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+      - name: Annotate orphan files
+        if: always()
+        continue-on-error: true
+        run: |
+          # 行内标注只辅助定位，限 50 条避免刷屏；不影响结论。
+          if [ -s source-collection/source-collection.json ]; then
+            node --experimental-strip-types scripts/diag/orphan_sources.ts \
+              --build-dir build-scan --github-annotations 2>/dev/null | head -n 50 || true
+          fi
+      - name: Upload scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pococc-source-collection-results
+          retention-days: 30
+          if-no-files-found: warn
+          path: source-collection/
+    needs: prepare
   build:
     permissions:
       contents: read
@@ -744,6 +829,7 @@ jobs:
     needs:
       - build
       - release-build
+      - source-collection
       - unit-tests
       - integrated-tests
       - e2e-tests
@@ -791,6 +877,7 @@ jobs:
         env:
           JOB_STATUS: |-
             {"prepare":"${{ needs.prepare.result }}", "workers":"${{ needs.workers.result }}", "build":"${{ needs.build.result }}",
+             "source-collection":"${{ needs.source-collection.result }}",
              "release-build":"${{ needs.release-build.result }}",
              "unit-tests":"${{ needs.unit-tests.result }}",
              "integrated-tests":"${{ needs.integrated-tests.result }}",

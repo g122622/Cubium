@@ -14,10 +14,14 @@
  *   node --experimental-strip-types scripts/diag/orphan_sources.ts --all      # 列出全部文件与状态
  *   node --experimental-strip-types scripts/diag/orphan_sources.ts --json     # 机器可读输出
  *   node --experimental-strip-types scripts/diag/orphan_sources.ts --build-dir build
+ *   node --experimental-strip-types scripts/diag/orphan_sources.ts --report-json scan.json \
+ *     --report-md scan.md --github-annotations                               # CI 报告产物
  *
  * 退出码：存在游离文件为 1，否则为 0（可直接当门禁用）。
+ * 静态解析出现解析告警时同样为 1：告警意味着结论可能不完整，不能当作“零游离”采信。
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import type { Dirent } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,6 +69,12 @@ interface CliOptions {
     readonly showAll: boolean;
     readonly json: boolean;
     readonly buildDir: string;
+    /** 机器可读报告的输出路径；供 CI 校验脚本判定结论是否可采信。 */
+    readonly reportJson: string | null;
+    /** Markdown 报告的输出路径；供 CI 写入 Step Summary 与提示词摘要。 */
+    readonly reportMarkdown: string | null;
+    /** 为每个游离文件输出 GitHub Actions 的 `::warning file=` 行内标注。 */
+    readonly githubAnnotations: boolean;
 }
 
 // ============================================================================
@@ -325,6 +335,7 @@ function splitIfBranches(bodyText: string): CommandNode[] {
     const branches: CommandNode[] = [];
     let segmentStart = 0;
     let scanFrom = 0;
+    let depth = 0;
     const regex = /\b([A-Za-z_][A-Za-z0-9_]*)[ \t]*\(/g;
     while (true) {
         regex.lastIndex = scanFrom;
@@ -335,10 +346,16 @@ function splitIfBranches(bodyText: string): CommandNode[] {
         const openParenIndex = match.index + match[0].length - 1;
         const { end } = readArgumentBody(bodyText, openParenIndex);
         const name = match[1].toLowerCase();
-        if (BRANCH_DELIMITERS.has(name)) {
+        // 只在**顶层**切分：嵌套 if 的 elseif/else 属于内层块，误切会把它当成外层分支，
+        // 于是外层 else 之后的命令被算进前面的分支里反复执行（或反之被漏掉）。
+        if (depth === 0 && BRANCH_DELIMITERS.has(name)) {
             // 分支体是 [segmentStart, match.index)；分隔命令自身（elseif 的条件、else）不再执行。
             branches.push(parseRange(bodyText, segmentStart, match.index, false).nodes);
             segmentStart = end;
+        } else if (BLOCK_END.has(name)) {
+            depth += 1;
+        } else if (END_DELIMITERS.has(name)) {
+            depth = Math.max(depth - 1, 0);
         }
         scanFrom = end;
     }
@@ -415,10 +432,20 @@ interface EvaluationState {
     readonly functions: Map<string, FunctionDefinition>;
     readonly collected: Set<string>;
     readonly warnings: Set<string>;
-    readonly visitedScripts: Set<string>;
+    /** 正在执行的脚本调用链（防 include/add_subdirectory 自递归）。 */
+    readonly scriptStack: string[];
+    /** 正在执行的函数调用链（防函数自递归）。 */
     readonly callStack: string[];
     /** set_property(GLOBAL ...) 的待写入项：等脚本执行完、函数参数还原后再统一应用。 */
     readonly deferredProperties: Map<string, DeferredPropertyWrite[]>;
+    /**
+     * 当前正在执行的脚本所属的写回作用域。
+     *
+     * CMake 里 `include()` 不建新作用域：被包含脚本里的 `set()` 写进**调用方**作用域。
+     * 而 `if()`/`foreach()` 块会引入临时帧，若在块内 include，写回必须绕开这些临时帧。
+     * 故由 runScriptFile 在进入脚本时记下当时的帧，expandVariables 写变量时以它为基准。
+     */
+    scriptScope: VariableFrame;
     steps: number;
 }
 
@@ -433,10 +460,11 @@ function createState(): EvaluationState {
     return {
         frame: root,
         macroFrame: null,
+        scriptScope: root,
         functions: new Map<string, FunctionDefinition>(),
         collected: new Set<string>(),
         warnings: new Set<string>(),
-        visitedScripts: new Set<string>(),
+        scriptStack: [],
         callStack: [],
         deferredProperties: new Map<string, DeferredPropertyWrite[]>(),
         steps: 0,
@@ -459,9 +487,10 @@ function readVariable(state: EvaluationState, name: string): string[] | undefine
 }
 
 /** 写入当前作用域。 */
-function writeVariable(state: EvaluationState, name: string, value: string[]): void {
+function writeVariable(state: EvaluationState, name: string, value: string[], toParent = false): void {
     // 一律复制：变量数组之间共享引用会让后续 `list(APPEND ...)` 就地改写别的变量与全局属性。
-    state.frame.values.set(name, [...value]);
+    const target = toParent ? (state.frame.parent ?? state.frame) : state.frame;
+    target.values.set(name, [...value]);
 }
 
 /** 删除当前作用域里的变量（CMake 语义：不影响外层同名变量）。 */
@@ -617,7 +646,7 @@ function execute(node: CommandNode, directory: string, state: EvaluationState, d
             executeBlock(item, directory, state, depth);
             continue;
         }
-        if (executeCommand(item, directory, state, depth) === "return") {
+        if (executeCommand(item, state, depth) === "return") {
             return "return";
         }
     }
@@ -668,9 +697,16 @@ function executeBlock(block: BlockCommand, directory: string, state: EvaluationS
             return "continue";
         case "if":
             // 条件无法静态判定，所有分支都执行：多收集只会让判定更宽松，不会把真正游离的
-            // 文件误判成已收集。每个分支独立执行，分支内的 return() 不会终止外层函数。
+            // 文件误判成已收集。分支**不**建新作用域——CMake 的 if() 不引入作用域，把分支
+            // 放进临时帧会让块内 include() 的写回落空（runScriptFile 记录的 scriptScope
+            // 指向随即可弹出的帧），条件块里 add_library 立即引用那些变量就会读到空值。
+            //
+            // 分支之间也**不**回滚变量：各分支的条件互斥，让后一个分支看见前一个分支的
+            // 赋值只会多收集（例如 MC_ENABLE_TRACING 恒真时 else 分支里的 INTERFACE 空
+            // 库是多余的，但它不会减少任何已收集的源）。真正的隔离由 add_subdirectory
+            // 与函数作用域负责，它们才是 CMake 的作用域边界。
             for (const branch of block.branches ?? [block.child]) {
-                withScope(state, () => execute(branch, directory, state, depth));
+                execute(branch, directory, state, depth);
             }
             return "continue";
         default:
@@ -784,8 +820,9 @@ function toAbsoluteSource(argument: string, directory: string): string | null {
     return toPosixAbsolute(path.isAbsolute(cleaned) ? cleaned : path.resolve(directory, cleaned));
 }
 
-function executeCommand(command: Command, directory: string, state: EvaluationState, depth: number): Flow {
-    // 相对路径一律相对“当前脚本目录”解析（与 CMake 的 CMAKE_CURRENT_SOURCE_DIR 一致）。
+function executeCommand(command: Command, state: EvaluationState, depth: number): Flow {
+    // 相对路径一律相对“当前脚本目录”解析（与 CMake 的 CMAKE_CURRENT_SOURCE_DIR 一致），
+    // 不接收调用方传入的 directory：函数/宏体内的相对路径基准是**运行期**的当前目录。
     const relativeBase = currentDirectory(state);
     const context = contextOf(relativeBase);
     if (command.name === "return") {
@@ -825,6 +862,9 @@ function executeCommand(command: Command, directory: string, state: EvaluationSt
             return "continue";
         case "get_property":
             handleGetProperty(args, state);
+            return "continue";
+        case "get_filename_component":
+            handleGetFilenameComponent(args, relativeBase, state);
             return "continue";
         case "set_property":
             handleSetProperty(args, relativeBase, state);
@@ -873,10 +913,11 @@ function handleSet(args: string[], state: EvaluationState): void {
         writeVariable(state, name, rest.slice(0, cacheIndex));
         return;
     }
-    // `set(X v1 v2 PARENT_SCOPE)`：本脚本不对作用域建模，按当前作用域处理即可。
+    // `set(X v1 v2 PARENT_SCOPE)`：写进**父作用域**。子目录（add_subdirectory）与函数调用都有
+    // 独立作用域，PARENT_SCOPE 正是跨出这一层的唯一手段，按当前作用域写入会漏掉这类变量。
     const parentIndex = rest.indexOf("PARENT_SCOPE");
     if (parentIndex >= 0) {
-        writeVariable(state, name, rest.slice(0, parentIndex));
+        writeVariable(state, name, rest.slice(0, parentIndex), true);
         return;
     }
     writeVariable(state, name, rest);
@@ -1054,6 +1095,47 @@ function handleGetProperty(args: string[], state: EvaluationState): void {
         return;
     }
     writeVariable(state, outputVariable, [...(globalProperties.get(propertyName) ?? [])]);
+}
+
+/**
+ * `get_filename_component(<out> <path> <mode>)`。
+ *
+ * 只还原会影响源清单的三种模式：`DIRECTORY` 常被用来还原“聚合单元所在的目录”，
+ * 例如 `tests/diff/CMakeLists.txt` 先 `get_filename_component(_dir ${candidate} DIRECTORY)`
+ * 再 `list(APPEND members ${_dir}/${member})`；漏掉它会让整条聚合成员清单变成空串。
+ * `NAME` / `EXT` / `NAME_WE` 只产生文件名字符串，对源清单没有影响，返回原值即可。
+ */
+function handleGetFilenameComponent(args: string[], directory: string, state: EvaluationState): void {
+    if (args.length < 3) {
+        return;
+    }
+    const [outputVariable, inputPath, rawMode] = args;
+    const mode = rawMode.toUpperCase();
+    const resolved = path.isAbsolute(inputPath) ? inputPath : path.resolve(directory, inputPath);
+    let value: string;
+    switch (mode) {
+        case "DIRECTORY":
+            value = toPosixAbsolute(path.dirname(resolved));
+            break;
+        case "NAME":
+            value = path.basename(resolved);
+            break;
+        case "EXT":
+            value = path.extname(resolved);
+            break;
+        case "NAME_WE":
+            value = path.basename(resolved, path.extname(resolved));
+            break;
+        case "ABSOLUTE":
+        case "REALPATH":
+            value = toPosixAbsolute(resolved);
+            break;
+        default:
+            // PROGRAM/FILE/LAST_EXT/NAME_WLE 等与源清单无关，保留原值以免下游误判为空。
+            value = inputPath;
+            break;
+    }
+    writeVariable(state, outputVariable, [value]);
 }
 
 /**
@@ -1298,7 +1380,11 @@ function handleAddSubdirectory(args: string[], directory: string, state: Evaluat
         state.warnings.add(`${toRepoRelative(directory)}: add_subdirectory(${args[0]}) has no CMakeLists.txt`);
         return;
     }
-    runScriptFile(cmakeFile, state, depth + 1);
+    // CMake 的 add_subdirectory 会为子目录建立**独立变量作用域**：子目录里的 set() 只在子目录
+    // 可见，不会回写父目录；反过来父目录此时已有的变量对子目录可见。静态求值若共用同一个帧，
+    // 多个兄弟子目录会互相污染——例如 src/client 读到的 MC_SERVER_COMMAND_SOURCES_ABS 实际来自
+    // src/server 的 include()，从而漏判“客户端根本没 include 这个清单”这类真问题。
+    withScope(state, () => runScriptFile(cmakeFile, state, depth + 1));
 }
 
 /** 命令树缓存，键为脚本绝对路径。 */
@@ -1306,10 +1392,14 @@ const commandTreeCache = new Map<string, CommandNode>();
 
 function runScriptFile(filePath: string, state: EvaluationState, depth: number): void {
     const key = toPosixAbsolute(filePath);
-    if (state.visitedScripts.has(key)) {
+    // 只沿**当前调用链**去重，而不是全局去重：同一个脚本被不同子目录各自 include 是
+    // CMake 的正常用法（include() 没有 include_guard 语义），全局去重会让第二次起的
+    // include 静默失效，进而把它设置的变量当成未定义。全局去重仅用于避免同一文件
+    // 被 add_subdirectory 反复求值（下面单独处理）。
+    if (state.scriptStack.includes(key)) {
+        state.warnings.add(`recursive include of ${toRepoRelative(filePath)} skipped`);
         return;
     }
-    state.visitedScripts.add(key);
     const script = loadScript(filePath);
     if (script === null) {
         return;
@@ -1322,11 +1412,17 @@ function runScriptFile(filePath: string, state: EvaluationState, depth: number):
     const scriptDir = path.dirname(filePath);
     const previousDir = currentDirectory(state);
     setCurrentDirectory(state, scriptDir);
+    // 记录本脚本所属的“写回作用域”：include() 的 set() 必须回到调用点所在的帧。
+    // add_subdirectory 会先建独立帧（见 handleAddSubdirectory），故子目录里的 include
+    // 自然地写回该子目录帧，不会泄漏到父目录。
+    const previousScope = state.scriptScope;
+    state.scriptScope = state.frame;
+    state.scriptStack.push(key);
     try {
-        // CMake 语义：include()/add_subdirectory() 里的 set() 写入**调用方**作用域
-        // （只有函数调用才有独立作用域，见 invokeFunction）。
         execute(tree, scriptDir, state, depth);
     } finally {
+        state.scriptStack.pop();
+        state.scriptScope = previousScope;
         // CMake 里形如 `client/renderer/X.cpp` 的相对源路径是按**当前目录**解析的，
         // 而当前目录在被 include 的脚本执行期间就是该脚本所在目录。脚本执行完恢复调用方目录。
         setCurrentDirectory(state, previousDir);
@@ -1503,9 +1599,12 @@ function isInsideSkippedDir(absolutePath: string): boolean {
     return relative.split(path.sep).some((segment: string) => SKIP_DIR_NAMES.has(segment));
 }
 
-function safeReaddir(dir: string): ReturnType<typeof readdirSync> {
+/** 目录不可读时返回空表，让扫描在权限受限的目录上继续而不是整体失败。 */
+function safeReaddir(dir: string): Dirent[] {
     try {
-        return readdirSync(dir, { withFileTypes: true });
+        // 显式标注 Dirent[]：readdirSync 的重载会让 ReturnType<typeof readdirSync>
+        // 落到 Dirent<Buffer> 那一支，与下面的字符串路径混用会报类型不兼容。
+        return readdirSync(dir, { withFileTypes: true }) as Dirent[];
     } catch {
         return [];
     }
@@ -1698,17 +1797,29 @@ function parseArgs(argv: string[]): CliOptions {
     let showAll = false;
     let json = false;
     let buildDir = path.join(REPO_ROOT, "build");
+    let reportJson: string | null = null;
+    let reportMarkdown: string | null = null;
+    let githubAnnotations = false;
     for (let i = 0; i < argv.length; i += 1) {
         const arg = argv[i];
         if (arg === "--all") {
             showAll = true;
         } else if (arg === "--json") {
             json = true;
-
         } else if (arg === "--build-dir") {
             buildDir = path.resolve(REPO_ROOT, argv[(i += 1)] ?? "build");
         } else if (arg.startsWith("--build-dir=")) {
             buildDir = path.resolve(REPO_ROOT, arg.slice("--build-dir=".length));
+        } else if (arg === "--report-json") {
+            reportJson = path.resolve(REPO_ROOT, argv[(i += 1)] ?? "");
+        } else if (arg.startsWith("--report-json=")) {
+            reportJson = path.resolve(REPO_ROOT, arg.slice("--report-json=".length));
+        } else if (arg === "--report-md") {
+            reportMarkdown = path.resolve(REPO_ROOT, argv[(i += 1)] ?? "");
+        } else if (arg.startsWith("--report-md=")) {
+            reportMarkdown = path.resolve(REPO_ROOT, arg.slice("--report-md=".length));
+        } else if (arg === "--github-annotations") {
+            githubAnnotations = true;
         } else if (arg === "--help" || arg === "-h") {
             printUsage();
             process.exit(0);
@@ -1718,11 +1829,107 @@ function parseArgs(argv: string[]): CliOptions {
             process.exit(2);
         }
     }
-    return { showAll, json, buildDir };
+    return { showAll, json, buildDir, reportJson, reportMarkdown, githubAnnotations };
 }
 
 function printUsage(): void {
-    console.log("Usage: node --experimental-strip-types scripts/diag/orphan_sources.ts [--all] [--json] [--build-dir <dir>]");
+    console.log(
+        "Usage: node --experimental-strip-types scripts/diag/orphan_sources.ts " +
+            "[--all] [--json] [--build-dir <dir>] [--report-json <file>] [--report-md <file>] [--github-annotations]",
+    );
+}
+
+// ============================================================================
+// 报告输出
+// ============================================================================
+
+/**
+ * 判定结论的可信度。
+ *
+ * - `complete`：静态解析无告警，且已用 compile_commands.json 交叉核对，结论可当门禁采信。
+ * - `degraded`：静态解析无告警，但缺少 compile_commands.json，`file(GLOB)` 之外的收集手段可能漏判。
+ * - `unverifiable`：静态解析出现告警，结论可能不完整，不能当作“零游离”采信。
+ */
+type Verdict = "complete" | "degraded" | "unverifiable";
+
+interface ScanSummary {
+    readonly verdict: Verdict;
+    readonly compileCommandsUsed: boolean;
+    readonly total: number;
+    readonly counts: Record<SourceStatus, number>;
+    readonly warnings: string[];
+}
+
+function summarize(reports: SourceReport[], compiled: Set<string> | null, warnings: string[]): ScanSummary {
+    const counts: Record<SourceStatus, number> = { compiled: 0, declared: 0, aggregated: 0, orphan: 0 };
+    for (const report of reports) {
+        counts[report.status] += 1;
+    }
+    let verdict: Verdict = "complete";
+    if (warnings.length > 0) {
+        verdict = "unverifiable";
+    } else if (compiled === null) {
+        verdict = "degraded";
+    }
+    return { verdict, compileCommandsUsed: compiled !== null, total: reports.length, counts, warnings };
+}
+
+/**
+ * Markdown 报告。
+ *
+ * 刻意把「解析告警」放在比游离清单更靠前的位置：告警意味着静态求值跑偏，此时
+ * 游离数量既可能虚高（误报）也可能虚低（漏报），必须先修脚本再谈结论。
+ */
+function renderMarkdown(summary: ScanSummary): string {
+    const lines: string[] = [];
+    const verdictText: Record<Verdict, string> = {
+        complete: "✅ 完整（静态解析无告警，且已用 `compile_commands.json` 交叉核对）",
+        degraded: "⚠️ 降级（静态解析无告警，但缺少 `compile_commands.json`，`file(GLOB)` 之外的收集手段可能漏判）",
+        unverifiable: "❌ 不可采信（静态解析出现告警，结论可能不完整）",
+    };
+    const statusText = summary.counts.orphan > 0 ? "❌ 存在游离源文件" : "✅ 无游离源文件";
+
+    lines.push(`**游离源文件扫描：${statusText}**`);
+    lines.push("");
+    lines.push(`- 判定结论：${verdictText[summary.verdict]}`);
+    lines.push(
+        `- 源码总数 ${summary.total}：编译器实际编译 ${summary.counts.compiled}，` +
+            `CMake 声明 ${summary.counts.declared}，聚合单元成员 ${summary.counts.aggregated}，` +
+            `游离 ${summary.counts.orphan}`,
+    );
+    lines.push("");
+
+    if (summary.warnings.length > 0) {
+        lines.push(`<details><summary>解析告警（${summary.warnings.length} 条，先修脚本再看结论）</summary>`);
+        lines.push("");
+        for (const warning of summary.warnings) {
+            lines.push(`- \`${warning}\``);
+        }
+        lines.push("");
+        lines.push("</details>");
+        lines.push("");
+    }
+    return lines.join("\n");
+}
+
+function writeFile(absolutePath: string, content: string): void {
+    mkdirSync(path.dirname(absolutePath), { recursive: true });
+    writeFileSync(absolutePath, content, "utf8");
+}
+
+/**
+ * 为每个游离文件输出一行 GitHub Actions 工作流命令。
+ *
+ * 行内标注只对“本次 diff 涉及的文件”有展示意义，而扫描是全仓库的，所以调用方需要
+ * 限制条数（见 workflow 里的 `head -n`）。这里不在脚本内截断，保持脚本行为可预测。
+ */
+function emitGithubAnnotations(orphans: SourceReport[]): void {
+    for (const orphan of orphans) {
+        const message = `Source file is not part of any CMake target: ${orphan.file}`;
+        // 工作流命令的 `%`、CR、LF 必须转义，否则含特殊字符的路径会破坏标注行本身。
+        const escaped = message.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A");
+        console.log(`::warning file=${orphan.file}::${escaped}`);
+    }
 }
 
 function main(): void {
@@ -1738,12 +1945,36 @@ function main(): void {
     const compiled = readCompileCommands(options.buildDir);
 
     const reports = classify(absoluteSources, collected, compiled, aggregated);
-    const counts: Record<SourceStatus, number> = { compiled: 0, declared: 0, aggregated: 0, orphan: 0 };
-    for (const report of reports) {
-        counts[report.status] += 1;
-    }
+    const summary = summarize(reports, compiled, warnings);
+    const counts = summary.counts;
     const orphans = reports.filter((report) => report.status === "orphan");
-    const exitCode = orphans.length > 0 ? 1 : 0;
+    const exitCode = orphans.length > 0 || warnings.length > 0 ? 1 : 0;
+
+    if (options.reportJson !== null) {
+        writeFile(
+            options.reportJson,
+            `${JSON.stringify(
+                {
+                    schema_version: 1,
+                    verdict: summary.verdict,
+                    compile_commands_used: summary.compileCommandsUsed,
+                    total: summary.total,
+                    counts,
+                    warnings,
+                    orphans: orphans.map((orphan) => orphan.file),
+                    sources: reports,
+                },
+                null,
+                2,
+            )}\n`,
+        );
+    }
+    if (options.reportMarkdown !== null) {
+        writeFile(options.reportMarkdown, renderMarkdown(summary));
+    }
+    if (options.githubAnnotations) {
+        emitGithubAnnotations(orphans);
+    }
 
     if (options.json) {
         console.log(

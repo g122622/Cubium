@@ -47,6 +47,32 @@ Release、image-data 图表推送与 issue 创建仅在 main 上执行；其他�
 > 构建/测试 job 于 2026-06 起被 `if: false` 静态关闭，只剩格式检查在跑，导致 self-heal 因「CI 永不
 > 失败」而同步休眠。二者均已删除，由本工作流取代。
 
+### 游离源文件扫描
+
+`nightly.yml` 的 `source-collection` job 在构建之前运行，找出「仓库里有、但没被任何 CMake 目标收集」
+的 `.cpp`/`.c`。这类文件不会被编译，其中的实现与测试从未生效，属于静默失效。
+
+判定口径与单元测试/集成测试一致：**不阻塞流水线**。job 恒为 success，结论只写进 Step Summary 与
+artifact，再由 report job 汇总进报告和 issue（`has_failures()` 会把「存在游离」判为需要跟进）。
+扫描器自身崩溃或报告损坏同样不终止流程，后续步骤用 `continue-on-error` 兜住，此时 report 按
+「未采集」如实展示，不虚构「无游离」。
+
+实现分两步：
+
+1. `node --experimental-strip-types scripts/diag/orphan_sources.ts --report-json ... --report-md ...`
+   做扫描。它按语义求值全仓 `CMakeLists.txt`（变量、`foreach`、函数/宏、`include`、`add_subdirectory`、
+   `file(GLOB)`、全局属性），排除 `#include "Xxx.cpp"` 的聚合单元成员，最后用 `compile_commands.json`
+   交叉核对。退出码 1 只表示「存在游离」或「静态解析有告警」，workflow 里显式 `exit 0` 吞掉。
+2. `scripts/ci/verify_source_collection.py` 校验报告结构、生成摘要并给出判定等级：
+   `complete`（无告警且已交叉核对）/ `degraded`（无编译数据库）/ `unverifiable`（有解析告警）。
+   只有 `complete` 才算可信；`degraded` 与 `unverifiable` 都会要求跟进。
+
+编译数据库由「只 configure、不 build」获得（`cmake --preset linux-clang-ci-tests -B build-scan`），
+显式打开 `MC_BUILD_CLIENT=ON` 以覆盖客户端源文件；客户端配置失败时扫描自动降级为纯静态判定。
+
+本地复现：`node --experimental-strip-types scripts/diag/orphan_sources.ts --all`，
+详见 [scripts/diag/README.md](../scripts/diag/README.md)。
+
 ### PR clang-tidy 门禁
 
 `.github/workflows/ci.yml` 只在 PR 和 merge queue 运行，不进入 nightly。它从 PR 基线与头提交之间

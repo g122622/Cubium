@@ -4,7 +4,7 @@
 
 ```text
 scripts/diag/
-├── orphan_sources.ts       # 游离源文件统计：找出未被任何 CMake target 收集、也未被聚合单元包含的 .cpp/.c
+├── orphan_sources.ts       # 游离源文件统计：找出未被任何 CMake target 收集、也未被聚合单元包含的 .cpp/.c（支持 --report-json/--report-md 供 CI 消费）
 ├── syntax-check/
 │   └── syntax_check.sh     # 单文件语法检查：复用 compile_commands.json 的编译参数，加 -fsyntax-only 不产出 .o
 └── windows-memory/         # Windows 服务端内存归因（UMDH / VMMap / 逐页驻留）
@@ -35,3 +35,10 @@ scripts/diag/
   时先看它被标成哪种状态。
 - 未配置构建目录时脚本退化为纯静态判定，`file(GLOB)` 之外的黑盒收集手段可能漏判；跑一次
   `./scripts/configure.sh` 生成 `build/compile_commands.json` 即可启用交叉核对。
+- `add_subdirectory` 与函数调用是**作用域边界**，`include()` 不是：兄弟子目录之间看不到对方的
+  `set()`。静态求值若共用同一帧，会凭空“补全”本该未定义的变量，从而漏报真问题。
+- `include()` 没有 include_guard 语义，同一脚本被多个子目录分别 include 是正常用法；按路径
+  **全局**去重会让第二次起的 include 静默失效。去重只能沿当前调用链。
+- `if()` 不引入作用域，但块体解析必须按**嵌套深度**切分 `elseif`/`else`，否则内层分支会被
+  当成外层分支，块内命令被重复执行或漏执行。
+- 退出码 1 同时表示「有游离」与「有解析告警」。CI 里必须显式 `exit 0`，否则会中断 job。
