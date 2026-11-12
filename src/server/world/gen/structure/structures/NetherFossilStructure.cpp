@@ -27,6 +27,8 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
@@ -173,31 +175,32 @@ void NetherFossilPiece::generate(IWorldWriter& world,
     // 原版 NetherFossilPiece.placeDriedGhast：50% 概率在化石底部放一个随机朝向的干燥恶魂方块。
     // 注意原版 `handleDataMarker` 对本结构是**空实现**（NetherFossilPieces 里没有任何数据标记），
     // 所以这里不存在"数据标记需排在 jigsaw 覆盖之前"的问题。
-    _placeDriedGhast(*reader, world, rng, chunkBounds);
+    _placeDriedGhast(*reader, world, chunkBounds);
 }
 
-void NetherFossilPiece::_placeDriedGhast(
-    IWorld& world, IWorldWriter& writer, math::IRandom& rng, const StructureBoundingBox& chunkBounds)
+void NetherFossilPiece::_placeDriedGhast(IWorld& world, IWorldWriter& writer, const StructureBoundingBox& chunkBounds)
 {
-    // 原版用 level.getSeed() 派生的位置随机源，保证同一化石每次生成结果一致。
-    // 这里用独立的 Random，种子由结构原点与模板名派生，避免与传入的 rng 相互影响。
-    const u64 seed = static_cast<u64>(m_templatePosition.x) * 341873128712ULL ^
-        static_cast<u64>(m_templatePosition.y) * 132897987541ULL ^ static_cast<u64>(m_templatePosition.z);
-    math::Random ghastRandom(seed);
-
-    if (ghastRandom.nextFloat() >= 0.5f) {
+    // 模板包围盒（原版 placeDriedGhast 的 `boundingbox` 参数）。
+    const StructureBoundingBox templateBounds = getBoundingBox();
+    if (templateBounds.xSpan() <= 0 || templateBounds.zSpan() <= 0) {
         return;
     }
 
-    const i32 spanX = m_maxX - m_minX + 1;
-    const i32 spanZ = m_maxZ - m_minZ + 1;
-    if (spanX <= 0 || spanZ <= 0) {
+    // 随机源口径：`RandomSource.create(level.getSeed()).forkPositional().at(模板包围盒中心)`。
+    // 它只由世界种子与化石位置决定，与传入 generate 的区块随机源无关——若改用后者，
+    // 同一化石在不同区块的后处理里会拿到不同的随机值。
+    math::JavaLegacyRandom levelRandom(world.seed());
+    math::PositionalRandomFactory factory = levelRandom.forkPositional();
+    std::unique_ptr<math::IRandom> ghastRandom =
+        factory.at(templateBounds.centerX(), templateBounds.centerY(), templateBounds.centerZ());
+
+    if (ghastRandom->nextFloat() >= 0.5f) {
         return;
     }
 
-    const i32 x = m_minX + ghastRandom.nextInt(0, spanX - 1);
-    const i32 y = m_minY;
-    const i32 z = m_minZ + ghastRandom.nextInt(0, spanZ - 1);
+    const i32 x = templateBounds.minX() + ghastRandom->nextInt(templateBounds.xSpan());
+    const i32 y = templateBounds.minY();
+    const i32 z = templateBounds.minZ() + ghastRandom->nextInt(templateBounds.zSpan());
     const BlockPos pos(x, y, z);
 
     // 只放在空气里，且必须在本次生成的区块包围盒内（避免写到尚未生成的邻居区块）。
@@ -215,10 +218,12 @@ void NetherFossilPiece::_placeDriedGhast(
         spdlog::warn("NetherFossilPiece: dried_ghast state is unavailable; skipping placeDriedGhast");
         return;
     }
-    // TODO: 原版这里用 `defaultBlockState().rotate(Rotation.getRandom(random))` 让干燥恶魂朝向随机；
-    //   项目当前没有"按 Rotation 旋转方块状态"的工具（BlockState 无 rotate，Rotations 只有
-    //   角度/组合运算），因此暂时用默认状态，朝向恒为默认。补出状态旋转工具后在此应用随机朝向。
-    writer.setBlockState(pos.x, pos.y, pos.z, driedGhast, static_cast<i32>(world::BlockUpdateFlags::UPDATE_CLIENTS));
+    // 原版把朝向交给 `defaultBlockState().rotate(Rotation.getRandom(random))`：
+    // Rotation 的四个枚举值按 NONE/CLOCKWISE_90/CLOCKWISE_180/COUNTERCLOCKWISE_90 顺序排列，
+    // 因此一次 `nextInt(4)` 就是原版的取值映射。
+    const Rotation rotation = static_cast<Rotation>(ghastRandom->nextInt(4));
+    const BlockState& rotatedState = driedGhast->getBlock().rotate(*driedGhast, rotation);
+    writer.setBlockState(pos.x, pos.y, pos.z, &rotatedState, static_cast<i32>(world::BlockUpdateFlags::UPDATE_CLIENTS));
 }
 
 // ============================================================================

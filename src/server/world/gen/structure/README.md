@@ -326,9 +326,10 @@ Cubium 的链路是 `Template::getDataMarkers()` 取出放置后的数据标记�
 `CityTemplate`（末地船 `Chest` / `Sentry` 潜影贝 / `Elytra` 展示框）。
 
 TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一致）：`IglooPiece`（地窖入口与
-地下室箱子）、`NetherFossilPiece`、`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与
-灾厄村民）。实现时注意：DATA 标记方块本身**不参与**正常方块放置（由 BlockIgnore 处理器
-忽略），其位置由 `getDataMarkers()` 按放置设置换算到世界坐标。
+地下室箱子）、`RuinedPortalPiece`、`WoodlandMansionPiece`（宝箱与灾厄村民）。实现时注意：
+DATA 标记方块本身**不参与**正常方块放置（由 BlockIgnore 处理器忽略），其位置由
+`getDataMarkers()` 按放置设置换算到世界坐标。`NetherFossilPiece` 在 vanilla 里的
+`handleDataMarker` 是空实现（模板中本就没有 DATA 标记），无需补。
 
 结构数据标记生成实体时，必须经 `EntityType::create`（实体类型注册表）创建，工厂会写入
 `typeId`；直接调用 `XxxEntity::create` 得到的实体没有类型标识，网络同步、战利品表与
@@ -355,3 +356,13 @@ TODO: 以下结构的数据标记仍未实现（目前只保证方块几何一�
 
 差分能力 `structure_blocks_terrain_single` 用平坦地形（主世界 y<=50 石头、51..62 水）专门
 覆盖这一类「读地形再决定写哪里」的路径；空世界差分不会暴露它们。
+
+### 15. 结构里的「位置随机源」不能用 `generate()` 传入的 `rng`
+
+原版有些后处理用 `RandomSource.create(level.getSeed()).forkPositional().at(pos)` 派生独立
+随机源（`CappedStructureProcessor`、`NetherFossilPiece.placeDriedGhast`）。这份随机源**只由
+世界种子与坐标决定**，与区块装饰随机源无关：若改用 `generate()` 传入的 `rng`，同一结构在
+不同区块的后处理里会取到不同的结果，且会把后续构件的随机流整体带偏。
+
+Cubium 的写法是 `math::JavaLegacyRandom(level.seed()).forkPositional().at(x, y, z)`——
+`RandomSource.create(long)` 是 **Legacy** flavor，不能换成 `math::Random`（Xoroshiro）。
