@@ -82,7 +82,7 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("argument.player.unknown"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 
@@ -99,7 +99,7 @@ i32 DeOpCommand::_deopPlayer(CommandContext<ServerCommandSource>& context)
     // 获取玩家数据
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
-        source.sendFailure(::mc::text::literal("argument.player.unknown"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 

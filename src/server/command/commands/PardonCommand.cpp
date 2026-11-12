@@ -96,7 +96,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerName.empty()) {
-        source.sendFailure(::mc::text::literal("argument.player.unknown"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 

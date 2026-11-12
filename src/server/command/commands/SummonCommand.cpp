@@ -108,7 +108,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -129,17 +129,13 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entityId.toString());
     if (entityType == nullptr) {
-        std::ostringstream ss;
-        ss << "commands.summon.failed.invalidEntity: " << entityId.toString();
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
     // 检查是否可召唤
     if (!entityType->canSummon()) {
-        std::ostringstream ss;
-        ss << "commands.summon.failed.notSummonable: " << entityId.toString();
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -155,14 +151,14 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world->entityRegistry();
     if (ecsRegistry == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -183,7 +179,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 生成实体
     EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -197,10 +193,10 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    ss << "Summoned " << entityId.toString();
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 发送反馈：commands.summon.success = "Summoned new %s"（参数为实体类型显示名）。
+    source.sendSuccess(
+        ::mc::text::translatable("commands.summon.success", ::mc::text::translatable(entityType->getDescriptionId())),
+        true);
 
     return 1;
 }
@@ -214,7 +210,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -261,14 +257,14 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world->entityRegistry();
     if (ecsRegistry == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -289,7 +285,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 生成实体
     EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendFailure(::mc::text::literal("commands.summon.failed"));
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 
@@ -303,11 +299,10 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
         }
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    ss << "Summoned " << entityId.toString() << " at " << static_cast<i32>(position.x) << ", "
-       << static_cast<i32>(position.y) << ", " << static_cast<i32>(position.z);
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 发送反馈：原版命令反馈不带坐标。
+    source.sendSuccess(
+        ::mc::text::translatable("commands.summon.success", ::mc::text::translatable(entityType->getDescriptionId())),
+        true);
 
     return 1;
 }

@@ -182,7 +182,7 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
     auto names = whitelistManager.whitelistGetAllNames();
 
     if (names.empty()) {
-        source.sendSuccess(::mc::text::literal("commands.whitelist.none"), false);
+        source.sendSuccess(::mc::text::translatable("commands.whitelist.none"), false);
         return 1;
     }
 

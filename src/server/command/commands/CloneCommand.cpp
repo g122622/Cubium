@@ -84,7 +84,7 @@ bool resolveCloneWorlds(
     auto& commandSource = context.getSource();
     server::IServer* server = commandSource.server();
     if (server == nullptr) {
-        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
+        commandSource.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return false;
     }
 
@@ -100,13 +100,13 @@ bool resolveCloneWorlds(
 
     auto* sourceDimension = server->dimensionManager().getDimension(sourceDimensionId);
     if (sourceDimension == nullptr || sourceDimension->world() == nullptr) {
-        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
+        commandSource.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return false;
     }
 
     auto* targetDimension = server->dimensionManager().getDimension(targetDimensionId);
     if (targetDimension == nullptr || targetDimension->world() == nullptr) {
-        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
+        commandSource.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return false;
     }
 
@@ -241,19 +241,18 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     i32 blockCount = (sizeX + 1) * (sizeY + 1) * (sizeZ + 1);
     constexpr i32 MAX_BLOCKS = 32768;
     if (blockCount > MAX_BLOCKS) {
-        std::ostringstream ss;
-        ss << "Too many blocks to clone. Maximum is " << MAX_BLOCKS << ", requested " << blockCount;
-        source.sendFailure(::mc::text::literal(ss.str()));
+        source.sendFailure(::mc::text::translatable(
+            "commands.clone.toobig", {std::to_string(MAX_BLOCKS), std::to_string(blockCount)}));
         return 0;
     }
 
     // 检查源区域和目标区域是否已加载（分别检查各自世界）
     if (!isAreaLoaded(sourceWorld, srcMinX, srcMinY, srcMinZ, srcMaxX, srcMaxY, srcMaxZ)) {
-        source.sendFailure(::mc::text::literal("commands.clone.failed"));
+        source.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return 0;
     }
     if (!isAreaLoaded(targetWorld, destPos.x, destPos.y, destPos.z, destMaxX, destMaxY, destMaxZ)) {
-        source.sendFailure(::mc::text::literal("commands.clone.failed"));
+        source.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return 0;
     }
 
@@ -441,10 +440,8 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         return 0;
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    ss << "Cloned " << blocksCloned << " blocks";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 发送反馈：commands.clone.success = "Successfully cloned %s block(s)"。
+    source.sendSuccess(::mc::text::translatable("commands.clone.success", std::to_string(blocksCloned)), true);
 
     return blocksCloned;
 }

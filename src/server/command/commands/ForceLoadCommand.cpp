@@ -306,7 +306,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     ticketManager.processUpdates();
 
     if (removedCount == 0) {
-        source.sendFailure(::mc::text::literal("commands.forceload.removed.failure"));
+        source.sendFailure(::mc::text::translatable("commands.forceload.removed.failure"));
         return 0;
     }
 

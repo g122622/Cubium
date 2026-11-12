@@ -130,7 +130,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
         if (playerData == nullptr) {
             // 玩家不在线，无法获取 IP 地址
-            source.sendFailure(::mc::text::literal("commands.banip.invalid"));
+            source.sendFailure(::mc::text::translatable("commands.banip.invalid"));
             return 0;
         }
 
@@ -148,7 +148,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
     // 检查是否已被封禁
     if (banList.ipBanIsBanned(ipAddress)) {
-        source.sendFailure(::mc::text::literal("commands.banip.failed"));
+        source.sendFailure(::mc::text::translatable("commands.banip.failed"));
         return 0;
     }
 

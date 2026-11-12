@@ -117,7 +117,7 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -129,14 +129,13 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
     }
 
     if (successCount == 0) {
-        source.sendFailure(
-            ::mc::text::literal("All entities already have the tag '" + tag + "' or reached tag limit (1024)"));
+        source.sendFailure(::mc::text::translatable("commands.tag.add.failed"));
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Added tag '" << tag << "' to " << successCount << " entit" << (successCount == 1 ? "y" : "ies");
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.tag.add.success.multiple", {tag, std::to_string(successCount)}), true);
 
     return successCount;
 }
@@ -149,7 +148,7 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -161,13 +160,13 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
     }
 
     if (successCount == 0) {
-        source.sendFailure(::mc::text::literal("No entities had the tag '" + tag + "'"));
+        source.sendFailure(::mc::text::translatable("commands.tag.remove.failed"));
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Removed tag '" << tag << "' from " << successCount << " entit" << (successCount == 1 ? "y" : "ies");
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.tag.remove.success.multiple", {tag, std::to_string(successCount)}), true);
 
     return successCount;
 }
@@ -179,7 +178,7 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -201,31 +200,38 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
     if (entities.size() == 1) {
         // 单个实体：显示该实体的所有标签
         if (entityTags.empty() || entityTags[0].second.empty()) {
-            source.sendSuccess(
-                ::mc::text::literal(entityTags.empty() ? "Entity has no tags" : entityTags[0].first + " has no tags"),
+            source.sendSuccess(::mc::text::translatable("commands.tag.list.single.empty",
+                                   entityTags.empty() ? std::string("entity") : entityTags[0].first),
                 false);
         } else {
             const auto& [name, tags] = entityTags[0];
-            std::ostringstream ss;
-            ss << name << " has " << tags.size() << " tag" << (tags.size() == 1 ? "" : "s") << ":";
+            std::string tagsText;
             for (const auto& tag : tags) {
-                ss << " " << tag;
+                if (!tagsText.empty()) {
+                    tagsText += ' ';
+                }
+                tagsText += tag;
             }
-            source.sendSuccess(::mc::text::literal(ss.str()), false);
+            source.sendSuccess(::mc::text::translatable(
+                                   "commands.tag.list.single.success", {name, std::to_string(tags.size()), tagsText}),
+                false);
         }
     } else {
         // 多个实体：显示所有实体的标签总数
         if (allTags.empty()) {
             source.sendSuccess(
-                ::mc::text::literal("No tags found on " + std::to_string(entities.size()) + " entities"), false);
+                ::mc::text::translatable("commands.tag.list.multiple.empty", std::to_string(entities.size())), false);
         } else {
-            std::ostringstream ss;
-            ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on "
-               << entities.size() << " entities:";
+            std::string tagsText;
             for (const auto& tag : allTags) {
-                ss << " " << tag;
+                if (!tagsText.empty()) {
+                    tagsText += ' ';
+                }
+                tagsText += tag;
             }
-            source.sendSuccess(::mc::text::literal(ss.str()), false);
+            source.sendSuccess(::mc::text::translatable("commands.tag.list.multiple.success",
+                                   {std::to_string(entities.size()), std::to_string(allTags.size()), tagsText}),
+                false);
         }
     }
 

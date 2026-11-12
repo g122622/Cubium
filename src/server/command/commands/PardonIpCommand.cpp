@@ -79,7 +79,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
 
     // 验证 IP 格式
     if (!util::isValidIpv4(target)) {
-        source.sendFailure(::mc::text::literal("commands.pardonip.invalid"));
+        source.sendFailure(::mc::text::translatable("commands.pardonip.invalid"));
         return 0;
     }
 

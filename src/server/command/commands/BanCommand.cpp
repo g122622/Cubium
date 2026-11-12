@@ -144,7 +144,7 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerName.empty()) {
-        source.sendFailure(::mc::text::literal("argument.player.unknown"));
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 
@@ -158,7 +158,7 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
 
     // 检查是否已被封禁
     if (banList.playerBanIsNameBanned(playerName)) {
-        source.sendFailure(::mc::text::literal("commands.ban.failed"));
+        source.sendFailure(::mc::text::translatable("commands.ban.failed"));
         return 0;
     }
 

@@ -48,6 +48,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <fmt/format.h>
 
 namespace mc {
 namespace command {
@@ -325,9 +326,10 @@ i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context
     f64 value = attrMap->getValue(attrName);
     i32 result = static_cast<i32>(value);
 
-    std::ostringstream ss;
-    ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.attribute.value.get.success = "The value of attribute %s for entity %s is %s"
+    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success",
+                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }
@@ -347,9 +349,10 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
     f64 value = attrMap->getValue(attrName);
     i32 result = javaToInt(value * scale);
 
-    std::ostringstream ss;
-    ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.attribute.value.get.success = "The value of attribute %s for entity %s is %s"
+    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success",
+                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }
@@ -372,9 +375,10 @@ i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context
     f64 baseValue = attrMap->getBaseValue(attrName);
     i32 result = static_cast<i32>(baseValue);
 
-    std::ostringstream ss;
-    ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.attribute.base_value.get.success
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success",
+                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }
@@ -394,9 +398,10 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
     f64 baseValue = attrMap->getBaseValue(attrName);
     i32 result = javaToInt(baseValue * scale);
 
-    std::ostringstream ss;
-    ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // commands.attribute.base_value.get.success
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success",
+                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }
@@ -428,9 +433,9 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 
     instance->setBaseValue(value);
 
-    std::ostringstream ss;
-    ss << "Set base value of " << attrName << " to " << value << " for " << _getEntityDisplayName(livingEntity);
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.set.success",
+                           {attrName, _getEntityDisplayName(livingEntity), fmt::format("{}", value)}),
+        false);
 
     return 1;
 }
@@ -457,9 +462,9 @@ i32 AttributeCommand::_resetBaseValue(CommandContext<ServerCommandSource>& conte
     }
 
     f64 resetValue = attrMap->getBaseValue(attrName);
-    std::ostringstream ss;
-    ss << "Reset base value of " << attrName << " to " << resetValue << " for " << _getEntityDisplayName(livingEntity);
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.reset.success",
+                           {attrName, _getEntityDisplayName(livingEntity), fmt::format("{}", resetValue)}),
+        false);
 
     return 1;
 }
@@ -499,8 +504,8 @@ i32 AttributeCommand::_addModifierImpl(
 
     // 检查修饰符是否已存在
     if (instance->hasModifier(modifierId)) {
-        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " already exists on attribute " + attrName +
-            " for " + _getEntityDisplayName(livingEntity)));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.modifier_already_present",
+            {modifierId, attrName, _getEntityDisplayName(livingEntity)}));
         return 0;
     }
 
@@ -508,18 +513,9 @@ i32 AttributeCommand::_addModifierImpl(
     entity::attribute::AttributeModifier modifier(modifierId, modifierId, value, operation);
     instance->addModifier(modifier);
 
-    // 操作类型的可读名称
-    const char* operationName = "add_value";
-    if (operation == entity::attribute::Operation::MultiplyBase) {
-        operationName = "add_multiplied_base";
-    } else if (operation == entity::attribute::Operation::MultiplyTotal) {
-        operationName = "add_multiplied_total";
-    }
-
-    std::ostringstream ss;
-    ss << "Added modifier " << modifierId << " with value " << value << " and operation " << operationName;
-    ss << " to attribute " << attrName << " for " << _getEntityDisplayName(livingEntity);
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.add.success",
+                           {modifierId, attrName, _getEntityDisplayName(livingEntity)}),
+        true);
 
     return 1;
 }
@@ -541,15 +537,14 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
     }
 
     if (!instance->removeModifier(modifierId)) {
-        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
-            " for " + _getEntityDisplayName(livingEntity)));
+        source.sendFailure(::mc::text::translatable(
+            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "Removed modifier " << modifierId << " from attribute " << attrName << " for "
-       << _getEntityDisplayName(livingEntity);
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.remove.success",
+                           {modifierId, attrName, _getEntityDisplayName(livingEntity)}),
+        true);
 
     return 1;
 }
@@ -571,18 +566,17 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
-            " for " + _getEntityDisplayName(livingEntity)));
+        source.sendFailure(::mc::text::translatable(
+            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
         return 0;
     }
 
     f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
     i32 result = static_cast<i32>(modifierValue);
 
-    std::ostringstream ss;
-    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
-       << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.value.get.success",
+                           {modifierId, attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }
@@ -601,18 +595,17 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
-            " for " + _getEntityDisplayName(livingEntity)));
+        source.sendFailure(::mc::text::translatable(
+            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
         return 0;
     }
 
     f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
     i32 result = javaToInt(modifierValue * scale);
 
-    std::ostringstream ss;
-    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
-       << ": " << result;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.value.get.success",
+                           {modifierId, attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
+        false);
 
     return result;
 }

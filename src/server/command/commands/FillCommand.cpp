@@ -101,14 +101,15 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     // 检查方块数量限制
     i32 blockCount = calculateBlockCount(from, to);
     if (blockCount > 32768) {
-        source.sendFailure(::mc::text::literal("Too many blocks in the specified area"));
+        source.sendFailure(
+            ::mc::text::translatable("commands.fill.toobig", {std::to_string(32768), std::to_string(blockCount)}));
         return 0;
     }
 
     // 获取填充方块
     const BlockState* fillState = blockInput.state();
     if (fillState == nullptr) {
-        source.sendFailure(::mc::text::literal("commands.fill.failed"));
+        source.sendFailure(::mc::text::translatable("commands.fill.failed"));
         return 0;
     }
 
@@ -228,10 +229,8 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
         }
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    ss << "Filled " << blocksModified << " blocks";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 发送反馈：commands.fill.success = "Successfully filled %s block(s)"。
+    source.sendSuccess(::mc::text::translatable("commands.fill.success", std::to_string(blocksModified)), true);
 
     return blocksModified;
 }
