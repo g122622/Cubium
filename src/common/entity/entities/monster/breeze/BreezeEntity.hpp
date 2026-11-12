@@ -82,19 +82,26 @@ class BreezeShootTestAccessor;  // shootWindCharge 测试访问器，声明为 f
  * 发射地面/轨迹粒子并播放呼啸音效。AnimationState 字段维护动画时序，
  * 用于 slide→slideBack 等状态机转换判定。
  *
- * TODO(client_renderer): 旋风人客户端模型与渲染器尚未实现。
- * 当前服务端 BreezeEntity 维护了 m_idleAnim/m_slideAnim/m_slideBackAnim/
- * m_longJumpAnim/m_shootAnim/m_inhaleAnim 六个 AnimationState 字段，
- * 这些字段镜像 MC 1.21.11 Breeze.java 的设计，但 Cubium 的客户端
- * ClientEntity 是与服务端实体分离的独立类，目前尚无 BreezeModel/
- * BreezeRenderer 读取这些动画状态。未来实现客户端渲染器时，需要：
- * 1. 在 ClientEntity 中根据同步的 Pose 启动对应的 AnimationState
- *    （参考 MC Breeze.onSyncedDataUpdated 与 resetAnimations）
- * 2. BreezeModel 根据各 AnimationState 的 startTick 计算动画进度
- * 3. 客户端渲染器调用 idleAnimation()/slideAnimation()/等访问器
- *    读取服务端实体（或 ClientEntity 自身维护）的动画状态
- * 在客户端渲染器实现之前，这些 AnimationState 字段暂时没有渲染侧
- * 消费者，但服务端会持续维护它们，确保未来渲染器实现后可直接接入。
+ * 动画状态与客户端渲染的分工（原版 Breeze 即如此）：
+ * - idle / longJump：服务端 tick() 每 tick 驱动（startIfStopped）；
+ * - slide / slideBack：启动点在**客户端**的 onSyncedDataUpdated（SLIDING Pose）。
+ *   服务端的 tick() 只做 slideBack 的转换判定：当 pose 不再是 Sliding 且
+ *   slide 仍在播放时启动 slideBack 并停掉 slide。这个判定依赖客户端先启动
+ *   slide，所以在本项目实现客户端渲染器之前，它永远不会命中——这是原版设计
+ *   使然，不是缺陷，不要"修"成服务端自行启动 slide；
+ * - shoot / inhale：同样只在客户端按 Pose 启动，服务端从不触碰。
+ *
+ * TODO(client_renderer): 旋风人客户端模型与渲染器尚未实现。Cubium 的客户端
+ * ClientEntity 与服务端实体是分离的独立类，目前没有 BreezeModel/BreezeRenderer
+ * 读取这些动画状态，所以六个访问器目前都无调用方。未来实现渲染器时需要：
+ * 1. 在 ClientEntity 中监听 Pose 同步变化，按原版 Breeze.onSyncedDataUpdated
+ *    的规则先 resetAnimations（停 shoot/idle/inhale/longJump），再按 Pose
+ *    启动 shoot / inhale / slide；
+ * 2. BreezeModel 依据各 AnimationState 的 startTick 计算动画进度；
+ * 3. 注意 idle/longJump 由服务端驱动、slide/slideBack/shoot/inhale 由客户端
+ *    驱动，两侧职责不要互相挪动。
+ * 在此之前，服务端保留这些字段与其维护逻辑是有意义的（slideBack 转换判定
+ * 依赖它们），不应删除。
  *
  * 掉落：
  * - 狂风杖 1-2（仅被玩家击杀时掉落，受抢夺附魔影响，每级额外+1~2）
@@ -257,6 +264,10 @@ public:
 
     /**
      * @brief 射击动画状态
+     *
+     * TODO(client_renderer): 服务端从不驱动这个动画——原版只在客户端
+     * onSyncedDataUpdated 里按 SHOOTING Pose 启动它。当前字段恒为未启动状态，
+     * 实现客户端渲染器时应在 ClientEntity 侧启动，而不是回填到服务端。
      */
     [[nodiscard]] const entity::AnimationState& shootAnimation() const noexcept
     {
@@ -265,6 +276,9 @@ public:
 
     /**
      * @brief 吸气蓄力动画状态
+     *
+     * TODO(client_renderer): 同 shootAnimation——原版只在客户端 INHALING Pose
+     * 时启动，服务端不维护。
      */
     [[nodiscard]] const entity::AnimationState& inhaleAnimation() const noexcept
     {
@@ -436,24 +450,21 @@ private:
 
     // ========== 动画状态字段 ==========
 
-    // TODO(client_renderer): 以下六个 AnimationState 字段镜像 MC 1.21.11
-    // Breeze.java 的设计，由服务端 BreezeEntity::tick() 与各 AI Goal 维护。
-    // 当前尚无客户端 BreezeModel/BreezeRenderer 读取这些字段，存在孤岛代码
-    // 风险。未来实现客户端渲染器时，需要在 ClientEntity 中根据同步的 Pose
-    // 启动对应动画（参考 MC Breeze.onSyncedDataUpdated），并通过 BreezeModel
-    // 根据 startTick 计算动画进度。详见类注释中的 TODO(client_renderer)。
+    // idle/longJump 由服务端 tick() 驱动；slide/slideBack/shoot/inhale 的启动点
+    // 在客户端 onSyncedDataUpdated。服务端需要这些字段做 slideBack 转换判定，
+    // 不可删除。渲染侧仍未实现，详见类注释中的 TODO(client_renderer)。
 
     /// 空闲动画（持续触发，每 tick startIfStopped）
     entity::AnimationState m_idleAnim;
-    /// 滑行动画（Sliding Pose 时启动）
+    /// 滑行动画（客户端在 Sliding Pose 时启动；服务端只读它的 isStarted 做回弹判定）
     entity::AnimationState m_slideAnim;
     /// 滑行回弹动画（从 Sliding 恢复站立时短暂触发）
     entity::AnimationState m_slideBackAnim;
     /// 长跳动画（LongJumping Pose 时启动）
     entity::AnimationState m_longJumpAnim;
-    /// 射击动画（Shooting Pose 时启动）
+    /// 射击动画（Shooting Pose 时启动）——TODO(client_renderer): 服务端不驱动
     entity::AnimationState m_shootAnim;
-    /// 吸气蓄力动画（Inhaling Pose 时启动）
+    /// 吸气蓄力动画（Inhaling Pose 时启动）——TODO(client_renderer): 服务端不驱动
     entity::AnimationState m_inhaleAnim;
 
     // ========== 长跳轨迹与音效计时 ==========
