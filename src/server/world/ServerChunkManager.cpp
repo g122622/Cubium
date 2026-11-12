@@ -299,6 +299,7 @@ void ServerChunkManager::shutdown()
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_pendingPostProcess.clear();
         m_postProcessedChunks.clear();
+        m_pendingPostProcessChunks.clear();
     }
 
     // 清理异步加载完成队列与追踪表（此时线程池已 shutdown，无新入队）
@@ -1513,6 +1514,7 @@ void ServerChunkManager::_finalizeUnloadAfterSave(ChunkCoord x,
         m_chunks.erase(key);
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
+        m_pendingPostProcessChunks.erase(key);
         std::lock_guard<std::mutex> uLock(m_pendingUnloadFinishesMutex);
         m_unloadSaveInProgress.erase(key);
         return;
@@ -1581,6 +1583,7 @@ void ServerChunkManager::_finalizeUnloadAfterSave(ChunkCoord x,
     {
         std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
         m_postProcessedChunks.erase(key);
+        m_pendingPostProcessChunks.erase(key);
     }
 
     {
@@ -1902,6 +1905,10 @@ void ServerChunkManager::tick()
     // 必须在 _drainPendingLoadCompletes 之后：后处理依赖区块已存入内存缓存。
     _drainPendingPostProcess();
 
+    // 对已进入 BLOCK_TICKING 的待处理区块执行 _postProcessChunk。
+    // 必须在 _drainPendingPostProcess 之后：后者才把生成路径的区块登记进待处理集合。
+    _processTickingChunkPostProcess();
+
     // 出队并执行异步卸载保存完成回调（ServerIO 线程入队的 stage3 收尾）。
     // 必须在 _processChunkUnloads 之前：先消化进行中的卸载收尾，避免与新发起的卸载相互干扰，
     // 也确保 shouldLoad() 复检（玩家重新靠近）能及时中止卸载。
@@ -1949,9 +1956,11 @@ void ServerChunkManager::_drainPendingPostProcess()
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::drainPendingPostProcess");
 
-    // TODO: 当前后处理在 FULL-complete 时触发；Moonrise 在 BLOCK_TICKING（onChunkTicking）阶段触发。
-    // 待引入 FullChunkStatus 状态机（onChunkBorder/onChunkTicking/onChunkEntityTicking + ticking-chunk
-    // 列表）后对齐触发时机。当前 Cubium 无该状态机，FULL-complete 是唯一合理触发点。
+    // 后处理的触发时机与 Moonrise 一致：区块真正进入 BLOCK_TICKING 时才把生成期调度的
+    // 方块刻/流体刻转交给 TickManager（见 _processTickingChunkPostProcess）。
+    // 其余三项（onChunkLoaded / m_chunkLoadedCallback / spawnEntitiesFromChunkGeneration）
+    // 仍在此立即执行——其中 m_chunkLoadedCallback 负责入队光照任务，若也推迟到
+    // BLOCK_TICKING，未被玩家靠近的区块将永远不光照、不发送。
     _drainQueue(m_pendingPostProcess, m_pendingPostProcessMutex, std::chrono::milliseconds(2), [this](auto& item) {
         const u64 key = posToKey(item.x, item.z);
 
@@ -1981,16 +1990,61 @@ void ServerChunkManager::_drainPendingPostProcess()
             m_world->spawnEntitiesFromChunkGeneration(item.spawnedEntities);
         }
 
-        // _postProcessChunk：含水层流体 tick 调度 + 方块形状更新（生成路径才需要）
-        // isPostProcessingDone 双重保护：即使 needsPostProcess 重复入队，也只执行一次。
+        // _postProcessChunk 不在此执行：它把生成期调度的方块刻/流体刻转交给世界的
+        // TickManager，对永远进不了模拟距离的区块来说这些刻纯属浪费。改由
+        // _processTickingChunkPostProcess 在区块真正进入 BLOCK_TICKING 时执行（与
+        // Moonrise 在 onChunkTicking 里调用 postProcessGeneration 一致）。
+        // isPostProcessingDone 保证每个区块只执行一次。
         if (item.needsPostProcess && m_world) {
-            ChunkData* chunk = tryToGetChunkInMem(item.x, item.z);
-            if (chunk != nullptr && !chunk->isPostProcessingDone()) {
-                _postProcessChunk(*chunk);
-                chunk->setPostProcessingDone(true);
-            }
+            std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+            m_pendingPostProcessChunks.insert(key);
         }
     });
+}
+
+void ServerChunkManager::_processTickingChunkPostProcess()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk, "ServerChunkManager::processTickingChunkPostProcess");
+
+    // 快速返回：没有待后处理区块时不必遍历全部 ticking 区块。
+    {
+        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+        if (m_pendingPostProcessChunks.empty()) {
+            return;
+        }
+    }
+
+    // 模拟距离来自实体管理器——与 ServerWorld 各处 forEachTickingChunk 的消费口径一致。
+    // 用视距代替会让"可 tick"范围偏大，与本函数的目的（只为真正会 tick 的区块注册刻）相悖。
+    const i32 simulationDistance = m_world->entityManager().simulationDistance();
+    std::vector<u64> completed;
+    forEachTickingChunk([this, simulationDistance, &completed](ChunkData& chunk) {
+        const u64 key = posToKey(chunk.x(), chunk.z());
+        {
+            std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+            if (m_pendingPostProcessChunks.count(key) == 0) {
+                return true;
+            }
+        }
+        // 必须真的处于 BLOCK_TICKING 级才后处理：forEachTickingChunk 的判定基于票据距离，
+        // 而这里的 isTickingChunk 才是与 TickManager 一致的"可 tick"口径。
+        if (!m_ticketManager.isTickingChunk(chunk.x(), chunk.z(), simulationDistance)) {
+            return true;
+        }
+        if (!chunk.isPostProcessingDone()) {
+            _postProcessChunk(chunk);
+            chunk.setPostProcessingDone(true);
+        }
+        completed.push_back(key);
+        return true;
+    });
+
+    if (!completed.empty()) {
+        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+        for (const u64 key : completed) {
+            m_pendingPostProcessChunks.erase(key);
+        }
+    }
 }
 
 // ============================================================================

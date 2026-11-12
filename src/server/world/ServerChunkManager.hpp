@@ -1161,6 +1161,17 @@ private:
     void _drainPendingPostProcess();
 
     /**
+     * @brief 对已进入 BLOCK_TICKING 的区块执行 _postProcessChunk
+     *
+     * 生成的方块刻/流体刻只有在区块真的可 tick 时才有意义：对永远进不了模拟距离的
+     * 区块提前注册，会让 TickManager 的列表随加载区块总数而非玩家数增长。
+     * 与 Moonrise 在 onChunkTicking 中调用 postProcessGeneration 的时机一致。
+     *
+     * 由 tick() 每帧调用；无待处理区块时立即返回。
+     */
+    void _processTickingChunkPostProcess();
+
+    /**
      * @brief 将坐标转换为内部哈希键
      *
      * @param x 区块 X 坐标
@@ -1215,6 +1226,14 @@ private:
      * unloadChunkSync / shutdown 均持锁访问）。
      */
     std::unordered_set<u64> m_postProcessedChunks;
+
+    /**
+     * @brief 等待进入 BLOCK_TICKING 后做后处理的区块 key 集合
+     *
+     * 由 _drainPendingPostProcess 在生成路径条目上登记，_processTickingChunkPostProcess
+     * 在区块真正可 tick 时取出执行并清除。保护与 m_postProcessedChunks 同一把锁。
+     */
+    std::unordered_set<u64> m_pendingPostProcessChunks;
 
     /**
      * @brief 异步存档加载完成队列（worker→主线程回传）
