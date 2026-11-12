@@ -35,7 +35,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/blocks/functional/SnifferEggBlock.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/tags/BlockTags.hpp"

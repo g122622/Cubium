@@ -21,13 +21,13 @@
  *
  */
 
-#include "FlowerBlock.hpp"
+#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
+
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
-#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 
 namespace mc {
@@ -59,36 +59,6 @@ CollisionShape FlowerBlock::getShapeAt(const BlockState& state, const BlockPos& 
     const Vector3 offset = getOffset(pos);
     return getShape(state).offset(offset.x, offset.y, offset.z);
 }
-
-// ========== LilacBlock ==========
-
-LilacBlock::LilacBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties)
-{}
-
-// ========== RoseBushBlock ==========
-
-RoseBushBlock::RoseBushBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties)
-{}
-
-// ========== PeonyBlock ==========
-
-PeonyBlock::PeonyBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties)
-{}
-
-// ========== LargeFernBlock ==========
-
-LargeFernBlock::LargeFernBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties)
-{}
-
-// ========== SunflowerBlock ==========
-
-SunflowerBlock::SunflowerBlock(const BlockProperties& properties)
-    : DoublePlantBlock(properties)
-{}
 
 } // namespace blocks
 } // namespace mc

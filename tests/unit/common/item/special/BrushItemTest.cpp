@@ -62,7 +62,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/blocks/functional/BrushableBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/TrailsBlocks.hpp"

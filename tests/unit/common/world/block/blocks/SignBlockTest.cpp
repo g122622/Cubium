@@ -36,8 +36,10 @@
 
 #include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/sign/AbstractSignBlock.hpp"
 #include "common/world/block/blocks/sign/HangingSignBlock.hpp"
-#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/blocks/sign/StandingSignBlock.hpp"
+#include "common/world/block/blocks/sign/WallSignBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "util/property/Properties.hpp"
 #include "world/blockentity/BlockEntityType.hpp"

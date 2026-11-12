@@ -45,7 +45,7 @@
 #include "common/world/block/base/sound/BlockSoundType.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
-#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/blocks/functional/DecoratedPotBlock.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"

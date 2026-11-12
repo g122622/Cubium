@@ -28,7 +28,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "common/world/block/blocks/agricultural/AttachedStemBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/tags/BlockTags.hpp"

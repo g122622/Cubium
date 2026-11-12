@@ -54,8 +54,8 @@ vanilla/
 ├── ShelfBlocks.hpp  # 书架方块系列（1.21.4+ 木质变体）的静态引用
 ├── SignBannerBlocks.cpp  # 模块接口与实现
 ├── SignBannerBlocks.hpp  # 告示牌和旗帜的静态引用
-├── TrailsBlocks.cpp  # 模块接口与实现
-├── TrailsBlocks.hpp  # 足迹与故事版本其他方块（1.20 考古和装饰）的静态引用
+├── TrailsBlocks.cpp  # 足迹与故事版本其他方块（1.20 考古和装饰）的注册
+├── TrailsBlocks.hpp  # 上述方块的静态引用
 ├── TrialBlocks.cpp  # 模块接口与实现
 ├── TrialBlocks.hpp  # 试炼密室方块系列的静态引用
 ├── TuffBlocks.cpp  # 模块接口与实现

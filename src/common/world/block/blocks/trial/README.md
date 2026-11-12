@@ -2,12 +2,14 @@
 
 试炼密室相关方块实现，包括试炼刷怪笼、宝库和自动合成器。
 
-## 目录结构
+## 目录结构树
 
-```
+```text
 trial/
-├── TrialBlocks.hpp/cpp   # 试炼刷怪笼、宝库、自动合成器方块
-├── HeavyCoreBlock.hpp/cpp # 重质核心方块
+├── TrialSpawnerBlock.hpp/cpp  # 试炼刷怪笼（状态化光照与比较器输出）
+├── VaultBlock.hpp/cpp         # 宝库（状态化光照）
+├── CrafterBlock.hpp/cpp       # 自动合成器（红石上升沿触发合成）
+├── HeavyCoreBlock.hpp/cpp     # 重质核心
 └── README.md
 ```
 

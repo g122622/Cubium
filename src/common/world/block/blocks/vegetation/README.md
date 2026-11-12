@@ -9,7 +9,12 @@ vegetation/
 ├── LeavesBlock.hpp/cpp          # 树叶方块（距离腐烂机制）
 ├── DoublePlantBlock.hpp/cpp     # 双格植物基类（向日葵、丁香、大型蕨等）
 ├── TallGrassBlock.hpp/cpp       # 高草/蕨类
-├── FlowerBlock.hpp/cpp          # 花朵（蒲公英、玫瑰等）及双格花朵（丁香、牡丹等）
+├── FlowerBlock.hpp/cpp          # 小型花朵（蒲公英、玫瑰等，含可疑炖汤效果）
+├── LilacBlock.hpp/cpp           # 丁香（双格花）
+├── RoseBushBlock.hpp/cpp        # 玫瑰丛（双格花）
+├── PeonyBlock.hpp/cpp           # 牡丹（双格花）
+├── LargeFernBlock.hpp/cpp       # 大型蕨（双格）
+├── SunflowerBlock.hpp/cpp       # 向日葵（双格花，朝向太阳）
 ├── SaplingBlock.hpp/cpp         # 树苗（可生长成树木，通过 FeaturePlacer 构建 WorldGenRegion 调用 TreeFeature）
 ├── TreeGenerators.hpp/cpp       # 树苗树木生成器工厂（为每种树苗创建 TreeGenerator 回调，azaleaTree() 也供 AzaleaBlock 复用）
 ├── MushroomBlock.hpp/cpp        # 蘑菇（IPlantable/Cave，MUSHROOM_GROW_BLOCK 标签判定）及巨型蘑菇方块（6方向属性）
@@ -28,10 +33,11 @@ Block (基类)
 ├── LeavesBlock          # 独立实现，不依赖 BushBlock
 ├── BushBlock (agricultural)  # 植物基类，来自 agricultural 目录
 │   ├── DoublePlantBlock      # 双格植物基类
-│   │   ├── LilacBlock        # (在 FlowerBlock.hpp 中定义)
-│   │   ├── RoseBushBlock
-│   │   ├── PeonyBlock
-│   │   └── SunflowerBlock
+│   │   ├── LilacBlock        # LilacBlock.hpp
+│   │   ├── RoseBushBlock     # RoseBushBlock.hpp
+│   │   ├── PeonyBlock        # PeonyBlock.hpp
+│   │   ├── LargeFernBlock    # LargeFernBlock.hpp
+│   │   └── SunflowerBlock    # SunflowerBlock.hpp
 │   ├── TallGrassBlock
 │   │   └── FernBlock
 │   ├── FlowerBlock

@@ -38,7 +38,7 @@
 #include "common/util/core/CoordConverter.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/sculk/SculkBlocks.hpp"
+#include "common/world/block/blocks/sculk/SculkSensorBlock.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"

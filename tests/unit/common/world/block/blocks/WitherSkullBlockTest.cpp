@@ -31,6 +31,7 @@
  *       和平难度不生成、生成后图案方块被清除、客户端不生成。
  */
 
+#include "common/world/block/blocks/decorative/WitherSkullBlock.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/registry/VanillaEntities.hpp"

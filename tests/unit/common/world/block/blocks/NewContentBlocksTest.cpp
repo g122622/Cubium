@@ -43,6 +43,7 @@
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
 #include "common/world/block/blocks/decorative/SkullBlock.hpp"
 #include "common/world/block/blocks/decorative/TorchBlock.hpp"
+#include "common/world/block/blocks/decorative/WallSkullBlock.hpp"
 #include "common/world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "common/world/block/blocks/mob/DriedGhastBlock.hpp"
 #include "common/world/block/core/Block.hpp"

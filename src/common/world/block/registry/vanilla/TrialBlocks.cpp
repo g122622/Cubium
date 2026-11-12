@@ -29,8 +29,10 @@
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/BlockStatePredicates.hpp"
+#include "world/block/blocks/trial/CrafterBlock.hpp"
 #include "world/block/blocks/trial/HeavyCoreBlock.hpp"
-#include "world/block/blocks/trial/TrialBlocks.hpp"
+#include "world/block/blocks/trial/TrialSpawnerBlock.hpp"
+#include "world/block/blocks/trial/VaultBlock.hpp"
 
 namespace mc {
 namespace block_registry {

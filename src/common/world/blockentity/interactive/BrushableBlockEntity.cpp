@@ -41,7 +41,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/blocks/functional/BrushableBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/state/BlockState.hpp"

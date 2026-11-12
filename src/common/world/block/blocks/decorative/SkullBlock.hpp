@@ -20,100 +20,16 @@
  * SOFTWARE.
  *
  */
-
 #pragma once
 
-#include "common/core/Types.hpp"
-#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertMacros.hpp"
-#include "common/util/property/Properties.hpp"
-#include "common/world/block/base/material/Material.hpp"
-#include "common/world/block/base/types/BlockPos.hpp"
+#include "common/world/block/blocks/decorative/AbstractSkullBlock.hpp"
 #include "common/world/block/core/Block.hpp"
-#include "common/world/block/state/BlockState.hpp"
 
 namespace mc {
-class Entity;
-
 namespace blocks {
-
-/**
- * @brief 头颅种类
- *
- * 对应 MC Java 1.21.11 SkullBlock.Types，决定音符盒乐器与放置时的默认方块类型。
- */
-enum class SkullType : u8 {
-    Skeleton = 0,       ///< 骷髅头颅
-    WitherSkeleton = 1, ///< 凋灵骷髅头颅
-    Player = 2,         ///< 玩家头颅
-    Zombie = 3,         ///< 僵尸头
-    Creeper = 4,        ///< 苦力怕头
-    Piglin = 5,         ///< 猪灵头
-    Dragon = 6          ///< 龙首
-};
-
-/**
- * @brief 头颅方块抽象基类
- *
- * 持有 POWERED 属性（被红石信号激活时龙首/猪灵头做张嘴动画，由方块实体 tick 驱动）。
- * 子类：SkullBlock（站立）、WallSkullBlock（贴墙）。
- *
- */
-class AbstractSkullBlock : public Block {
-public:
-    /**
-     * @brief 构造头颅方块
-     * @param type 头颅种类
-     * @param properties 方块属性
-     */
-    AbstractSkullBlock(SkullType type, const BlockProperties& properties);
-
-    ~AbstractSkullBlock() override = default;
-
-    /**
-     * @brief 获取头颅种类
-     */
-    [[nodiscard]] SkullType getSkullType() const noexcept
-    {
-        return m_type;
-    }
-
-    /**
-     * @brief 头颅方块持有方块实体（存储玩家档案/自定义名称/音符盒音色）
-     */
-    [[nodiscard]] bool hasBlockEntity() const noexcept override
-    {
-        return true;
-    }
-
-    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    /**
-     * @brief 邻居方块更新：红石信号变化时翻转 POWERED
-     */
-    void neighborChanged(
-        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
-
-    [[nodiscard]] bool isOpaque(const BlockState& state) const override
-    {
-        MC_UNUSED(state);
-        return false;
-    }
-
-protected:
-    /**
-     * @brief 头颅种类对应的音符盒乐器（对齐 vanilla 头颅注册的 instrument 属性）
-     */
-    [[nodiscard]] static NoteBlockInstrument _instrumentForSkullType(SkullType type) noexcept;
-
-    SkullType m_type;
-    /// 头颅在三种寻路类型下都不可通行。
-    [[nodiscard]] bool isPathfindable(const BlockState& state, PathComputationType type) const override;
-};
 
 /**
  * @brief 站立头颅方块
@@ -138,134 +54,6 @@ public:
 private:
     CollisionShape m_shape;
     CollisionShape m_piglinShape;
-};
-
-/**
- * @brief 贴墙头颅方块
- *
- * 附着在墙面的头颅，拥有水平朝向属性（HORIZONTAL_FACING）。
- *
- */
-class WallSkullBlock : public AbstractSkullBlock {
-public:
-    WallSkullBlock(SkullType type, const BlockProperties& properties);
-
-    ~WallSkullBlock() override = default;
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
-
-    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
-
-protected:
-    /// 获取指定朝向的碰撞形状
-    [[nodiscard]] const CollisionShape& _shapeForFacing(Direction facing) const;
-
-    CollisionShape m_shapes[4]; // North, South, West, East
-};
-
-/**
- * @brief 玩家头颅方块
- *
- * 站立玩家头颅，放置时从物品的 SkullOwner 组件读取档案写入方块实体。
- *
- */
-class PlayerHeadBlock : public SkullBlock {
-public:
-    explicit PlayerHeadBlock(const BlockProperties& properties);
-
-    void onBlockPlacedBy(IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const Entity* placer,
-        const ItemStack& stack) override;
-};
-
-/**
- * @brief 贴墙玩家头颅方块
- */
-class PlayerWallHeadBlock : public WallSkullBlock {
-public:
-    explicit PlayerWallHeadBlock(const BlockProperties& properties);
-
-    void onBlockPlacedBy(IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const Entity* placer,
-        const ItemStack& stack) override;
-};
-
-/**
- * @brief 凋灵骷髅头颅方块
- *
- * 放置时检测凋灵生成结构（4 个灵魂沙/灵魂土 T 形 + 3 个凋灵骷髅头颅）。
- *
- */
-class WitherSkullBlock : public SkullBlock {
-public:
-    explicit WitherSkullBlock(const BlockProperties& properties);
-
-    void onBlockPlacedBy(IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const Entity* placer,
-        const ItemStack& stack) override;
-
-    /**
-     * @brief 检测并生成凋灵
-     *
-     * 对应 MC Java 1.21.11 WitherSkullBlock.checkSpawn(Level, BlockPos)。
-     */
-    static void checkSpawn(IWorld& world, const BlockPos& pos);
-
-    /**
-     * @brief 判断在指定位置放下该物品是否具备召唤凋灵的条件
-     *
-     * 对应原版 `WitherSkullBlock.canSpawnMob(Level, BlockPos, ItemStack)`：物品须是凋灵骷髅头颅、
-     * 位置至少比世界最低高度高 2 格、难度非和平、服务端侧，且「基座图案」在 pos 处匹配
-     * （顶层任意方块、中层 3 个基座、底层 空气-基座-空气）。
-     *
-     * 发射器放置头颅前用它做前置判定：不满足时原版不会放置头颅，而是走装备穿戴分支。
-     *
-     * @param world 世界
-     * @param pos 头颅将要放置的位置（图案顶行中间）
-     * @param stack 待放置的物品堆
-     * @return 是否具备召唤条件
-     */
-    [[nodiscard]] static bool canSpawnMob(IWorld& world, const BlockPos& pos, const ItemStack& stack);
-};
-
-/**
- * @brief 贴墙凋灵骷髅头颅方块
- */
-class WitherWallSkullBlock : public WallSkullBlock {
-public:
-    explicit WitherWallSkullBlock(const BlockProperties& properties);
-
-    void onBlockPlacedBy(IWorld& world,
-        const BlockPos& pos,
-        const BlockState& state,
-        const Entity* placer,
-        const ItemStack& stack) override;
-};
-
-/**
- * @brief 贴墙猪灵头方块
- *
- * 猪灵头的贴墙碰撞箱略大（10 像素宽），单独重写形状。
- *
- */
-class PiglinWallSkullBlock : public WallSkullBlock {
-public:
-    explicit PiglinWallSkullBlock(const BlockProperties& properties);
-
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-private:
-    CollisionShape m_piglinShapes[4]; // North, South, West, East
 };
 
 } // namespace blocks

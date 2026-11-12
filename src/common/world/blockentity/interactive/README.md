@@ -307,7 +307,7 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 
 ### 集成点
 
-- `BrushableBlock`（`world/block/blocks/functional/TrailsBlocks.hpp`）：重写 `hasBlockEntity()` / `createBlockEntity()` / `tick()`，`tick()` 中调用 `checkReset()` 后委托 `FallingBlock::tick()` 执行下落检测
+- `BrushableBlock`（`world/block/blocks/functional/BrushableBlock.hpp`）：重写 `hasBlockEntity()` / `createBlockEntity()` / `tick()`，`tick()` 中调用 `checkReset()` 后委托 `FallingBlock::tick()` 执行下落检测
 - `BrushItem`（`item/items/special/BrushItem.cpp`）：`onUseTick()` 中调用 `brush()`，完成时调用 `LivingEntity::hurtAndBreak(stack, 1, ...)` 消耗耐久
 - `DesertPyramidStructure`（`world/gen/structure/structures/DesertPyramidStructure.cpp`）：在宝藏室地板放置可疑沙并调用 `setLootTable("minecraft:archaeology/desert_pyramid", seed)` 挂载考古战利品表
 

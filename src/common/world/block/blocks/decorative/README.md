@@ -13,11 +13,19 @@ decorative/
 ├── FlowerPotBlock.hpp/cpp      # 花盆（空花盆 + 37 种 potted_* 盆栽变体，反查映射表，眼眸花昼夜切换）
 ├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
 ├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持，MC 1.21+ 注册为 iron_chain）
-├── SkullBlock.hpp/cpp          # 头颅方块（朝向/墙挂、凋灵建造检测）
+├── AbstractSkullBlock.hpp/cpp  # 头颅基类（POWERED 属性、音符盒乐器映射、方块实体创建）
+├── SkullType.hpp               # 头颅种类枚举
+├── SkullBlock.hpp/cpp          # 站立头颅（ROTATION_0_15、猪灵外形）
+├── WallSkullBlock.hpp/cpp      # 贴墙头颅（HORIZONTAL_FACING、形状表）
+├── PlayerHeadBlock.hpp/cpp     # 玩家头颅与贴墙玩家头颅（SkullOwner 搬运）
+├── WitherSkullBlock.hpp/cpp    # 凋灵骷髅头颅与贴墙变种（凋灵建造检测）
+├── PiglinWallSkullBlock.hpp/cpp # 贴墙猪灵头（10 像素宽形状）
 ├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架（攀爬、距离支撑计算、含水支持）
 ├── CampfireBlock.hpp/cpp       # 营火（烹饪、光照、信号火、含水支持）
-├── BannerBlock.hpp/cpp         # 旗帜（站立式+墙壁式、含水支持）
+├── AbstractBannerBlock.hpp/cpp # 旗帜基类（底色、方块实体创建）
+├── StandingBannerBlock.hpp/cpp # 站立旗帜（ROTATION_0_15）
+├── WallBannerBlock.hpp/cpp     # 墙壁旗帜（HORIZONTAL_FACING）
 ├── TorchBlock.hpp/cpp          # 火把（地面放置、火焰/烟雾粒子）
 ├── WallTorchBlock.hpp/cpp      # 墙上火把（墙面附着、方向碰撞箱、偏移粒子）
 ├── AbstractCandleBlock.hpp/cpp # 蜡烛抽象基类（点燃/熄灭、投掷物交互、粒子动画）
@@ -162,6 +170,6 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 
 ### SkullBlock 凋灵建造使用 BlockPattern
 
-凋灵结构由 `SkullBlock::checkSpawn` 通过 `world/block/pattern/` 匹配 `^^^` / `###` / `~#~`：`#` 为 `WITHER_SUMMON_BASE_BLOCKS` 标签内的方块（灵魂沙/灵魂土），`~` 必须为空气。匹配成功后定位中间头颅（`getBlock(1,2,0)`），以 `forwards` 决定凋灵朝向，清除图案方块（含 2001 粒子）再生成实体并通知 50 格内玩家。**不要**手写坐标判定。
+凋灵结构由 `WitherSkullBlock::checkSpawn`（`WitherSkullBlock.cpp`）通过 `world/block/pattern/` 匹配 `^^^` / `###` / `~#~`：`#` 为 `WITHER_SUMMON_BASE_BLOCKS` 标签内的方块（灵魂沙/灵魂土），`~` 必须为空气。匹配成功后定位中间头颅（`getBlock(1,2,0)`），以 `forwards` 决定凋灵朝向，清除图案方块（含 2001 粒子）再生成实体并通知 50 格内玩家。**不要**手写坐标判定。
 
 `WitherSkullBlock::canSpawnMob` 用的是同一套 builder 摆出的「基座图案」（顶层为空格=不约束，`###` / `~#~` 不变），只判基座、不要求头颅已经在位；发射器行为 `WitherSkeletonSkullDispenseBehavior`（`world/block/dispense/`）靠它决定「要不要把头颅放下」。因为它绕过了 `BlockItem::placeBlock`，放置后必须显式调用 `checkSpawn`——`WitherSkullBlock` 只重写了 `onBlockPlacedBy`，没有 `onBlockAdded` 重写。

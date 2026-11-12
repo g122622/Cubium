@@ -125,7 +125,7 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 4. **繁殖状态限制**：`canMateWith` 要求双方 `SnifferEntity` 且状态在 `{Idling, Scenting, FeelingHappy}` 集合内才可繁殖。
 5. **繁殖掉蛋而非幼体**：繁殖产出在 `spawnChildFromBreeding` 覆盖为掉落 `SNIFFER_EGG` 物品（原版默认动量、默认拾取延迟、播放 `SNIFFER_EGG_PLOP`），`spawnBaby` 恒返回 nullptr。发情重置、繁殖冷却、繁殖事件（child 传 nullptr）、爱心粒子与经验球由 `BreedGoal::spawnBaby()` 统一处理，新增掉蛋类动物时须同时覆盖 `spawnChildFromBreeding`，不可依赖调用方对幼体做 `setTypeId(父母)` 等覆写。
 6. **挖掘 AI 未实现**：MC 原版使用 Brain + MemoryModuleType.SNIFFER_EXPLORED_POSITIONS 管理挖掘状态，项目无 Brain 系统且挖掘 Goal 未实现。`transitionTo(Digging)` 中的 `DATA_DROP_SEED_AT_TICK` 设置与粒子广播留有 TODO 注释。
-7. **孵化入口**：`SnifferEggBlock::randomTick`（位于 `world/block/blocks/functional/TrailsBlocks.cpp`）在孵化等级达到 2 时调用 `setChild(true)` + `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` + `finalizeSpawn` + `spawnEntity` 生成幼体嗅探兽。
+7. **孵化入口**：`SnifferEggBlock::randomTick`（位于 `world/block/blocks/functional/SnifferEggBlock.cpp`）在孵化等级达到 2 时调用 `setChild(true)` + `setPosition(pos.center())` + `setRotation(wrapDegrees(random*360), 0)` + `finalizeSpawn` + `spawnEntity` 生成幼体嗅探兽。
 8. **属性常量**：`MOVEMENT_SPEED = 0.1`、`MAX_HEALTH = 14.0`、`FOLLOW_RANGE = 16.0`、`SNIFFER_STEP_VOLUME = 0.15`，均对齐 MC 1.21.11 `Sniffer.createAttributes` 与 `playStepSound`。
 9. **NBT 键名**：`state`（i8，0-6 状态枚举）与 `drop_seed_at_tick`（i32，挖掘掉落种子 tick），定义于 `entity/serialization/EntityNbtKeys.hpp`，与 MC 1.21.11 `Sniffer.addAdditionalSaveData` 一致。
 

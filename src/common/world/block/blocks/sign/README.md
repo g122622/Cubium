@@ -4,10 +4,11 @@
 
 ```text
 sign/
-├── HangingSignBlock.cpp  # 模块接口与实现
-├── HangingSignBlock.hpp  # 天花板悬挂告示牌
-├── SignBlock.cpp  # 模块接口与实现
-└── SignBlock.hpp  # 告示牌木材类型
+├── AbstractSignBlock.hpp/cpp   # 告示牌基类（含水、木材类型、编辑交互）
+├── StandingSignBlock.hpp/cpp   # 站立告示牌（ROTATION_0_15）
+├── WallSignBlock.hpp/cpp       # 墙面告示牌（HORIZONTAL_FACING）
+├── HangingSignBlock.hpp/cpp    # 悬挂告示牌（链式附着）
+└── README.md
 ```
 
 ## 内部模块关系

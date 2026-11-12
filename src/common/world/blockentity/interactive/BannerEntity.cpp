@@ -38,7 +38,9 @@
 #include "util/text/ITextComponent.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/blocks/decorative/BannerBlock.hpp"
+#include "world/block/blocks/decorative/AbstractBannerBlock.hpp"
+#include "world/block/blocks/decorative/StandingBannerBlock.hpp"
+#include "world/block/blocks/decorative/WallBannerBlock.hpp"
 #include <memory>
 #include <string>
 #include <utility>

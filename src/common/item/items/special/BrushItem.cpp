@@ -42,7 +42,7 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/functional/TrailsBlocks.hpp"
+#include "common/world/block/blocks/functional/BrushableBlock.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"

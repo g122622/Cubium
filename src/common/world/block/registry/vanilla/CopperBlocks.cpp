@@ -32,6 +32,8 @@
 #include "common/world/block/blocks/building/slab/WeatheringCopperSlabBlock.hpp"
 #include "common/world/block/blocks/building/stairs/WeatheringCopperStairBlock.hpp"
 #include "common/world/block/blocks/container/CopperChestBlock.hpp"
+#include "common/world/block/blocks/container/WaxedCopperChestBlock.hpp"
+#include "common/world/block/blocks/container/WeatheringCopperChestBlock.hpp"
 #include "common/world/block/blocks/door/WeatheringCopperDoorBlock.hpp"
 #include "common/world/block/blocks/redstone/lightningrod/LightningRodBlock.hpp"
 #include "common/world/block/blocks/redstone/lightningrod/WeatheringLightningRodBlock.hpp"

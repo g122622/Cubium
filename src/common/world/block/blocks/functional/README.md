@@ -25,7 +25,10 @@ functional/
 ├── RespawnAnchorBlock.hpp/cpp     # 重生锚充能与维度检查
 ├── SmithingTableBlock.hpp/cpp     # 锻造台交互
 ├── StonecutterBlock.hpp/cpp       # 切石机交互
-├── TrailsBlocks.hpp/cpp           # 雕纹书架、饰纹陶罐、可刷方块与嗅探兽蛋
+├── ChiseledBookshelfBlock.hpp/cpp # 雕纹书架（六槽占用状态与比较器输出）
+├── DecoratedPotBlock.hpp/cpp      # 饰纹陶罐（放入/取出物品、投射物碎裂）
+├── BrushableBlock.hpp/cpp         # 可刷方块（可疑沙/可疑沙砾，刷扫音效与完成目标）
+├── SnifferEggBlock.hpp/cpp        # 嗅探兽蛋（三阶段孵化）
 └── README.md                     # 模块关系与使用约束
 ```
 
@@ -68,7 +71,7 @@ functional/
 
 ### 考古与嗅探兽蛋
 
-- `TrailsBlocks` 聚合四种方块类。可刷方块的两种音效及刷完后的目标方块由构造参数绑定；刷扫进度由方块实体维护。
+- 考古四种方块各占一对文件。可刷方块的两种音效及刷完后的目标方块由构造参数绑定；刷扫进度由方块实体维护。
 - 嗅探兽蛋由计划刻驱动三阶段孵化，不能改成随机刻。下方加速标签会改变总时长；同类型 HATCH 属性更新不会重新触发本项目的 `onBlockAdded`，因此 tick 必须显式调度下一阶段。
 - 饰纹陶罐是否掉落陶片由 CRACKED 决定；罐内物品、陶罐物品和陶片掉落的职责不能重复执行。
 

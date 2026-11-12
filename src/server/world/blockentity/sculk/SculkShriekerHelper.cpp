@@ -40,7 +40,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/sculk/SculkBlocks.hpp"
+#include "common/world/block/blocks/sculk/SculkShriekerBlock.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
