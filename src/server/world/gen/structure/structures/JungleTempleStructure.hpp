@@ -61,6 +61,28 @@ public:
 private:
     BlockPos m_startPos;
     void _generateTemple(IWorldWriter& world, math::IRandom& rng, const StructureBoundingBox& bounds);
+
+    /**
+     * @brief 把局部 X 映射到世界 X
+     *
+     * 布局按结构内局部坐标书写，「正面」是局部 -Z 一侧；东西向时局部 Z 走世界 X 轴。
+     *
+     * @param localX 局部 X
+     * @param localZ 局部 Z
+     * @return 世界 X
+     */
+    [[nodiscard]] i32 _mapLocalX(i32 localX, i32 localZ) const;
+
+    /**
+     * @brief 把局部 Z 映射到世界 Z
+     *
+     * 南北向时局部 Z 走世界 Z 轴（North 反向），东西向时局部 X 走世界 Z 轴。
+     *
+     * @param localX 局部 X
+     * @param localZ 局部 Z
+     * @return 世界 Z
+     */
+    [[nodiscard]] i32 _mapLocalZ(i32 localX, i32 localZ) const;
 };
 
 /**
