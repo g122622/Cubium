@@ -843,6 +843,18 @@ public:
     }
 
 private:
+    /**
+     * @brief 按读取世界的视图解析实际要用的高度图类型
+     *
+     * 生成阶段的 `WorldGenRegion` 只有 `*_WG` 高度图；运行时世界（`ServerWorld` 等）
+     * 读的是玩家看到的那份非 WG 高度图，因此 `WorldSurfaceWG` → `WorldSurface`、
+     * `OceanFloorWG` → `OceanFloor`，其余类型原样返回。
+     *
+     * @param world 本次放置读取的世界，可为 nullptr
+     * @return 实际传给 `IWorld::getHeight` 的高度图类型
+     */
+    [[nodiscard]] world::chunk::HeightmapType _resolveHeightmapType(const IWorld* world) const;
+
     world::chunk::HeightmapType m_heightmapType;
     i32 m_offset;
 };

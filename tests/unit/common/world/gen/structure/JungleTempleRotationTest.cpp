@@ -89,6 +89,7 @@ protected:
         VanillaBlocks::initialize();
     }
 };
+
 TEST_F(JungleTempleRotationTest, AllFacingsStayInsideBoundingBox)
 {
     // 起点放在区块最小角，Y 取 64（原版 SinglePieceStructure 固定高度）。
@@ -108,9 +109,9 @@ TEST_F(JungleTempleRotationTest, AllFacingsStayInsideBoundingBox)
         const StructureBoundingBox& box = piece.getBoundingBox();
         for (const BlockPos& pos : world.writes()) {
             EXPECT_TRUE(box.contains(pos.x, pos.y, pos.z))
-                << "block (" << pos.x << "," << pos.y << "," << pos.z << ") outside bounding box ("
-                << box.minX() << ".." << box.maxX() << ", " << box.minY() << ".." << box.maxY() << ", " << box.minZ()
-                << ".." << box.maxZ() << ") for facing " << static_cast<i32>(direction);
+                << "block (" << pos.x << "," << pos.y << "," << pos.z << ") outside bounding box (" << box.minX()
+                << ".." << box.maxX() << ", " << box.minY() << ".." << box.maxY() << ", " << box.minZ() << ".."
+                << box.maxZ() << ") for facing " << static_cast<i32>(direction);
         }
     }
 }

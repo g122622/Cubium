@@ -53,6 +53,7 @@
 #include "common/world/blockentity/core/LootableContainerBlockEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
+#include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
@@ -1355,6 +1356,28 @@ GravityStructureProcessor::GravityStructureProcessor(world::chunk::HeightmapType
     , m_offset(offset)
 {}
 
+world::chunk::HeightmapType GravityStructureProcessor::_resolveHeightmapType(const IWorld* world) const
+{
+    // 生成阶段的 WorldGenRegion 只有 *_WG 高度图可用，真实世界（ServerWorld 等）上用非 WG 版本。
+    // 判断依据是「读世界的对象是不是 WorldGenRegion」——这正是原版 `level instanceof ServerLevel`
+    // 判定的等价物：除生成区域视图外，其余 IWorld 实现都是已发布的运行时世界。
+    const auto* region = dynamic_cast<const WorldGenRegion*>(world);
+    const bool generationView = region != nullptr;
+    if (generationView) {
+        return m_heightmapType;
+    }
+
+    switch (m_heightmapType) {
+        case world::chunk::HeightmapType::WorldSurfaceWG:
+            return world::chunk::HeightmapType::WorldSurface;
+        case world::chunk::HeightmapType::OceanFloorWG:
+            return world::chunk::HeightmapType::OceanFloor;
+        default:
+            // 其余类型（含已经是非 WG 的）在两种视图下语义相同，原样返回。
+            return m_heightmapType;
+    }
+}
+
 std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
     const BlockInfo& rawBlockInfo,
@@ -1382,18 +1405,19 @@ std::optional<ProcessedBlockInfo> GravityStructureProcessor::process(const Block
     //    terrain_matching，路面 dirt_path 在局部 y=0、jigsaw 在局部 y=1）会因此把路面
     //    埋到地表以下一格，在地面上表现为"村庄里看不见路"。
     //
-    // TODO: 原版在 `level instanceof ServerLevel`（运行时放置，如结构方块/`/place`）时把
-    // WORLD_SURFACE_WG 换成 WORLD_SURFACE（OCEAN_FLOOR_WG → OCEAN_FLOOR）；项目目前没有运行时
-    // 结构放置路径（结构方块的 SAVE/LOAD 尚未实现），所有调用都发生在 worldgen 的
-    // WorldGenRegion 上，故这里直接用构造时配置的高度图类型，不做 WG → 非 WG 替换。
-    // 接入运行时放置时，必须在此处按「世界是否为 WorldGenRegion」选择类型。
+    // 3) 高度图类型要按「谁在读世界」替换：WorldGenRegion 是生成阶段的视图，只能读
+    //    *_WG 高度图（生成过程中非 WG 高度图尚未维护）；一旦模板被放到真正加载好的
+    //    ServerLevel 上（结构方块 SAVE/LOAD、`/place`），原版会把 WORLD_SURFACE_WG
+    //    换成 WORLD_SURFACE、OCEAN_FLOOR_WG 换成 OCEAN_FLOOR，读的是玩家看到的那份高度图。
+    //    两份高度图在结构内部有方块时取值不同，换个视图就会让整块模板上下错位。
     const IWorld* world = settings.getWorld();
 
     ProcessedBlockInfo result = ProcessedBlockInfo::fromBlockInfo(blockInfo);
 
     if (world) {
         // 完整实现：按配置的高度图取地面高度（原版 GravityProcessor 的 heightmap 字段）
-        const i32 heightmapFirstFreeY = world->getHeight(blockInfo.pos.x, blockInfo.pos.z, m_heightmapType) + 1;
+        const i32 heightmapFirstFreeY =
+            world->getHeight(blockInfo.pos.x, blockInfo.pos.z, _resolveHeightmapType(world)) + 1;
         result.pos = BlockPos(blockInfo.pos.x, heightmapFirstFreeY + m_offset + rawBlockInfo.pos.y, blockInfo.pos.z);
     } else {
         // 简化实现：仅应用偏移量
