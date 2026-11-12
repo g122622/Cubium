@@ -645,17 +645,29 @@ public:
     }
 
     // ============================================================================
-    // TODO(临时诊断): 生成期暂存数据的持有状态查询，用于统计"非 FULL primer 仍持有
-    // TODO(临时诊断): biomes/heightmaps/noiseChunk"的规模（稳态归因用）。定位完成后删除。
+    // 生成期暂存数据的持有状态查询
     // ============================================================================
 
-    /// 是否仍持有 primer 侧的 BiomeContainer 暂存副本（FULL 的 toChunkData 会 reset）
+    /**
+     * @brief 是否仍持有 primer 侧的 BiomeContainer 暂存副本
+     *
+     * FULL 阶段的 toChunkData() 会把它移到 ChunkData 并置空。
+     *
+     * 这三项持有状态由基准测试（ChunkGenerationBenchmark 的 dumpPrimerStats）汇总成
+     * CSV，用来回答"停在中间状态的 primer 是否长期占着暂存数据"——即每区块
+     * 23.4 KB 的 primer 开销里哪些是可提前释放的。它们只回答状态，不改变行为，
+     * 生产路径不得依赖其返回值做逻辑分支。
+     */
     [[nodiscard]] bool hasLocalBiomes() const noexcept
     {
         return m_biomes != nullptr;
     }
 
-    /// 是否仍持有 primer 侧的 Heightmap[7] 暂存副本（FULL 的 toChunkData 会 reset）
+    /**
+     * @brief 是否仍持有 primer 侧的 Heightmap[7] 暂存副本
+     *
+     * 与 hasLocalBiomes 同属暂存数据归因用的状态查询，见该处说明。
+     */
     [[nodiscard]] bool hasLocalHeightmaps() const noexcept
     {
         return m_heightmaps != nullptr;

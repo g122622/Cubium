@@ -71,6 +71,7 @@ add_executable(mc_tests
     common/util/StateHolderTest.cpp
     common/util/DirectionTest.cpp
     common/util/NumberParsingTest.cpp
+    common/util/PathEncodingTest.cpp
     common/util/JsonReadTest.cpp
     common/AssertExceptionSupport.cpp
     common/util/text/Utf8Test.cpp

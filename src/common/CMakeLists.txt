@@ -18,6 +18,9 @@ add_library(mc_common STATIC
     # Registry
     registry/RegistryAccess.cpp
 
+    # Util
+    util/PathEncoding.cpp
+
     # Math
     util/math/MathUtils.cpp
     util/math/ray/Raycast.cpp

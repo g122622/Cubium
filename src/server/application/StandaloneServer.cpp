@@ -50,6 +50,7 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/PathEncoding.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConfig.hpp"
@@ -133,14 +134,16 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     // 加载设置
     std::filesystem::path settingsFilePath;
     if (params.configPath.has_value()) {
-        settingsFilePath = std::filesystem::path(*params.configPath);
+        // configPath 来自命令行（UTF-8）。不能直接 std::filesystem::path(std::string)：
+        // 那在 Windows 上按 ANSI 代码页解码，含非 ASCII 的路径会失真。
+        settingsFilePath = util::pathFromUtf8(*params.configPath);
     } else {
         settingsFilePath = GameDirectory::defaultDirectory().serverOptionsPath();
     }
-    auto settingsResult = _loadSettings(settingsFilePath.string());
+    auto settingsResult = _loadSettings(settingsFilePath);
     if (settingsResult.failed()) {
         spdlog::warn("Failed to load settings from {}: {}. Using defaults.",
-            settingsFilePath.string(),
+            util::pathToUtf8(settingsFilePath),
             settingsResult.error().toString());
     }
 
@@ -910,9 +913,11 @@ void StandaloneServer::_setupContainerCallbacks()
     });
 }
 
-Result<void> StandaloneServer::_loadSettings(const std::string& path)
+Result<void> StandaloneServer::_loadSettings(const std::filesystem::path& path)
 {
-    m_settingsPath = std::filesystem::path(path);
+    // 全程持有 std::filesystem::path，避免 UTF-8 串与 path 来回转换（Windows 上窄串→path
+    // 会按 ANSI 代码页解码）。落盘与日志出口才转成 UTF-8 文本。
+    m_settingsPath = path;
 
     auto result = m_settings.loadSettings(path);
     if (result.failed()) {

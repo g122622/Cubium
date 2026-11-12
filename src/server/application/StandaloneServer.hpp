@@ -162,7 +162,7 @@ private:
     void _mainLoop();
 
     // 加载设置
-    [[nodiscard]] Result<void> _loadSettings(const std::string& path);
+    [[nodiscard]] Result<void> _loadSettings(const std::filesystem::path& path);
     void _applySettings();
 
     /// 装配 ContainerManager 回调（菜单工厂 + 开/关/更新事件→客户端协议包）。

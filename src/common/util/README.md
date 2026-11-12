@@ -79,6 +79,7 @@ util/
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
 ├── PlatformInfo.hpp/cpp           # 平台信息
 ├── PngInfo.hpp                    # PNG 头解析（签名 + IHDR 宽高）
+├── PathEncoding.hpp/cpp           # UTF-8 ↔ 宽字符 / 文件系统路径转换，Windows 命令行 UTF-8 argv
 ├── StringUtils.hpp                # 字符串工具
 ├── TimeUtils.hpp                  # 时间工具（时间戳、file_time_type 跨平台转换）
 ├── SpecialDates.hpp               # 特殊日期工具
@@ -107,6 +108,7 @@ util/
 │  LinkedHashSet (独立, 仅依赖 STL)                                 │
 │  NibbleArray (独立)                                               │
 │  PlatformInfo (独立)                                              │
+│  PathEncoding (独立)                                             │
 │  StringUtils (独立)                                               │
 │  TimeUtils (独立)                                                 │
 │  DateTimeUtils ← TimeUtils（概念关联，无代码依赖）                 │
@@ -193,11 +195,28 @@ public:
 - `nextInt(min, max)` 返回 `[min, max]`，**两端都包含**
 - `nextFloat()` 返回 `[0.0, 1.0)`，**不包含 1.0**
 
-### 5. 区块坐标负数处理
+### 5. 路径与命令行必须走 UTF-8 转换
+
+Windows 上 std::filesystem::path::string() 与 CRT 的 rgv 都按**当前 ANSI 代码页**编解码，
+代码页外的字符（如非中文区域设置下的中文路径）会直接变成 `?` 且不可恢复：
+
+`cpp
+// ❌ 错误：非 ASCII 路径失真
+std::filesystem::path p(someUtf8String);
+spdlog::info("{}", p.string());
+
+// ✅ 正确
+std::filesystem::path p = util::pathFromUtf8(someUtf8String);
+spdlog::info("{}", util::pathToUtf8(p));
+`
+
+同理，服务端 `main` 用 `util::commandLineArgumentsUtf8()` 从 `GetCommandLineW()` 重取参数，
+不要把 `argv` 里的窄串直接当 UTF-8。
+### 6. 区块坐标负数处理
 
 `toChunkCoord` 已正确处理负数：`toChunkCoord(-1)` 返回 -1，不是 0。不要自己实现位运算来替代。
 
-### 6. 缓存键打包方法不同
+### 7. 缓存键打包方法不同
 
 两个缓存类的 `packCoords` 实现不同：
 - `Long2IntLRUCache`: `(x << 32) | (z & 0xFFFFFFFF)` - OR 打包
@@ -205,7 +224,7 @@ public:
 
 **不要混用两个缓存的键**。
 
-### 7. NBT 忘记设置上下文
+### 8. NBT 忘记设置上下文
 
 读取或写入时未设置正确的上下文会导致数据解析错误：
 - `contexts::java` - Java Edition（大端序）
@@ -213,23 +232,23 @@ public:
 - `contexts::bedrock_disk` - Bedrock 磁盘（小端序）
 - `contexts::mojangson` - 文本格式
 
-### 7.1 读取 Java 文件后必须解包根标签前缀层
+### 8.1 读取 Java 文件后必须解包根标签前缀层
 
 `tags::compound_tag::read` 按复合标签体解析，不消费根标签自身的 id+name。Java 写出的文件在其前面还有一个 `0x0A` + 名称长度 + 名称，直接读取会得到多一层的 `{"": <真实内容>}`，所有按真实键名的查找静默落空（能解析成功、不报错）。所有读 Java 文件的入口必须先调 `nbt::unwrapRootCompound()`。
 
-### 7.2 `compound_tag::value` 是 map，禁止用 `operator[]` 查询
+### 8.2 `compound_tag::value` 是 map，禁止用 `operator[]` 查询
 
 `value["X"]` 在键缺失时会**插入一个空的 `unique_ptr` 条目**。该条目随后被 `compound_tag::write` 解引用，直接段错误。查询一律用 `find`/`count`，只有确定要写入时才用 `operator[]`。
 
-### 8. 属性实例必须唯一
+### 9. 属性实例必须唯一
 
 不同实例的同名属性不相等。必须使用静态属性或预定义属性（如 `BlockStateProperties::LIT()`），不要重复创建同名属性。
 
-### 9. 属性状态空间爆炸
+### 10. 属性状态空间爆炸
 
 属性组合数量 = 各属性值数量的乘积。例如 `6方向 * 16等级 * 2布尔 = 192 种状态`。注意控制属性数量避免组合爆炸。
 
-### 10. NibbleArray 延迟分配
+### 11. NibbleArray 延迟分配
 
 ```cpp
 NibbleArray arr;  // 未分配内存
@@ -237,11 +256,11 @@ u8 val = arr.get(0, 0, 0);  // 返回 0，不分配
 arr.set(0, 0, 0, 5);  // 这时才分配内存
 ```
 
-### 11. 向量浮点比较
+### 12. 向量浮点比较
 
 `Vector3::operator==` 内部使用 EPSILON 容差，不要直接比较浮点分量。
 
-### 12. 射线方向必须归一化
+### 13. 射线方向必须归一化
 
 ```cpp
 // ❌ 错误：方向未归一化，距离计算会出错
@@ -251,28 +270,28 @@ Ray ray(origin, target - origin);
 Ray ray(origin, (target - origin).normalized());
 ```
 
-### 13. 视锥剔除坐标系
+### 14. 视锥剔除坐标系
 
 - `isAABBVisible()` 期望**相机相对坐标**
 - `isAABBVisibleWorld()` 自动转换为相机相对坐标，使用前必须调用 `setCameraPosition()`
 
-### 14. 任务池必须启动
+### 15. 任务池必须启动
 
 调用 `submit()` 前必须调用 `start()`，否则任务不会执行。
 
-### 15. MD5 仅用于兼容性
+### 16. MD5 仅用于兼容性
 
 MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 UUID 生成），切勿用于密码存储或安全验证。
 
-### 16. DateTimeUtils 时区依赖
+### 17. DateTimeUtils 时区依赖
 
 `DateTimeUtils::formatDateTime()` 依赖本地时区（与 MC Java 版的 `ZoneId.systemDefault()` 行为一致），使用 `localtime_s/localtime_r`。`parseDateTimeToMillis()` **不**依赖本地时区：使用自实现的 `portableTimegm`（基于 Howard Hinnant 的 `days_from_civil` 算法）将 `struct tm` 视为 UTC 解释，再手动减去字符串携带的时区偏移，得到真实 UTC 时间戳。该实现完全可移植、线程安全，不依赖 `timegm`/`_mkgmtime` 平台扩展，也不修改 `TZ` 环境变量等全局状态。在不同时区的机器上，同一毫秒时间戳格式化出的字符串不同，但往返一致性（format → parse）始终成立。**不要在跨时区通信中使用格式化后的字符串传输时间**，应使用毫秒时间戳（`i64`）。
 
-### 17. DateTimeUtils 与 MC Java 版兼容性
+### 18. DateTimeUtils 与 MC Java 版兼容性
 
 `MC_DATE_FORMAT` 常量（`"%Y-%m-%d %H:%M:%S %z"`）与 MC Java 版的 `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z")` 完全对应。成就进度（`CriterionProgress`）的 JSON 序列化使用此格式，可直接读写 Java 版存档文件。BannedPlayerList/BannedIpList 也使用此格式存储封禁时间。
 
-### 18. Base64 与 PngInfo 是纯工具，不做业务校验
+### 19. Base64 与 PngInfo 是纯工具，不做业务校验
 
 `Base64.hpp` 只做 RFC 4648 §4 编解码（`base64Encode` 输出带 `=` 填充、无换行；`base64Decode` 忽略 ASCII 空白、遇非法字符或长度非法时整体返回空 vector）。`PngInfo.hpp` 只解析 PNG 签名 + IHDR 宽高（24 字节），**不解码像素**。业务侧校验（如服务端图标必须 64×64、皮肤签名验证）由调用方完成，不要把这些规则塞进工具本身。皮肤元数据解析（`SkinMetadataParser`）与服务端 favicon 共用 `util::base64Decode`，勿再各自维护一份。
 

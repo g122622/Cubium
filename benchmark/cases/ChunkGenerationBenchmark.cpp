@@ -216,8 +216,8 @@ void chunkGenTeardown(const ::benchmark::State&)
 }
 
 // ============================================================================
-// TODO(临时诊断): 生成结束后把整批区块的全部 section 调色板位数导出为 CSV，
-// TODO(临时诊断): 用于评估各 section 的位宽/模式分布；定位完成后删除本段与调用点。
+// section 调色板位数分布导出（基准分析工具，由 MC_BENCH 开关控制，默认不写文件）。
+// 用途：评估各 section 的位宽/模式分布，判断调色板压缩的收益上限。
 // ============================================================================
 
 /// 导出当前已加载区块的 section 调色板信息到
@@ -276,8 +276,8 @@ void dumpSectionPaletteBits(const mc::server::ServerChunkManager& manager, i32 t
 }
 
 // ============================================================================
-// TODO(临时诊断): 统计 nibble（天空光/方块光）的缓冲分配量，用于评估"常量态"
-// TODO(临时诊断): 优化的上限；定位完成后删除本段与调用点。
+// nibble（天空光/方块光）缓冲实际物化量统计（基准分析工具）。
+// 用途：评估"常量态"光照缓冲优化的收益上限。
 // ============================================================================
 
 /// 统计当前已加载区块全部 nibble 缓冲的**实际物化量**，输出到
@@ -373,9 +373,9 @@ void dumpNibbleStats(const mc::server::ServerChunkManager& manager, i32 threadCo
 }
 
 // ============================================================================
-// TODO(临时诊断): primer 状态普查。回答"稳态里有多少 primer、停在什么状态、
-// TODO(临时诊断): 还持有哪些生成期暂存数据"，用于判定"非 FULL primer 持有的
-// TODO(临时诊断): biomes/heightmaps/noiseChunk 是否可提前释放"。定位完成后删除。
+// primer 状态普查（基准分析工具）。回答"稳态里有多少 primer、停在什么状态、
+// 还持有哪些生成期暂存数据"，用于判定"非 FULL primer 持有的
+// biomes/heightmaps/noiseChunk 是否可提前释放"。
 // ============================================================================
 
 /// 统计所有 lifecycleManager 的 primer 状态与暂存数据持有情况。
@@ -445,7 +445,7 @@ void dumpPrimerStats(const mc::server::ServerChunkManager& manager, i32 threadCo
 }
 
 // ============================================================================
-// TODO(临时诊断): 排空 ServerTickList（流体/方块 tick 条目）。定位完成后删除。
+// 排空 ServerTickList（流体/方块 tick 条目），由 MC_BENCH_DRAIN_TICK_LISTS 开启。
 // ============================================================================
 
 /// 推进游戏刻若干次以排空 `ServerTickList` 里累积的 tick 条目。
@@ -499,7 +499,7 @@ void ChunkGeneration(::benchmark::State& state)
     mc::benchmark::PerfettoProfilerAdapter::setCaseName(
         fmt::format("chunk_generation/threads={}/batch={}", state.range(0), side));
 
-    // TODO(临时诊断): 每个 (threads, batch) 档位每个进程只导出一次 CSV。
+// 每个 (threads, batch) 档位每个进程只导出一次 CSV。
     // 注册了 MemoryManager 后 google/benchmark 会把基准函数跑两遍（内存指标一遍 + 计时一遍），
     // 用进程级静态集合去重，避免同一文件被重复写、日志出现两行。
     static std::set<std::string> s_dumpedPaletteBits;
@@ -583,7 +583,7 @@ void ChunkGeneration(::benchmark::State& state)
             }
         }
 
-        // TODO(临时诊断): 首次迭代生成完成后导出整批区块的全部 section 调色板位数。
+// 首次迭代生成完成后导出整批区块的全部 section 调色板位数。
         // 放在 PauseTiming 区间内：CSV 的 I/O 不进入测量口径。
         if (!paletteBitsDumped) {
             state.PauseTiming();
@@ -593,7 +593,7 @@ void ChunkGeneration(::benchmark::State& state)
             paletteBitsDumped = true;
         }
 
-        // TODO(临时诊断): 同一次快照上导出 nibble 缓冲统计（常量态优化的收益上限）。
+// 同一次快照上导出 nibble 缓冲统计（常量态优化的收益上限）。
         if (!nibbleStatsDumped) {
             state.PauseTiming();
             dumpNibbleStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
@@ -602,7 +602,7 @@ void ChunkGeneration(::benchmark::State& state)
             nibbleStatsDumped = true;
         }
 
-        // TODO(临时诊断): 同一次快照上导出 primer 状态普查（判定暂存数据是否可提前释放）。
+// 同一次快照上导出 primer 状态普查（判定暂存数据是否可提前释放）。
         if (!primerStatsDumped) {
             state.PauseTiming();
             dumpPrimerStats(*g_fixture.manager, static_cast<i32>(state.range(0)), side);
@@ -611,17 +611,17 @@ void ChunkGeneration(::benchmark::State& state)
             primerStatsDumped = true;
         }
 
-        // TODO(临时诊断): MC_BENCH_DRAIN_TICK_LISTS=1 时推进游戏刻排空 ServerTickList。
-        // TODO(临时诊断): 用于验证"7.1 MB 的 ScheduledTick 是基准口径产物"这一判断。
+// MC_BENCH_DRAIN_TICK_LISTS=1 时推进游戏刻排空 ServerTickList，
+// 用于验证"7.1 MB 的 ScheduledTick 是基准口径产物"这一判断。
         if (std::getenv("MC_BENCH_DRAIN_TICK_LISTS") != nullptr && g_fixture.world != nullptr) {
             state.PauseTiming();
             drainTickLists(*g_fixture.world, 1000);
             state.ResumeTiming();
         }
 
-        // TODO(临时诊断): MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与
-        // TODO(临时诊断): atexit），使 heaptrack 的"未释放"报告即稳态存活分配的真实构成。
-        // TODO(临时诊断): 用于给稳态 104.8 MB 做逐项归因（massif 的 detailed 子树在本版本不可用）。
+// MC_BENCH_FREEZE_STEADY=1 时在稳态快照后立刻 _Exit(0)（跳过全部析构与
+// atexit），使 heaptrack 的"未释放"报告即稳态存活分配的真实构成。
+// 用于给稳态做逐项归因（massif 的 detailed 子树在本版本不可用）。
         if (std::getenv("MC_BENCH_FREEZE_STEADY") != nullptr) {
             std::_Exit(0);
         }

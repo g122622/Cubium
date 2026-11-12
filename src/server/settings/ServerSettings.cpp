@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 
 #include "common/util/NumberParsing.hpp"
+#include "common/util/PathEncoding.hpp"
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -164,7 +165,7 @@ Result<void> ServerSettings::loadSettings(const std::filesystem::path& path)
         return result;
     }
 
-    spdlog::info("Server settings loaded from: {}", path.string());
+    spdlog::info("Server settings loaded from: {}", util::pathToUtf8(path));
     return Result<void>::ok();
 }
 
@@ -175,7 +176,7 @@ Result<void> ServerSettings::saveSettings(const std::filesystem::path& path)
         return result;
     }
 
-    spdlog::info("Server settings saved to: {}", path.string());
+    spdlog::info("Server settings saved to: {}", util::pathToUtf8(path));
     return Result<void>::ok();
 }
 

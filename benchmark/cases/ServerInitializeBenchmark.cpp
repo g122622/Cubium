@@ -151,9 +151,9 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
     // 命令行整体以宽字符拼装：std::filesystem::path::string() 在 Windows 上按 ANSI 代码页
     // 编码（并非 UTF-8），经窄字符串中转会让含非 ASCII 的临时目录路径失真，必须直接用
     // path::wstring()。
-    // TODO: 被测服务端走窄字符 main()（gflags 解析 char** argv），MSVC CRT 会把宽命令行按
-    // 当前 ANSI 代码页转回窄 argv，因此临时目录路径中超出该代码页的字符仍无法传递；如需
-    // 完全 Unicode 支持，须服务端改用 wmain / UTF-8 argv（app manifest activeCodePage）。
+    // 被测服务端在 main 里从 GetCommandLineW 重取宽字符命令行并转成 UTF-8 argv
+// （见 common/util/PathEncoding），因此这里的宽字符命令行可以完整到达服务端，
+// 临时目录路径中的非 ASCII 字符不会因 ANSI 代码页而失真。
     const std::filesystem::path configPath = worldDir / "server_options.json";
     const std::wstring wideExecutable = serverExecutable.wstring();
     std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
