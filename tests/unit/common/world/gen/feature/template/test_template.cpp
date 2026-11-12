@@ -28,6 +28,8 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -86,6 +88,122 @@ TEST_F(TemplateTest, BedrockGrassRemainsSolidRailSupport)
     const auto* state = BlockRegistry::instance().getBlockState(support->blockStateId);
     ASSERT_NE(state, nullptr);
     EXPECT_TRUE(state->is(VanillaBlocks::GRASS_BLOCK));
+}
+
+/**
+ * @brief 用一个最小的 .mcstructure NBT 走完整加载路径
+ *
+ * 只构造放置模板真正读取的字段：size、structure.palette.default.block_palette、
+ * structure.entities。block_indices 省略——加载器对缺失该键已有容错分支。
+ */
+/**
+ * @brief 直接拼装 .mcstructure 的 NBT 树
+ *
+ * `compound_tag::put` 只接受「值类型」并走 `tags::tag_of<值类型>` 推断，而 `compound_tag`
+ * 自身的值类型是 `std::string`、列表值也没有注册推断，因此复合/列表成员必须直接插入
+ * `value` 映射。这里把这几步集中起来，避免测试里到处重复智能指针搬运。
+ */
+class BedrockNbtBuilder {
+public:
+    /// 往 target 插入子复合标签
+    static nbt::tags::compound_tag& putCompound(
+        nbt::tags::compound_tag& target, const std::string& key, nbt::tags::compound_tag child = {})
+    {
+        auto [it, inserted] =
+            target.value.insert_or_assign(key, std::make_unique<nbt::tags::compound_tag>(std::move(child)));
+        return dynamic_cast<nbt::tags::compound_tag&>(*it->second);
+    }
+
+    /// 往 target 插入 <int> 列表
+    static void putIntList(nbt::tags::compound_tag& target, const std::string& key, const std::vector<i32>& values)
+    {
+        target.value.insert_or_assign(key, std::make_unique<nbt::tags::int_list_tag>(values));
+    }
+
+    /// 往 target 插入 <double> 列表
+    static void putDoubleList(nbt::tags::compound_tag& target, const std::string& key, const std::vector<f64>& values)
+    {
+        target.value.insert_or_assign(key, std::make_unique<nbt::tags::double_list_tag>(values));
+    }
+
+    /// 往 target 插入复合列表
+    static nbt::tags::compound_list_tag& putCompoundList(nbt::tags::compound_tag& target, const std::string& key)
+    {
+        auto [it, inserted] = target.value.insert_or_assign(key, std::make_unique<nbt::tags::compound_list_tag>());
+        return dynamic_cast<nbt::tags::compound_list_tag&>(*it->second);
+    }
+
+    /// 序列化成 .mcstructure 字节（未压缩小端 NBT）
+    [[nodiscard]] static std::vector<u8> serialize(const nbt::tags::compound_tag& root)
+    {
+        std::ostringstream out;
+        out << nbt::contexts::bedrock_disk;
+        root.write(out);
+        const std::string bytes = out.str();
+        return std::vector<u8>(bytes.begin(), bytes.end());
+    }
+};
+
+/// 构造只含 size + 石头调色板的最小结构根标签
+nbt::tags::compound_tag makeMinimalStructureRoot(i32 sizeX, i32 sizeY, i32 sizeZ)
+{
+    nbt::tags::compound_tag root;
+    BedrockNbtBuilder::putIntList(root, "size", {sizeX, sizeY, sizeZ});
+
+    auto& structure = BedrockNbtBuilder::putCompound(root, "structure");
+    auto& palettes = BedrockNbtBuilder::putCompound(structure, "palette");
+    auto& defaultPalette = BedrockNbtBuilder::putCompound(palettes, "default");
+    auto& blockPalette = BedrockNbtBuilder::putCompoundList(defaultPalette, "block_palette");
+
+    nbt::tags::compound_tag stoneEntry;
+    stoneEntry.put("name", std::string("minecraft:stone"));
+    blockPalette.value.push_back(std::move(stoneEntry));
+    return root;
+}
+
+TEST_F(TemplateTest, BedrockStructureEntitiesAreParsed)
+{
+    // 实体 schema 见 https://wiki.bedrock.dev/nbt/mcstructure：
+    //   structure.entities.<任意键> = { unique_id: Int, entity: { identifier, pos, ... } }
+    auto root = makeMinimalStructureRoot(2, 1, 2);
+    auto& structure = dynamic_cast<nbt::tags::compound_tag&>(*root.value.at("structure"));
+    auto& entities = BedrockNbtBuilder::putCompound(structure, "entities");
+    auto& wrapper = BedrockNbtBuilder::putCompound(entities, "0");
+    wrapper.put("unique_id", i32{1});
+    auto& entity = BedrockNbtBuilder::putCompound(wrapper, "entity");
+    entity.put("identifier", std::string("minecraft:zombie"));
+    BedrockNbtBuilder::putDoubleList(entity, "pos", {1.5, 2.25, -0.75});
+    entity.put("UniqueID", i64{42});
+
+    const auto templ = TemplateLoader::loadFromBedrockMcStructure(BedrockNbtBuilder::serialize(root));
+    ASSERT_NE(templ, nullptr);
+    const auto& parsed = templ->getEntities();
+    ASSERT_EQ(parsed.size(), 1u);
+    EXPECT_EQ(parsed[0].typeId, "minecraft:zombie");
+    EXPECT_DOUBLE_EQ(parsed[0].posx, 1.5);
+    EXPECT_DOUBLE_EQ(parsed[0].posy, 2.25);
+    EXPECT_DOUBLE_EQ(parsed[0].posz, -0.75);
+    // 方块坐标由精确位置向下取整（负坐标同样向下取整）。
+    EXPECT_EQ(parsed[0].blockPos, BlockPos(1, 2, -1));
+    // 整个实体复合标签原样保留，放置管线才能带上 UniqueID 等字段。
+    ASSERT_NE(parsed[0].nbt, nullptr);
+    ASSERT_EQ(parsed[0].nbt->value.count("UniqueID"), 1u);
+    EXPECT_EQ(dynamic_cast<const nbt::tags::long_tag&>(*parsed[0].nbt->value.at("UniqueID")).value, 42);
+}
+
+TEST_F(TemplateTest, BedrockStructureEntityWithoutIdentifierIsSkipped)
+{
+    // 缺 identifier 的实体必须被跳过，不能产生一个类型为空的 TemplateEntityInfo。
+    auto root = makeMinimalStructureRoot(1, 1, 1);
+    auto& structure = dynamic_cast<nbt::tags::compound_tag&>(*root.value.at("structure"));
+    auto& entities = BedrockNbtBuilder::putCompound(structure, "entities");
+    auto& wrapper = BedrockNbtBuilder::putCompound(entities, "0");
+    auto& entity = BedrockNbtBuilder::putCompound(wrapper, "entity");
+    BedrockNbtBuilder::putDoubleList(entity, "pos", {0.0, 0.0, 0.0});
+
+    const auto templ = TemplateLoader::loadFromBedrockMcStructure(BedrockNbtBuilder::serialize(root));
+    ASSERT_NE(templ, nullptr);
+    EXPECT_TRUE(templ->getEntities().empty());
 }
 
 // ============================================================================

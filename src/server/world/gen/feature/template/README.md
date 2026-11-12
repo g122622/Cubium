@@ -154,6 +154,10 @@ MC 1.16.5 支持单调色板（`palette`）和多调色板（`palettes`）两种
 - **NBT 不在 `PaletteBlock` 内**：模板中仅约 0.5% 的方块带 NBT，为其内联指针不划算。NBT 存于 `Palette` 的稀疏表（键为方块下标，**必须递增**），用 `Palette::nbtAt(index)` 取，无 NBT 时返回 `nullptr`。`PaletteBlock::hasNbt()` 的 flag 由 `Palette` 依据稀疏表回填，不是独立状态。
 - **多调色板模板会复制整份方块列表**：每个 palette 各持一份 `PaletteBlock` 数组（含各自 clone 的 NBT），20 个模板有 8 个 palette。改动加载逻辑时不要假设方块列表是共享的。
 
+### 6.2 基岩 `.mcstructure` 的实体表与方块表是两条独立路径
+
+`structure.entities` 是 **Compound**（键为任意字符串），值是 `{ unique_id: Int, entity: { identifier, pos: List<Double>[3], ... } }`；`pos` 是结构内相对坐标。加载器在解析方块表**之前**调用 `_parseBedrockEntities`，因为方块表在 `block_indices` 缺失/为空时会提前返回——把实体解析放在后面会让「只有实体、没有方块」的结构永远解析不出实体。缺 `identifier` 的条目会被跳过并记 warn，不会留下类型为空的 `TemplateEntityInfo`。
+
 ### 7. 位置哈希种子
 
 IntegrityProcessor 等使用位置哈希进行确定性随机。必须使用 `MathUtils::hashBlockPos()` 而非简单取模，保证正确概率分布。

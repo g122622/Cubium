@@ -799,6 +799,10 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     }
     const auto& structure = dynamic_cast<const nbt::CompoundTag&>(structureTag);
 
+    // 实体表独立于方块表解析：即使结构没有任何方块（block_indices 缺失或为空），
+    // 其中的实体也应被加载出来，所以这一步必须排在下面的各个提前返回之前。
+    _parseBedrockEntities(structure, *templ);
+
     // 解析 palette.default.block_palette -> 方块状态 ID 数组
     // palette 是 Compound，键为 palette 名（默认 "default"），值为 { block_palette, block_position_data }
     std::vector<u32> blockPaletteStates;
@@ -994,16 +998,83 @@ std::unique_ptr<Template> TemplateLoader::_loadFromBedrockNbt(const nbt::Compoun
     // 若索引数与 size 体积不符，仍按已解析的方块构建（不强制断言，便于容错）
     templ->addPalette(Palette(std::move(blockInfos), std::move(nbtTable)));
 
-    // TODO: 解析 structure.entities。
-    //   基岩 .mcstructure 的实体项 schema（identifier / pos / 实体 NBT 的嵌套形态）在项目内
-    //   没有参考实现——`common/util/nbt/Nbt.cpp` 只处理了它的**空列表读取**（`List[End] n=0`，
-    //   曾因少读 3 字节 size 导致外层 Compound 提前结束、palette 丢失），LeviLamina 逆向头文件
-    //   里也没有结构实体的定义。因此这里不凭猜测写解析，避免把错误 schema 固化下来。
-    //   现状影响：结构里的 mob 不会被解析，`Template::placeEntities` 自然也就放不出它们。
-    //   GameTest 结构（本项目的主要使用者）实测该字段恒为空列表，所以当前无功能损失；
-    //   真正需要时，应先从基岩官方 .mcstructure 文档或实际存档取样确认 schema。
-
     return templ;
+}
+
+void TemplateLoader::_parseBedrockEntities(const nbt::CompoundTag& structure, Template& templ)
+{
+    // 基岩版 .mcstructure 的实体表：structure.entities 是 Compound，键为任意字符串，
+    // 值为 { unique_id: Int, entity: Compound { identifier: String, pos: List<Double>[3], ... } }。
+    // pos 是结构内相对坐标（与世界原位的 structure_world_origin 无关）。
+    //
+    // 只取放置模板需要的最小信息：identifier 作为实体类型、pos 作为精确位置、整个 entity
+    // 复合标签原样保留到 TemplateEntityInfo::nbt（由放置管线再决定如何实例化）。
+    if (structure.value.count("entities") == 0) {
+        return;
+    }
+    auto& entitiesTag = *structure.value.at("entities");
+    if (entitiesTag.id() != nbt::TagId::Compound) {
+        return;
+    }
+
+    const auto& entities = dynamic_cast<const nbt::CompoundTag&>(entitiesTag);
+    for (const auto& [entityKey, entryPtr] : entities.value) {
+        if (entryPtr == nullptr || entryPtr->id() != nbt::TagId::Compound) {
+            continue;
+        }
+        const auto& entry = dynamic_cast<const nbt::CompoundTag&>(*entryPtr);
+        if (entry.value.count("entity") == 0) {
+            continue;
+        }
+        auto& entityTag = *entry.value.at("entity");
+        if (entityTag.id() != nbt::TagId::Compound) {
+            continue;
+        }
+        const auto& entity = dynamic_cast<const nbt::CompoundTag&>(entityTag);
+
+        TemplateEntityInfo entityInfo;
+        if (const nbt::Tag* identifierTag =
+                entity.value.count("identifier") != 0 ? entity.value.at("identifier").get() : nullptr;
+            identifierTag != nullptr && identifierTag->id() == nbt::TagId::String) {
+            entityInfo.typeId = dynamic_cast<const nbt::StringTag&>(*identifierTag).value;
+        }
+        if (entityInfo.typeId.empty()) {
+            // 没有 identifier 的条目无法实例化，跳过而不是留下一个类型为空的实体。
+            spdlog::warn("GameTest: .mcstructure entity '{}' has no identifier, skipped", entityKey);
+            continue;
+        }
+
+        // pos 是 List<Double>（部分导出器写 List<Float>），缺省为 (0,0,0)。
+        if (const nbt::Tag* posTag = entity.value.count("pos") != 0 ? entity.value.at("pos").get() : nullptr;
+            posTag != nullptr && posTag->id() == nbt::TagId::List) {
+            const auto& posList = dynamic_cast<const nbt::ListTag&>(*posTag);
+            if (posList.size() >= 3) {
+                std::array<f64, 3> coords{0.0, 0.0, 0.0};
+                for (size_t axis = 0; axis < 3; ++axis) {
+                    const auto elemPtr = posList[axis];
+                    const nbt::Tag* elem = elemPtr.get();
+                    if (elem == nullptr) {
+                        continue;
+                    }
+                    if (elem->id() == nbt::TagId::Double) {
+                        coords[axis] = dynamic_cast<const nbt::DoubleTag&>(*elem).value;
+                    } else if (elem->id() == nbt::TagId::Float) {
+                        coords[axis] = static_cast<f64>(dynamic_cast<const nbt::FloatTag&>(*elem).value);
+                    }
+                }
+                entityInfo.posx = coords[0];
+                entityInfo.posy = coords[1];
+                entityInfo.posz = coords[2];
+            }
+        }
+        // 方块坐标由精确位置向下取整，与原版 Java 结构里 pos/blockPos 并存的约定一致。
+        entityInfo.blockPos = BlockPos(static_cast<i32>(std::floor(entityInfo.posx)),
+            static_cast<i32>(std::floor(entityInfo.posy)),
+            static_cast<i32>(std::floor(entityInfo.posz)));
+        entityInfo.nbt = _cloneNbt(&entity);
+
+        templ.addEntity(entityInfo);
+    }
 }
 
 u32 TemplateLoader::_parseBedrockBlockStateId(const nbt::CompoundTag& paletteEntry)

@@ -108,6 +108,17 @@ private:
     [[nodiscard]] static std::unique_ptr<Template> _loadFromBedrockNbt(const nbt::CompoundTag& root);
 
     /**
+     * @brief 解析基岩版 structure.entities 实体表并写入模板
+     *
+     * 条目形如 `entities.<key> = { unique_id, entity: { identifier, pos, ... } }`。
+     * 缺 identifier 的条目会被跳过并记 warn。
+     *
+     * @param structure 已解析的 `structure` 复合标签
+     * @param templ 目标模板（追加实体）
+     */
+    static void _parseBedrockEntities(const nbt::CompoundTag& structure, Template& templ);
+
+    /**
      * @brief 解析基岩版 block_palette 单项的方块状态 ID
      *
      * 基岩版 palette 项字段为小写 name / states / version（区别于 Java 的 Name / Properties）。
