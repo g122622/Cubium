@@ -174,8 +174,14 @@ enum class OpCode : u8 {
     /// 数值上两子都求（密度函数无副作用）。MaxShort/MinShort 的短路由 BytecodeGen 编译为
     /// JUMP_IF_CMP + BINARY 形态（条件命中跳过 right 段），普通 Add/Mul/Div/Max/Min 走本指令
     /// 求两子再运算。短路纯性能优化（短路时结果与不短路数值一致，max/min 数学性质保证）。
-    // TODO: Mul(left==0) 短路——主世界 finalDensity 中 Mul 左操作数均为非零常量（0*x 已被
-    // FoldConstants 编译期折叠），运行期命中率几乎为零，收益极低，暂不实现。
+    ///
+    /// Mul 的左操作数取 0 时理论上可像 vanilla `TwoArgument.Mul` 那样跳过右子，但实测收益
+    /// 不足以支撑这条额外指令：主世界 finalDensity 的 3062 个 Mul 里 2842 个左操作数是常量
+    /// （0 与 1 已被 FoldConstants 折叠，剩下的是永远不命中短路的其他常量），仅 220 个非常量；
+    /// 后者中只有 6 个在采样中真的取到 0，整体命中率约 2.7%。
+    /// 树形态由 DensityAstMulShortCircuitTest 持续复核——若 mul 的左操作数形态或命中率量级
+    /// 发生显著变化，该用例会失败并指向这里重新评估。
+    /// 结论与数据由 DensityAstMulShortCircuitTest 持续复核，形态变化时该用例会肉眼可见。
     Binary,
     /// LERP dst, srcDelta, srcStart, srcEnd：clampedLerp 语义（LerpNode）。
     /// delta<=0→start, delta>=1→end, else start+delta*(end-start)。
