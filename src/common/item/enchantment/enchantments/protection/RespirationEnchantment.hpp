@@ -45,7 +45,8 @@ namespace enchant {
  * d0>0 时仅 1/(d0+1) 概率消耗氧气（I级 50%、II级 66.7%、III级 75% 不消耗）。
  *
  * 注意：vanilla 水下呼吸不改变 maxAir（最大氧气值仍 300），而是降低消耗概率。
- * 此前实现的"每级延长 15 秒呼吸时间"是基于 breath_max 的误解，已废弃。
+ * 氧气上限在原版是 Entity::getMaxAirSupply() 这个返回常量的方法，**不是**属性；
+ * 项目早期曾按基岩版习惯把 `generic.breath_max` 建模为属性，零消费且与原版不符，已移除。
  */
 class RespirationEnchantment : public Enchantment {
 public:

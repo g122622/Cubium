@@ -243,7 +243,6 @@ private:
         registerAttribute(*Attributes::armorToughness());
         registerAttribute(*Attributes::luck());
         registerAttribute(*Attributes::maxAbsorption());
-        registerAttribute(*Attributes::breathMax());
         registerAttribute(*Attributes::jumpStrength());
         registerAttribute(*Attributes::horseJumpStrength());
         registerAttribute(*Attributes::zombieSpawnReinforcements());

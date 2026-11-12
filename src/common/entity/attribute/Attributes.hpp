@@ -189,19 +189,6 @@ inline std::unique_ptr<Attribute> maxAbsorption()
 }
 
 /**
- * @brief 水下呼吸时间
- *
- * 决定实体可以在水下呼吸的时间（ticks）。
- * 默认值: 300 (15秒)
- * 范围: 0 ~ 6000
- */
-inline std::unique_ptr<Attribute> breathMax()
-{
-    // 注意：使用整数属性，这里用 f64 表示
-    return std::make_unique<Attribute>("generic.breath_max", 300.0, 0.0, 6000.0);
-}
-
-/**
  * @brief 跳跃力
  *
  * 决定实体起跳时的垂直初速度，由 getJumpPower() 消费。
@@ -224,7 +211,8 @@ inline std::unique_ptr<Attribute> jumpStrength()
  * TODO: vanilla 1.21.11 马族统一用 generic.jump_strength（JUMP_STRENGTH）承载跳跃力
  *（createBaseHorseAttributes 基值 0.7 + 随机化 + 遗传），不使用独立的 horse.jump_strength。
  * 项目当前马匹用 HorseJumpComponent 组件作真相源、本属性作镜像，且本属性零 getValue 消费。
- * 待马匹体系重构统一到 JUMP_STRENGTH 后，本属性应移除。
+ * 它的可观测用处只有 `attribute horse.jump_strength get` 命令与注册表断言。
+ * 待马匹体系重构统一到 JUMP_STRENGTH 后，本属性与 HORSE_JUMP_STRENGTH 常量应一并移除。
  */
 inline std::unique_ptr<Attribute> horseJumpStrength()
 {
@@ -530,7 +518,9 @@ inline std::unique_ptr<Attribute> scale()
  *
  * 决定第三人称视角相机与实体的距离（狼坐下、监听者等会调整）。
  *
- * TODO: 接通消费点——相机距离目前是客户端写死的常量，没有读这个属性。
+ * 注意：这个属性的消费方在客户端相机，本项目尚未实现相机距离读取（客户端已停止
+ * 维护）。服务端侧保留其注册与命令可读写能力，是为了与 vanilla 的属性集合、
+ * 数值范围保持一致——属性存在与否本身可被脚本与命令观测。
  *
  * 默认值: 4.0
  * 范围: 0.0 ~ 32.0
@@ -636,8 +626,6 @@ constexpr const char* SWEEPING_DAMAGE_RATIO = "minecraft:sweeping_damage_ratio";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "minecraft:max_absorption";
-constexpr const char* BREATH_MAX = "generic.breath_max"; // TODO: 基岩版属性（控制最大氧气值），Java
-                                                         // 主线无此属性；当前零消费，待基岩兼容层接通或确认移除
 constexpr const char* OXYGEN_BONUS = "minecraft:oxygen_bonus";
 constexpr const char* BURNING_TIME = "minecraft:burning_time";
 constexpr const char* EXPLOSION_KNOCKBACK_RESISTANCE = "minecraft:explosion_knockback_resistance";

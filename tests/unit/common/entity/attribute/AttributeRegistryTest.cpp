@@ -56,7 +56,6 @@ TEST(AttributeRegistryTest, AllBuiltinAttributesAreRegistered)
     EXPECT_TRUE(registry.isKnown(Attributes::ARMOR_TOUGHNESS));
     EXPECT_TRUE(registry.isKnown(Attributes::LUCK));
     EXPECT_TRUE(registry.isKnown(Attributes::MAX_ABSORPTION));
-    EXPECT_TRUE(registry.isKnown(Attributes::BREATH_MAX));
     EXPECT_TRUE(registry.isKnown(Attributes::JUMP_STRENGTH));
     EXPECT_TRUE(registry.isKnown(Attributes::HORSE_JUMP_STRENGTH));
     EXPECT_TRUE(registry.isKnown(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS));

@@ -102,8 +102,7 @@ TEST_F(JavaAttributeIdMapTest, UnimplementedAttributeHasNoId)
 {
     // 项目自有的非 vanilla 属性没有对应的 registry id，不能上线。
     EXPECT_FALSE(map().toJavaRegistryId(Attributes::HORSE_JUMP_STRENGTH).has_value());
-    EXPECT_FALSE(map().toJavaRegistryId(Attributes::BREATH_MAX).has_value());
-    EXPECT_FALSE(map().isImplemented(Attributes::BREATH_MAX));
+    EXPECT_FALSE(map().isImplemented(Attributes::HORSE_JUMP_STRENGTH));
 }
 
 TEST_F(JavaAttributeIdMapTest, ClientSyncableMatchesVanilla)
