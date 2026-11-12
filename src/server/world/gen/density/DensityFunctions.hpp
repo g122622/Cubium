@@ -701,6 +701,33 @@ public:
         return visitor.apply(std::make_unique<MappedNoise>(m_noise, m_xzScale, m_yScale, m_fromValue, m_toValue));
     }
 
+    [[nodiscard]] const noise::NormalNoise& noise() const
+    {
+        return *m_noise;
+    }
+
+    [[nodiscard]] f64 xzScale() const
+    {
+        return m_xzScale;
+    }
+
+    [[nodiscard]] f64 yScale() const
+    {
+        return m_yScale;
+    }
+
+    /// 噪声值 0 映射到的输出值
+    [[nodiscard]] f64 fromValue() const
+    {
+        return m_fromValue;
+    }
+
+    /// 噪声值 1 映射到的输出值
+    [[nodiscard]] f64 toValue() const
+    {
+        return m_toValue;
+    }
+
 private:
     std::shared_ptr<const noise::NormalNoise> m_noise;
     f64 m_xzScale;

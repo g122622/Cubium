@@ -48,9 +48,9 @@ TEST(PathEncodingTest, Utf8WideRoundTrip)
 {
     const std::string samples[] = {
         "plain_ascii_path",
-        "caf\u00e9",   // é：U+00E9
+        "caf\u00e9",                // é：U+00E9
         "\u4e2d\u6587\u76ee\u5f55", // 中文目录
-        "\U0001F600_emoji", // 😀：U+1F600，UTF-16 下是代理对
+        "\U0001F600_emoji",         // 😀：U+1F600，UTF-16 下是代理对
     };
 
     for (const std::string& sample : samples) {

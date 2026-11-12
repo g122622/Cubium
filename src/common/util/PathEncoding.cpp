@@ -25,8 +25,13 @@
 #include "common/util/assert/AssertAll.hpp"
 
 #ifdef _WIN32
+// clang-format off
+// windows.h 必须在 shellapi.h 之前：后者依赖前者引入的 EXTERN_C / DECLARE_HANDLE。
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #include <shellapi.h>
+// clang-format on
 #endif
 
 namespace mc::util {
@@ -39,14 +44,15 @@ std::wstring utf8ToWide(std::string_view text)
         return {};
     }
 
-    const i32 wcharCount = MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), nullptr, 0);
+    const i32 wcharCount =
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), nullptr, 0);
     if (wcharCount <= 0) {
         return {};
     }
 
     std::wstring wide(static_cast<usize>(wcharCount), L'\0');
-    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), wide.data(), wcharCount);
+    MultiByteToWideChar(
+        CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), wide.data(), wcharCount);
     return wide;
 }
 
@@ -56,15 +62,21 @@ std::string wideToUtf8(std::wstring_view text)
         return {};
     }
 
-    const i32 byteCount =
-        WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), nullptr, 0, nullptr, nullptr);
+    const i32 byteCount = WideCharToMultiByte(
+        CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), nullptr, 0, nullptr, nullptr);
     if (byteCount <= 0) {
         return {};
     }
 
     std::string utf8(static_cast<usize>(byteCount), '\0');
-    WideCharToMultiByte(
-        CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<i32>(text.size()), utf8.data(), byteCount, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8,
+        WC_ERR_INVALID_CHARS,
+        text.data(),
+        static_cast<i32>(text.size()),
+        utf8.data(),
+        byteCount,
+        nullptr,
+        nullptr);
     return utf8;
 }
 

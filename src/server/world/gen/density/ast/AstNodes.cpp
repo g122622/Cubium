@@ -590,6 +590,68 @@ bool GenericShiftedNoiseNode::equals(const AstNode& other) const
 }
 
 // ============================================================================
+// MappedNoiseNode
+// relaxedEquals：noise 实例按地址比值 + 重映射标量比值 + 三个子 AST relaxedEquals。
+// 重映射标量必须参与比较：同一噪声配不同 from/to 采样值完全不同。
+// ============================================================================
+
+Ptr MappedNoiseNode::transform(AstTransformer& t) const
+{
+    Ptr newX = m_inputX ? m_inputX->transform(t) : m_inputX;
+    Ptr newY = m_inputY ? m_inputY->transform(t) : m_inputY;
+    Ptr newZ = m_inputZ ? m_inputZ->transform(t) : m_inputZ;
+    if (newX == m_inputX && newY == m_inputY && newZ == m_inputZ) {
+        return t.transform(shared_from_this());
+    }
+    // 构造参数是 fromValue/toValue，而成员是 midpoint/halfAmplitude，这里反算回去。
+    const f64 fromValue = m_midpoint - m_halfAmplitude;
+    const f64 toValue = m_midpoint + m_halfAmplitude;
+    return t.transform(std::make_shared<MappedNoiseNode>(
+        std::move(newX), std::move(newY), std::move(newZ), m_noise, fromValue, toValue));
+}
+
+bool MappedNoiseNode::relaxedEquals(const AstNode& other) const
+{
+    if (kind() != other.kind()) {
+        return false;
+    }
+    const auto& o = static_cast<const MappedNoiseNode&>(other);
+    return m_noise == o.m_noise && m_midpoint == o.m_midpoint && m_halfAmplitude == o.m_halfAmplitude &&
+        childrenRelaxedEqual(m_inputX, o.m_inputX) && childrenRelaxedEqual(m_inputY, o.m_inputY) &&
+        childrenRelaxedEqual(m_inputZ, o.m_inputZ);
+}
+
+size_t MappedNoiseNode::relaxedHashCode() const
+{
+    size_t h = 0;
+    hashCombine(h, static_cast<u8>(kind()));
+    hashCombine(h, reinterpret_cast<size_t>(m_noise));
+    hashCombine(h, hashF64(m_midpoint));
+    hashCombine(h, hashF64(m_halfAmplitude));
+    if (m_inputX) {
+        hashCombine(h, m_inputX->relaxedHashCode());
+    }
+    if (m_inputY) {
+        hashCombine(h, m_inputY->relaxedHashCode());
+    }
+    if (m_inputZ) {
+        hashCombine(h, m_inputZ->relaxedHashCode());
+    }
+    return h;
+}
+
+bool MappedNoiseNode::equals(const AstNode& other) const
+{
+    if (kind() != other.kind()) {
+        return false;
+    }
+    const auto& o = static_cast<const MappedNoiseNode&>(other);
+    return m_noise == o.m_noise && m_midpoint == o.m_midpoint && m_halfAmplitude == o.m_halfAmplitude &&
+        childrenStrictEqual(m_inputX, o.m_inputX) && childrenStrictEqual(m_inputY, o.m_inputY) &&
+        childrenStrictEqual(m_inputZ, o.m_inputZ);
+}
+
+// ============================================================================
 // WeirdScaledSamplerNode
 // relaxedEquals：noise 实例按地址比值 + type 比值 + input 子树 relaxedEquals。
 // ============================================================================

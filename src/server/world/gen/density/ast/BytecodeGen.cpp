@@ -268,10 +268,7 @@ private:
             case AstNodeKind::BlendedNoise:
                 return emitBlendedNoise(node);
             case AstNodeKind::MappedNoise:
-                // 阶段2 TODO：暂走 Delegate 退化（McToAst 已把它们包 DelegateNode，此处不应到达）。
-                spdlog::warn(
-                    "BytecodeGen: unhandled node kind {}, falling back to delegate", static_cast<i32>(node->kind()));
-                return RegOrConst::ofConst(0.0);
+                return emitMappedNoise(node);
         }
         MC_ASSERT_RELEASE_MSG(false, "BytecodeGen: unhandled AstNodeKind");
         return RegOrConst::ofConst(0.0);
@@ -353,6 +350,64 @@ private:
         op.srcC = rz;
         op.objIdx = objIdx;
         m_ops.push_back(op);
+        return RegOrConst::ofReg(dst);
+    }
+
+    RegOrConst emitMappedNoise(const Ptr& node)
+    {
+        const auto* n = static_cast<const MappedNoiseNode*>(node.get());
+        const u32 rx = asReg(emitNode(n->inputX()));
+        const u32 ry = asReg(emitNode(n->inputY()));
+        const u32 rz = asReg(emitNode(n->inputZ()));
+        const u32 objIdx = addObject(RuntimeObject{n->noise(), nullptr, nullptr});
+
+        // 1. 采样原始噪声值。
+        const u32 sampled = allocReg();
+        Op sample{};
+        sample.code = OpCode::NoiseSample;
+        sample.dst = sampled;
+        sample.srcA = rx;
+        sample.srcB = ry;
+        sample.srcC = rz;
+        sample.objIdx = objIdx;
+        m_ops.push_back(sample);
+
+        // 2. 噪声值 * halfAmplitude。乘积单独落到 sampled 寄存器，刻意不把两个标量合并成
+        //    一次乘加表达式——MappedNoise::compute 用 volatile 阻止 FMA 收缩，字节码这里
+        //    是两条独立指令，语义同样保证"先乘后加、逐步舍入"。
+        const u32 halfReg = allocReg();
+        Op loadHalf{};
+        loadHalf.code = OpCode::LoadConst;
+        loadHalf.dst = halfReg;
+        loadHalf.imm = n->halfAmplitude();
+        m_ops.push_back(loadHalf);
+
+        const u32 scaled = allocReg();
+        Op mul{};
+        mul.code = OpCode::Binary;
+        mul.dst = scaled;
+        mul.srcA = sampled;
+        mul.srcB = halfReg;
+        mul.opFlags = static_cast<u8>(static_cast<u8>(BinaryOp::Mul));
+        m_ops.push_back(mul);
+
+        // 3. 加上 midpoint。
+        const u32 midReg = allocReg();
+        Op loadMid{};
+        loadMid.code = OpCode::LoadConst;
+        loadMid.dst = midReg;
+        loadMid.imm = n->midpoint();
+        m_ops.push_back(loadMid);
+
+        const u32 dst = allocReg();
+        Op add{};
+        add.code = OpCode::Binary;
+        add.dst = dst;
+        add.srcA = scaled;
+        add.srcB = midReg;
+        add.opFlags = static_cast<u8>(static_cast<u8>(BinaryOp::Add));
+        m_ops.push_back(add);
+
         return RegOrConst::ofReg(dst);
     }
 

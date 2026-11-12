@@ -609,8 +609,83 @@ private:
     const ::mc::world::gen::density::DensityFunction* m_blendedNoise;
 };
 
-// TODO: MappedNoise 节点在阶段 2 McToAst 接入时按需补充（出现频率低，可先走 DelegateNode 退化，
-// 确认主世界/下界/末地噪声树覆盖后再定是否需要专用节点）。
+/// MappedNoise：带输出重映射的噪声密度函数。
+///
+/// compute(x, y, z) = midpoint + noise(x*xzScale, y*yScale, z*xzScale) * halfAmplitude，
+/// 其中 midpoint = (fromValue + toValue) / 2、halfAmplitude = (toValue - fromValue) / 2。
+/// 坐标展开与 GenericShiftedNoiseNode 同构（三个子 AST 负责 x/y/z 的缩放），本节点只额外
+/// 携带两个标量，因此字节码上等价于 NoiseSample 后接一次乘加——直接用专用节点表达，
+/// 比拆成 GenericShiftedNoise + Mul + Add 少两条指令，也保住了原版"乘积先落回标量"的舍入。
+class MappedNoiseNode final : public AstNode {
+public:
+    MappedNoiseNode(Ptr inputX,
+        Ptr inputY,
+        Ptr inputZ,
+        const ::mc::world::gen::noise::NormalNoise* noise,
+        f64 fromValue,
+        f64 toValue)
+        : m_inputX(std::move(inputX))
+        , m_inputY(std::move(inputY))
+        , m_inputZ(std::move(inputZ))
+        , m_noise(noise)
+        , m_midpoint((fromValue + toValue) * 0.5)
+        , m_halfAmplitude((toValue - fromValue) * 0.5)
+    {}
+
+    [[nodiscard]] AstNodeKind kind() const override
+    {
+        return AstNodeKind::MappedNoise;
+    }
+
+    [[nodiscard]] const Ptr& inputX() const
+    {
+        return m_inputX;
+    }
+
+    [[nodiscard]] const Ptr& inputY() const
+    {
+        return m_inputY;
+    }
+
+    [[nodiscard]] const Ptr& inputZ() const
+    {
+        return m_inputZ;
+    }
+
+    [[nodiscard]] const ::mc::world::gen::noise::NormalNoise* noise() const
+    {
+        return m_noise;
+    }
+
+    [[nodiscard]] f64 midpoint() const
+    {
+        return m_midpoint;
+    }
+
+    [[nodiscard]] f64 halfAmplitude() const
+    {
+        return m_halfAmplitude;
+    }
+
+    [[nodiscard]] std::vector<Ptr> children() const override
+    {
+        return {m_inputX, m_inputY, m_inputZ};
+    }
+
+    [[nodiscard]] Ptr transform(AstTransformer& t) const override;
+    [[nodiscard]] bool relaxedEquals(const AstNode& other) const override;
+    [[nodiscard]] size_t relaxedHashCode() const override;
+    [[nodiscard]] bool equals(const AstNode& other) const override;
+
+private:
+    Ptr m_inputX;
+    Ptr m_inputY;
+    Ptr m_inputZ;
+    const ::mc::world::gen::noise::NormalNoise* m_noise;
+    /// 重映射的两个标量在构造期算好：它们只依赖 fromValue/toValue，不随采样变化。
+    f64 m_midpoint;
+    f64 m_halfAmplitude;
+};
 
 // ============================================================================
 // spline 节点

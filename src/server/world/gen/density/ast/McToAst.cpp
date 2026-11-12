@@ -199,6 +199,18 @@ void McToAst::initializeBuiltin(std::unordered_map<std::type_index, Emitter>& re
             &f.noise());
     };
 
+    // ---- MappedNoise ----
+    // 坐标展开与 NoiseDensity 同构（xzScale/yScale/xzScale），另带 from/to 重映射标量。
+    reg[std::type_index(typeid(MappedNoise))] = [](const DF& df) -> Ptr {
+        const auto& f = static_cast<const MappedNoise&>(df);
+        return std::make_shared<MappedNoiseNode>(scaledAxis(Axis::X, f.xzScale()),
+            scaledAxis(Axis::Y, f.yScale()),
+            scaledAxis(Axis::Z, f.xzScale()),
+            &f.noise(),
+            f.fromValue(),
+            f.toValue());
+    };
+
     // ---- ShiftNoise（ShiftA/ShiftB/Shift 统一类）----
     // 坐标先 *0.25，结果 *4.0；ShiftA 的 Y 轴为常量 0；ShiftB 的 X↔Z 交换。
     reg[std::type_index(typeid(ShiftNoise))] = [](const DF& df) -> Ptr {
