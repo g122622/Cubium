@@ -60,7 +60,8 @@ artifact，再由 report job 汇总进报告和 issue（`has_failures()` 会把�
 实现分两步：
 
 1. `node --experimental-strip-types scripts/diag/orphan_sources.ts --report-json ... --report-md ...`
-   做扫描。它按语义求值全仓 `CMakeLists.txt`（变量、`foreach`、函数/宏、`include`、`add_subdirectory`、
+   做扫描。待判定文件取自 `git ls-files`（构建目录、vcpkg 依赖与本地生成产物都不被跟踪，天然排除），
+   再按语义求值全仓 `CMakeLists.txt`（变量、`foreach`、函数/宏、`include`、`add_subdirectory`、
    `file(GLOB)`、全局属性），排除 `#include "Xxx.cpp"` 的聚合单元成员，最后用 `compile_commands.json`
    交叉核对。退出码 1 只表示「存在游离」或「静态解析有告警」，workflow 里显式 `exit 0` 吞掉。
 2. `scripts/ci/verify_source_collection.py` 校验报告结构、生成摘要并给出判定等级：
@@ -68,7 +69,9 @@ artifact，再由 report job 汇总进报告和 issue（`has_failures()` 会把�
    只有 `complete` 才算可信；`degraded` 与 `unverifiable` 都会要求跟进。
 
 编译数据库由「只 configure、不 build」获得（`cmake --preset linux-clang-ci-tests -B build-scan`），
-显式打开 `MC_BUILD_CLIENT=ON` 以覆盖客户端源文件；客户端配置失败时扫描自动降级为纯静态判定。
+不打开 `MC_BUILD_CLIENT`：游离判定靠对 CMake 脚本的静态求值，与目标是否被构建无关
+（脚本对 `if()` 的所有分支都求值），客户端源文件在客户端关闭时同样是 `declared`。
+configure 失败时扫描自动降级为纯静态判定。
 
 本地复现：`node --experimental-strip-types scripts/diag/orphan_sources.ts --all`，
 详见 [scripts/diag/README.md](../scripts/diag/README.md)。

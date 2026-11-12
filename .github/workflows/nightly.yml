@@ -107,14 +107,15 @@ jobs:
           cache-scope: ci
           vcpkg-commit: ${{ env.VCPKG_COMMIT }}
       # 需要的是编译数据库而非产物：只 configure，不 build。
-      # 客户端默认关闭；但源码清单里有客户端文件，故显式打开，让扫描覆盖全仓库。
+      # 不打开 MC_BUILD_CLIENT：游离判定靠对 CMake 脚本的静态求值，与目标是否被构建无关
+      # （脚本对 if() 的所有分支都求值），客户端源文件在客户端关闭时同样是 declared。
+      # 打开它只会多拉 glfw3/Vulkan/OpenAL 依赖，让这个只做扫描的 job 更容易配置失败。
       - name: Configure compilation database
         id: configure
         continue-on-error: true
         run: |
           cmake --preset linux-clang-ci-tests -B build-scan \
             -DMC_ENABLE_NATIVE_ARCH=OFF \
-            -DMC_BUILD_CLIENT=ON \
             -DMC_BUILD_CLIENT_TESTS=OFF \
             -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
             -DCMAKE_CXX_SCAN_FOR_MODULES=OFF

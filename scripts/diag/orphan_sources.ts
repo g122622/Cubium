@@ -23,6 +23,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import type { Dirent } from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -1624,6 +1625,40 @@ function collectFiles(dir: string, out: string[], predicate: (name: string) => b
     }
 }
 
+/**
+ * 用 git 的跟踪状态枚举仓库源码文件。
+ *
+ * 目录名黑名单永远追不上构建产物的实际命名（`build-scan`/`build-ci-tests`/`vcpkg_installed`
+ * 都是 CI 上真实存在、且不在 `SKIP_DIR_NAMES` 里的目录），一旦漏掉就会把依赖源码与
+ * 编译器探测文件当成游离报出来。而“仓库源码”的定义本来就是 git 跟踪的文件：构建目录、
+ * vcpkg 下载的依赖、本地生成产物天然不被跟踪。
+ *
+ * 返回 null 表示当前环境不是 git 工作树（例如导出的源码包），由调用方回退到目录遍历。
+ */
+function collectTrackedSourceFiles(): string[] | null {
+    const result = spawnSync("git", ["ls-files", "-z", "--", "*.cpp", "*.cc", "*.cxx", "*.c"], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+        maxBuffer: 256 * 1024 * 1024,
+    });
+    if (result.status !== 0 || typeof result.stdout !== "string") {
+        return null;
+    }
+    const files: string[] = [];
+    for (const relative of result.stdout.split("\0")) {
+        if (relative.length === 0 || !isSourceFile(relative)) {
+            continue;
+        }
+        const absolute = path.resolve(REPO_ROOT, relative);
+        // 跟踪清单里仍可能有点文件落在被排除的目录里（如被强制 add 的 third_party），保持一致口径。
+        if (isInsideSkippedDir(absolute) || !isFile(absolute)) {
+            continue;
+        }
+        files.push(absolute);
+    }
+    return files;
+}
+
 function globToRegExp(segment: string): RegExp {
     const escaped = segment.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
     return new RegExp(`^${escaped}$`);
@@ -1935,8 +1970,15 @@ function emitGithubAnnotations(orphans: SourceReport[]): void {
 function main(): void {
     const options = parseArgs(process.argv.slice(2));
 
+    // 优先用 git 跟踪清单：它能天然排除构建目录与依赖目录，不受目录命名变化影响。
+    const tracked = collectTrackedSourceFiles();
     const discovered: string[] = [];
-    collectFiles(REPO_ROOT, discovered, isSourceFile);
+    if (tracked !== null) {
+        discovered.push(...tracked);
+    } else {
+        process.stderr.write("Not a git work tree; falling back to directory traversal.\n");
+        collectFiles(REPO_ROOT, discovered, isSourceFile);
+    }
     // 仓库自身的源文件统一成 posix 绝对路径；判断“是否被收集”时就是用这同一套表示。
     const absoluteSources = discovered.map(toPosixAbsolute);
 

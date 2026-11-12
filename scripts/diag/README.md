@@ -35,6 +35,11 @@ scripts/diag/
   时先看它被标成哪种状态。
 - 未配置构建目录时脚本退化为纯静态判定，`file(GLOB)` 之外的黑盒收集手段可能漏判；跑一次
   `./scripts/configure.sh` 生成 `build/compile_commands.json` 即可启用交叉核对。
+- 待判定的文件清单来自 `git ls-files`，**不是**目录遍历：构建目录（`build-scan`、
+  `build-ci-tests`）、vcpkg 依赖（`vcpkg/`、`vcpkg_installed/`）与本地生成的 `*.gen.cpp`
+  都不被 git 跟踪，因此天然不算仓库源码。早先按目录名黑名单排除，在 CI 上漏掉了
+  `build-scan/` 与 `vcpkg/`，一次性误报 167 个“游离”。
+  非 git 工作树（如导出的源码包）才回退到目录遍历，并会在 stderr 提示。
 - `add_subdirectory` 与函数调用是**作用域边界**，`include()` 不是：兄弟子目录之间看不到对方的
   `set()`。静态求值若共用同一帧，会凭空“补全”本该未定义的变量，从而漏报真问题。
 - `include()` 没有 include_guard 语义，同一脚本被多个子目录分别 include 是正常用法；按路径
