@@ -33,9 +33,9 @@
 #include "server/world/gen/density/DensityFunctions.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
 #include <memory>
-#include <unordered_map>
 #include <utility>
 #include <vector>
+#include <absl/container/flat_hash_map.h>
 
 namespace mc::world::gen::density {
 
@@ -988,13 +988,10 @@ private:
 
     /// preliminarySurfaceLevel 按 4 方块网格离散化后缓存。
     ///
-    /// 【与 MC 1.21 的差异，已知且不改】原版用 fastutil 的 `Long2IntOpenHashMap`（开放寻址、
-    /// 无节点分配）；此处用 `std::unordered_map`（链式哈希、每节点 32 B）。语义等价，
-    /// 但实测该容器占生成峰值堆 4.7 MB / 534 976 次分配（见 docs/MEMORY_WSL_LINUX.md §五靶点 4）。
+    /// 与原版 Long2IntOpenHashMap 一样采用开放寻址，避免逐节点分配。
     /// 查询键并非只落在本区块的 4 方块网格内——Aquifer 的 `SURFACE_SAMPLING_OFFSETS_IN_CHUNKS`
     /// 会查询区块外 ±3 区块，故不能用定长数组替代（曾尝试 5×5 定长数组，边界推导错误）。
-    /// 要收敛这 4.7 MB，正确做法是换成开放寻址的 `i64 -> i32` 扁平表，需独立评估。
-    mutable std::unordered_map<i64, i32> m_preliminarySurfaceLevelCache;
+    mutable absl::flat_hash_map<i64, i32> m_preliminarySurfaceLevelCache;
 
     /// 含水层采样器（可能为 nullptr）
     std::unique_ptr<aquifer::Aquifer> m_aquifer;

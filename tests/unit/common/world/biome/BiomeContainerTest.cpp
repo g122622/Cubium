@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <set>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -771,6 +773,64 @@ TEST_F(BiomeContainerTest, YSectionBoundaries)
         EXPECT_EQ(container.getBiomeAtBlock(0, yBottom, 0), static_cast<BiomeId>(sec + 1))
             << "Y=" << yBottom << " should be in section " << sec;
     }
+}
+
+TEST_F(BiomeContainerTest, PackedWidthsAndDirectStoragePreserveAllSamples)
+{
+    for (i32 count : {1, 2, 3, 5, 17, 129, 513, TOTAL}) {
+        SCOPED_TRACE(count);
+        BiomeContainer original;
+        for (i32 section = 0; section < SEC_COUNT; ++section) {
+            std::array<BiomeId, SEC_BIOME> values;
+            for (i32 index = 0; index < SEC_BIOME; ++index) {
+                values[static_cast<size_t>(index)] =
+                    static_cast<BiomeId>(0x8000 + (section * SEC_BIOME + index) % count);
+            }
+            original.setSectionData(section, values);
+        }
+        original.compact();
+        const auto encoded = original.serialize();
+        auto decoded = BiomeContainer::deserialize(encoded.data(), encoded.size());
+        ASSERT_TRUE(decoded.success());
+        for (i32 index = 0; index < TOTAL; ++index) {
+            const i32 local = index % SEC_BIOME;
+            const BiomeId expected = static_cast<BiomeId>(0x8000 + index % count);
+            EXPECT_EQ(original.getBiome(index / SEC_BIOME, local % H, local / (H * H), (local / H) % H), expected);
+            EXPECT_EQ(
+                decoded.value().getBiome(index / SEC_BIOME, local % H, local / (H * H), (local / H) % H), expected);
+        }
+        EXPECT_LE(original.estimatedMemoryUsage(), sizeof(BiomeContainer) + TOTAL * sizeof(BiomeId));
+    }
+}
+
+TEST_F(BiomeContainerTest, CompactionReleasesUniformStorageAndCopiesRemainIndependent)
+{
+    for (i32 section = 0; section < SEC_COUNT; ++section) {
+        std::array<BiomeId, SEC_BIOME> values;
+        for (i32 index = 0; index < SEC_BIOME; ++index) {
+            values[static_cast<size_t>(index)] = static_cast<BiomeId>(30000 + index % 4);
+        }
+        container.setSectionData(section, values);
+    }
+    container.compact();
+    RecordProperty("four_biome_container_bytes", std::to_string(container.estimatedMemoryUsage()));
+    EXPECT_LT(container.estimatedMemoryUsage(), 1024u);
+    BiomeContainer copied = container;
+    std::array<BiomeId, SEC_BIOME> uniform;
+    uniform.fill(65535);
+    for (i32 section = 0; section < SEC_COUNT; ++section) {
+        container.setSectionData(section, uniform);
+    }
+    container.compact();
+    EXPECT_EQ(container.estimatedMemoryUsage(), sizeof(BiomeContainer));
+    EXPECT_EQ(container.getBiome(0, 0, 0, 0), 65535);
+    EXPECT_EQ(copied.getBiome(0, 3, 0, 0), 30003);
+    BiomeContainer moved = std::move(copied);
+    EXPECT_EQ(moved.getBiome(SEC_COUNT - 1, 3, 0, 0), 30003);
+    EXPECT_EQ(copied.getBiome(0, 0, 0, 0), 0);
+    copied.setBiome(0, 0, 0, 0, 42);
+    EXPECT_EQ(moved.getBiome(0, 0, 0, 0), 30000);
+    EXPECT_EQ(copied.getBiome(0, 0, 0, 0), 42);
 }
 
 } // namespace

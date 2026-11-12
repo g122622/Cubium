@@ -44,6 +44,8 @@
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 using namespace mc;
@@ -159,4 +161,56 @@ TEST_F(WorldGenRegionTickScheduleTest, FluidTickUsesSameRegionRule)
         }
         EXPECT_TRUE(primer->pendingFluidTicks().empty());
     }
+}
+
+TEST_F(WorldGenRegionTickScheduleTest, FullTransitionMovesTickBuffersAndPreservesSingleOwnerData)
+{
+    ChunkPrimer primer(0, 0);
+    const BlockPos position(1, world::MIN_BUILD_HEIGHT + 4, 1);
+    const auto* water = fluid::Fluids::WATER();
+    ASSERT_NE(water, nullptr);
+    auto* data = primer.getChunkData();
+    EXPECT_EQ(&primer.getBiomes(), &data->getBiomes());
+    primer.getBiomes().setBiome(0, 0, 0, 0, 65535);
+    primer.setPersistedStatus(ChunkStatuses::NOISE);
+    primer.setBlockState(position.x, position.y, position.z, &VanillaBlocks::STONE->defaultState());
+    EXPECT_EQ(primer.getTopBlockY(HeightmapType::WorldSurfaceWG, position.x, position.z), position.y);
+    EXPECT_EQ(std::as_const(*data).getHeightmap(HeightmapType::WorldSurfaceWG).getHeight(position.x, position.z),
+        position.y + 1);
+    primer.addPendingBlockTick(position, *VanillaBlocks::STONE, 17, 5, world::tick::TickPriority::High);
+    primer.addPendingFluidTick(position, *water, 19, 7, world::tick::TickPriority::Normal);
+    const auto* blockBuffer = primer.pendingBlockTicks().data();
+    const auto* fluidBuffer = primer.pendingFluidTicks().data();
+    ChunkPrimer moved(std::move(primer));
+    auto full = moved.toChunkData();
+    EXPECT_EQ(full.get(), data);
+    EXPECT_EQ(full->pendingBlockTicks().data(), blockBuffer);
+    EXPECT_EQ(full->pendingFluidTicks().data(), fluidBuffer);
+    EXPECT_EQ(moved.pendingBlockTicks().capacity(), 0u);
+    EXPECT_EQ(moved.pendingFluidTicks().capacity(), 0u);
+    EXPECT_EQ(full->getBiomes().getBiome(0, 0, 0, 0), 65535);
+    EXPECT_EQ(full->getTopBlockY(HeightmapType::WorldSurface, position.x, position.z), position.y);
+    const auto blocks = full->takePendingBlockTicks();
+    const auto fluids = full->takePendingFluidTicks();
+    ASSERT_EQ(blocks.size(), 1u);
+    ASSERT_EQ(fluids.size(), 1u);
+    EXPECT_EQ(blocks[0].scheduledTick, 17u);
+    EXPECT_EQ(blocks[0].priority, world::tick::TickPriority::High);
+    EXPECT_EQ(fluids[0].delay, 7);
+    EXPECT_EQ(blocks.data(), blockBuffer);
+    EXPECT_EQ(fluids.data(), fluidBuffer);
+    EXPECT_EQ(full->pendingBlockTicks().capacity(), 0u);
+    EXPECT_EQ(full->pendingFluidTicks().capacity(), 0u);
+    RecordProperty("chunk_data_bytes", std::to_string(sizeof(ChunkData)));
+    RecordProperty("chunk_primer_bytes", std::to_string(sizeof(ChunkPrimer)));
+}
+
+TEST_F(WorldGenRegionTickScheduleTest, GenerationReadsRequestedHeightmapWithoutFallback)
+{
+    ChunkPrimer primer(0, 0);
+    primer.getHeightmap(HeightmapType::WorldSurface).setHeight(1, 1, world::MIN_BUILD_HEIGHT + 20);
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::OceanFloorWG, 1, 1), Heightmap::NO_BLOCK_SENTINEL);
+    EXPECT_EQ(primer.getHeightmapFirstAvailable(HeightmapType::WorldSurface, 1, 1), world::MIN_BUILD_HEIGHT + 20);
+    EXPECT_EQ(&std::as_const(primer).getHeightmap(HeightmapType::WorldSurface),
+        &std::as_const(*primer.getChunkData()).getHeightmap(HeightmapType::WorldSurface));
 }

@@ -276,7 +276,7 @@ TEST_F(SimpleBlockFeatureTest, ScheduleTickRecordsPendingBlockTickOnPlacedBlock)
     ASSERT_EQ(data->pendingBlockTicks().size(), 1u);
     EXPECT_EQ(data->pendingBlockTicks()[0].block, VanillaBlocks::SAND);
     EXPECT_TRUE(centerChunk().pendingBlockTicks().empty());
-    data->clearPendingBlockTicks();
+    static_cast<void>(data->takePendingBlockTicks());
     EXPECT_TRUE(data->pendingBlockTicks().empty());
 }
 

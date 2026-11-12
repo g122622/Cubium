@@ -256,9 +256,12 @@ struct Op {
 /// 用联合避免多态开销；编译期已知每个 objIdx 的实际类型（BytecodeGen 登记时确定）。
 /// Marker 缓存对象注入也用 densityFunction 槽（缓存对象是 DensityFunction 子类）。
 struct RuntimeObject {
-    const ::mc::world::gen::noise::NormalNoise* noise = nullptr;
-    const ::mc::world::gen::density::DensityFunction* densityFunction = nullptr;
-    const ::mc::world::gen::density::Beardifier* beardifier = nullptr;
+    // OpCode 决定槽位类型；同一条目只绑定一种对象，解释器与 JIT 使用相同契约。
+    union {
+        const ::mc::world::gen::noise::NormalNoise* noise;
+        const ::mc::world::gen::density::DensityFunction* densityFunction;
+        const ::mc::world::gen::density::Beardifier* beardifier;
+    };
 };
 
 /// JIT 求值器的运行时上下文（POD，JIT 机器码经首参指针访问）。

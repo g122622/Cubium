@@ -662,8 +662,7 @@ public:
         std::string genStatus;  ///< 当前已达到的生成状态名
         std::string reqStatus;  ///< 请求的目标状态名
         bool hasPrimer = false; ///< getCurrentChunk() != nullptr
-        bool hasLocalBiomes = false;
-        bool hasLocalHeightmaps = false;
+        size_t biomeBytes = 0;  ///< 权威群系容器及其独立数组的字节数
         bool hasNoiseChunk = false;
         bool hasCarvingMask = false;
         bool safeToUnload = false;
@@ -672,7 +671,7 @@ public:
 
     /// 收集全部 holder 的 primer 状态快照（无锁 best-effort，仅供诊断）
     /// 用途：统计 primer 在各生成状态上的分布，判断卡在中间状态的 primer 是否会长期持有
-    /// `m_biomes` / `m_heightmaps` / `m_noiseChunk` 等暂存数据（稳态内存归因）。
+    /// 群系紧凑存储及 NoiseChunk 等生成期数据。采集时须暂停生成写入。
     [[nodiscard]] std::vector<PrimerStatsRow> debugCollectPrimerStats() const;
 
     /**

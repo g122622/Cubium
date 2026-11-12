@@ -304,27 +304,15 @@ if (noiseChunk.aquifer() == nullptr) {
 
 **复现/回归测试**：`tests/server/world/gen/chunk/OceanWaterReproTest.cpp`（种子 114514，海洋列海平面下方必须有水方块）。
 
-### 13. toChunkData 收尾后 primer 的生物群系/高度图改读 ChunkData
+### 13. 群系和高度图只有 ChunkData 一份权威存储
 
-`ChunkPrimer` 的 `m_biomes` 与 `m_heightmaps` 是**堆持有**（`unique_ptr`），合计约 10 KiB/区块。这是刻意的：二者在 `toChunkData()` 收尾时已全量写入 `ChunkData`，收尾末尾会 `reset()` 掉本地副本，内联数组做不到这一点（清零不归还 RSS）。
+ChunkPrimer 在所有阶段直接维护 ChunkData 的群系和高度图，不持有本地副本。生成方块写入跳过运行时整列重扫，再按阶段标志增量更新高度图；primeHeightmaps 与 FULL 收尾通过 ChunkData::rebuildHeightmaps 重建目标槽位。
 
-由此产生的约束：
-
-- **收尾后 primer 不再持有这两个副本**，相关读取 `getBiomeAtBlock` / `getTopBlockY` / `getHeightmapFirstAvailable` / `getBiomes` 一律委托 `m_data`。FULL 邻居经 `WorldGenRegion` 读取时走的正是这些接口，因此仍然有效。
-- **`toChunkData()` 对一个 primer 只能调用一次**，重复调用会命中入口断言。
-- **`ChunkPrimer::getHeightmap(HeightmapType)` 的非 const 重载在收尾后会断言失败**：可变访问只在生成期合法，收尾后的高度图维护由 `ChunkData::updateHeightMap` 承担。`updateHeightmap()` 会自动分流到 `ChunkData`，正常路径不会踩到。
-- **邻居读到的高度图从"冻结快照"变为"实时值"**：收尾前邻居读 primer 的副本（快照于收尾时刻），收尾后读 `ChunkData` 的槽位，会被后续世界编辑更新。这与原版一致，但意味着同一份种子在"先编辑邻居再生成新区块"时结果会不同。
-
-### 14. 存档路径的 primer 不持有 biomes / heightmaps 副本
-
-`ChunkPrimer` 接收 `ChunkData` 的两个构造（`unique_ptr` / `shared_ptr`）不保留 `m_biomes` / `m_heightmaps` 副本，所有读取直接委托 `ChunkData`。加载阶段已经补齐高度图，运行时包装不再扫描方块。
-
-要点：
-
-- **生物群系**：存档的 `ChunkData` 已带真实生物群系，而 primer 副本从未被填充（默认全 0）。分配它会让 FULL 邻居经 `getBiomeAtBlock` 读到生物群系 0，而不是存档真实值。故该路径根本不分配。
-- **高度图**：native 段格式不持久化高度图，由存储层在回传结果前调用 `ChunkData::initializeMissingHeightmaps()` 补齐；外来存档已有的高度值保持不变。生成阶段和加载阶段共用 `Heightmap::rebuild()`，跳过空段并在每列所有目标类型就绪后提前结束。
-- **构造期同时把 `m_persistedStatus` 置为 FULL**：它决定后续方块写入维护哪些高度图（POST_FEATURES 全量），留作 EMPTY 会让运行时编辑只更新 WG 两张高度图。
-- **`getHeightmap(HeightmapType)` 的非 const 重载在存档路径上同样会断言**：该路径直接使用 `ChunkData` 的权威高度图，需要修改时也应访问 `ChunkData`。
+- 生成阶段读取指定高度图，不使用运行时的未初始化回退规则。
+- FULL 收尾会重建高度图、紧凑化群系并发布状态，同一 primer 只能收尾一次。
+- 接收存档 ChunkData 的构造保留已有群系与高度值，只补齐缺失类型；不能重新执行生成收尾。
+- 原生格式不保存高度图，存储层回传前补齐；外来存档已有值保留。
+- mutable 高度图访问直接修改权威槽位，调用方必须遵守区块写入的独占约束。
 
 ### 15. 单列查询也必须配置完整材质规则
 
@@ -342,3 +330,5 @@ if (noiseChunk.aquifer() == nullptr) {
 - **方块刻与流体刻都要登记**：只补方块刻会让含水方块的重新调度（水浸楼梯等）在发布后完全丢失。
 - **调度去重**：`ChunkPrimer` 对同一 (位置, 目标) 只保留一条；延迟换算以 `scheduledTick` 记录，区块发布时由 `ServerChunkManager::_postProcessChunk` 把已流逝的游戏刻从 `delay` 中扣除后再交给世界 `TickManager`。
 - **生成器是每个维度一个实例**：`m_tickManager` 与两个列表都属于 `IChunkGenerator`，不要做成全局单例，否则多维度并行生成会互相污染。
+
+- 生成计划刻以移动语义从 primer 交给 ChunkData，再由主线程取出并交给世界；交接后不保留空 vector 的历史容量。

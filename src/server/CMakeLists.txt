@@ -271,7 +271,7 @@ set_source_files_properties(
 # 但 mc_gen 是纯实现 OBJECT 库，不对外暴露头接口，故用 PRIVATE 避免向使用方传递
 # mc_common 链接（minecraft-server / minecraft-client / mc_tests / mc_benchmark /
 # mc_trident_tests 本就各自直接链接 mc_common，传递会造成 "duplicate libraries" 警告）。
-target_link_libraries(mc_gen PRIVATE mc_common)
+target_link_libraries(mc_gen PRIVATE mc_common PUBLIC absl::flat_hash_map)
 
 target_include_directories(mc_gen PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}

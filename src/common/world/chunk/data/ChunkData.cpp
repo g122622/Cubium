@@ -391,8 +391,15 @@ void ChunkData::initializeMissingHeightmaps()
 
     MC_TRACE_SCOPED_EVENT(
         mc::trace::TraceEvents.World.ChunkGen, "ChunkData::initializeMissingHeightmaps", "x", m_x, "z", m_z);
+    rebuildHeightmaps(enabled);
+}
+
+void ChunkData::rebuildHeightmaps(const std::array<bool, HEIGHTMAP_TYPE_COUNT>& enabled)
+{
     Heightmap::rebuild(*this, m_heightmaps, enabled);
-    m_heightmapInitialized.fill(true);
+    for (size_t index = 0; index < enabled.size(); ++index) {
+        m_heightmapInitialized[index] = m_heightmapInitialized[index] || enabled[index];
+    }
 }
 
 BiomeId ChunkData::getBiomeAtBlock(BlockCoord x, BlockCoord y, BlockCoord z) const
