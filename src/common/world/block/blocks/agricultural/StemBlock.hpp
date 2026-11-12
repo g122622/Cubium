@@ -29,10 +29,11 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/PlantType.hpp"
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
+#include "common/world/block/blocks/agricultural/StemGrownBlock.hpp"
 #include "common/world/block/capability/IGrowable.hpp"
 #include "common/world/block/core/Block.hpp"
+
 #include <array>
-#include <unordered_map>
 
 namespace mc {
 
@@ -42,9 +43,6 @@ class BlockItemUseContext;
 class ServerWorld;
 
 namespace blocks {
-
-// Forward declaration
-class StemGrownBlock;
 
 /**
  * @brief 茎类作物方块（南瓜茎、西瓜茎）
@@ -169,132 +167,6 @@ protected:
 
     /// 各年龄阶段的形状缓存
     std::array<CollisionShape, 8> m_shapesByAge;
-};
-
-/**
- * @brief 茎类果实方块（南瓜、西瓜）
- *
- * 由茎类作物生成的果实方块。
- *
- */
-class StemGrownBlock : public Block {
-public:
-    /**
-     * @brief 构造函数
-     * @param properties 方块属性
-     */
-    explicit StemGrownBlock(const BlockProperties& properties)
-        : Block(properties)
-    {}
-
-    /**
-     * @brief 析构函数
-     */
-    ~StemGrownBlock() override = default;
-
-    /**
-     * @brief 获取对应的普通茎方块
-     */
-    [[nodiscard]] virtual const Block* getStem() const = 0;
-
-    /**
-     * @brief 获取对应的连接茎方块
-     */
-    [[nodiscard]] virtual const Block* getAttachedStem() const = 0;
-};
-
-/**
- * @brief 连接茎方块
- *
- * 果实生成后茎变成的方块，朝向果实方向。
- *
- * 状态属性：
- * - HORIZONTAL_FACING: 朝向（指向果实方向）
- *
- */
-class AttachedStemBlock : public BushBlock {
-public:
-    /**
-     * @brief 构造函数
-     * @param crop 对应的果实方块
-     * @param properties 方块属性
-     */
-    AttachedStemBlock(const StemGrownBlock* crop, const BlockProperties& properties);
-
-    /**
-     * @brief 析构函数
-     */
-    ~AttachedStemBlock() override = default;
-
-    // ========== 放置逻辑 ==========
-
-    [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
-
-    // ========== 邻居更新 ==========
-
-    /**
-     * @brief 邻居方块更新处理
-     *
-     * 当果实被破坏时，将连接茎变回普通茎（AGE=7）。
-     *
-     * @param state 当前方块状态
-     * @param facing 更新的方向
-     * @param facingState 邻居状态
-     * @param world 世界
-     * @param currentPos 当前方块位置
-     * @param facingPos 邻居位置
-     * @return 更新后的状态
-     */
-    [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
-        Direction facing,
-        const BlockState& facingState,
-        IWorld& world,
-        const BlockPos& currentPos,
-        const BlockPos& facingPos) override;
-
-    // ========== 旋转 ==========
-
-    [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
-
-    [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
-
-    // ========== 形状 ==========
-
-    /**
-     * @brief 获取形状
-     *
-     * 形状根据朝向不同而不同，茎从中心延伸到果实方向。
-     */
-    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
-
-    // ========== 物品 ==========
-
-    /**
-     * @brief 获取种子物品ID
-     */
-    [[nodiscard]] virtual u32 getSeedItem() const = 0;
-
-    /**
-     * @brief 获取对应的果实方块
-     */
-    [[nodiscard]] const StemGrownBlock* getCrop() const
-    {
-        return m_crop;
-    }
-
-    // ========== IPlantable 接口 ==========
-
-    /**
-     * @brief 获取植物类型 - 连接茎返回 PlantType::Crop
-     */
-    [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
-
-protected:
-    /// 对应的果实方块
-    const StemGrownBlock* m_crop;
-
-    /// 各方向的形状缓存（使用 unordered_map 存储）
-    std::unordered_map<Direction, CollisionShape> m_shapesByDirection;
 };
 
 } // namespace blocks

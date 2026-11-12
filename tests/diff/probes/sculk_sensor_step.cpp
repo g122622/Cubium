@@ -60,7 +60,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/blocks/sculk/SculkBlocks.hpp"
+#include "common/world/block/blocks/sculk/SculkSensorBlock.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/SculkBlocks.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"

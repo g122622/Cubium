@@ -6,8 +6,11 @@
 container/
 ├── ChestBlock.cpp  # 模块接口与实现
 ├── ChestBlock.hpp  # 箱子方块
-├── CopperChestBlock.cpp  # 模块接口与实现
-├── CopperChestBlock.hpp  # 铜箱子方块（涂蜡/基础版）
+├── CopperChestBlock.cpp  # 铜箱子基类（未涂蜡 Unaffected 等级）
+├── CopperChestBlock.hpp  # 铜箱子基类声明（双箱合并、铜块→铜箱子映射）
+├── WeatheringCopperChestBlock.cpp  # 可氧化铜箱子的随机刻氧化
+├── WeatheringCopperChestBlock.hpp  # 可氧化铜箱子（Exposed/Weathered/Oxidized）
+├── WaxedCopperChestBlock.hpp  # 涂蜡铜箱子（isWaxed 恒为 true）
 ├── HopperBlock.cpp  # 模块接口与实现
 ├── HopperBlock.hpp  # 漏斗方块
 ├── ShelfBlock.cpp  # 模块接口与实现

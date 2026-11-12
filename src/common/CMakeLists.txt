@@ -875,6 +875,8 @@ add_library(mc_common STATIC
     # World - Block - Dirt
     world/block/blocks/dirt/SnowyDirtBlock.cpp
     world/block/blocks/dirt/SpreadableSnowyDirtBlock.cpp
+    world/block/blocks/dirt/GrassBlock.cpp
+    world/block/blocks/dirt/MyceliumBlock.cpp
     world/block/blocks/dirt/MudBlock.cpp
     world/block/blocks/dirt/DirtPathBlock.cpp
     world/block/blocks/door/DoorBlock.cpp
@@ -897,8 +899,16 @@ add_library(mc_common STATIC
     world/block/blocks/agricultural/PotatoBlock.cpp
     world/block/blocks/agricultural/BeetrootBlock.cpp
     world/block/blocks/agricultural/FarmlandBlock.cpp
-    world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
+    world/block/blocks/agricultural/AttachedStemBlock.cpp
+    world/block/blocks/agricultural/MelonStemBlock.cpp
+    world/block/blocks/agricultural/PumpkinStemBlock.cpp
+    world/block/blocks/agricultural/MelonAttachedStemBlock.cpp
+    world/block/blocks/agricultural/PumpkinAttachedStemBlock.cpp
+    world/block/blocks/agricultural/MelonBlock.cpp
+    world/block/blocks/agricultural/PumpkinBlock.cpp
+    world/block/blocks/agricultural/CarvedPumpkinBlock.cpp
+    world/block/blocks/agricultural/JackOLanternBlock.cpp
     world/block/blocks/agricultural/TorchflowerCropBlock.cpp
     world/block/blocks/agricultural/PitcherCropBlock.cpp
 
@@ -924,7 +934,10 @@ add_library(mc_common STATIC
     world/block/blocks/functional/FletchingTableBlock.cpp
     world/block/blocks/functional/SmithingTableBlock.cpp
     world/block/blocks/functional/AnvilBlock.cpp
-    world/block/blocks/functional/TrailsBlocks.cpp
+    world/block/blocks/functional/ChiseledBookshelfBlock.cpp
+    world/block/blocks/functional/DecoratedPotBlock.cpp
+    world/block/blocks/functional/BrushableBlock.cpp
+    world/block/blocks/functional/SnifferEggBlock.cpp
 
     # World - Block - Decorative
     world/block/blocks/decorative/PaneBlock.cpp
@@ -939,8 +952,15 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/AbstractCandleBlock.cpp
     world/block/blocks/decorative/CandleBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
-    world/block/blocks/decorative/BannerBlock.cpp
+    world/block/blocks/decorative/AbstractBannerBlock.cpp
+    world/block/blocks/decorative/StandingBannerBlock.cpp
+    world/block/blocks/decorative/WallBannerBlock.cpp
+    world/block/blocks/decorative/AbstractSkullBlock.cpp
     world/block/blocks/decorative/SkullBlock.cpp
+    world/block/blocks/decorative/WallSkullBlock.cpp
+    world/block/blocks/decorative/PlayerHeadBlock.cpp
+    world/block/blocks/decorative/WitherSkullBlock.cpp
+    world/block/blocks/decorative/PiglinWallSkullBlock.cpp
     world/block/blocks/decorative/TorchBlock.cpp
     world/block/blocks/decorative/WallTorchBlock.cpp
 
@@ -948,6 +968,11 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/DoublePlantBlock.cpp
     world/block/blocks/vegetation/TallGrassBlock.cpp
     world/block/blocks/vegetation/FlowerBlock.cpp
+    world/block/blocks/vegetation/LilacBlock.cpp
+    world/block/blocks/vegetation/RoseBushBlock.cpp
+    world/block/blocks/vegetation/PeonyBlock.cpp
+    world/block/blocks/vegetation/LargeFernBlock.cpp
+    world/block/blocks/vegetation/SunflowerBlock.cpp
     world/block/blocks/vegetation/WitherRoseBlock.cpp
     world/block/blocks/vegetation/SaplingBlock.cpp
     world/block/blocks/vegetation/MushroomBlock.cpp
@@ -981,9 +1006,16 @@ add_library(mc_common STATIC
 
     # World - Block - Coral
     world/block/blocks/coral/CoralBlock.cpp
+    world/block/blocks/coral/CoralFanBlock.cpp
+    world/block/blocks/coral/CoralWallFanBlock.cpp
+    world/block/blocks/coral/CoralPlantBlock.cpp
+    world/block/blocks/coral/CoralBlockBlock.cpp
 
     # World - Block - Ice
     world/block/blocks/ice/IceBlock.cpp
+    world/block/blocks/ice/PackedIceBlock.cpp
+    world/block/blocks/ice/BlueIceBlock.cpp
+    world/block/blocks/ice/FrostedIceBlock.cpp
     world/block/blocks/ice/SnowBlock.cpp
 
     # World - Block - Ocean
@@ -995,7 +1027,9 @@ add_library(mc_common STATIC
     world/block/blocks/ocean/BubbleColumnBlock.cpp
     world/block/blocks/ocean/DriedKelpBlock.cpp
     world/block/blocks/ocean/ConduitBlock.cpp
-    world/block/blocks/sign/SignBlock.cpp
+    world/block/blocks/sign/AbstractSignBlock.cpp
+    world/block/blocks/sign/StandingSignBlock.cpp
+    world/block/blocks/sign/WallSignBlock.cpp
     world/block/blocks/sign/HangingSignBlock.cpp
     world/block/blocks/redstone/lightningrod/LightningRodBlock.cpp
 
@@ -1024,6 +1058,7 @@ add_library(mc_common STATIC
     # World - Block - Copper
     world/block/blocks/copper/CopperBulbBlock.cpp
     world/block/blocks/container/CopperChestBlock.cpp
+    world/block/blocks/container/WeatheringCopperChestBlock.cpp
     world/block/blocks/copper/CopperGolemStatueBlock.cpp
     world/block/capability/oxidation/IOxidizableBlock.cpp
     world/block/capability/oxidation/WeatheringCopperBlock.cpp
@@ -1092,12 +1127,19 @@ add_library(mc_common STATIC
     world/block/blocks/mob/DriedGhastBlock.cpp
 
     # World - Block - Sculk
-    world/block/blocks/sculk/SculkBlocks.cpp
+    world/block/blocks/sculk/SculkBlock.cpp
+    world/block/blocks/sculk/SculkVeinBlock.cpp
+    world/block/blocks/sculk/SculkSensorBlock.cpp
+    world/block/blocks/sculk/CalibratedSculkSensorBlock.cpp
+    world/block/blocks/sculk/SculkCatalystBlock.cpp
+    world/block/blocks/sculk/SculkShriekerBlock.cpp
     world/block/blocks/sculk/SculkSpreader.cpp
 
     # World - Block - Trial
     world/block/blocks/trial/HeavyCoreBlock.cpp
-    world/block/blocks/trial/TrialBlocks.cpp
+    world/block/blocks/trial/TrialSpawnerBlock.cpp
+    world/block/blocks/trial/VaultBlock.cpp
+    world/block/blocks/trial/CrafterBlock.cpp
 
     # World - Block - Redstone
     world/block/blocks/redstone/RedstoneBlock.cpp

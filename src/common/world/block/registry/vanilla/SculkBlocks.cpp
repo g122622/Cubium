@@ -25,9 +25,14 @@
 #include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/base/sound/BlockSoundType.hpp"
 #include "common/world/block/base/types/HarvestTool.hpp"
+#include "common/world/block/blocks/sculk/CalibratedSculkSensorBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkCatalystBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkSensorBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkShriekerBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkVeinBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
-#include "world/block/blocks/sculk/SculkBlocks.hpp"
 
 namespace mc {
 namespace block_registry {

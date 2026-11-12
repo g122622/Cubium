@@ -34,6 +34,8 @@
  */
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/blocks/agricultural/CarvedPumpkinBlock.hpp"
+#include "common/world/block/blocks/agricultural/JackOLanternBlock.hpp"
 #include "common/world/block/blocks/container/CopperChestBlock.hpp"
 #include "common/world/block/capability/oxidation/IOxidizableBlock.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
@@ -52,7 +54,6 @@
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/Fluids.hpp"

@@ -284,7 +284,7 @@ valueIndices[i] == (m_stateIndex / layouts[i].stateStride) % layouts[i].property
 已用 200 组随机属性配置（1–7 个属性、每个 2–6 个值）× 全部状态组合逐位验证一致，
 并验证了 `with()` 的 `targetIndex = currentIndex + (new - cur) * stateStride`
 平移公式在推导式下自洽。**属性数上限实测为 7**（`.add` 链最长 7，`TripWireBlock` /
-`MultifaceBlock` / `TrailsBlocks`；分布：1 个属性 65 个 Builder、2 个 40、3 个 32、
+`MultifaceBlock` / `ChiseledBookshelfBlock`；分布：1 个属性 65 个 Builder、2 个 40、3 个 32、
 4 个 7、5 个 9、6 个 4、7 个 3）。
 
 **削减路径**：删掉 `m_valueIndices`，`getValueIndex(slot)` 改为按上式即时计算。

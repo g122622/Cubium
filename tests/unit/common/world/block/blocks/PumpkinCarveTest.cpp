@@ -35,6 +35,8 @@
 
 #include "common/BlockInteractionTestHelper.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/blocks/agricultural/CarvedPumpkinBlock.hpp"
+#include "common/world/block/blocks/agricultural/PumpkinBlock.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/effect/base/LevelEventId.hpp"
@@ -51,7 +53,6 @@
 #include "util/math/random/Random.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
-#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/fluid/Fluids.hpp"

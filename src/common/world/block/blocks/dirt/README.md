@@ -2,15 +2,17 @@
 
 泥土方块模块提供各种泥土类方块的实现，主要是可蔓延的雪覆盖泥土基类、泥巴方块及其子类。
 
-## 目录结构
+## 目录结构树
 
-```
+```text
 dirt/
-├── README.md                        # 本文档
-├── DirtPathBlock.hpp/cpp            # 草径方块（渲染+碰撞均15/16格高，不可路径寻找，上方固体时转回泥土）
-├── MudBlock.hpp/cpp                 # 泥巴方块（碰撞箱略矮，14/16格高，不可路径寻找）
-├── SnowyDirtBlock.hpp/cpp           # 雪覆盖泥土基类（持有 SNOWY 属性，不蔓延；podzol 直接使用）
-└── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类（继承 SnowyDirtBlock，草方块、菌丝的基类）
+├── SnowyDirtBlock.hpp/cpp              # 可积雪泥土基类（SNOWY 属性同步）
+├── SpreadableSnowyDirtBlock.hpp/cpp    # 可蔓延基类（草/菌丝共用的随机刻与积雪条件）
+├── GrassBlock.hpp/cpp                  # 草方块（骨粉撒花）
+├── MyceliumBlock.hpp/cpp               # 菌丝体（孢子粒子）
+├── DirtPathBlock.hpp/cpp               # 土径（踩踏变耕地/泥土）
+├── MudBlock.hpp/cpp                    # 泥巴
+└── README.md
 ```
 
 ## 内部模块关系

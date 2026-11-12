@@ -41,8 +41,9 @@
 #include "common/world/block/blocks/multiface/MultifaceSpreader.hpp" // MultifaceSpreader（spreadFromFaceTowardDirection）
 #include "common/world/block/blocks/redstone/AbstractButtonBlock.hpp" // AbstractButtonBlock::press（pressButton 接线）
 #include "common/world/block/blocks/redstone/LeverBlock.hpp"          // LeverBlock::toggle（pullLever 接线）
-#include "common/world/block/blocks/sculk/SculkBlocks.hpp"            // SculkVeinBlock::getSpreader（同上）
+#include "common/world/block/blocks/sculk/SculkCatalystBlock.hpp"     // SculkVeinBlock::getSpreader（同上）
 #include "common/world/block/blocks/sculk/SculkSpreader.hpp"          // mc::blocks::SculkSpreader（getSculkSpreader）
+#include "common/world/block/blocks/sculk/SculkVeinBlock.hpp"
 #include "common/world/block/capability/ILiquidContainer.hpp" // ILiquidContainer::receiveFluid（setFluidContainer）
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/state/BlockState.hpp"

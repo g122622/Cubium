@@ -37,6 +37,7 @@
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/BlockStatePredicates.hpp"
 #include "common/world/fluid/FlowingFluid.hpp"
+#include "world/block/blocks/dirt/GrassBlock.hpp"
 #include "world/block/blocks/dirt/SnowyDirtBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"

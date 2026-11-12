@@ -25,7 +25,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/property/Properties.hpp"
-#include "common/world/block/blocks/sculk/SculkBlocks.hpp"
+#include "common/world/block/blocks/sculk/CalibratedSculkSensorBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkSensorBlock.hpp"
+#include "common/world/block/blocks/sculk/SculkShriekerBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"

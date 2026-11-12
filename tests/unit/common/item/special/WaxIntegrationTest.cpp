@@ -40,7 +40,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/blocks/sign/AbstractSignBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"

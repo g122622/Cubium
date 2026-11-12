@@ -26,10 +26,12 @@
 #include "common/world/block/base/material/Material.hpp"
 #include "common/world/block/base/sound/BlockSoundType.hpp"
 #include "common/world/block/blocks/sign/HangingSignBlock.hpp"
-#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/blocks/sign/StandingSignBlock.hpp"
+#include "common/world/block/blocks/sign/WallSignBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
-#include "world/block/blocks/decorative/BannerBlock.hpp"
+#include "world/block/blocks/decorative/StandingBannerBlock.hpp"
+#include "world/block/blocks/decorative/WallBannerBlock.hpp"
 
 namespace mc {
 namespace block_registry {

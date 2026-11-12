@@ -30,7 +30,7 @@
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "item/core/ItemStack.hpp"
 #include "resource/LanguageManager.hpp"
-#include "world/block/blocks/decorative/BannerBlock.hpp"
+#include "world/block/blocks/decorative/AbstractBannerBlock.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include <string>
 #include <utility>

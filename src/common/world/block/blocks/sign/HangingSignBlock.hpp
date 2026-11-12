@@ -27,7 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/StateContainer.hpp"
-#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/blocks/sign/AbstractSignBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include <unordered_map>

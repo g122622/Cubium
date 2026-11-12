@@ -34,6 +34,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
+#include "common/world/block/blocks/coral/CoralColor.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"

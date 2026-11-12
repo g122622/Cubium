@@ -2,12 +2,17 @@
 
 水下珊瑚类方块的实现，包括珊瑚、珊瑚扇、墙珊瑚扇和珊瑚块。
 
-## 目录结构
+## 目录结构树
 
-```
+```text
 coral/
-├── README.md           # 本文档
-├── CoralBlock.hpp/cpp  # 珊瑚类定义（CoralPlantBlock、CoralFanBlock、CoralWallFanBlock、CoralBlockBlock）
+├── CoralColor.hpp            # 珊瑚颜色枚举（五种变种共用）
+├── CoralBlock.hpp/cpp        # 水下珊瑚方块（缺水变死珊瑚）
+├── CoralFanBlock.hpp/cpp     # 珊瑚扇（地面放置）
+├── CoralWallFanBlock.hpp/cpp # 墙珊瑚扇
+├── CoralPlantBlock.hpp/cpp   # 珊瑚植物（由骨粉生成）
+├── CoralBlockBlock.hpp/cpp   # 固体珊瑚块（不会死亡）
+└── README.md                 # 本文档
 ```
 
 ## 内部模块关系

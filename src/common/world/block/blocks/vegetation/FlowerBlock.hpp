@@ -20,10 +20,8 @@
  * SOFTWARE.
  *
  */
-
 #pragma once
 
-#include "DoublePlantBlock.hpp"
 #include "common/core/Types.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/property/Properties.hpp"
@@ -31,7 +29,6 @@
 #include "common/world/block/blocks/agricultural/BushBlock.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/block/state/BlockState.hpp"
-#include <array>
 
 namespace mc {
 namespace blocks {
@@ -109,65 +106,6 @@ protected:
     u32 m_suspiciousStewEffect;
     /// 效果持续时间（秒）
     i32 m_effectDuration;
-};
-
-/**
- * @brief 丁香方块
- *
- * 两格高的花朵，可制作染料。
- *
- */
-class LilacBlock : public DoublePlantBlock {
-public:
-    explicit LilacBlock(const BlockProperties& properties);
-};
-
-/**
- * @brief 玫瑰丛方块
- *
- * 两格高的花朵，可制作红色染料。
- *
- */
-class RoseBushBlock : public DoublePlantBlock {
-public:
-    explicit RoseBushBlock(const BlockProperties& properties);
-};
-
-/**
- * @brief 牡丹方块
- *
- * 两格高的花朵，可制作粉色染料。
- *
- */
-class PeonyBlock : public DoublePlantBlock {
-public:
-    explicit PeonyBlock(const BlockProperties& properties);
-};
-
-/**
- * @brief 大型蕨方块
- *
- * 两格高的蕨类植物，与蕨使用相同材质但为双格版本。
- * 可放置在草方块、泥土等上。
- *
- * MC ID: minecraft:large_fern
- *
- * LARGE_FERN 注册为 DoublePlantBlock。
- */
-class LargeFernBlock : public DoublePlantBlock {
-public:
-    explicit LargeFernBlock(const BlockProperties& properties);
-};
-
-/**
- * @brief 向日葵方块
- *
- * 两格高的花朵，朝向太阳。
- *
- */
-class SunflowerBlock : public DoublePlantBlock {
-public:
-    explicit SunflowerBlock(const BlockProperties& properties);
 };
 
 } // namespace blocks

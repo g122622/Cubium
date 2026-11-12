@@ -4,23 +4,32 @@
 
 本模块实现 Minecraft 中的农业相关方块，包括农作物、耕地、茎类作物、可可豆和瓜果类方块。
 
-## 目录结构
+## 目录结构树
 
-```
+```text
 agricultural/
-├── BushBlock.hpp/cpp          # 灌木/植物基类（所有植物的基类）
-├── CropBlock.hpp/cpp          # 农作物基类（小麦、胡萝卜、马铃薯）
-├── WheatBlock.hpp/cpp         # 小麦作物
-├── CarrotBlock.hpp/cpp        # 胡萝卜作物
-├── PotatoBlock.hpp/cpp        # 马铃薯作物
-├── BeetrootBlock.hpp/cpp      # 甜菜根作物（4阶段生长）
-├── TorchflowerCropBlock.hpp/cpp # 火把花作物（2阶段，成熟后变为火把花方块）
-├── PitcherCropBlock.hpp/cpp  # 瓶草作物（5阶段，AGE>=3变双格，继承DoublePlantBlock+IGrowable）
-├── FarmlandBlock.hpp/cpp      # 耕地方块
-├── StemBlock.hpp/cpp          # 茎类作物基类 + StemGrownBlock + AttachedStemBlock
-├── CocoaBlock.hpp/cpp         # 可可豆方块（丛林原木附着）
-├── MelonPumpkinBlocks.hpp/cpp # 瓜果类方块（西瓜、南瓜、雕刻南瓜、南瓜灯、茎方块）
-└── README.md                  # 本文档
+├── BushBlock.hpp/cpp                     # 植物基类（放置面与土壤委托链）
+├── CropBlock.hpp/cpp                     # 农作物基类（AGE_0_7 生长与骨粉）
+├── WheatBlock.hpp/cpp                    # 小麦（收割仪式与种子掉落）
+├── CarrotBlock.hpp/cpp                   # 胡萝卜
+├── PotatoBlock.hpp/cpp                   # 马铃薯（含毒马铃薯掉落）
+├── BeetrootBlock.hpp/cpp                 # 甜菜根（AGE_0_3，产物由战利品表决定）
+├── TorchflowerCropBlock.hpp/cpp          # 火把花作物（成熟后变为火把花）
+├── PitcherCropBlock.hpp/cpp              # 瓶草作物（AGE>=3 变双格）
+├── FarmlandBlock.hpp/cpp                 # 耕地（湿润度、踩踏退化）
+├── CocoaBlock.hpp/cpp                    # 可可豆（丛林原木侧面附着）
+├── StemBlock.hpp/cpp                     # 茎类作物基类（AGE_0_7 + 结果逻辑）
+├── StemGrownBlock.hpp                    # 茎类果实基类（反向引用茎与连接茎）
+├── AttachedStemBlock.hpp/cpp             # 连接茎基类（朝向与形状缓存）
+├── MelonStemBlock.hpp/cpp                # 西瓜茎
+├── PumpkinStemBlock.hpp/cpp              # 南瓜茎
+├── MelonAttachedStemBlock.hpp/cpp        # 连接西瓜茎
+├── PumpkinAttachedStemBlock.hpp/cpp      # 连接南瓜茎
+├── MelonBlock.hpp/cpp                    # 西瓜
+├── PumpkinBlock.hpp/cpp                  # 南瓜（剪刀雕刻）
+├── CarvedPumpkinBlock.hpp/cpp            # 雕刻南瓜（雪/铁/铜傀儡生成）
+├── JackOLanternBlock.hpp/cpp             # 南瓜灯（复用傀儡生成）
+└── README.md                             # 本文档
 ```
 
 ## 类层次结构

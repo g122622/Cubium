@@ -33,7 +33,7 @@
 #include "common/util/property/StateContainer.hpp"
 #include "common/util/property/StateHolder.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/block/blocks/sign/SignBlock.hpp"
+#include "common/world/block/blocks/sign/AbstractSignBlock.hpp"
 #include "common/world/block/capability/WaterLoggableHelpers.hpp"
 #include "common/world/block/core/Block.hpp"
 #include "common/world/blockentity/interactive/SignEntity.hpp"

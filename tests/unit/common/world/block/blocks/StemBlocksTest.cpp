@@ -24,8 +24,15 @@
 #include <gtest/gtest.h>
 
 #include "common/item/Items.hpp"
-#include "common/world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "common/world/block/blocks/agricultural/AttachedStemBlock.hpp"
+#include "common/world/block/blocks/agricultural/MelonAttachedStemBlock.hpp"
+#include "common/world/block/blocks/agricultural/MelonBlock.hpp"
+#include "common/world/block/blocks/agricultural/MelonStemBlock.hpp"
+#include "common/world/block/blocks/agricultural/PumpkinAttachedStemBlock.hpp"
+#include "common/world/block/blocks/agricultural/PumpkinBlock.hpp"
+#include "common/world/block/blocks/agricultural/PumpkinStemBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/agricultural/StemGrownBlock.hpp"
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 

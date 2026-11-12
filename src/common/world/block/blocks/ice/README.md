@@ -2,14 +2,15 @@
 
 `ice/` 目录包含普通冰、浮冰、蓝冰、霜冰和雪层的实现。重点处理冰的融化、雪层融化掉落、挖掘后的替换，雪层的放置和存活判断，以及世界写入顺序相关的回调安全性。
 
-## 目录结构
+## 目录结构树
 
 ```text
 ice/
-├── IceBlock.hpp             # 声明 IceBlock、PackedIceBlock、BlueIceBlock、FrostedIceBlock 四种冰系方块
-├── IceBlock.cpp             # 实现冰和霜冰的融化逻辑、玩家破坏后是否留水的判断
-├── SnowBlock.hpp            # 声明 SnowBlock 雪层方块（1-8层）及 SHAPES 形状数组
-├── SnowBlock.cpp            # 实现雪层 SHAPES 形状数组（LAYERS 相关渲染/碰撞/支撑形状）、融化掉落、放置存活判断、邻居更新支撑检查
+├── IceBlock.hpp/cpp          # 普通冰（光照融化、破坏后按下方方块决定水/空气）
+├── PackedIceBlock.hpp/cpp    # 浮冰（不融化）
+├── BlueIceBlock.hpp/cpp      # 蓝冰（不融化）
+├── FrostedIceBlock.hpp/cpp   # 霜冰（AGE_0_3 逐步融化）
+├── SnowBlock.hpp/cpp         # 雪块
 └── README.md
 ```
 

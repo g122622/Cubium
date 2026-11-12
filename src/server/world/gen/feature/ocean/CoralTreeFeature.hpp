@@ -29,6 +29,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/blocks/coral/CoralBlock.hpp"
+#include "common/world/block/blocks/coral/CoralColor.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 
 namespace mc {

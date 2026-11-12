@@ -2,13 +2,19 @@
 
 深暗之域的生物方块系列，包含幽匿脉络、幽匿感测体、幽匿催化体和幽匿尖啸体。
 
-## 目录结构
+## 目录结构树
 
-```
+```text
 sculk/
-├── README.md          # 本文档
-├── SculkBlocks.hpp    # 所有幽匿方块类声明
-└── SculkBlocks.cpp    # 所有幽匿方块类实现
+├── SculkBehaviour.hpp         # 幽匿行为接口（扩散脉络/消耗电荷/放电回调）
+├── SculkSpreader.hpp/cpp      # 电荷游标与扩散参数
+├── SculkBlock.hpp/cpp         # 幽匿块（电荷作用下的生长物生成）
+├── SculkVeinBlock.hpp/cpp     # 幽匿脉络（多面附着与蔓延）
+├── SculkSensorBlock.hpp/cpp   # 幽匿感测体（振动→红石信号状态机）
+├── CalibratedSculkSensorBlock.hpp/cpp # 校准幽匿感测体（FACING 过滤、10 tick 活跃期）
+├── SculkCatalystBlock.hpp/cpp # 幽匿催化体（BLOOM 状态）
+├── SculkShriekerBlock.hpp/cpp # 幽匿尖啸体（SHRIEKING / CAN_SUMMON）
+└── README.md                  # 本文档
 ```
 
 ## 内部模块关系
