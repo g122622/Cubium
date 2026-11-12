@@ -115,7 +115,7 @@ i32 HelpCommand::_showCommandHelp(
     const std::string commandName = context.getArgument<std::string>("command");
     auto node = dispatcher.getRoot()->getChild(commandName);
     if (!node || node->getType() != NodeType::Literal || !node->canUse(source)) {
-        source.sendFailure(::mc::text::literal("Unknown command: " + commandName));
+        source.sendFailure(::mc::text::translatable("commands.help.failed"));
         return 0;
     }
 
