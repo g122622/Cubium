@@ -30,9 +30,10 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/TeamEnums.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "server/application/IServer.hpp"
@@ -109,7 +110,7 @@ scoreboard::ScorePlayerTeam* _findTeam(
 {
     auto* team = scoreboard.getTeam(name);
     if (team == nullptr) {
-        source.sendError("Unknown team '" + name + "'");
+        source.sendFailure(::mc::text::literal("Unknown team '" + name + "'"));
     }
     return team;
 }
@@ -322,26 +323,26 @@ i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
     const std::string teamName = context.getArgument<std::string>("team");
     if (teamName.length() > scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH) {
-        source.sendError("Team name '" + teamName + "' is too long (max " +
-            std::to_string(scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH) + " characters)");
+        source.sendFailure(::mc::text::literal("Team name '" + teamName + "' is too long (max " +
+            std::to_string(scoreboard::ScorePlayerTeam::MAX_NAME_LENGTH) + " characters)"));
         return 0;
     }
 
     // 对齐 vanilla：同名队伍已存在时抛出 duplicate 错误。
     if (scoreboard->hasTeam(teamName)) {
-        source.sendError(_lang().get("commands.team.add.duplicate"));
+        source.sendFailure(::mc::text::literal(_lang().get("commands.team.add.duplicate")));
         return 0;
     }
 
     auto* team = scoreboard->createTeam(teamName);
     if (team == nullptr) {
-        source.sendError(_lang().get("commands.team.add.duplicate"));
+        source.sendFailure(::mc::text::literal(_lang().get("commands.team.add.duplicate")));
         return 0;
     }
 
@@ -351,7 +352,8 @@ i32 TeamCommand::_addTeam(CommandContext<ServerCommandSource>& context)
             std::make_unique<text::StringTextComponent>(context.getArgument<ComponentTextPtr>("displayName")->text));
     }
 
-    source.sendMessage(_lang().get("commands.team.add.success", {_formattedTeamName(*team)}));
+    source.sendSuccess(
+        ::mc::text::literal(_lang().get("commands.team.add.success", {_formattedTeamName(*team)})), false);
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
@@ -360,7 +362,7 @@ i32 TeamCommand::_removeTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -372,7 +374,7 @@ i32 TeamCommand::_removeTeam(CommandContext<ServerCommandSource>& context)
 
     const std::string displayName = _formattedTeamName(*team);
     scoreboard->removeTeam(*team);
-    source.sendMessage(_lang().get("commands.team.remove.success", {displayName}));
+    source.sendSuccess(::mc::text::literal(_lang().get("commands.team.remove.success", {displayName})), false);
     return static_cast<i32>(scoreboard->getTeams().size());
 }
 
@@ -381,7 +383,7 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -396,20 +398,22 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
         const auto& members = team->getMembers();
         const std::string displayName = _formattedTeamName(*team);
         if (members.empty()) {
-            source.sendMessage(_lang().get("commands.team.list.members.empty", {displayName}));
+            source.sendSuccess(
+                ::mc::text::literal(_lang().get("commands.team.list.members.empty", {displayName})), false);
             return 0;
         }
 
         const std::vector<std::string> memberNames(members.begin(), members.end());
-        source.sendMessage(_lang().get("commands.team.list.members.success",
-            {displayName, std::to_string(members.size()), _joinList(memberNames)}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.list.members.success",
+                               {displayName, std::to_string(members.size()), _joinList(memberNames)})),
+            false);
         return static_cast<i32>(members.size());
     }
 
     // /team list：列出全部队伍
     const auto teams = scoreboard->getTeams();
     if (teams.empty()) {
-        source.sendMessage(_lang().get("commands.team.list.teams.empty"));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.list.teams.empty")), false);
         return 0;
     }
 
@@ -420,8 +424,9 @@ i32 TeamCommand::_listTeams(CommandContext<ServerCommandSource>& context)
             teamNames.push_back(_formattedTeamName(*team));
         }
     }
-    source.sendMessage(
-        _lang().get("commands.team.list.teams.success", {std::to_string(teams.size()), _joinList(teamNames)}));
+    source.sendSuccess(::mc::text::literal(_lang().get(
+                           "commands.team.list.teams.success", {std::to_string(teams.size()), _joinList(teamNames)})),
+        false);
     return static_cast<i32>(teams.size());
 }
 
@@ -430,7 +435,7 @@ i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -444,7 +449,7 @@ i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
     // 复制成员列表，避免在遍历中修改成员集合。
     const std::vector<std::string> members(team->getMembers().begin(), team->getMembers().end());
     if (members.empty()) {
-        source.sendError(_lang().get("commands.team.empty.unchanged"));
+        source.sendFailure(::mc::text::literal(_lang().get("commands.team.empty.unchanged")));
         return 0;
     }
 
@@ -452,7 +457,9 @@ i32 TeamCommand::_emptyTeam(CommandContext<ServerCommandSource>& context)
         scoreboard->removePlayerFromTeam(member, *team);
     }
 
-    source.sendMessage(_lang().get("commands.team.empty.success", {std::to_string(members.size()), displayName}));
+    source.sendSuccess(
+        ::mc::text::literal(_lang().get("commands.team.empty.success", {std::to_string(members.size()), displayName})),
+        false);
     return static_cast<i32>(members.size());
 }
 
@@ -461,7 +468,7 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -481,7 +488,7 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
         playerIds.push_back(source.playerId());
     }
     if (playerIds.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -495,10 +502,12 @@ i32 TeamCommand::_joinTeam(CommandContext<ServerCommandSource>& context)
 
     const std::string displayName = _formattedTeamName(*team);
     if (playerIds.size() == 1) {
-        source.sendMessage(_lang().get("commands.team.join.success.single", {names.front(), displayName}));
+        source.sendSuccess(
+            ::mc::text::literal(_lang().get("commands.team.join.success.single", {names.front(), displayName})), false);
     } else {
-        source.sendMessage(
-            _lang().get("commands.team.join.success.multiple", {std::to_string(playerIds.size()), displayName}));
+        source.sendSuccess(::mc::text::literal(_lang().get(
+                               "commands.team.join.success.multiple", {std::to_string(playerIds.size()), displayName})),
+            false);
     }
     return static_cast<i32>(playerIds.size());
 }
@@ -508,7 +517,7 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -522,7 +531,7 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
         playerIds.push_back(source.playerId());
     }
     if (playerIds.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -536,9 +545,12 @@ i32 TeamCommand::_leaveTeam(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerIds.size() == 1) {
-        source.sendMessage(_lang().get("commands.team.leave.success.single", {names.front()}));
+        source.sendSuccess(
+            ::mc::text::literal(_lang().get("commands.team.leave.success.single", {names.front()})), false);
     } else {
-        source.sendMessage(_lang().get("commands.team.leave.success.multiple", {std::to_string(playerIds.size())}));
+        source.sendSuccess(::mc::text::literal(
+                               _lang().get("commands.team.leave.success.multiple", {std::to_string(playerIds.size())})),
+            false);
     }
     return static_cast<i32>(playerIds.size());
 }
@@ -548,7 +560,7 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* scoreboard = _scoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendError("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
@@ -564,43 +576,50 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         const std::string colorStr = context.getArgument<std::string>("value");
         const text::TextFormatting color = text::fromName(colorStr);
         if (color == text::TextFormatting::None) {
-            source.sendError("Unknown color '" + colorStr + "'");
+            source.sendFailure(::mc::text::literal("Unknown color '" + colorStr + "'"));
             return 0;
         }
         if (team->getColor() == color) {
-            source.sendError(_lang().get("commands.team.option.color.unchanged"));
+            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.color.unchanged")));
             return 0;
         }
         team->setColor(color);
-        source.sendMessage(_lang().get("commands.team.option.color.success", {displayName, text::toName(color)}));
+        source.sendSuccess(
+            ::mc::text::literal(_lang().get("commands.team.option.color.success", {displayName, text::toName(color)})),
+            false);
         return 0;
     }
 
     if (option == "friendlyFire") {
         const bool enabled = context.getArgument<bool>("allowed");
         if (team->getAllowFriendlyFire() == enabled) {
-            source.sendError(_lang().get(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
-                                                 : "commands.team.option.friendlyfire.alreadyDisabled"));
+            source.sendFailure(
+                ::mc::text::literal(_lang().get(enabled ? "commands.team.option.friendlyfire.alreadyEnabled"
+                                                        : "commands.team.option.friendlyfire.alreadyDisabled")));
             return 0;
         }
         team->setAllowFriendlyFire(enabled);
-        source.sendMessage(_lang().get(
-            enabled ? "commands.team.option.friendlyfire.enabled" : "commands.team.option.friendlyfire.disabled",
-            {displayName}));
+        source.sendSuccess(::mc::text::literal(_lang().get(enabled ? "commands.team.option.friendlyfire.enabled"
+                                                                   : "commands.team.option.friendlyfire.disabled",
+                               {displayName})),
+            false);
         return 0;
     }
 
     if (option == "seeFriendlyInvisibles") {
         const bool enabled = context.getArgument<bool>("allowed");
         if (team->canSeeFriendlyInvisibles() == enabled) {
-            source.sendError(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
-                                                 : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled"));
+            source.sendFailure(::mc::text::literal(
+                _lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.alreadyEnabled"
+                                    : "commands.team.option.seeFriendlyInvisibles.alreadyDisabled")));
             return 0;
         }
         team->setSeeFriendlyInvisibles(enabled);
-        source.sendMessage(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.enabled"
-                                               : "commands.team.option.seeFriendlyInvisibles.disabled",
-            {displayName}));
+        source.sendSuccess(
+            ::mc::text::literal(_lang().get(enabled ? "commands.team.option.seeFriendlyInvisibles.enabled"
+                                                    : "commands.team.option.seeFriendlyInvisibles.disabled",
+                {displayName})),
+            false);
         return 0;
     }
 
@@ -609,18 +628,19 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
         const auto parsed = scoreboard::teamVisibilityParse(visStr);
         if (!parsed) {
-            source.sendError(
-                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
+            source.sendFailure(::mc::text::literal(
+                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam"));
             return 0;
         }
         const auto visibility = *parsed;
         if (team->getNameTagVisibility() == visibility) {
-            source.sendError(_lang().get("commands.team.option.nametagVisibility.unchanged"));
+            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.nametagVisibility.unchanged")));
             return 0;
         }
         team->setNameTagVisibility(visibility);
-        source.sendMessage(_lang().get(
-            "commands.team.option.nametagVisibility.success", {displayName, _visibilityDisplayName(visibility)}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.nametagVisibility.success",
+                               {displayName, _visibilityDisplayName(visibility)})),
+            false);
         return 0;
     }
 
@@ -629,18 +649,20 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
         const auto parsed = scoreboard::teamVisibilityParse(visStr);
         if (!parsed) {
-            source.sendError(
-                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam");
+            source.sendFailure(::mc::text::literal(
+                "Unknown visibility '" + visStr + "'. Valid values: always, never, hideForOtherTeams, hideForOwnTeam"));
             return 0;
         }
         const auto visibility = *parsed;
         if (team->getDeathMessageVisibility() == visibility) {
-            source.sendError(_lang().get("commands.team.option.deathMessageVisibility.unchanged"));
+            source.sendFailure(
+                ::mc::text::literal(_lang().get("commands.team.option.deathMessageVisibility.unchanged")));
             return 0;
         }
         team->setDeathMessageVisibility(visibility);
-        source.sendMessage(_lang().get(
-            "commands.team.option.deathMessageVisibility.success", {displayName, _visibilityDisplayName(visibility)}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.deathMessageVisibility.success",
+                               {displayName, _visibilityDisplayName(visibility)})),
+            false);
         return 0;
     }
 
@@ -649,32 +671,33 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         // 严格解析（等价原版 CODEC.byName）：未知值返回 nullopt，直接拒绝非法输入。
         const auto parsedRule = scoreboard::teamCollisionRuleParse(ruleStr);
         if (!parsedRule) {
-            source.sendError(
-                "Unknown collision rule '" + ruleStr + "'. Valid values: always, never, pushOtherTeams, pushOwnTeam");
+            source.sendFailure(::mc::text::literal(
+                "Unknown collision rule '" + ruleStr + "'. Valid values: always, never, pushOtherTeams, pushOwnTeam"));
             return 0;
         }
         const auto rule = *parsedRule;
         if (team->getCollisionRule() == rule) {
-            source.sendError(_lang().get("commands.team.option.collisionRule.unchanged"));
+            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.collisionRule.unchanged")));
             return 0;
         }
         team->setCollisionRule(rule);
-        source.sendMessage(
-            _lang().get("commands.team.option.collisionRule.success", {displayName, _collisionDisplayName(rule)}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.collisionRule.success",
+                               {displayName, _collisionDisplayName(rule)})),
+            false);
         return 0;
     }
 
     if (option == "prefix") {
         const std::string prefix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setPrefix(std::make_unique<text::StringTextComponent>(prefix));
-        source.sendMessage(_lang().get("commands.team.option.prefix.success", {prefix}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.prefix.success", {prefix})), false);
         return 1;
     }
 
     if (option == "suffix") {
         const std::string suffix = context.getArgument<ComponentTextPtr>(option)->text;
         team->setSuffix(std::make_unique<text::StringTextComponent>(suffix));
-        source.sendMessage(_lang().get("commands.team.option.suffix.success", {suffix}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.suffix.success", {suffix})), false);
         return 1;
     }
 
@@ -682,15 +705,15 @@ i32 TeamCommand::_modifyTeam(CommandContext<ServerCommandSource>& context)
         const std::string newDisplayName = context.getArgument<ComponentTextPtr>(option)->text;
         const text::ITextComponent* current = team->getDisplayName();
         if (current != nullptr && current->getFormattedText() == newDisplayName) {
-            source.sendError(_lang().get("commands.team.option.name.unchanged"));
+            source.sendFailure(::mc::text::literal(_lang().get("commands.team.option.name.unchanged")));
             return 0;
         }
         team->setDisplayName(std::make_unique<text::StringTextComponent>(newDisplayName));
-        source.sendMessage(_lang().get("commands.team.option.name.success", {displayName}));
+        source.sendSuccess(::mc::text::literal(_lang().get("commands.team.option.name.success", {displayName})), false);
         return 0;
     }
 
-    source.sendError("No team option was specified");
+    source.sendFailure(::mc::text::literal("No team option was specified"));
     return 0;
 }
 

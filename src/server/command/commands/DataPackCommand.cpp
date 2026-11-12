@@ -30,6 +30,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -136,7 +137,7 @@ i32 DataPackCommand::_enableDataPack(CommandContext<ServerCommandSource>& contex
 
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("Failed to enable data pack: server not available");
+        source.sendSuccess(::mc::text::literal("Failed to enable data pack: server not available"), false);
         return 0;
     }
 
@@ -155,17 +156,17 @@ i32 DataPackCommand::_enableDataPack(CommandContext<ServerCommandSource>& contex
     }
 
     if (matchedPath.empty()) {
-        source.sendMessage("Unknown data pack '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Unknown data pack '" + name + "'"), false);
         return 0;
     }
 
     if (dataPacks.setEnabled(matchedPath, true)) {
         server::net::setRegistryDatapackSource(dataPacks);
-        source.sendMessage("Enabled data pack '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Enabled data pack '" + name + "'"), false);
         return 1;
     }
 
-    source.sendMessage("Failed to enable data pack '" + name + "'");
+    source.sendSuccess(::mc::text::literal("Failed to enable data pack '" + name + "'"), false);
     return 0;
 }
 
@@ -176,7 +177,7 @@ i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& conte
 
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("Failed to disable data pack: server not available");
+        source.sendSuccess(::mc::text::literal("Failed to disable data pack: server not available"), false);
         return 0;
     }
 
@@ -193,17 +194,17 @@ i32 DataPackCommand::_disableDataPack(CommandContext<ServerCommandSource>& conte
     }
 
     if (matchedPath.empty()) {
-        source.sendMessage("Unknown data pack '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Unknown data pack '" + name + "'"), false);
         return 0;
     }
 
     if (dataPacks.setEnabled(matchedPath, false)) {
         server::net::setRegistryDatapackSource(dataPacks);
-        source.sendMessage("Disabled data pack '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Disabled data pack '" + name + "'"), false);
         return 1;
     }
 
-    source.sendMessage("Failed to disable data pack '" + name + "'");
+    source.sendSuccess(::mc::text::literal("Failed to disable data pack '" + name + "'"), false);
     return 0;
 }
 
@@ -215,27 +216,27 @@ i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& contex
     for (const char c : id) {
         const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
         if (!ok) {
-            source.sendError("Invalid data pack id: " + id + " (only [a-z0-9_-] are allowed)");
+            source.sendFailure(::mc::text::literal("Invalid data pack id: " + id + " (only [a-z0-9_-] are allowed)"));
             return 0;
         }
     }
 
     auto* server = source.server();
     if (!server) {
-        source.sendError("Failed to create data pack: server not available");
+        source.sendFailure(::mc::text::literal("Failed to create data pack: server not available"));
         return 0;
     }
 
     std::error_code ec;
     const std::filesystem::path dir = std::filesystem::path("datapacks") / id;
     if (std::filesystem::exists(dir, ec)) {
-        source.sendError("A data pack with id '" + id + "' already exists");
+        source.sendFailure(::mc::text::literal("A data pack with id '" + id + "' already exists"));
         return 0;
     }
 
     std::filesystem::create_directories(dir / "data", ec);
     if (ec) {
-        source.sendError("Failed to create data pack '" + id + "': " + ec.message());
+        source.sendFailure(::mc::text::literal("Failed to create data pack '" + id + "': " + ec.message()));
         return 0;
     }
 
@@ -247,11 +248,11 @@ i32 DataPackCommand::_createDataPack(CommandContext<ServerCommandSource>& contex
     auto& dataPacks = server->dataPackList();
     const auto added = dataPacks.addPack(dir, true, 0);
     if (!added.success()) {
-        source.sendError("Failed to create data pack '" + id + "'");
+        source.sendFailure(::mc::text::literal("Failed to create data pack '" + id + "'"));
         return 0;
     }
     server::net::setRegistryDatapackSource(dataPacks);
-    source.sendMessage("Created empty data pack '" + id + "'");
+    source.sendSuccess(::mc::text::literal("Created empty data pack '" + id + "'"), false);
     return 1;
 }
 
@@ -262,7 +263,7 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
 
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("No data packs available");
+        source.sendSuccess(::mc::text::literal("No data packs available"), false);
         return 0;
     }
 
@@ -270,7 +271,7 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
     auto allPacks = dataPacks.getAllPacks();
 
     if (allPacks.empty()) {
-        source.sendMessage("There are no data packs available");
+        source.sendSuccess(::mc::text::literal("There are no data packs available"), false);
         return 0;
     }
 
@@ -302,13 +303,23 @@ i32 DataPackCommand::_listDataPacks(CommandContext<ServerCommandSource>& context
 
     if (filter == "available") {
         // 原版 available = 所有可用的包（含已启用）。
-        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
-        source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
+        source.sendSuccess(
+            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+            false);
+        source.sendSuccess(
+            ::mc::text::literal("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str()),
+            false);
     } else if (filter == "enabled") {
-        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
+        source.sendSuccess(
+            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+            false);
     } else {
-        source.sendMessage("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str());
-        source.sendMessage("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str());
+        source.sendSuccess(
+            ::mc::text::literal("Enabled data packs (" + std::to_string(enabledCount) + "): " + enabledList.str()),
+            false);
+        source.sendSuccess(
+            ::mc::text::literal("Disabled data packs (" + std::to_string(disabledCount) + "): " + disabledList.str()),
+            false);
     }
     return 1;
 }

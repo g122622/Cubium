@@ -31,6 +31,7 @@
 #include <mutex>
 #include <optional>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -126,14 +127,18 @@ public:
     // ========================================================================
 
     /**
-     * @brief 从资源包列表加载语言文件
+     * @brief 从资源包列表加载语言文件（扫描全部命名空间）
      *
-     * 按优先级加载，高优先级包的翻译会覆盖低优先级的。
-     * 同时加载默认语言 (en_us) 作为回退。
+     * 按资源包优先级从低到高合并，高优先级包的翻译覆盖低优先级的；同一资源包内
+     * 依次加载 `assets/<ns>/lang/<code>.json` 的所有命名空间。非默认语言会先加载
+     * en_us 作为回退，再用目标语言覆盖。
+     *
+     * 整个过程先在锁外读文件与解析，最后一次性替换翻译表，避免持锁 I/O，
+     * 也避免与查询路径共用同一把非递归锁造成自死锁。
      *
      * @param packList 资源包列表
      * @param languageCode 语言代码（如 "zh_cn", "en_us"）
-     * @return 成功或错误
+     * @return 成功或错误（无任何翻译时仍返回成功，查询回退为键本身）
      */
     [[nodiscard]] Result<void> loadLanguage(const PackRepository& packList, const std::string& languageCode);
 
@@ -199,19 +204,15 @@ public:
 
     /**
      * @brief 获取当前语言代码
+     *
+     * 按值返回：翻译表可被 `/reload` 并发替换，返回引用会悬垂。
      */
-    [[nodiscard]] const std::string& currentLanguage() const noexcept
-    {
-        return m_currentLanguage;
-    }
+    [[nodiscard]] std::string currentLanguage() const;
 
     /**
      * @brief 获取翻译条目数量
      */
-    [[nodiscard]] size_t translationCount() const noexcept
-    {
-        return m_translations.size();
-    }
+    [[nodiscard]] size_t translationCount() const;
 
     // ========================================================================
     // 语言发现
@@ -230,13 +231,16 @@ public:
         const PackRepository& packList, const std::string& namespace_ = "minecraft");
 
     /**
-     * @brief 获取内置语言列表
+     * @brief 扫描资源包中可用的语言及其显示名
      *
-     * 返回 Minecraft 1.16.5 支持的语言代码列表。
+     * 语言代码来自 `assets/minecraft/lang/` 下的 JSON 文件名；显示名与地区码读取各语言
+     * 文件里的 `language.name` / `language.region` / `language.bidirectional` 键，
+     * 与原版语言列表的数据来源一致，不在代码中维护硬编码清单。
      *
-     * @return 语言代码列表
+     * @param packList 资源包列表
+     * @return 语言信息列表（按语言代码排序）
      */
-    [[nodiscard]] static std::vector<LanguageInfo> getBuiltinLanguages();
+    [[nodiscard]] static std::vector<LanguageInfo> scanLanguages(const PackRepository& packList);
 
     // ========================================================================
     // 全局实例
@@ -262,10 +266,7 @@ public:
      *
      * @param callback 回调函数
      */
-    void setOnLanguageChanged(std::function<void()> callback)
-    {
-        m_onLanguageChanged = std::move(callback);
-    }
+    void setOnLanguageChanged(std::function<void()> callback);
 
 private:
     /// 翻译映射表：翻译键 -> 翻译文本
@@ -277,22 +278,58 @@ private:
     /// 语言变更回调
     std::function<void()> m_onLanguageChanged;
 
-    /// 互斥锁（用于线程安全）
-    mutable std::mutex m_mutex;
+    /// 读写锁：查询（get/has/currentLanguage）走共享锁，加载与清空走独占锁。
+    /// 加载流程在锁外完成读文件与 JSON 解析，最后一次性替换翻译表，禁止在持锁状态下回调。
+    mutable std::shared_mutex m_mutex;
 
     /// 占位符替换（内部实现）
     static std::string _replacePlaceholders(const std::string& text, const std::vector<std::string>& params);
 
     /**
-     * @brief 从单个资源包加载语言文件
+     * @brief 按给定命名空间列表加载语言（无锁读文件，最后一次性提交）
      *
+     * @param packList 资源包列表
+     * @param languageCode 语言代码
+     * @param namespaces 要合并的命名空间列表
+     * @return 成功或错误
+     */
+    [[nodiscard]] Result<void> _loadLanguage(
+        const PackRepository& packList, const std::string& languageCode, const std::vector<std::string>& namespaces);
+
+    /**
+     * @brief 把单个资源包中的语言文件合并进目标表（无锁）
+     *
+     * @param target 合并目标（键 -> 文本）
      * @param pack 资源包
      * @param languageCode 语言代码
      * @param namespace_ 命名空间
-     * @return 成功加载的翻译条目数量
+     * @return 成功时将合并条目数写入结果；文件不存在返回 ResourceNotFound
      */
-    [[nodiscard]] Result<size_t> loadLanguageFromPack(
-        const IResourcePack& pack, const std::string& languageCode, const std::string& namespace_ = "minecraft");
+    [[nodiscard]] static Result<size_t> _mergeLanguageFile(std::unordered_map<std::string, std::string>& target,
+        const IResourcePack& pack,
+        const std::string& languageCode,
+        const std::string& namespace_);
+
+    /**
+     * @brief 把语言 JSON 文本合并进目标表（无锁，供加载与测试复用）
+     *
+     * @param target 合并目标
+     * @param jsonContent 语言 JSON 文本
+     * @return 成功时将合并条目数写入结果
+     */
+    [[nodiscard]] static Result<size_t> _mergeJsonObject(
+        std::unordered_map<std::string, std::string>& target, const std::string& jsonContent);
+
+    /**
+     * @brief 用合并结果替换翻译表并触发回调（回调在锁外执行）
+     *
+     * @param merged 已合并的翻译表
+     * @param languageCode 语言代码
+     * @param loadedFiles 成功读取的语言文件数（用于日志）
+     * @return 始终成功
+     */
+    [[nodiscard]] Result<void> _commitMerged(
+        std::unordered_map<std::string, std::string>&& merged, const std::string& languageCode, size_t loadedFiles);
 };
 
 } // namespace mc::resource

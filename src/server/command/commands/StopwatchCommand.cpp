@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -129,11 +130,11 @@ i32 StopwatchCommand::_create(CommandContext<ServerCommandSource>& context)
     auto& stopwatches = _stopwatches()[source.dimensionId()];
     const ResourceLocation id = context.getArgument<ResourceLocation>("id");
     if (stopwatches.contains(id)) {
-        source.sendError("A stopwatch named '" + id.toString() + "' already exists");
+        source.sendFailure(::mc::text::literal("A stopwatch named '" + id.toString() + "' already exists"));
         return 0;
     }
     stopwatches.emplace(id, StopwatchState{static_cast<i64>(_currentTick(source))});
-    source.sendMessage("Created new stopwatch '" + id.toString() + "'");
+    source.sendSuccess(::mc::text::literal("Created new stopwatch '" + id.toString() + "'"), false);
     return 1;
 }
 
@@ -144,11 +145,11 @@ i32 StopwatchCommand::_restart(CommandContext<ServerCommandSource>& context)
     const ResourceLocation id = context.getArgument<ResourceLocation>("id");
     auto it = stopwatches.find(id);
     if (it == stopwatches.end()) {
-        source.sendError("No stopwatch named '" + id.toString() + "' exists");
+        source.sendFailure(::mc::text::literal("No stopwatch named '" + id.toString() + "' exists"));
         return 0;
     }
     it->second.startTick = static_cast<i64>(_currentTick(source));
-    source.sendMessage("Restarted stopwatch '" + id.toString() + "'");
+    source.sendSuccess(::mc::text::literal("Restarted stopwatch '" + id.toString() + "'"), false);
     return 1;
 }
 
@@ -158,10 +159,10 @@ i32 StopwatchCommand::_remove(CommandContext<ServerCommandSource>& context)
     auto& stopwatches = _stopwatches()[source.dimensionId()];
     const ResourceLocation id = context.getArgument<ResourceLocation>("id");
     if (stopwatches.erase(id) == 0) {
-        source.sendError("No stopwatch named '" + id.toString() + "' exists");
+        source.sendFailure(::mc::text::literal("No stopwatch named '" + id.toString() + "' exists"));
         return 0;
     }
-    source.sendMessage("Removed stopwatch '" + id.toString() + "'");
+    source.sendSuccess(::mc::text::literal("Removed stopwatch '" + id.toString() + "'"), false);
     return 1;
 }
 
@@ -172,14 +173,15 @@ i32 StopwatchCommand::_query(CommandContext<ServerCommandSource>& context)
     const ResourceLocation id = context.getArgument<ResourceLocation>("id");
     auto it = stopwatches.find(id);
     if (it == stopwatches.end()) {
-        source.sendError("No stopwatch named '" + id.toString() + "' exists");
+        source.sendFailure(::mc::text::literal("No stopwatch named '" + id.toString() + "' exists"));
         return 0;
     }
     const i64 elapsed = static_cast<i64>(_currentTick(source)) - it->second.startTick;
     // 原版 query 的 scale：把经过的 tick 换算成秒/分钟等（省略时为 1）。
     const f64 scale = context.hasArgument("scale") ? context.getArgument<f64>("scale") : 1.0;
     const f64 value = static_cast<f64>(elapsed) * scale;
-    source.sendMessage("Stopwatch '" + id.toString() + "' elapsed: " + std::to_string(value) + " ticks");
+    source.sendSuccess(
+        ::mc::text::literal("Stopwatch '" + id.toString() + "' elapsed: " + std::to_string(value) + " ticks"), false);
     return 1;
 }
 

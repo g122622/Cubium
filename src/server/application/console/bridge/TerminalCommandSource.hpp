@@ -49,14 +49,14 @@ public:
      */
     TerminalCommandSource(server::IServer* server, EventRingBuffer& events);
 
-    void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
-    void sendError(const std::string& message) override;
+    void sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins) override;
+    void sendFailure(const text::ITextComponent& message) override;
 
     /**
      * @brief 非玩家源的输出出口：把回执送入事件区
      *
-     * 不用 sendMessage 覆写：命令执行者经 /execute as 换成玩家时，sendMessage 会改为给
-     * 玩家发聊天（正确行为），但控制台作为发起者仍应在终端看到一条回执。
+     * 命令执行者经 /execute as 换成玩家时，sendSuccess 会改为给玩家发聊天（正确行为），
+     * 但控制台作为发起者仍应在终端看到一条回执。
      */
     void onConsoleMessage(const std::string& message) override;
 

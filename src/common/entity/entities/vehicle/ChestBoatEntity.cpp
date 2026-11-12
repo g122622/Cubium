@@ -330,7 +330,7 @@ std::unique_ptr<AbstractContainerMenu> ChestBoatEntity::createMenu(i32 container
 
 std::string ChestBoatEntity::getDisplayName() const
 {
-    return "container.chestBoat";
+    return "container.chest";
 }
 
 ContainerType ChestBoatEntity::getMenuType() const

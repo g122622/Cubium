@@ -493,7 +493,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                         if (!permissionDenied) {
                             permissionDenied = true;
                             consider(ParseResults<S>(CommandError(CommandErrorType::PermissionDenied,
-                                                         "commands.permission.denied",
+                                                         "command.unknown.command",
                                                          deniedCursor)
                                                          .withInput(currentContext->getInput()),
                                          deniedCursor),
@@ -560,7 +560,7 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                                 permissionDenied = true;
                                 const i32 deniedCursor = childReader.getCursor();
                                 consider(ParseResults<S>(CommandError(CommandErrorType::PermissionDenied,
-                                                             "commands.permission.denied",
+                                                             "command.unknown.command",
                                                              deniedCursor)
                                                              .withInput(currentContext->getInput()),
                                              deniedCursor),

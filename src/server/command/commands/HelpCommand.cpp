@@ -27,6 +27,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <algorithm>
@@ -103,7 +104,7 @@ i32 HelpCommand::_showHelp(
         ss << "\n";
     }
     ss << "\nUse /help <command> for more information";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -114,7 +115,7 @@ i32 HelpCommand::_showCommandHelp(
     const std::string commandName = context.getArgument<std::string>("command");
     auto node = dispatcher.getRoot()->getChild(commandName);
     if (!node || node->getType() != NodeType::Literal || !node->canUse(source)) {
-        source.sendError("Unknown command: " + commandName);
+        source.sendFailure(::mc::text::literal("Unknown command: " + commandName));
         return 0;
     }
 
@@ -142,7 +143,7 @@ i32 HelpCommand::_showCommandHelp(
         ss << "\nStatus: partially implemented";
     }
 
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 

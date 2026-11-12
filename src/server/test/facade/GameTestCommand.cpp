@@ -21,6 +21,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"     // StringArgumentType
 #include "common/command/arguments/GameModeArgument.hpp" // BlockPosArgumentType / Coordinates
+#include "common/util/text/ComponentFactory.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -154,7 +155,7 @@ i32 GameTestCommand::_pos(mc::command::CommandContext<mc::command::ServerCommand
     const auto pos = mc::command::BlockPosArgumentType::getBlockPos(context, "pos", source);
     std::ostringstream ss;
     ss << "GameTest grid start set to (" << pos.x << ", " << pos.y << ", " << pos.z << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -162,7 +163,7 @@ i32 GameTestCommand::_locate(mc::command::CommandContext<mc::command::ServerComm
 {
     // TODO: 查询并返回某测试结构放置位置（需结构放置记录/StructureBlockEntity 就绪）
     auto& source = context.getSource();
-    source.sendError("locate is not implemented yet (structure placement tracking pending)");
+    source.sendFailure(::mc::text::literal("locate is not implemented yet (structure placement tracking pending)"));
     return 0;
 }
 
@@ -170,7 +171,7 @@ i32 GameTestCommand::_clear(mc::command::CommandContext<mc::command::ServerComma
 {
     auto& source = context.getSource();
     GameTestTicker::instance().clear();
-    source.sendMessage("Cleared all running game tests");
+    source.sendSuccess(::mc::text::literal("Cleared all running game tests"), false);
     return 1;
 }
 
@@ -179,7 +180,7 @@ i32 GameTestCommand::_launchTests(
 {
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available to run game tests");
+        source.sendFailure(::mc::text::literal("No world available to run game tests"));
         return 0;
     }
 
@@ -203,7 +204,7 @@ i32 GameTestCommand::_launchTests(
     if (runnable.empty()) {
         std::ostringstream ss;
         ss << "No tests matched filter '" << filter << "'";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -247,7 +248,7 @@ i32 GameTestCommand::_launchTests(
 
     std::ostringstream ss;
     ss << feedbackLabel << ": launched " << launched << " game test(s)";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(launched);
 }
 

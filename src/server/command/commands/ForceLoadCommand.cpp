@@ -30,6 +30,7 @@
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
@@ -147,14 +148,14 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.forceload.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器
     server::ServerChunkManager* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("commands.forceload.failed.noChunkManager");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
@@ -187,7 +188,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
 
     // 世界边界检查（使用 world 命名空间的工具函数）
     if (!world::isValidChunkCoord(minChunkX, minChunkZ) || !world::isValidChunkCoord(maxChunkX, maxChunkZ)) {
-        source.sendError("commands.forceload.failed.outOfWorld");
+        source.sendFailure(::mc::text::literal("Position is outside of the world"));
         return 0;
     }
 
@@ -197,7 +198,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     if (totalChunks > MAX_FORCE_LOAD_CHUNKS) {
         std::ostringstream ss;
         ss << "commands.forceload.failed.tooManyChunks:" << MAX_FORCE_LOAD_CHUNKS << ":" << totalChunks;
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -227,12 +228,12 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     if (successCount == 1) {
         std::ostringstream ss;
         ss << "commands.forceload.added.single:[" << firstChunk.x << ", " << firstChunk.z << "]," << dimensionName;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "commands.forceload.added.multiple:" << successCount << "," << dimensionName << ",[" << minChunkX << ", "
            << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return successCount;
@@ -245,14 +246,14 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.forceload.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器
     server::ServerChunkManager* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("commands.forceload.failed.noChunkManager");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
@@ -305,7 +306,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     ticketManager.processUpdates();
 
     if (removedCount == 0) {
-        source.sendError("commands.forceload.remove.failed");
+        source.sendFailure(::mc::text::literal("commands.forceload.removed.failure"));
         return 0;
     }
 
@@ -313,12 +314,12 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     if (removedCount == 1) {
         std::ostringstream ss;
         ss << "commands.forceload.removed.single:[" << minChunkX << ", " << minChunkZ << "]," << dimensionName;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "commands.forceload.removed.multiple:" << removedCount << "," << dimensionName << ",[" << minChunkX
            << ", " << minChunkZ << "],[" << maxChunkX << ", " << maxChunkZ << "]";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return removedCount;
@@ -331,14 +332,14 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.forceload.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器
     server::ServerChunkManager* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("commands.forceload.failed.noChunkManager");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
@@ -361,12 +362,12 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
     if (isForced) {
         std::ostringstream ss;
         ss << "commands.forceload.query.success:[" << chunkX << ", " << chunkZ << "]," << dimensionName;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 1;
     } else {
         std::ostringstream ss;
         ss << "commands.forceload.query.failed:[" << chunkX << ", " << chunkZ << "]," << dimensionName;
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 }
@@ -378,14 +379,14 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.forceload.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器
     server::ServerChunkManager* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("commands.forceload.failed.noChunkManager");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
@@ -402,7 +403,7 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     if (count == 0) {
         std::ostringstream ss;
         ss << "commands.forceload.list.none:" << dimensionName;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -426,11 +427,11 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     if (count == 1) {
         std::ostringstream ss;
         ss << "commands.forceload.list.single:" << dimensionName << "," << chunkList.str();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "commands.forceload.list.multiple:" << count << "," << dimensionName << "," << chunkList.str();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return count;
@@ -443,14 +444,14 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.forceload.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器
     server::ServerChunkManager* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("commands.forceload.failed.noChunkManager");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
@@ -474,7 +475,7 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
     // 发送反馈消息
     std::ostringstream ss;
     ss << "commands.forceload.removed.all:" << dimensionName;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return removedCount;
 }

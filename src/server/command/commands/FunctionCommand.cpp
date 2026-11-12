@@ -38,6 +38,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
@@ -160,7 +161,7 @@ i32 FunctionCommand::_runFunctionWithArguments(CommandContext<ServerCommandSourc
 {
     auto arguments = NbtCompoundArgumentType::getNbt(context, "arguments");
     if (arguments == nullptr) {
-        context.getSource().sendError("Invalid arguments");
+        context.getSource().sendFailure(::mc::text::literal("Invalid arguments"));
         return 0;
     }
     return _executeFunctions(context, arguments.get());
@@ -172,7 +173,7 @@ i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context
     EntitySelector selector = context.getArgument<EntitySelector>("source");
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendError("No entity matched the selector");
+        source.sendFailure(::mc::text::literal("No entity matched the selector"));
         return 0;
     }
 
@@ -182,7 +183,7 @@ i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context
     {
         auto dataResult = accessor.getData();
         if (dataResult.failed()) {
-            source.sendError("Failed to read entity data: " + dataResult.error().message());
+            source.sendFailure(::mc::text::literal("Failed to read entity data: " + dataResult.error().message()));
             return 0;
         }
         auto data = std::move(dataResult).value();
@@ -192,16 +193,16 @@ i32 FunctionCommand::_runWithEntity(CommandContext<ServerCommandSource>& context
             NbtPath path = context.getArgument<NbtPath>("path");
             auto results = path.get(*data);
             if (results.empty()) {
-                source.sendError("Path not found in entity data");
+                source.sendFailure(::mc::text::literal("Path not found in entity data"));
                 return 0;
             }
             if (results.size() != 1) {
-                source.sendError("Path matched multiple values; expected a single compound tag");
+                source.sendFailure(::mc::text::literal("Path matched multiple values; expected a single compound tag"));
                 return 0;
             }
             const nbt::tags::tag* result = results[0];
             if (result->id() != nbt::TagId::Compound) {
-                source.sendError("Path did not resolve to a compound tag");
+                source.sendFailure(::mc::text::literal("Path did not resolve to a compound tag"));
                 return 0;
             }
             const auto* compound = static_cast<const nbt::tags::compound_tag*>(result);
@@ -217,7 +218,7 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
@@ -225,14 +226,14 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        source.sendError("No block entity at the given position");
+        source.sendFailure(::mc::text::literal("No block entity at the given position"));
         return 0;
     }
 
     {
         auto dataResult = accessor.getData();
         if (dataResult.failed()) {
-            source.sendError("Failed to read data: " + dataResult.error().message());
+            source.sendFailure(::mc::text::literal("Failed to read data: " + dataResult.error().message()));
             return 0;
         }
         auto data = std::move(dataResult).value();
@@ -241,16 +242,16 @@ i32 FunctionCommand::_runWithBlock(CommandContext<ServerCommandSource>& context)
             NbtPath path = context.getArgument<NbtPath>("path");
             auto results = path.get(*data);
             if (results.empty()) {
-                source.sendError("Path not found in block data");
+                source.sendFailure(::mc::text::literal("Path not found in block data"));
                 return 0;
             }
             if (results.size() != 1) {
-                source.sendError("Path matched multiple values; expected a single compound tag");
+                source.sendFailure(::mc::text::literal("Path matched multiple values; expected a single compound tag"));
                 return 0;
             }
             const nbt::tags::tag* result = results[0];
             if (result->id() != nbt::TagId::Compound) {
-                source.sendError("Path did not resolve to a compound tag");
+                source.sendFailure(::mc::text::literal("Path did not resolve to a compound tag"));
                 return 0;
             }
             const auto* compound = static_cast<const nbt::tags::compound_tag*>(result);
@@ -266,7 +267,7 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("No server available");
+        source.sendFailure(::mc::text::literal("No server available"));
         return 0;
     }
 
@@ -277,7 +278,7 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
     {
         auto dataResult = accessor.getData();
         if (dataResult.failed()) {
-            source.sendError("Failed to read data: " + dataResult.error().message());
+            source.sendFailure(::mc::text::literal("Failed to read data: " + dataResult.error().message()));
             return 0;
         }
         auto data = std::move(dataResult).value();
@@ -286,16 +287,16 @@ i32 FunctionCommand::_runWithStorage(CommandContext<ServerCommandSource>& contex
             NbtPath path = context.getArgument<NbtPath>("path");
             auto results = path.get(*data);
             if (results.empty()) {
-                source.sendError("Path not found in storage data");
+                source.sendFailure(::mc::text::literal("Path not found in storage data"));
                 return 0;
             }
             if (results.size() != 1) {
-                source.sendError("Path matched multiple values; expected a single compound tag");
+                source.sendFailure(::mc::text::literal("Path matched multiple values; expected a single compound tag"));
                 return 0;
             }
             const nbt::tags::tag* result = results[0];
             if (result->id() != nbt::TagId::Compound) {
-                source.sendError("Path did not resolve to a compound tag");
+                source.sendFailure(::mc::text::literal("Path did not resolve to a compound tag"));
                 return 0;
             }
             const auto* compound = static_cast<const nbt::tags::compound_tag*>(result);
@@ -316,7 +317,7 @@ i32 FunctionCommand::_executeFunctions(
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Function command requires a server instance");
+        source.sendFailure(::mc::text::literal("Function command requires a server instance"));
         return 0;
     }
 
@@ -329,7 +330,7 @@ i32 FunctionCommand::_executeFunctions(
         if (!functionManager.hasTag(tagId)) {
             std::ostringstream ss;
             ss << "Unknown function tag '" << tagId.toString() << "'";
-            source.sendError(ss.str());
+            source.sendFailure(::mc::text::literal(ss.str()));
             return 0;
         }
 
@@ -353,7 +354,7 @@ i32 FunctionCommand::_executeFunctions(
             ss << ", " << totalFailure << " failed";
         }
         ss << ")";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
 
         return totalSuccess;
     }
@@ -365,7 +366,7 @@ i32 FunctionCommand::_executeFunctions(
     if (!functionManager.hasFunction(functionId)) {
         std::ostringstream ss;
         ss << "Unknown function '" << functionId.toString() << "'";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -379,7 +380,7 @@ i32 FunctionCommand::_executeFunctions(
         ss << ", " << execResult.failureCount << " failed";
     }
     ss << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return execResult.successCount;
 }

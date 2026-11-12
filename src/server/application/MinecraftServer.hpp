@@ -841,6 +841,8 @@ public:
         return m_dataPackList;
     }
 
+    void reloadLanguageResources() override;
+
     /**
      * @brief 序列化难度同步包
      * @return 难度同步 IR 包
@@ -869,6 +871,17 @@ protected:
     void attachWorldCommandBindings(ServerWorld& world);
     [[nodiscard]] Result<void> initializeSharedStorage(const GameDirectory& gameDirectory, const std::string& levelId);
     void shutdownSharedStorage();
+
+    /**
+     * @brief 扫描资源包目录并加载服务端默认语言
+     *
+     * 资源包是语言文件的唯一数据源（assets/<ns>/lang/ 下的 JSON）。用户资源包目录为空时
+     * 注入默认游戏目录下的 Vanilla 资源包；随后加载 en_us 供控制台/日志字符串化。
+     * 失败只告警不阻断启动：缺语言表时翻译查询回退为键本身。
+     *
+     * @return 成功或错误（语言文件缺失不算错误）
+     */
+    [[nodiscard]] Result<void> initializeLanguageResources();
 
     /**
      * @brief 加载服务器列表图标（server-icon.png → Data URL）

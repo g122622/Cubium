@@ -34,6 +34,7 @@
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -179,7 +180,7 @@ i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& contex
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -190,7 +191,7 @@ i32 StopSoundCommand::_stopAllSounds(CommandContext<ServerCommandSource>& contex
         sendStopSoundPacket(connMgr, playerId, std::nullopt, std::nullopt);
     }
 
-    source.sendMessage(buildStopSoundFeedback(std::nullopt, std::nullopt));
+    source.sendSuccess(::mc::text::literal(buildStopSoundFeedback(std::nullopt, std::nullopt)), false);
     return static_cast<i32>(playerIds.size());
 }
 
@@ -203,7 +204,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -214,7 +215,7 @@ i32 StopSoundCommand::_stopSounds(CommandContext<ServerCommandSource>& context,
         sendStopSoundPacket(connMgr, playerId, soundId, category);
     }
 
-    source.sendMessage(buildStopSoundFeedback(category, soundId));
+    source.sendSuccess(::mc::text::literal(buildStopSoundFeedback(category, soundId)), false);
     return static_cast<i32>(playerIds.size());
 }
 

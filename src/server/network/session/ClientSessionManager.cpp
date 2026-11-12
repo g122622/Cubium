@@ -29,7 +29,9 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/MinecraftServer.hpp"
+#include "server/command/support/ChatBroadcast.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
@@ -185,6 +187,11 @@ void ClientSessionManager::onClientDisconnect(ServerClientConnection& conn)
     // 移除远程玩家（若已创建实体）：按 sessionId 查 playerId。
     const PlayerId playerId = m_server.playerManager().getPlayerIdBySession(sessionId);
     if (playerId != 0) {
+        // 原版 multiplayer.player.left = "%s left the game"，在玩家仍在列表中时广播。
+        if (auto* data = m_server.playerManager().getPlayer(playerId); data != nullptr) {
+            auto leaveMessage = ::mc::text::translatable("multiplayer.player.left", data->username);
+            command::support::broadcastSystemChat(m_server, *leaveMessage);
+        }
         m_server.playerManager().removePlayer(playerId);
     }
 }

@@ -111,7 +111,7 @@ TEST_F(GiveCommandTest, GiveCommandRequiresPermissionLevel2)
     // 旧写法会把整个测试进程带走。
     const auto result = m_server.commandRegistry().execute("give @p minecraft:stone 1", lowPermSource);
     ASSERT_TRUE(result.failed()) << "a permission level 0 source must not be allowed to run /give";
-    EXPECT_NE(result.error().message().find("commands.permission.denied"), std::string::npos)
+    EXPECT_NE(result.error().message().find("command.unknown.command"), std::string::npos)
         << "expected the permission-denied error, got: " << result.error().message();
 }
 

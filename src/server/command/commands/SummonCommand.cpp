@@ -44,6 +44,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -107,7 +108,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.summon.failed.noWorld");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -120,7 +121,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         static_cast<i32>(position.y),
         static_cast<i32>(std::floor(position.z)));
     if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
-        source.sendError("commands.summon.invalidPosition");
+        source.sendFailure(::mc::text::translatable("commands.summon.invalidPosition"));
         return 0;
     }
 
@@ -130,7 +131,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     if (entityType == nullptr) {
         std::ostringstream ss;
         ss << "commands.summon.failed.invalidEntity: " << entityId.toString();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -138,7 +139,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     if (!entityType->canSummon()) {
         std::ostringstream ss;
         ss << "commands.summon.failed.notSummonable: " << entityId.toString();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -147,21 +148,21 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // notInPeaceful 标注）而非 classification 派生——少数 Monster 类实体（Shulker/Hoglin/Piglin 等）
     // vanilla 未标 notInPeaceful 故和平可召。同款守卫见 SpawnEggItem::spawnEntity。
     if (world->difficulty() == Difficulty::Peaceful && !entityType->isAllowedInPeaceful()) {
-        source.sendError("commands.summon.failed.peaceful");
+        source.sendFailure(::mc::text::translatable("commands.summon.failed.peaceful"));
         return 0;
     }
 
     // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world->entityRegistry();
     if (ecsRegistry == nullptr) {
-        source.sendError("commands.summon.failed.noRegistry");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
-        source.sendError("commands.summon.failed.createFailed");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -182,7 +183,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 生成实体
     EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendError("commands.summon.failed.spawnFailed");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -199,7 +200,7 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
     // 发送反馈
     std::ostringstream ss;
     ss << "Summoned " << entityId.toString();
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -213,7 +214,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.summon.failed.noWorld");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -226,7 +227,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
         static_cast<i32>(position.y),
         static_cast<i32>(std::floor(position.z)));
     if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
-        source.sendError("commands.summon.invalidPosition");
+        source.sendFailure(::mc::text::translatable("commands.summon.invalidPosition"));
         return 0;
     }
 
@@ -236,7 +237,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     if (entityType == nullptr) {
         std::ostringstream ss;
         ss << "commands.summon.failed.invalidEntity: " << entityId.toString();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -244,7 +245,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     if (!entityType->canSummon()) {
         std::ostringstream ss;
         ss << "commands.summon.failed.notSummonable: " << entityId.toString();
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -253,21 +254,21 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // notInPeaceful 标注）而非 classification 派生——少数 Monster 类实体（Shulker/Hoglin/Piglin 等）
     // vanilla 未标 notInPeaceful 故和平可召。同款守卫见 SpawnEggItem::spawnEntity。
     if (world->difficulty() == Difficulty::Peaceful && !entityType->isAllowedInPeaceful()) {
-        source.sendError("commands.summon.failed.peaceful");
+        source.sendFailure(::mc::text::translatable("commands.summon.failed.peaceful"));
         return 0;
     }
 
     // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
     auto* ecsRegistry = world->entityRegistry();
     if (ecsRegistry == nullptr) {
-        source.sendError("commands.summon.failed.noRegistry");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
     // 创建实体
     std::unique_ptr<Entity> entity = entityType->create(world, *ecsRegistry);
     if (entity == nullptr) {
-        source.sendError("commands.summon.failed.createFailed");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -288,7 +289,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     // 生成实体
     EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
     if (spawnedId == 0) {
-        source.sendError("commands.summon.failed.spawnFailed");
+        source.sendFailure(::mc::text::literal("commands.summon.failed"));
         return 0;
     }
 
@@ -306,7 +307,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     std::ostringstream ss;
     ss << "Summoned " << entityId.toString() << " at " << static_cast<i32>(position.x) << ", "
        << static_cast<i32>(position.y) << ", " << static_cast<i32>(position.z);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

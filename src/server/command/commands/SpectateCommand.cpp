@@ -30,6 +30,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -87,13 +88,13 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
         const EntitySelector& playerSelector = context.getArgument<EntitySelector>("player");
         auto playerIds = support::resolvePlayerIds(source, playerSelector);
         if (playerIds.empty()) {
-            source.sendError("No player matched the player selector");
+            source.sendFailure(::mc::text::literal("No player matched the player selector"));
             return 0;
         }
         spectatorId = playerIds[0];
     } else {
         if (!source.isPlayer()) {
-            source.sendError("Only players can use this command");
+            source.sendFailure(::mc::text::literal("Only players can use this command"));
             return 0;
         }
         spectatorId = source.playerId();
@@ -101,7 +102,7 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
 
     // 不带 target 时原版由 /spectate 自身停止旁观；停止旁观的执行语义尚未接入，明确报错。
     if (!context.hasArgument("target")) {
-        source.sendError("commands.spectate.notInRange");
+        source.sendFailure(::mc::text::literal("Stopping spectating is not supported"));
         return 0;
     }
 
@@ -109,63 +110,63 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
     const EntitySelector& targetSelector = context.getArgument<EntitySelector>("target");
     Entity* targetEntity = support::EntityResolver::resolveSingle(source, targetSelector);
     if (targetEntity == nullptr) {
-        source.sendError("No entity matched the target selector");
+        source.sendFailure(::mc::text::literal("No entity matched the target selector"));
         return 0;
     }
 
     // 获取旁观者的 ServerPlayerData 和 ServerPlayer 实体
     auto* playerData = source.server()->playerManager().getPlayer(spectatorId);
     if (playerData == nullptr) {
-        source.sendError("Spectator not found");
+        source.sendFailure(::mc::text::literal("Spectator not found"));
         return 0;
     }
 
     // 检查旁观者模式
     if (playerData->gameMode != GameMode::Spectator) {
-        source.sendError("Player must be in spectator mode to spectate");
+        source.sendFailure(::mc::text::literal("Player must be in spectator mode to spectate"));
         return 0;
     }
 
     // 不能旁观自己
     if (static_cast<EntityInstanceId>(spectatorId) == targetEntity->id()) {
-        source.sendError("Cannot spectate yourself");
+        source.sendFailure(::mc::text::literal("Cannot spectate yourself"));
         return 0;
     }
 
     // 获取 ServerPlayer 实体以调用 setCamera
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("World not available");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     auto* serverWorld = dynamic_cast<server::ServerWorld*>(world);
     if (serverWorld == nullptr) {
-        source.sendError("Server world not available");
+        source.sendFailure(::mc::text::literal("Server world not available"));
         return 0;
     }
 
     Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityInstanceId>(spectatorId));
     if (spectatorEntity == nullptr) {
-        source.sendError("Spectator entity not found");
+        source.sendFailure(::mc::text::literal("Spectator entity not found"));
         return 0;
     }
 
     auto* serverPlayer = dynamic_cast<ServerPlayer*>(spectatorEntity);
     if (serverPlayer == nullptr) {
-        source.sendError("Spectator is not a server player");
+        source.sendFailure(::mc::text::literal("Spectator is not a server player"));
         return 0;
     }
 
     // 设置旁观目标
     if (!serverPlayer->setCamera(targetEntity)) {
-        source.sendError("Failed to set spectate target");
+        source.sendFailure(::mc::text::literal("Failed to set spectate target"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << playerData->username << " is now spectating " << targetEntity->id();
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

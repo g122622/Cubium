@@ -74,6 +74,8 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/dimension/Dimension.hpp"
@@ -193,6 +195,12 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
     const auto vanillaDataPackDir = GameDirectory::defaultDirectory().dataPacksDir() / "Vanilla";
     if (m_dataPackList.ensureVanillaBuiltinPack(vanillaDataPackDir) > 0) {
         spdlog::info("Injected builtin vanilla data pack from '{}'", vanillaDataPackDir.string());
+    }
+
+    // 资源包与语言：语言文件属于资源包（assets/<ns>/lang），与数据包（data/）无关。
+    auto languageResult = initializeLanguageResources();
+    if (languageResult.failed()) {
+        spdlog::warn("Failed to initialize language resources: {}", languageResult.error().toString());
     }
 
     // 初始化游戏注册表
@@ -876,11 +884,14 @@ void IntegratedServer::_sendOpenContainer(
         return;
     }
 
-    // play::OpenScreen（S→C，id=57）
+    // play::OpenScreen（S→C，id=57）：默认标题是翻译键，自定义标题是纯文本。
+    auto titleComponent =
+        title.empty() ? ::mc::text::translatable(ContainerTypes::getDefaultTitle(type)) : ::mc::text::literal(title);
+
     mc::network::ir::play::OpenScreen screen;
     screen.containerId = static_cast<i32>(containerId);
     screen.menuType = static_cast<i32>(ContainerTypes::toNetworkType(type));
-    screen.title = title; // JSON 文本组件（客户端按 JSON 解析）
+    screen.title = ::mc::text::componentToNbtBytes(titleComponent.get());
     _sendToClientIr(mc::network::ir::IrPacket{
         mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(screen)}});
 }
@@ -1146,7 +1157,8 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
         return false;
     }
 
-    _sendOpenContainer(containerId, type, std::string(ContainerTypes::getDefaultTitle(type)), menu->getSlotCount());
+    // 传空标题：发送端按容器类型取默认翻译键（container.*）。
+    _sendOpenContainer(containerId, type, std::string{}, menu->getSlotCount());
     _sendContainerContent(*menu);
 
     m_openContainerType = type;

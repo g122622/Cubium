@@ -53,6 +53,8 @@
 #include "common/util/PathEncoding.hpp"
 #include "common/util/PlatformInfo.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/WorldConfig.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -171,6 +173,12 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
     const auto vanillaDataPackDir = GameDirectory::defaultDirectory().dataPacksDir() / "Vanilla";
     if (m_dataPackList.ensureVanillaBuiltinPack(vanillaDataPackDir) > 0) {
         spdlog::info("Injected builtin vanilla data pack from '{}'", vanillaDataPackDir.string());
+    }
+
+    // 资源包与语言：语言文件属于资源包（assets/<ns>/lang），与数据包（data/）无关。
+    auto languageResult = initializeLanguageResources();
+    if (languageResult.failed()) {
+        spdlog::warn("Failed to initialize language resources: {}", languageResult.error().toString());
     }
 
     // 应用设置到系统
@@ -814,13 +822,16 @@ void StandaloneServer::_setupContainerCallbacks()
                                               const std::string& title,
                                               i32 slotCount) {
         (void)slotCount; // slotCount 不再发送到客户端
-        const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
 
-        // 1.21.11 OpenScreen：containerId + menuType + title（文本组件，codec 负责编码）。
+        // 默认标题是翻译键（container.*），自定义标题是纯文本；两者都以组件下发给客户端本地化。
+        auto titleComponent = title.empty() ? ::mc::text::translatable(ContainerTypes::getDefaultTitle(type))
+                                            : ::mc::text::literal(title);
+
+        // 1.21.11 OpenScreen：containerId + menuType + title（文本组件 NBT）。
         mc::network::ir::play::OpenScreen pkt;
         pkt.containerId = static_cast<i32>(containerId);
         pkt.menuType = ContainerTypes::toNetworkType(type);
-        pkt.title = resolvedTitle;
+        pkt.title = ::mc::text::componentToNbtBytes(titleComponent.get());
         sendPacketToPlayer(playerId,
             mc::network::ir::IrPacket{
                 mc::network::protocol::ConnectionProtocol::Play,

@@ -33,6 +33,7 @@
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -79,7 +80,7 @@ namespace {
     // 检查判据是否为 trigger 类型
     auto& criteria = objective->getCriteria();
     if (criteria.getName() != scoreboard::TriggerCriteria::NAME) {
-        source.sendError("Objective '" + objective->getName() + "' is not a trigger objective");
+        source.sendFailure(::mc::text::literal("Objective '" + objective->getName() + "' is not a trigger objective"));
         return nullptr;
     }
 
@@ -89,20 +90,22 @@ namespace {
 
     // 检查玩家是否有该目标的分数
     if (!scoreboard.entityHasObjective(playerName, *objective)) {
-        source.sendError("Player '" + playerName + "' has not been primed for trigger '" + objective->getName() + "'");
+        source.sendFailure(::mc::text::literal(
+            "Player '" + playerName + "' has not been primed for trigger '" + objective->getName() + "'"));
         return nullptr;
     }
 
     // 获取分数
     auto* score = scoreboard.getOrCreateScore(playerName, *objective);
     if (score == nullptr) {
-        source.sendError("Failed to get or create score for player '" + playerName + "'");
+        source.sendFailure(::mc::text::literal("Failed to get or create score for player '" + playerName + "'"));
         return nullptr;
     }
 
     // 检查分数是否被锁定
     if (score->isLocked()) {
-        source.sendError("Trigger '" + objective->getName() + "' has already been used and is now locked");
+        source.sendFailure(
+            ::mc::text::literal("Trigger '" + objective->getName() + "' has already been used and is now locked"));
         return nullptr;
     }
 
@@ -183,7 +186,7 @@ i32 TriggerCommand::_triggerAdd(CommandContext<ServerCommandSource>& context)
     const i32 value = context.getArgument<i32>("value");
 
     if (!source.isPlayer()) {
-        source.sendError("Only players can use this command");
+        source.sendFailure(::mc::text::literal("Only players can use this command"));
         return 0;
     }
 
@@ -197,7 +200,7 @@ i32 TriggerCommand::_triggerAdd(CommandContext<ServerCommandSource>& context)
     // 获取目标
     auto* objective = scoreboard.getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendError("Objective '" + objectiveName + "' does not exist");
+        source.sendFailure(::mc::text::literal("Objective '" + objectiveName + "' does not exist"));
         return 0;
     }
 
@@ -216,7 +219,7 @@ i32 TriggerCommand::_triggerAdd(CommandContext<ServerCommandSource>& context)
     // 发送反馈
     std::ostringstream ss;
     ss << "Trigger '" << objectiveName << "' added " << value << " (now " << score->getScorePoints() << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return score->getScorePoints();
 }
@@ -228,7 +231,7 @@ i32 TriggerCommand::_triggerSet(CommandContext<ServerCommandSource>& context)
     const i32 value = context.getArgument<i32>("value");
 
     if (!source.isPlayer()) {
-        source.sendError("Only players can use this command");
+        source.sendFailure(::mc::text::literal("Only players can use this command"));
         return 0;
     }
 
@@ -242,7 +245,7 @@ i32 TriggerCommand::_triggerSet(CommandContext<ServerCommandSource>& context)
     // 获取目标
     auto* objective = scoreboard.getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendError("Objective '" + objectiveName + "' does not exist");
+        source.sendFailure(::mc::text::literal("Objective '" + objectiveName + "' does not exist"));
         return 0;
     }
 
@@ -261,7 +264,7 @@ i32 TriggerCommand::_triggerSet(CommandContext<ServerCommandSource>& context)
     // 发送反馈
     std::ostringstream ss;
     ss << "Trigger '" << objectiveName << "' set to " << value;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return value;
 }
@@ -272,7 +275,7 @@ i32 TriggerCommand::_trigger(CommandContext<ServerCommandSource>& context)
     const std::string objectiveName = context.getArgument<std::string>("objective");
 
     if (!source.isPlayer()) {
-        source.sendError("Only players can use this command");
+        source.sendFailure(::mc::text::literal("Only players can use this command"));
         return 0;
     }
 
@@ -286,7 +289,7 @@ i32 TriggerCommand::_trigger(CommandContext<ServerCommandSource>& context)
     // 获取目标
     auto* objective = scoreboard.getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendError("Objective '" + objectiveName + "' does not exist");
+        source.sendFailure(::mc::text::literal("Objective '" + objectiveName + "' does not exist"));
         return 0;
     }
 
@@ -305,7 +308,7 @@ i32 TriggerCommand::_trigger(CommandContext<ServerCommandSource>& context)
     // 发送反馈
     std::ostringstream ss;
     ss << "Trigger '" << objectiveName << "' activated (now " << score->getScorePoints() << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return score->getScorePoints();
 }

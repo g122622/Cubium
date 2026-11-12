@@ -27,6 +27,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
@@ -106,16 +107,16 @@ i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
     auto parseResult = registry.dispatcher().parse(fullCommand, source);
     if (!parseResult.isSuccess()) {
         const auto& error = parseResult.getError();
-        source.sendError(error.has_value() ? error->message() : "Invalid command: " + command);
+        source.sendFailure(::mc::text::literal(error.has_value() ? error->message() : "Invalid command: " + command));
         return 0;
     }
     if (parseResult.getContext() == nullptr) {
-        source.sendError("commands.return.failed.notFound");
+        source.sendFailure(::mc::text::literal("No return value"));
         return 0;
     }
     auto result = registry.dispatcher().execute(parseResult);
     if (result.failed()) {
-        source.sendError(result.error().message());
+        source.sendFailure(::mc::text::literal(result.error().message()));
         return 0;
     }
     // /return run <cmd> 的返回值就是被转发命令的结果，同样要写进函数返回通道。

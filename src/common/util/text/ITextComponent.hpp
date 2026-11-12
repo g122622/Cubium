@@ -244,6 +244,28 @@ protected:
         }
     }
 
+    /**
+     * @brief 把子组件序列化进 JSON 的 "extra" 数组
+     *
+     * 各组件的 toJson 共用同一份写法，避免 extra 字段的键名/空值判断在多个类里分叉。
+     *
+     * @param json 目标 JSON 对象（原地修改）
+     */
+    void appendSiblingsToJson(nlohmann::json& json) const
+    {
+        if (m_siblings.empty()) {
+            return;
+        }
+
+        nlohmann::json extra = nlohmann::json::array();
+        for (const auto& sibling : m_siblings) {
+            if (sibling != nullptr) {
+                extra.push_back(sibling->toJson());
+            }
+        }
+        json["extra"] = std::move(extra);
+    }
+
     Style m_style;
     std::vector<std::unique_ptr<ITextComponent>> m_siblings;
 };

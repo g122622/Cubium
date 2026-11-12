@@ -31,6 +31,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -81,7 +82,7 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("commands.op.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("argument.player.unknown"));
         return 0;
     }
 
@@ -91,14 +92,14 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     // 获取服务器实例
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.op.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     // 获取玩家数据
     auto* playerData = server->playerManager().getPlayer(targetId);
     if (playerData == nullptr) {
-        source.sendError("commands.op.failed.playerNotFound");
+        source.sendFailure(::mc::text::literal("argument.player.unknown"));
         return 0;
     }
 
@@ -109,7 +110,7 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     if (opList.operatorIsOp(playerData->uuid)) {
         std::ostringstream ss;
         ss << "commands.op.failed";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -123,7 +124,7 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
 
     // 添加到 OP 列表
     if (!opList.operatorSetEntry(entry)) {
-        source.sendError("commands.op.failed");
+        source.sendFailure(::mc::text::translatable("commands.op.failed"));
         return 0;
     }
 
@@ -154,7 +155,7 @@ i32 OpCommand::_opPlayer(CommandContext<ServerCommandSource>& context)
     // 发送成功消息
     std::ostringstream ss;
     ss << "Made " << playerData->username << " a server operator";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

@@ -45,6 +45,7 @@
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -137,18 +138,18 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
     if (slot.isEnderChestSlot()) {
         auto* world = source.world();
         if (world == nullptr) {
-            source.sendError("No world available for ender chest access");
+            source.sendFailure(::mc::text::literal("No world available for ender chest access"));
             return false;
         }
         auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
         if (playerEntity == nullptr) {
-            source.sendError("Player entity not found for ender chest access");
+            source.sendFailure(::mc::text::literal("Player entity not found for ender chest access"));
             return false;
         }
         auto& enderChest = playerEntity->enderChestInventory();
         i32 enderSlot = slot.toEnderChestSlot();
         if (enderSlot < 0 || enderSlot >= enderChest.getContainerSize()) {
-            source.sendError("Ender chest slot index out of range");
+            source.sendFailure(::mc::text::literal("Ender chest slot index out of range"));
             return false;
         }
         enderChest.setItem(enderSlot, stack);
@@ -165,12 +166,12 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
     if (slot.isCursorSlot()) {
         auto* world = source.world();
         if (world == nullptr) {
-            source.sendError("No world available for cursor slot access");
+            source.sendFailure(::mc::text::literal("No world available for cursor slot access"));
             return false;
         }
         auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
         if (playerEntity == nullptr) {
-            source.sendError("Player entity not found for cursor slot access");
+            source.sendFailure(::mc::text::literal("Player entity not found for cursor slot access"));
             return false;
         }
 
@@ -188,7 +189,7 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
     // 合成槽位 (500-503)：需要访问玩家的合成容器
     // TODO: 当永久合成菜单（InventoryCraftingMenu）集成到 Player 后实现
     if (slot.isCraftingSlot()) {
-        source.sendError("Crafting slots are not yet supported");
+        source.sendFailure(::mc::text::literal("Crafting slots are not yet supported"));
         return false;
     }
 
@@ -263,19 +264,19 @@ bool setBlockSlotItem(
 
     BlockEntity* blockEntity = world->getBlockEntity(pos);
     if (blockEntity == nullptr) {
-        source.sendError("No block entity at the specified position");
+        source.sendFailure(::mc::text::literal("No block entity at the specified position"));
         return false;
     }
 
     auto* container = dynamic_cast<ContainerBlockEntity*>(blockEntity);
     if (container == nullptr) {
-        source.sendError("The block at the specified position is not a container");
+        source.sendFailure(::mc::text::literal("The block at the specified position is not a container"));
         return false;
     }
 
     IInventory* inventory = container->getInventory();
     if (inventory == nullptr) {
-        source.sendError("The container has no inventory");
+        source.sendFailure(::mc::text::literal("The container has no inventory"));
         return false;
     }
 
@@ -283,7 +284,7 @@ bool setBlockSlotItem(
     if (slotIndex < 0 || slotIndex >= inventory->getContainerSize()) {
         std::ostringstream ss;
         ss << "Slot " << slotIndex << " is out of range (0-" << (inventory->getContainerSize() - 1) << ")";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return false;
     }
 
@@ -423,7 +424,7 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
 
     // 验证物品
     if (!itemInput.isValid()) {
-        source.sendError("Invalid item");
+        source.sendFailure(::mc::text::literal("Invalid item"));
         return 0;
     }
 
@@ -432,7 +433,7 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     const bool isAirClear = itemInput.isAir();
     const Item* item = itemInput.getItem();
     if (!isAirClear && item == nullptr) {
-        source.sendError("Unknown item");
+        source.sendFailure(::mc::text::literal("Unknown item"));
         return 0;
     }
 
@@ -457,13 +458,13 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     // @e 可命中马匹（500-514 库存）、村民（300-307 交易栏）等非玩家实体。
     const std::vector<Entity*> targets = support::EntityResolver::resolve(source, selector);
     if (targets.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
     // 验证槽位有效性
     if (!slot.isValid()) {
-        source.sendError("Invalid slot");
+        source.sendFailure(::mc::text::literal("Invalid slot"));
         return 0;
     }
 
@@ -494,7 +495,7 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
 
     // 对齐 vanilla：无任何实体槽位被写入时报错（ERROR_TARGET_NO_CHANGES_KNOWN_ITEM）。
     if (changedEntities.empty()) {
-        source.sendError("No entities had slot " + describeSlot(slot) + " to replace");
+        source.sendFailure(::mc::text::literal("No entities had slot " + describeSlot(slot) + " to replace"));
         return 0;
     }
 
@@ -510,7 +511,7 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     } else {
         ss << changedEntities.size() << " entities";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return static_cast<i32>(changedEntities.size());
 }
@@ -526,7 +527,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
 
     // 验证物品
     if (!itemInput.isValid()) {
-        source.sendError("Invalid item");
+        source.sendFailure(::mc::text::literal("Invalid item"));
         return 0;
     }
 
@@ -534,7 +535,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
     const bool isAirClear = itemInput.isAir();
     const Item* item = itemInput.getItem();
     if (!isAirClear && item == nullptr) {
-        source.sendError("Unknown item");
+        source.sendFailure(::mc::text::literal("Unknown item"));
         return 0;
     }
 
@@ -554,7 +555,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
 
     // 验证槽位有效性
     if (!slot.isValid()) {
-        source.sendError("Invalid slot");
+        source.sendFailure(::mc::text::literal("Invalid slot"));
         return 0;
     }
 
@@ -564,20 +565,20 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
     // 装备槽位、末影箱槽位、马匹槽位、合成槽位、光标槽位、村民槽位不适用于方块容器
     if (slot.isEquipmentSlot() || slot.isEnderChestSlot() || slot.isHorseSlot() || slot.isHorseChestSlot() ||
         slot.isCraftingSlot() || slot.isCursorSlot() || slot.isVillagerSlot()) {
-        source.sendError("Slot " + describeSlot(slot) + " is not valid for block containers");
+        source.sendFailure(::mc::text::literal("Slot " + describeSlot(slot) + " is not valid for block containers"));
         return 0;
     }
 
     // 槽位索引必须是非负整数
     if (slotIndex < 0) {
-        source.sendError("Invalid slot index for block container");
+        source.sendFailure(::mc::text::literal("Invalid slot index for block container"));
         return 0;
     }
 
     // 获取世界和方块实体
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
@@ -600,7 +601,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
         ss << "Replaced slot " << slotIndex << " with " << count << "x " << item->getName() << " at (" << blockPos.x
            << ", " << blockPos.y << ", " << blockPos.z << ")";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

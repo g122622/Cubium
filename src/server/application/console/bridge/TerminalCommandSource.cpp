@@ -56,24 +56,32 @@ TerminalCommandSource::TerminalCommandSource(server::IServer* server, EventRingB
     , m_events(&events)
 {}
 
-void TerminalCommandSource::sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid)
+void TerminalCommandSource::sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins)
 {
-    // 玩家反馈（/execute as 切换执行者后的情形）照常送到玩家；控制台自身的回执由
-    // onConsoleMessage 负责，避免重复记录。
-    mc::command::ServerCommandSource::sendMessage(message, senderUuid);
+    // 玩家反馈（/execute as 切换执行者后的情形）照常走基类；控制台自身的回执由
+    // onConsoleMessage 送入事件区，避免再写一行 spdlog 日志。
+    if (m_player != nullptr) {
+        mc::command::ServerCommandSource::sendSuccess(message, broadcastToAdmins);
+        return;
+    }
+
+    onConsoleMessage(message.getUnformattedText());
 }
 
-void TerminalCommandSource::sendError(const std::string& message)
+void TerminalCommandSource::sendFailure(const text::ITextComponent& message)
 {
-    // 基类会给错误加 §c 前缀；终端不需要样式码，_emit 统一剥离。
-    _emit(message, TerminalEventKind::Error);
+    if (m_player != nullptr) {
+        mc::command::ServerCommandSource::sendFailure(message);
+        return;
+    }
+
+    // 终端不需要样式码，_emit 统一剥离。
+    _emit(message.getUnformattedText(), TerminalEventKind::Error);
 }
 
 void TerminalCommandSource::onConsoleMessage(const std::string& message)
 {
-    // 基类对错误消息加 §c 前缀，据此区分错误与普通回执。
-    const bool isError = message.rfind("§c", 0) == 0;
-    _emit(message, isError ? TerminalEventKind::Error : TerminalEventKind::Command);
+    _emit(message, TerminalEventKind::Command);
 }
 
 void TerminalCommandSource::_emit(const std::string& message, TerminalEventKind kind) const

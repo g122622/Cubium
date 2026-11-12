@@ -29,7 +29,10 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/support/ChatBroadcast.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <memory>
 #include <string>
@@ -64,8 +67,15 @@ i32 MeCommand::_performAction(CommandContext<ServerCommandSource>& context)
     const std::string action = context.getArgument<ComponentTextPtr>("action")->text;
     const std::string& name = source.name();
 
-    // 广播 "* playername action" 格式的消息（原 IServer::broadcastServerMessage
-    // 实现即只 spdlog，不发包；批5b 已从 IServer 删除该纯虚，命令直接打日志）。
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendFailure(::mc::text::literal("Server not available"));
+        return 0;
+    }
+
+    // 原版 /me 广播 chat.type.emote = "* %s %s"。
+    auto emote = ::mc::text::translatable("chat.type.emote", {name, action});
+    support::broadcastSystemChat(*server, *emote);
     spdlog::info("[System] * {} {}", name, action);
     return 1;
 }

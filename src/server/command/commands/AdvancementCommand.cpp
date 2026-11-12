@@ -34,6 +34,7 @@
 #include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -332,7 +333,7 @@ i32 AdvancementCommand::_grantAdvancement(CommandContext<ServerCommandSource>& c
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched the selector");
+        source.sendFailure(::mc::text::literal("No players matched the selector"));
         return 0;
     }
 
@@ -345,12 +346,12 @@ i32 AdvancementCommand::_grantAdvancement(CommandContext<ServerCommandSource>& c
         advancementId = context.getArgument<ResourceLocation>("advancement").toString();
         auto id = parseAdvancementId(advancementId);
         if (!id.has_value()) {
-            source.sendError("Invalid advancement ID: " + advancementId);
+            source.sendFailure(::mc::text::literal("Invalid advancement ID: " + advancementId));
             return 0;
         }
         targetAdvancement = manager.get(id.value());
         if (!targetAdvancement) {
-            source.sendError("Unknown advancement: " + id->toString());
+            source.sendFailure(::mc::text::literal("Unknown advancement: " + id->toString()));
             return 0;
         }
     }
@@ -386,7 +387,7 @@ i32 AdvancementCommand::_grantAdvancement(CommandContext<ServerCommandSource>& c
     } else {
         ss << "Granted " << advancements.size() << " advancement(s) to " << successCount << " player(s)";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }
@@ -398,7 +399,7 @@ i32 AdvancementCommand::_revokeAdvancement(CommandContext<ServerCommandSource>& 
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched the selector");
+        source.sendFailure(::mc::text::literal("No players matched the selector"));
         return 0;
     }
 
@@ -411,12 +412,12 @@ i32 AdvancementCommand::_revokeAdvancement(CommandContext<ServerCommandSource>& 
         advancementId = context.getArgument<ResourceLocation>("advancement").toString();
         auto id = parseAdvancementId(advancementId);
         if (!id.has_value()) {
-            source.sendError("Invalid advancement ID: " + advancementId);
+            source.sendFailure(::mc::text::literal("Invalid advancement ID: " + advancementId));
             return 0;
         }
         targetAdvancement = manager.get(id.value());
         if (!targetAdvancement) {
-            source.sendError("Unknown advancement: " + id->toString());
+            source.sendFailure(::mc::text::literal("Unknown advancement: " + id->toString()));
             return 0;
         }
     }
@@ -452,7 +453,7 @@ i32 AdvancementCommand::_revokeAdvancement(CommandContext<ServerCommandSource>& 
     } else {
         ss << "Revoked " << advancements.size() << " advancement(s) from " << successCount << " player(s)";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }

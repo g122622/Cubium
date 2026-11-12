@@ -31,6 +31,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp" // Player::setGameMode（实体旁路）
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -126,20 +127,20 @@ i32 GameModeCommand::_setGameModeSelf(CommandContext<ServerCommandSource>& conte
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendError("You must be a player to change your own game mode");
+        source.sendFailure(::mc::text::literal("You must be a player to change your own game mode"));
         return 0;
     }
 
     const GameMode mode = context.getArgument<GameMode>("gamemode");
     const PlayerId playerId = source.playerId();
     if (playerId == 0 || !setGameModeOnPlayer(source, playerId, mode)) {
-        source.sendMessage("Failed to change game mode");
+        source.sendSuccess(::mc::text::literal("Failed to change game mode"), false);
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Set " << source.name() << "'s game mode to " << _getGameModeName(mode);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -171,13 +172,13 @@ i32 GameModeCommand::_setGameModeOthers(CommandContext<ServerCommandSource>& con
     }
 
     if (changedCount == 0) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Set game mode of " << changedCount << " player(s) to " << _getGameModeName(mode);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return changedCount;
 }
 

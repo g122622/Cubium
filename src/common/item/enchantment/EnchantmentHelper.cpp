@@ -33,8 +33,8 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
-#include "common/resource/LanguageManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include <algorithm>

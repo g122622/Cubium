@@ -37,6 +37,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -245,7 +246,7 @@ i32 PlaySoundCommand::_playSoundDefault(CommandContext<ServerCommandSource>& con
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -279,7 +280,7 @@ i32 PlaySoundCommand::_playSoundAtPosition(CommandContext<ServerCommandSource>& 
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -307,7 +308,7 @@ i32 PlaySoundCommand::_playSoundWithVolume(CommandContext<ServerCommandSource>& 
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -336,7 +337,7 @@ i32 PlaySoundCommand::_playSoundWithPitch(CommandContext<ServerCommandSource>& c
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -367,7 +368,7 @@ i32 PlaySoundCommand::_playSoundWithMinVolume(
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 

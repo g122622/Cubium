@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/core/settings/ResourcePackListOption.hpp"
 #include "common/resource/PackType.hpp"
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -90,6 +91,33 @@ public:
 
     void loadFromSettings(const ResourcePackListOption& settings);
     void saveToSettings(ResourcePackListOption& settings) const;
+
+    /**
+     * @brief 列表为空时注入内置原版资源包
+     *
+     * 与原版「始终内置 vanilla 资源包」的语义对齐：只有用户目录一个资源包都没有时
+     * 才注入，用户已放置自定义资源包时不干预。语言文件（assets/<ns>/lang/ 下的
+     * JSON 文件）由此获得数据源。
+     *
+     * @param vanillaResourcePackDir 内置原版资源包目录
+     * @return 注入成功返回 1，否则返回 0
+     */
+    inline size_t ensureVanillaBuiltinPack(const std::filesystem::path& vanillaResourcePackDir)
+    {
+        // 列表非空 = 用户已放置自定义资源包，保留用户覆盖权，不强制注入原版包。
+        if (!getEnabledPackInfos().empty()) {
+            return 0;
+        }
+
+        std::error_code ec;
+        if (!std::filesystem::exists(vanillaResourcePackDir, ec)) {
+            return 0;
+        }
+
+        const i32 priority = static_cast<i32>(packCount());
+        auto result = addPack(vanillaResourcePackDir, /*enabled=*/true, priority);
+        return result.success() && result.value().initialized ? 1u : 0u;
+    }
 
 protected:
     void onPackListChanged() override;

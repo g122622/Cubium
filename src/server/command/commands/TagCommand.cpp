@@ -31,6 +31,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
@@ -116,7 +117,7 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -128,13 +129,14 @@ i32 TagCommand::_addTag(CommandContext<ServerCommandSource>& context)
     }
 
     if (successCount == 0) {
-        source.sendError("All entities already have the tag '" + tag + "' or reached tag limit (1024)");
+        source.sendFailure(
+            ::mc::text::literal("All entities already have the tag '" + tag + "' or reached tag limit (1024)"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Added tag '" << tag << "' to " << successCount << " entit" << (successCount == 1 ? "y" : "ies");
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }
@@ -147,7 +149,7 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -159,13 +161,13 @@ i32 TagCommand::_removeTag(CommandContext<ServerCommandSource>& context)
     }
 
     if (successCount == 0) {
-        source.sendError("No entities had the tag '" + tag + "'");
+        source.sendFailure(::mc::text::literal("No entities had the tag '" + tag + "'"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Removed tag '" << tag << "' from " << successCount << " entit" << (successCount == 1 ? "y" : "ies");
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }
@@ -177,7 +179,7 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -199,7 +201,9 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
     if (entities.size() == 1) {
         // 单个实体：显示该实体的所有标签
         if (entityTags.empty() || entityTags[0].second.empty()) {
-            source.sendMessage(entityTags.empty() ? "Entity has no tags" : entityTags[0].first + " has no tags");
+            source.sendSuccess(
+                ::mc::text::literal(entityTags.empty() ? "Entity has no tags" : entityTags[0].first + " has no tags"),
+                false);
         } else {
             const auto& [name, tags] = entityTags[0];
             std::ostringstream ss;
@@ -207,12 +211,13 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
             for (const auto& tag : tags) {
                 ss << " " << tag;
             }
-            source.sendMessage(ss.str());
+            source.sendSuccess(::mc::text::literal(ss.str()), false);
         }
     } else {
         // 多个实体：显示所有实体的标签总数
         if (allTags.empty()) {
-            source.sendMessage("No tags found on " + std::to_string(entities.size()) + " entities");
+            source.sendSuccess(
+                ::mc::text::literal("No tags found on " + std::to_string(entities.size()) + " entities"), false);
         } else {
             std::ostringstream ss;
             ss << "There are " << allTags.size() << " unique tag" << (allTags.size() == 1 ? "" : "s") << " on "
@@ -220,7 +225,7 @@ i32 TagCommand::_listTags(CommandContext<ServerCommandSource>& context)
             for (const auto& tag : allTags) {
                 ss << " " << tag;
             }
-            source.sendMessage(ss.str());
+            source.sendSuccess(::mc::text::literal(ss.str()), false);
         }
     }
 

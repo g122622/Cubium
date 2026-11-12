@@ -29,6 +29,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace mc;
@@ -308,7 +309,7 @@ TEST_F(CommandBlockEntitySourceTest, AllowLogging_ReturnsTrue)
 
 TEST_F(CommandBlockEntitySourceTest, SendMessage_UpdatesLastOutput)
 {
-    entity_->sendMessage("Test message");
+    entity_->sendSuccess(*::mc::text::literal("Test message"), false);
     EXPECT_EQ(entity_->getLastOutput(), "Test message");
 }
 
@@ -316,7 +317,7 @@ TEST_F(CommandBlockEntitySourceTest, SendMessage_WhenTrackOutputDisabled_DoesNot
 {
     entity_->setTrackOutput(false);
     entity_->setLastOutput("Original");
-    entity_->sendMessage("New message");
+    entity_->sendSuccess(*::mc::text::literal("New message"), false);
     // 当 TrackOutput 禁用时，sendMessage 不更新 lastOutput
     // 注意：根据实现，可能更新或不更新
 }
@@ -637,7 +638,7 @@ TEST_F(CommandBlockEntityChangedTest, SetPowered_WhenUnchanged_NoMarkChanged)
 
 TEST_F(CommandBlockEntityChangedTest, SendMessage_MarksChanged)
 {
-    entity_->sendMessage("test");
+    entity_->sendSuccess(*::mc::text::literal("test"), false);
     EXPECT_TRUE(entity_->isChanged());
 }
 

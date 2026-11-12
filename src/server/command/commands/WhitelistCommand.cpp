@@ -32,6 +32,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/access/base/WhitelistManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -122,7 +123,7 @@ i32 WhitelistCommand::_whitelistOn(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -130,13 +131,13 @@ i32 WhitelistCommand::_whitelistOn(CommandContext<ServerCommandSource>& context)
 
     // 检查是否已启用
     if (whitelistManager.whitelistIsEnabled()) {
-        source.sendError("commands.whitelist.alreadyOn");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.alreadyOn"));
         return 0;
     }
 
     // 启用白名单
     whitelistManager.whitelistSetEnabled(true);
-    source.sendMessage("commands.whitelist.enabled");
+    source.sendSuccess(::mc::text::translatable("commands.whitelist.enabled"), false);
 
     // 踢出不在白名单的玩家
     _kickNonWhitelistedPlayers(source);
@@ -149,7 +150,7 @@ i32 WhitelistCommand::_whitelistOff(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -157,13 +158,13 @@ i32 WhitelistCommand::_whitelistOff(CommandContext<ServerCommandSource>& context
 
     // 检查是否已禁用
     if (!whitelistManager.whitelistIsEnabled()) {
-        source.sendError("commands.whitelist.alreadyOff");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.alreadyOff"));
         return 0;
     }
 
     // 禁用白名单
     whitelistManager.whitelistSetEnabled(false);
-    source.sendMessage("commands.whitelist.disabled");
+    source.sendSuccess(::mc::text::translatable("commands.whitelist.disabled"), false);
 
     return 1;
 }
@@ -173,7 +174,7 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -181,7 +182,7 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
     auto names = whitelistManager.whitelistGetAllNames();
 
     if (names.empty()) {
-        source.sendMessage("commands.whitelist.list.none");
+        source.sendSuccess(::mc::text::literal("commands.whitelist.none"), false);
         return 1;
     }
 
@@ -198,7 +199,7 @@ i32 WhitelistCommand::_whitelistList(CommandContext<ServerCommandSource>& contex
         ss << names[i];
     }
 
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(names.size());
 }
 
@@ -207,7 +208,7 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -248,7 +249,7 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
     }
 
     if (playerName.empty()) {
-        source.sendError("commands.whitelist.add.failed");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.add.failed"));
         return 0;
     }
 
@@ -256,7 +257,7 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
 
     // 检查是否已在白名单中
     if (whitelistManager.whitelistIsNameWhitelisted(playerName)) {
-        source.sendError("commands.whitelist.add.failed");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.add.failed"));
         return 0;
     }
 
@@ -271,12 +272,12 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
 
         std::ostringstream ss;
         ss << "Added " << playerName << " to the whitelist";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
 
         return 1;
     }
 
-    source.sendError("commands.whitelist.add.failed");
+    source.sendFailure(::mc::text::translatable("commands.whitelist.add.failed"));
     return 0;
 }
 
@@ -285,7 +286,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -310,7 +311,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
     }
 
     if (playerName.empty()) {
-        source.sendError("commands.whitelist.remove.failed");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.remove.failed"));
         return 0;
     }
 
@@ -318,7 +319,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
 
     // 检查是否在白名单中
     if (!whitelistManager.whitelistIsNameWhitelisted(playerName)) {
-        source.sendError("commands.whitelist.remove.failed");
+        source.sendFailure(::mc::text::translatable("commands.whitelist.remove.failed"));
         return 0;
     }
 
@@ -332,7 +333,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
 
         std::ostringstream ss;
         ss << "Removed " << playerName << " from the whitelist";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
 
         // 踢出不在白名单的玩家（如果白名单已启用）
         if (whitelistManager.whitelistIsEnabled()) {
@@ -342,7 +343,7 @@ i32 WhitelistCommand::_whitelistRemove(CommandContext<ServerCommandSource>& cont
         return 1;
     }
 
-    source.sendError("commands.whitelist.remove.failed");
+    source.sendFailure(::mc::text::translatable("commands.whitelist.remove.failed"));
     return 0;
 }
 
@@ -351,7 +352,7 @@ i32 WhitelistCommand::_whitelistReload(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.whitelist.failed");
+        source.sendFailure(::mc::text::literal("Whitelist operation failed"));
         return 0;
     }
 
@@ -361,11 +362,11 @@ i32 WhitelistCommand::_whitelistReload(CommandContext<ServerCommandSource>& cont
     auto loadResult = whitelistManager.whitelistReload();
     if (loadResult.failed()) {
         spdlog::error("Failed to reload whitelist: {}", loadResult.error().message());
-        source.sendError("commands.whitelist.reloaded.failed");
+        source.sendFailure(::mc::text::literal("Failed to reload the whitelist"));
         return 0;
     }
 
-    source.sendMessage("commands.whitelist.reloaded");
+    source.sendSuccess(::mc::text::translatable("commands.whitelist.reloaded"), false);
 
     // 踢出不在白名单的玩家（如果白名单已启用）
     if (whitelistManager.whitelistIsEnabled()) {

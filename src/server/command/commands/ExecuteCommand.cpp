@@ -57,6 +57,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -199,7 +200,7 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
     if (executable) {
         node->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
             // 条件节点的占位命令：走到这里说明条件未满足（或没有 run 子命令）。
-            ctx.getSource().sendError("commands.execute.conditional");
+            ctx.getSource().sendFailure(::mc::text::translatable("commands.execute.conditional.fail"));
             return 0;
         });
     }
@@ -266,7 +267,7 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
                 std::make_shared<LiteralRecordingCommandNode<ServerCommandSource>>(mode, kBlocksConditionModeKey);
             modeNode->setCommand([](CommandContext<ServerCommandSource>& ctx) -> i32 {
                 // 走到这里说明条件未满足（或没有 run 子命令）：报错并返回失败。
-                ctx.getSource().sendError("commands.execute.conditional");
+                ctx.getSource().sendFailure(::mc::text::translatable("commands.execute.conditional.fail"));
                 return 0;
             });
             destination->addChild(modeNode);
@@ -407,7 +408,7 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
 i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std::string& command)
 {
     if (command.empty()) {
-        source.sendError("commands.execute.failed.emptyCommand");
+        source.sendFailure(::mc::text::literal("Empty command"));
         return 0;
     }
 
@@ -426,7 +427,7 @@ i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std:
     auto result = registry.execute(cmd, source);
 
     if (result.failed()) {
-        source.sendError(result.error().message());
+        source.sendFailure(::mc::text::literal(result.error().message()));
         return 0;
     }
 
@@ -812,7 +813,7 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
 
     const std::string command = context.getArgumentOr<std::string>("command", "");
     if (command.empty()) {
-        source.sendError("commands.execute.failed.emptyCommand");
+        source.sendFailure(::mc::text::literal("Empty command"));
         return 0;
     }
 
@@ -858,11 +859,11 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
                 const DimensionId targetDimId = context.getArgumentOr<DimensionId>("dimension", source.dimensionId());
                 auto* server = target.server();
                 if (server == nullptr) {
-                    target.sendError("commands.execute.failed.noServer");
+                    target.sendFailure(::mc::text::literal("Server not available"));
                     return total;
                 }
                 if (!server->dimensionManager().hasDimension(targetDimId)) {
-                    target.sendError("commands.execute.in.invalidDimension");
+                    target.sendFailure(::mc::text::literal("Unknown dimension"));
                     return total;
                 }
                 ServerCommandSource modified = target.withDimension(targetDimId);

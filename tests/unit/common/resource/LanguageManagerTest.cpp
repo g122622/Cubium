@@ -21,13 +21,47 @@
  *
  */
 
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
+#include "common/TempDirHelper.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <filesystem>
+#include <fstream>
+
 using namespace mc;
+
+namespace {
+
+void writeTextFile(const std::filesystem::path& path, const std::string& text)
+{
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream file(path, std::ios::binary);
+    file << text;
+}
+
+/**
+ * @brief 在临时资源包根下写入一个只含语言文件的文件夹资源包
+ *
+ * pack.mcmeta 是 PackRepository 判定「资源包目录」的关键文件；
+ * 语言文件按资源包相对路径写入 assets/minecraft/lang/<code>.json。
+ */
+std::filesystem::path writeLanguagePack(const std::filesystem::path& root,
+    const std::string& packName,
+    const std::string& languageCode,
+    const std::string& languageJson)
+{
+    const auto packDir = root / packName;
+    writeTextFile(packDir / "pack.mcmeta", R"({"pack":{"pack_format":34,"description":"Test Pack"}})");
+    const std::string langPath = "assets/minecraft/lang/" + languageCode + ".json";
+    writeTextFile(packDir / langPath, languageJson);
+    return packDir;
+}
+
+} // namespace
 
 // ============================================================================
 // LanguageManager 测试
@@ -205,28 +239,107 @@ TEST_F(LanguageManagerTest, PlaceholderFewerParams)
 }
 
 // ============================================================================
-// 内置语言列表测试
+// 资源包加载测试
 // ============================================================================
 
-TEST_F(LanguageManagerTest, GetBuiltinLanguages)
+TEST_F(LanguageManagerTest, LoadLanguageFromResourcePack)
 {
-    auto languages = LanguageManager::getBuiltinLanguages();
+    const auto root = test::makeUniqueTestDir("mc_language_pack_load");
+    writeLanguagePack(root,
+        "packA",
+        "en_us",
+        R"({
+            "item.minecraft.diamond": "Diamond",
+            "chat.type.text": "<%s> %s"
+        })");
 
-    EXPECT_FALSE(languages.empty());
+    PackRepository packs;
+    auto scanResult = packs.scanDirectory(root);
+    ASSERT_TRUE(scanResult.success());
+    ASSERT_EQ(scanResult.value(), 1u);
 
-    // 检查是否包含常用语言
-    bool hasEnUs = false;
-    bool hasZhCn = false;
+    auto result = manager.loadLanguage(packs, "en_us");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(manager.currentLanguage(), "en_us");
+    EXPECT_EQ(manager.translationCount(), 2u);
+    EXPECT_EQ(manager.get("item.minecraft.diamond"), "Diamond");
+    EXPECT_EQ(manager.get("chat.type.text", {"Steve", "Hi"}), "<Steve> Hi");
+
+    test::removeTestDir(root);
+}
+
+TEST_F(LanguageManagerTest, LoadLanguageFallsBackToEnglish)
+{
+    const auto root = test::makeUniqueTestDir("mc_language_pack_fallback");
+    writeLanguagePack(root, "packA", "en_us", R"({"only.english": "English", "common": "English common"})");
+    writeLanguagePack(root, "packB", "zh_cn", R"({"common": "中文通用"})");
+
+    PackRepository packs;
+    ASSERT_TRUE(packs.scanDirectory(root).success());
+
+    auto result = manager.loadLanguage(packs, "zh_cn");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(manager.currentLanguage(), "zh_cn");
+    // 目标语言覆盖的键用目标语言；缺失键回退 en_us。
+    EXPECT_EQ(manager.get("common"), "中文通用");
+    EXPECT_EQ(manager.get("only.english"), "English");
+
+    test::removeTestDir(root);
+}
+
+TEST_F(LanguageManagerTest, LoadLanguageHonorsPackPriority)
+{
+    const auto root = test::makeUniqueTestDir("mc_language_pack_priority");
+    const auto lowPack = writeLanguagePack(root, "low", "en_us", R"({"shared": "from low", "low.only": "low"})");
+    const auto highPack = writeLanguagePack(root, "high", "en_us", R"({"shared": "from high"})");
+
+    // 显式指定优先级：high 的 priority 更大，应覆盖 low。
+    PackRepository packs;
+    ASSERT_TRUE(packs.addPack(lowPack, true, 0).success());
+    ASSERT_TRUE(packs.addPack(highPack, true, 1).success());
+
+    auto result = manager.loadLanguage(packs, "en_us");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(manager.get("shared"), "from high");
+    EXPECT_EQ(manager.get("low.only"), "low");
+
+    test::removeTestDir(root);
+}
+
+TEST_F(LanguageManagerTest, ScanLanguagesReadsMetadata)
+{
+    const auto root = test::makeUniqueTestDir("mc_language_pack_scan");
+    writeLanguagePack(root,
+        "packA",
+        "en_us",
+        R"({
+            "language.name": "English",
+            "language.region": "United States",
+            "language.bidirectional": false
+        })");
+    writeLanguagePack(root, "packA", "zh_cn", R"({"language.name": "简体中文", "language.region": "中国"})");
+
+    PackRepository packs;
+    ASSERT_TRUE(packs.scanDirectory(root).success());
+
+    const auto languages = LanguageManager::scanLanguages(packs);
+    ASSERT_EQ(languages.size(), 2u);
+
+    const LanguageInfo* enUs = nullptr;
+    const LanguageInfo* zhCn = nullptr;
     for (const auto& lang : languages) {
         if (lang.code == "en_us") {
-            hasEnUs = true;
-        }
-        if (lang.code == "zh_cn") {
-            hasZhCn = true;
+            enUs = &lang;
+        } else if (lang.code == "zh_cn") {
+            zhCn = &lang;
         }
     }
-    EXPECT_TRUE(hasEnUs);
-    EXPECT_TRUE(hasZhCn);
+    ASSERT_NE(enUs, nullptr);
+    ASSERT_NE(zhCn, nullptr);
+    EXPECT_EQ(enUs->name, "English");
+    EXPECT_EQ(zhCn->name, "简体中文");
+
+    test::removeTestDir(root);
 }
 
 // ============================================================================

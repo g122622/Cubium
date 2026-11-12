@@ -35,6 +35,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
@@ -83,7 +84,7 @@ bool resolveCloneWorlds(
     auto& commandSource = context.getSource();
     server::IServer* server = commandSource.server();
     if (server == nullptr) {
-        commandSource.sendError("commands.clone.failed.noWorld");
+        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
         return false;
     }
 
@@ -99,13 +100,13 @@ bool resolveCloneWorlds(
 
     auto* sourceDimension = server->dimensionManager().getDimension(sourceDimensionId);
     if (sourceDimension == nullptr || sourceDimension->world() == nullptr) {
-        commandSource.sendError("commands.clone.failed.sourceUnloaded");
+        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
         return false;
     }
 
     auto* targetDimension = server->dimensionManager().getDimension(targetDimensionId);
     if (targetDimension == nullptr || targetDimension->world() == nullptr) {
-        commandSource.sendError("commands.clone.failed.destinationUnloaded");
+        commandSource.sendFailure(::mc::text::literal("commands.clone.failed"));
         return false;
     }
 
@@ -231,7 +232,7 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
                 destMaxX,
                 destMaxY,
                 destMaxZ)) {
-            source.sendError("commands.clone.overlap");
+            source.sendFailure(::mc::text::translatable("commands.clone.overlap"));
             return 0;
         }
     }
@@ -242,17 +243,17 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
     if (blockCount > MAX_BLOCKS) {
         std::ostringstream ss;
         ss << "Too many blocks to clone. Maximum is " << MAX_BLOCKS << ", requested " << blockCount;
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
     // 检查源区域和目标区域是否已加载（分别检查各自世界）
     if (!isAreaLoaded(sourceWorld, srcMinX, srcMinY, srcMinZ, srcMaxX, srcMaxY, srcMaxZ)) {
-        source.sendError("commands.clone.failed.sourceUnloaded");
+        source.sendFailure(::mc::text::literal("commands.clone.failed"));
         return 0;
     }
     if (!isAreaLoaded(targetWorld, destPos.x, destPos.y, destPos.z, destMaxX, destMaxY, destMaxZ)) {
-        source.sendError("commands.clone.failed.destinationUnloaded");
+        source.sendFailure(::mc::text::literal("commands.clone.failed"));
         return 0;
     }
 
@@ -436,14 +437,14 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
 
     // 检查是否成功
     if (blocksCloned == 0) {
-        source.sendError("commands.clone.failed");
+        source.sendFailure(::mc::text::translatable("commands.clone.failed"));
         return 0;
     }
 
     // 发送反馈
     std::ostringstream ss;
     ss << "Cloned " << blocksCloned << " blocks";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return blocksCloned;
 }

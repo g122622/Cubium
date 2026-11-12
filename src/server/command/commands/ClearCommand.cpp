@@ -37,6 +37,7 @@
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/network/ir/packets/play/PlayPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -171,7 +172,7 @@ void sendClearMessage(ServerCommandSource& source,
     i32 removedCount)
 {
     if (removedCount <= 0) {
-        source.sendError("No matching items were found");
+        source.sendFailure(::mc::text::literal("No matching items were found"));
         return;
     }
 
@@ -187,7 +188,7 @@ void sendClearMessage(ServerCommandSource& source,
     }
 
     ss << describeTargets(source, targetPlayerIds) << ", removing " << removedCount << " items";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 }
 
 } // namespace
@@ -238,7 +239,7 @@ i32 ClearCommand::_clearSelf(CommandContext<ServerCommandSource>& context)
 
     const PlayerId playerId = resolveSourcePlayerId(source);
     if (playerId == 0) {
-        source.sendError("You must be a player to use this command");
+        source.sendFailure(::mc::text::literal("You must be a player to use this command"));
         return 0;
     }
 
@@ -257,7 +258,7 @@ i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -275,7 +276,7 @@ i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -294,7 +295,7 @@ i32 ClearCommand::_clearPlayerItemCount(CommandContext<ServerCommandSource>& con
 
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 

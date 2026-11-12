@@ -36,6 +36,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
@@ -97,7 +98,7 @@ i32 SetWorldSpawnCommand::_setCurrentPosition(CommandContext<ServerCommandSource
 {
     auto& source = context.getSource();
     if (!source.isPlayer()) {
-        source.sendError("You must be a player to use this command");
+        source.sendFailure(::mc::text::literal("You must be a player to use this command"));
         return 0;
     }
     // 无参：位置取命令源所在方块，朝向取全零（不使用玩家朝向）。
@@ -124,13 +125,13 @@ i32 SetWorldSpawnCommand::_applyWorldSpawn(
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     ServerDimension* dimension = server->dimensionManager().getOverworld();
     if (dimension == nullptr || dimension->world() == nullptr) {
-        source.sendError("Overworld not available");
+        source.sendFailure(::mc::text::literal("Overworld not available"));
         return 0;
     }
 
@@ -158,7 +159,7 @@ i32 SetWorldSpawnCommand::_applyWorldSpawn(
     std::ostringstream ss;
     ss << "Set the world spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z << ", "
        << spawnData.yaw << ", " << spawnData.pitch << " in " << dimensionIdToString(spawnData.dimension());
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 

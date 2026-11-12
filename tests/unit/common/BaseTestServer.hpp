@@ -269,6 +269,9 @@ public:
 
     [[nodiscard]] resource::DataPackRepository& dataPackList() override;
     [[nodiscard]] const resource::DataPackRepository& dataPackList() const override;
+
+    void reloadLanguageResources() override {}
+
     [[nodiscard]] loot::LootTableManager& lootTableManager() override;
     [[nodiscard]] const loot::LootTableManager& lootTableManager() const override;
 

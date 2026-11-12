@@ -132,11 +132,11 @@ inline void writeKnownPack(B& buf, const ir::configuration::KnownPack& kp)
 {
     return makeCodec<ir::configuration::Disconnect>(
         [](B& buf, const ir::configuration::Disconnect& v) {
-            writeTextComponentNbt(buf, v.reason);
+            writeComponentNbt(buf, v.reason);
         },
         [](B& buf) -> Result<ir::configuration::Disconnect> {
             ir::configuration::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
+            MC_TRY_ASSIGN(v.reason, readComponentNbt(buf));
             return v;
         });
 }

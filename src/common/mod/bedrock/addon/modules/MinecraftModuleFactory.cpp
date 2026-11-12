@@ -95,6 +95,7 @@
 #include "common/world/gamerule/GameRules.hpp"                  // Dimension.getGameRule 经 IWorld::getGameRules 取值
 
 #include "common/util/NumberParsing.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include <optional>
 #include <unordered_map>
 #include <vector>

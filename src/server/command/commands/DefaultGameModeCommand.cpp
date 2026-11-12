@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -62,13 +63,14 @@ i32 DefaultGameModeCommand::_setDefaultMode(CommandContext<ServerCommandSource>&
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
     const GameMode mode = context.getArgument<GameMode>("gamemode");
     server->setDefaultGameMode(mode);
-    source.sendMessage("Set default game mode to " + std::string(support::getGameModeCommandName(mode)));
+    source.sendSuccess(
+        ::mc::text::literal("Set default game mode to " + std::string(support::getGameModeCommandName(mode))), false);
     return 1;
 }
 

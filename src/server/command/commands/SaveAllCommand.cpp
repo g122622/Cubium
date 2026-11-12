@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -71,7 +72,8 @@ constexpr size_t SAVE_FAILED = std::numeric_limits<size_t>::max();
 {
     auto result = server.saveAllWorldData(true);
     if (result.failed()) {
-        source.sendMessage(fmt::format("Failed to save world: {}", result.error().message()));
+        source.sendSuccess(
+            ::mc::text::literal(fmt::format("Failed to save world: {}", result.error().message())), false);
         spdlog::error("Failed to save world: {}", result.error().message());
         return SAVE_FAILED;
     }
@@ -110,21 +112,23 @@ i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (!server) {
-        source.sendMessage("Error: Server not available");
+        source.sendSuccess(::mc::text::literal("Error: Server not available"), false);
         return 0;
     }
 
-    source.sendMessage("Saving the game (this may take a moment)...");
+    source.sendSuccess(::mc::text::literal("Saving the game (this may take a moment)..."), false);
 
     auto* storage = getSharedStorage(*server);
     if (storage == nullptr) {
-        source.sendMessage("Failed to save world: shared storage not available");
+        source.sendSuccess(::mc::text::literal("Failed to save world: shared storage not available"), false);
         return 0;
     }
 
     if (server->isSharedStorageReadonlyForeignWorld()) {
-        source.sendMessage(fmt::format("Current world is a readonly foreign save (format: {}); no data will be written",
-            storage->formatInfo().formatName));
+        source.sendSuccess(::mc::text::literal(fmt::format(
+                               "Current world is a readonly foreign save (format: {}), no data will be written",
+                               storage->formatInfo().formatName)),
+            false);
         return 0;
     }
 
@@ -135,7 +139,9 @@ i32 SaveAllCommand::_saveAll(CommandContext<ServerCommandSource>& context)
 
     const size_t savedPlayers = server->playerManager().playerCount();
 
-    source.sendMessage(fmt::format("Saved the game ({} sections, {} players)", totalSections, savedPlayers));
+    source.sendSuccess(
+        ::mc::text::literal(fmt::format("Saved the game ({} sections, {} players)", totalSections, savedPlayers)),
+        false);
     spdlog::info("Game saved by {} ({} sections, {} players)", source.name(), totalSections, savedPlayers);
 
     return 1;
@@ -147,21 +153,23 @@ i32 SaveAllCommand::_saveAllFlush(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (!server) {
-        source.sendMessage("Error: Server not available");
+        source.sendSuccess(::mc::text::literal("Error: Server not available"), false);
         return 0;
     }
 
-    source.sendMessage("Saving the game with flush (this may take a moment)...");
+    source.sendSuccess(::mc::text::literal("Saving the game with flush (this may take a moment)..."), false);
 
     auto* storage = getSharedStorage(*server);
     if (storage == nullptr) {
-        source.sendMessage("Failed to save world: shared storage not available");
+        source.sendSuccess(::mc::text::literal("Failed to save world: shared storage not available"), false);
         return 0;
     }
 
     if (server->isSharedStorageReadonlyForeignWorld()) {
-        source.sendMessage(fmt::format("Current world is a readonly foreign save (format: {}); flush was skipped",
-            storage->formatInfo().formatName));
+        source.sendSuccess(
+            ::mc::text::literal(fmt::format("Current world is a readonly foreign save (format: {}), flush was skipped",
+                storage->formatInfo().formatName)),
+            false);
         return 0;
     }
 
@@ -177,7 +185,9 @@ i32 SaveAllCommand::_saveAllFlush(CommandContext<ServerCommandSource>& context)
     }
     const size_t savedPlayers = server->playerManager().playerCount();
 
-    source.sendMessage(fmt::format("Saved the game (flushed, {} sections, {} players)", totalSections, savedPlayers));
+    source.sendSuccess(::mc::text::literal(fmt::format(
+                           "Saved the game (flushed, {} sections, {} players)", totalSections, savedPlayers)),
+        false);
     spdlog::info("Game saved with flush by {} ({} sections, {} players)", source.name(), totalSections, savedPlayers);
 
     return 1;

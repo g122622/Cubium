@@ -32,6 +32,7 @@
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
 // 提供成就模板下标键的完整类型，规避 clang-tidy 的 LLVM #215724 崩溃。
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -72,11 +73,11 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("Failed to reload: server not available");
+        source.sendSuccess(::mc::text::literal("Failed to reload: server not available"), false);
         return 0;
     }
 
-    source.sendMessage("Reloading server resources...");
+    source.sendSuccess(::mc::text::literal("Reloading server resources..."), false);
 
     auto& dataPacks = server->dataPackList();
 
@@ -85,12 +86,15 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
     loot::LootTableLoader lootLoader(lootTableManager);
     auto lootResult = lootLoader.loadFromDataPackRepository(dataPacks);
     if (lootResult.failed()) {
-        source.sendMessage("Failed to reload loot tables: " + lootResult.error().toString());
+        source.sendSuccess(
+            ::mc::text::literal("Failed to reload loot tables: " + lootResult.error().toString()), false);
         spdlog::error("Failed to reload loot tables: {}", lootResult.error().toString());
     } else {
         const auto& result = lootResult.value();
-        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " loot tables" +
-            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        source.sendSuccess(
+            ::mc::text::literal("Reloaded " + std::to_string(result.successCount) + " loot tables" +
+                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : "")),
+            false);
         for (const auto& err : result.errors) {
             spdlog::error("Loot table error: {}", err);
         }
@@ -100,12 +104,14 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
     RecipeLoader recipeLoader;
     auto recipeResult = recipeLoader.loadFromDataPackRepository(dataPacks);
     if (recipeResult.failed()) {
-        source.sendMessage("Failed to reload recipes: " + recipeResult.error().toString());
+        source.sendSuccess(::mc::text::literal("Failed to reload recipes: " + recipeResult.error().toString()), false);
         spdlog::error("Failed to reload recipes: {}", recipeResult.error().toString());
     } else {
         const auto& result = recipeResult.value();
-        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " recipes" +
-            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        source.sendSuccess(
+            ::mc::text::literal("Reloaded " + std::to_string(result.successCount) + " recipes" +
+                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : "")),
+            false);
         for (const auto& err : result.errors) {
             spdlog::error("Recipe error: {}", err);
         }
@@ -116,12 +122,14 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
     function::FunctionLoader functionLoader(functionManager);
     auto funcResult = functionLoader.loadFromDataPackRepository(dataPacks);
     if (funcResult.failed()) {
-        source.sendMessage("Failed to reload functions: " + funcResult.error().toString());
+        source.sendSuccess(::mc::text::literal("Failed to reload functions: " + funcResult.error().toString()), false);
         spdlog::error("Failed to reload functions: {}", funcResult.error().toString());
     } else {
         const auto& result = funcResult.value();
-        source.sendMessage("Reloaded " + std::to_string(result.successCount) + " functions" +
-            (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+        source.sendSuccess(
+            ::mc::text::literal("Reloaded " + std::to_string(result.successCount) + " functions" +
+                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : "")),
+            false);
         for (const auto& err : result.errors) {
             spdlog::error("Function error: {}", err);
         }
@@ -135,12 +143,15 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         loot::LootPredicateLoader predicateLoader(predicateMgr);
         auto predicateResult = predicateLoader.loadFromDataPackRepository(dataPacks);
         if (predicateResult.failed()) {
-            source.sendMessage("Failed to reload predicates: " + predicateResult.error().toString());
+            source.sendSuccess(
+                ::mc::text::literal("Failed to reload predicates: " + predicateResult.error().toString()), false);
             spdlog::error("Failed to reload predicates: {}", predicateResult.error().toString());
         } else {
             const auto& result = predicateResult.value();
-            source.sendMessage("Reloaded " + std::to_string(result.successCount) + " predicates" +
-                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+            source.sendSuccess(
+                ::mc::text::literal("Reloaded " + std::to_string(result.successCount) + " predicates" +
+                    (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : "")),
+                false);
             for (const auto& err : result.errors) {
                 spdlog::error("Predicate error: {}", err);
             }
@@ -154,12 +165,15 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         advancement::AdvancementLoader advancementLoader;
         auto advancementResult = advancementLoader.loadFromDataPackRepository(dataPacks);
         if (advancementResult.failed()) {
-            source.sendMessage("Failed to reload advancements: " + advancementResult.error().toString());
+            source.sendSuccess(
+                ::mc::text::literal("Failed to reload advancements: " + advancementResult.error().toString()), false);
             spdlog::error("Failed to reload advancements: {}", advancementResult.error().toString());
         } else {
             const auto& result = advancementResult.value();
-            source.sendMessage("Reloaded " + std::to_string(result.successCount) + " advancements" +
-                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+            source.sendSuccess(
+                ::mc::text::literal("Reloaded " + std::to_string(result.successCount) + " advancements" +
+                    (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : "")),
+                false);
             for (const auto& err : result.errors) {
                 spdlog::error("Advancement error: {}", err);
             }
@@ -175,9 +189,16 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
     // 一旦加载过就会一直命中旧对象。不在这里清空的话，`/reload` 之后新建的结构仍然用
     // 重载前的模板——数据包里改过的结构文件要重启服务器才生效，且没有任何提示。
     mc::world::gen::jigsaw::JigsawAssembler::clearCache();
-    source.sendMessage("Reloaded structure templates");
+    source.sendSuccess(::mc::text::literal("Reloaded structure templates"), false);
 
-    source.sendMessage("Reload complete!");
+    // 7. 重载服务端语言表
+    //
+    // 语言文件来自资源包（assets/<ns>/lang），与数据包重载相互独立；此处只重读已装配
+    // 资源包中的语言文件，不重新扫描资源包目录（增删资源包仍需重启，与原版一致）。
+    server->reloadLanguageResources();
+    source.sendSuccess(::mc::text::literal("Reloaded server language table"), false);
+
+    source.sendSuccess(::mc::text::literal("Reload complete!"), false);
     return 1;
 }
 

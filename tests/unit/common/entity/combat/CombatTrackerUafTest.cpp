@@ -190,10 +190,12 @@ TEST_F(CombatTrackerUafTest, GetDeathMessageAfterAttackerDestroyedDoesNotCrash)
     }
     destroyAttacker(attackerId);
 
-    std::string message = m_victim->combatTracker().getDeathMessage();
-    EXPECT_FALSE(message.empty());
+    auto message = m_victim->combatTracker().getDeathMessage();
+    ASSERT_NE(message, nullptr);
+    const std::string text = message->getUnformattedText();
+    EXPECT_FALSE(text.empty());
     // 不应出现「被 XX 击杀」——真凶已不存在，取不到名字。
-    EXPECT_EQ(message.find("slain"), std::string::npos);
+    EXPECT_EQ(text.find("slain"), std::string::npos);
 }
 
 // ============================================================================
@@ -255,5 +257,5 @@ TEST_F(CombatTrackerUafTest, GetBestAttackerWithEnvironmentalDamageReturnsNull)
 
     EXPECT_EQ(m_victim->combatTracker().getBestAttacker(), nullptr);
     EXPECT_EQ(m_victim->combatTracker().getLastAttacker(), nullptr);
-    EXPECT_FALSE(m_victim->combatTracker().getDeathMessage().empty());
+    EXPECT_FALSE(m_victim->combatTracker().getDeathMessage()->getUnformattedText().empty());
 }

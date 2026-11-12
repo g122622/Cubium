@@ -38,6 +38,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
@@ -63,39 +64,40 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 {
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return false;
     }
 
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No matching entities were found");
+        source.sendFailure(::mc::text::literal("No matching entities were found"));
         return false;
     }
 
     const EntitySelector& selector = context.getArgument<EntitySelector>("target");
     Entity* entity = support::EntityResolver::resolveSingle(source, selector);
     if (entity == nullptr) {
-        source.sendError("No matching entities were found");
+        source.sendFailure(::mc::text::literal("No matching entities were found"));
         return false;
     }
 
     // 检查实体是否为 LivingEntity（MC 原版：非活体实体不支持属性命令）
     auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
     if (livingEntity == nullptr) {
-        source.sendError(_getEntityDisplayName(entity) + " is not a living entity");
+        source.sendFailure(::mc::text::literal(_getEntityDisplayName(entity) + " is not a living entity"));
         return false;
     }
 
     // 检查属性是否存在
     if (!_isKnownAttribute(attrName)) {
-        source.sendError("Unknown attribute: " + attrName);
+        source.sendFailure(::mc::text::literal("Unknown attribute: " + attrName));
         return false;
     }
 
     auto& attrMap = livingEntity->attributes();
     if (!attrMap.hasAttribute(attrName)) {
-        source.sendError(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName);
+        source.sendFailure(
+            ::mc::text::literal(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName));
         return false;
     }
 
@@ -117,7 +119,8 @@ bool AttributeCommand::_tryGetAttributeInstance(CommandContext<ServerCommandSour
 
     auto* instance = attrMap->getInstance(attrName);
     if (instance == nullptr) {
-        source.sendError(_getEntityDisplayName(outLivingEntity) + " doesn't have attribute instance for " + attrName);
+        source.sendFailure(::mc::text::literal(
+            _getEntityDisplayName(outLivingEntity) + " doesn't have attribute instance for " + attrName));
         return false;
     }
 
@@ -324,7 +327,7 @@ i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context
 
     std::ostringstream ss;
     ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }
@@ -346,7 +349,7 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
 
     std::ostringstream ss;
     ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }
@@ -371,7 +374,7 @@ i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context
 
     std::ostringstream ss;
     ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }
@@ -393,7 +396,7 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
 
     std::ostringstream ss;
     ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }
@@ -419,7 +422,7 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
     if (value < minVal || value > maxVal) {
         std::ostringstream ss;
         ss << "Value " << value << " is out of range [" << minVal << ", " << maxVal << "]";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -427,7 +430,7 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 
     std::ostringstream ss;
     ss << "Set base value of " << attrName << " to " << value << " for " << _getEntityDisplayName(livingEntity);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -448,14 +451,15 @@ i32 AttributeCommand::_resetBaseValue(CommandContext<ServerCommandSource>& conte
     }
 
     if (!attrMap->resetBaseValue(attrName)) {
-        source.sendError(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName);
+        source.sendFailure(
+            ::mc::text::literal(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName));
         return 0;
     }
 
     f64 resetValue = attrMap->getBaseValue(attrName);
     std::ostringstream ss;
     ss << "Reset base value of " << attrName << " to " << resetValue << " for " << _getEntityDisplayName(livingEntity);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -495,8 +499,8 @@ i32 AttributeCommand::_addModifierImpl(
 
     // 检查修饰符是否已存在
     if (instance->hasModifier(modifierId)) {
-        source.sendError("Modifier " + modifierId + " already exists on attribute " + attrName + " for " +
-            _getEntityDisplayName(livingEntity));
+        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " already exists on attribute " + attrName +
+            " for " + _getEntityDisplayName(livingEntity)));
         return 0;
     }
 
@@ -515,7 +519,7 @@ i32 AttributeCommand::_addModifierImpl(
     std::ostringstream ss;
     ss << "Added modifier " << modifierId << " with value " << value << " and operation " << operationName;
     ss << " to attribute " << attrName << " for " << _getEntityDisplayName(livingEntity);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -537,15 +541,15 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
     }
 
     if (!instance->removeModifier(modifierId)) {
-        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
-            _getEntityDisplayName(livingEntity));
+        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
+            " for " + _getEntityDisplayName(livingEntity)));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Removed modifier " << modifierId << " from attribute " << attrName << " for "
        << _getEntityDisplayName(livingEntity);
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -567,8 +571,8 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
-            _getEntityDisplayName(livingEntity));
+        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
+            " for " + _getEntityDisplayName(livingEntity)));
         return 0;
     }
 
@@ -578,7 +582,7 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
     std::ostringstream ss;
     ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
        << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }
@@ -597,8 +601,8 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
-            _getEntityDisplayName(livingEntity));
+        source.sendFailure(::mc::text::literal("Modifier " + modifierId + " doesn't exist on attribute " + attrName +
+            " for " + _getEntityDisplayName(livingEntity)));
         return 0;
     }
 
@@ -608,7 +612,7 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     std::ostringstream ss;
     ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
        << ": " << result;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return result;
 }

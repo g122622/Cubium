@@ -42,6 +42,7 @@
 #include "server/command/ServerCommandSource.hpp"
 
 #include "common/util/StringUtils.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include <memory>
 #include <sstream>
 #include <string>
@@ -108,7 +109,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.banip.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -129,7 +130,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
         if (playerData == nullptr) {
             // 玩家不在线，无法获取 IP 地址
-            source.sendError("commands.banip.failed.playerNotFound");
+            source.sendFailure(::mc::text::literal("commands.banip.invalid"));
             return 0;
         }
 
@@ -137,7 +138,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
         ipAddress = playerData->ipAddress;
         if (ipAddress.empty()) {
             // 本地连接的玩家（单人游戏），无法封禁 IP
-            source.sendError("commands.banip.failed.localPlayer");
+            source.sendFailure(::mc::text::literal("Cannot ban your own IP address"));
             return 0;
         }
         playersToKick.push_back(playerData->playerId);
@@ -147,7 +148,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
     // 检查是否已被封禁
     if (banList.ipBanIsBanned(ipAddress)) {
-        source.sendError("commands.banip.failed.ipAlreadyBanned");
+        source.sendFailure(::mc::text::literal("commands.banip.failed"));
         return 0;
     }
 
@@ -160,7 +161,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
 
     // 添加到封禁列表
     if (!banList.ipBanAddEntry(entry)) {
-        source.sendError("commands.banip.failed.addEntry");
+        source.sendFailure(::mc::text::literal("Failed to add the IP ban entry"));
         return 0;
     }
 
@@ -173,7 +174,7 @@ i32 BanIpCommand::_banIp(CommandContext<ServerCommandSource>& context)
     // 发送成功消息
     std::ostringstream ss;
     ss << "Banned IP " << ipAddress << ": " << reason;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     // 踢出该 IP 的所有在线玩家
     for (PlayerId playerId : playersToKick) {

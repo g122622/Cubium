@@ -29,6 +29,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -37,6 +39,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <fmt/format.h>
 #include <nlohmann/json_fwd.hpp>
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
@@ -107,30 +110,30 @@ std::string BlockDataAccessor::getDisplayName() const
     return "block at " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " + std::to_string(m_pos.z);
 }
 
-std::string BlockDataAccessor::getModifiedMessage() const
+std::unique_ptr<text::ITextComponent> BlockDataAccessor::getModifiedMessage() const
 {
-    return "Modified block data at " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
-        std::to_string(m_pos.z);
+    return ::mc::text::translatable(
+        "commands.data.block.modified", {std::to_string(m_pos.x), std::to_string(m_pos.y), std::to_string(m_pos.z)});
 }
 
-std::string BlockDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
+std::unique_ptr<text::ITextComponent> BlockDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson << nbt;
-    return ss.str();
+    return ::mc::text::translatable("commands.data.block.query",
+        {std::to_string(m_pos.x), std::to_string(m_pos.y), std::to_string(m_pos.z), ss.str()});
 }
 
-std::string BlockDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
+std::unique_ptr<text::ITextComponent> BlockDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
 {
-    std::ostringstream ss;
-    ss << nbt::contexts::mojangson;
-    ss << "Found " << path.toString() << " = ";
-    if (scale != 1.0) {
-        ss << value << " (scaled by " << scale << ")";
-    } else {
-        ss << value;
-    }
-    return ss.str();
+    // 原版参数：路径、x、y、z、保留两位小数的缩放因子、缩放后的值。
+    return ::mc::text::translatable("commands.data.block.get",
+        {path.toString(),
+            std::to_string(m_pos.x),
+            std::to_string(m_pos.y),
+            std::to_string(m_pos.z),
+            fmt::format("{:.2f}", scale),
+            std::to_string(value)});
 }
 
 // ========== EntityDataAccessor 实现 ==========
@@ -205,29 +208,25 @@ std::string EntityDataAccessor::getDisplayName() const
     return name;
 }
 
-std::string EntityDataAccessor::getModifiedMessage() const
+std::unique_ptr<text::ITextComponent> EntityDataAccessor::getModifiedMessage() const
 {
-    return "Modified entity data for " + getDisplayName();
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(getDisplayName()));
+    return ::mc::text::translatable("commands.data.entity.modified", std::move(args));
 }
 
-std::string EntityDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
+std::unique_ptr<text::ITextComponent> EntityDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson << nbt;
-    return ss.str();
+    return ::mc::text::translatable("commands.data.entity.query", {getDisplayName(), ss.str()});
 }
 
-std::string EntityDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
+std::unique_ptr<text::ITextComponent> EntityDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
 {
-    std::ostringstream ss;
-    ss << nbt::contexts::mojangson;
-    ss << getDisplayName() << " has " << path.toString() << " = ";
-    if (scale != 1.0) {
-        ss << value << " (scaled by " << scale << ")";
-    } else {
-        ss << value;
-    }
-    return ss.str();
+    // 原版参数：路径、实体显示名、保留两位小数的缩放因子、缩放后的值。
+    return ::mc::text::translatable("commands.data.entity.get",
+        {path.toString(), getDisplayName(), fmt::format("{:.2f}", scale), std::to_string(value)});
 }
 
 // ========== StorageDataAccessor 实现 ==========
@@ -271,29 +270,24 @@ std::string StorageDataAccessor::getDisplayName() const
     return m_id.toString();
 }
 
-std::string StorageDataAccessor::getModifiedMessage() const
+std::unique_ptr<text::ITextComponent> StorageDataAccessor::getModifiedMessage() const
 {
-    return "Modified storage " + m_id.toString();
+    return ::mc::text::translatable("commands.data.storage.modified", m_id.toString());
 }
 
-std::string StorageDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
+std::unique_ptr<text::ITextComponent> StorageDataAccessor::getQueryMessage(const nbt::tags::tag& nbt) const
 {
     std::ostringstream ss;
     ss << nbt::contexts::mojangson << nbt;
-    return ss.str();
+    return ::mc::text::translatable("commands.data.storage.query", {m_id.toString(), ss.str()});
 }
 
-std::string StorageDataAccessor::getGetMessage(const NbtPath& path, f64 scale, i32 value) const
+std::unique_ptr<text::ITextComponent> StorageDataAccessor::getGetMessage(
+    const NbtPath& path, f64 scale, i32 value) const
 {
-    std::ostringstream ss;
-    ss << nbt::contexts::mojangson;
-    ss << "Storage " << m_id.toString() << " has " << path.toString() << " = ";
-    if (scale != 1.0) {
-        ss << value << " (scaled by " << scale << ")";
-    } else {
-        ss << value;
-    }
-    return ss.str();
+    // 原版参数：路径、存储 ID、保留两位小数的缩放因子、缩放后的值。
+    return ::mc::text::translatable("commands.data.storage.get",
+        {path.toString(), m_id.toString(), fmt::format("{:.2f}", scale), std::to_string(value)});
 }
 
 // ========== CommandStorage 实现 ==========

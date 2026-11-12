@@ -32,6 +32,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 
@@ -104,7 +105,7 @@ i32 DamageCommand::_damage(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     const f32 amount = context.getArgument<f32>("amount");
     if (amount <= 0.0f) {
-        source.sendError("Damage amount must be positive");
+        source.sendFailure(::mc::text::literal("Damage amount must be positive"));
         return 0;
     }
 
@@ -131,10 +132,10 @@ i32 DamageCommand::_damage(CommandContext<ServerCommandSource>& context)
     }
 
     if (damaged == 0) {
-        source.sendError("No entity was damaged");
+        source.sendFailure(::mc::text::literal("No entity was damaged"));
         return 0;
     }
-    source.sendMessage("Applied damage to " + std::to_string(damaged) + " entities");
+    source.sendSuccess(::mc::text::literal("Applied damage to " + std::to_string(damaged) + " entities"), false);
     return damaged;
 }
 

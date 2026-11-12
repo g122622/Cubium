@@ -23,7 +23,10 @@
 
 // Connection<B> 模板实现。由 Connection.hpp 末尾 include。
 
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include <spdlog/spdlog.h>
+#include <vector>
 
 namespace mc::network::pipeline {
 
@@ -188,18 +191,22 @@ Result<void> Connection<B>::State::send(const OutboundPacket& outbound)
 template <typename B>
 Result<void> Connection<B>::State::sendDisconnect(const std::string& reason)
 {
+    // 组件化：reason 按翻译键处理（未命中时客户端显示字符串原文，行为与纯文本一致）。
+    const auto component = ::mc::text::translatable(reason);
+    const std::vector<u8> reasonNbt = ::mc::text::componentToNbtBytes(component.get());
+
     const auto phase = isLocalMode() ? inboundPhase() : outboundPhase();
     ir::IrPacket packet;
     packet.phase = phase;
     switch (phase) {
         case protocol::ConnectionProtocol::Login:
-            packet.packet = ir::LoginPacket{ir::login::Disconnect{reason}};
+            packet.packet = ir::LoginPacket{ir::login::Disconnect{reasonNbt}};
             break;
         case protocol::ConnectionProtocol::Configuration:
-            packet.packet = ir::ConfigurationPacket{ir::configuration::Disconnect{reason}};
+            packet.packet = ir::ConfigurationPacket{ir::configuration::Disconnect{reasonNbt}};
             break;
         case protocol::ConnectionProtocol::Play:
-            packet.packet = ir::PlayPacket{ir::play::Disconnect{reason}};
+            packet.packet = ir::PlayPacket{ir::play::Disconnect{reasonNbt}};
             break;
         case protocol::ConnectionProtocol::Handshaking:
         case protocol::ConnectionProtocol::Status:

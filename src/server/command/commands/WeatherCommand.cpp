@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -132,14 +133,13 @@ i32 WeatherCommand::_setClear(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* weatherManager = getWeatherManager(source);
     if (weatherManager == nullptr) {
-        source.sendMessage("Weather manager not available");
+        source.sendSuccess(::mc::text::literal("Weather manager not available"), false);
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
     const i32 appliedDuration = weatherManager->setClear(duration);
-    source.sendMessage(buildWeatherMessage("clear", appliedDuration));
-
+    source.sendSuccess(::mc::text::literal(buildWeatherMessage("clear", appliedDuration)), false);
     return 1;
 }
 
@@ -148,14 +148,13 @@ i32 WeatherCommand::_setRain(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* weatherManager = getWeatherManager(source);
     if (weatherManager == nullptr) {
-        source.sendMessage("Weather manager not available");
+        source.sendSuccess(::mc::text::literal("Weather manager not available"), false);
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
     const i32 appliedDuration = weatherManager->setRain(duration);
-    source.sendMessage(buildWeatherMessage("rain", appliedDuration));
-
+    source.sendSuccess(::mc::text::literal(buildWeatherMessage("rain", appliedDuration)), false);
     return 1;
 }
 
@@ -164,14 +163,13 @@ i32 WeatherCommand::_setThunder(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* weatherManager = getWeatherManager(source);
     if (weatherManager == nullptr) {
-        source.sendMessage("Weather manager not available");
+        source.sendSuccess(::mc::text::literal("Weather manager not available"), false);
         return 0;
     }
 
     i32 duration = context.getArgument<i32>("duration");
     const i32 appliedDuration = weatherManager->setThunder(duration);
-    source.sendMessage(buildWeatherMessage("thunder", appliedDuration));
-
+    source.sendSuccess(::mc::text::literal(buildWeatherMessage("thunder", appliedDuration)), false);
     return 1;
 }
 

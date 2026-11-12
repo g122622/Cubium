@@ -26,9 +26,14 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
+
+namespace mc::text {
+class ITextComponent;
+}
 
 namespace mc::command {
 
@@ -116,6 +121,34 @@ public:
     {}
 
     /**
+     * @brief 携带文本组件的错误（面向玩家的显示文本）
+     *
+     * 命令实现应使用翻译组件（`text::translatable`），让客户端按自己的语言本地化；
+     * 字符串 message 仍保留给日志与断言。
+     *
+     * @param type 错误类型
+     * @param message 错误组件
+     */
+    CommandError(CommandErrorType type, std::shared_ptr<const text::ITextComponent> message)
+        : m_type(type)
+        , m_component(std::move(message))
+        , m_cursor(-1)
+    {}
+
+    /**
+     * @brief 携带文本组件的错误（带游标）
+     *
+     * @param type 错误类型
+     * @param message 错误组件
+     * @param cursor 出错游标
+     */
+    CommandError(CommandErrorType type, std::shared_ptr<const text::ITextComponent> message, i32 cursor)
+        : m_type(type)
+        , m_component(std::move(message))
+        , m_cursor(cursor)
+    {}
+
+    /**
      * @brief 由通用 `Error` 构造
      *
      * 用于跨子系统传播：命令代码调用返回 `Result<T>`（错误类型为 `mc::Error`）的函数时，
@@ -140,13 +173,26 @@ public:
     /**
      * @brief 取得面向用户的错误文本
      *
-     * 命令实现经常直接使用翻译键（如 "commands.execute.conditional"），message() 原样
+     * 命令实现经常直接使用翻译键（如 "commands.setblock.success"），message() 原样
      * 保留以便日志排查；展示给玩家/控制台时应使用本方法：按当前语言解析成可读文本，
      * 找不到翻译时回退原文。
      *
      * @return 翻译后的错误文本
      */
     [[nodiscard]] std::string translatedMessage() const;
+
+    /**
+     * @brief 取得面向玩家的错误组件
+     *
+     * 命令实现通过组件构造错误时返回该组件（服务端不本地化，直接透传给客户端）；
+     * 通过字符串构造时返回 nullptr，调用方应回退到 `translatedMessage()`。
+     *
+     * @return 错误组件指针，可能为空
+     */
+    [[nodiscard]] const text::ITextComponent* component() const noexcept
+    {
+        return m_component.get();
+    }
 
     [[nodiscard]] i32 cursor() const noexcept
     {
@@ -159,7 +205,7 @@ public:
      */
     [[nodiscard]] CommandError withInput(std::string_view input) const
     {
-        CommandError result(m_type, m_message, m_cursor);
+        CommandError result(*this);
         result.m_input = std::string(input);
         return result;
     }
@@ -192,6 +238,7 @@ public:
 private:
     CommandErrorType m_type = CommandErrorType::Unknown;
     std::string m_message;
+    std::shared_ptr<const text::ITextComponent> m_component;
     i32 m_cursor = -1;
     std::string m_input;
 };

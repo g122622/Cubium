@@ -68,7 +68,7 @@ public:
 protected:
     [[nodiscard]] std::string getDefaultName() const override
     {
-        return "container.chestTrapped";
+        return "container.chest";
     }
 
 private:

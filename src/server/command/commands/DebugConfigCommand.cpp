@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -102,14 +103,14 @@ i32 DebugConfigCommand::_config(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     EntitySelector selector = context.getArgument<EntitySelector>("target");
     const std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
     if (targetPlayerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -119,11 +120,11 @@ i32 DebugConfigCommand::_config(CommandContext<ServerCommandSource>& context)
             ++switched;
             std::ostringstream ss;
             ss << "Switched player " << playerId << " to config mode";
-            source.sendMessage(ss.str());
+            source.sendSuccess(::mc::text::literal(ss.str()), false);
         } else {
             std::ostringstream ss;
             ss << "Failed to switch player " << playerId << " to config mode (no remote session)";
-            source.sendError(ss.str());
+            source.sendFailure(::mc::text::literal(ss.str()));
         }
     }
     return switched;
@@ -136,7 +137,7 @@ i32 DebugConfigCommand::_unconfig(CommandContext<ServerCommandSource>& context)
     //   （ServerConfigurationPacketListenerImpl）。本项目的会话（ClientSession）不按 UUID 索引，
     //   且配置阶段的连接未建立玩家记录，故暂无法按 UUID 定位。待会话层补充 UUID→session 索引后实现。
     (void)context;
-    source.sendError("debugconfig unconfig is not implemented (no UUID-indexed session lookup)");
+    source.sendFailure(::mc::text::literal("debugconfig unconfig is not implemented (no UUID-indexed session lookup)"));
     return 0;
 }
 
@@ -146,7 +147,7 @@ i32 DebugConfigCommand::_dialog(CommandContext<ServerCommandSource>& context)
     // TODO(debugconfig_dialog): 依赖 1.21 的 show_dialog(cb:138) 包与对话系统（Dialog），
     //   二者本项目均未实现；且同 unconfig 需要按 UUID 定位配置阶段连接。待对话系统落地后实现。
     (void)context;
-    source.sendError("debugconfig dialog is not implemented (dialog system missing)");
+    source.sendFailure(::mc::text::literal("debugconfig dialog is not implemented (dialog system missing)"));
     return 0;
 }
 

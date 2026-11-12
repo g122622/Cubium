@@ -29,7 +29,10 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/support/ChatBroadcast.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <memory>
 #include <string>
@@ -61,10 +64,16 @@ i32 SayCommand::_say(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
 
     const std::string message = context.getArgument<ComponentTextPtr>("message")->text;
-    // 系统消息仅记日志（原 IServer::broadcastServerMessage 实现即只 spdlog，不发包）。
-    // 批5b 已从 IServer 删除该纯虚，命令直接打日志。
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendFailure(::mc::text::literal("Server not available"));
+        return 0;
+    }
+
+    // 原版 /say 经 ChatType.SAY_COMMAND 广播 chat.type.announcement = "[%s] %s"。
+    auto announcement = ::mc::text::translatable("chat.type.announcement", {source.name(), message});
+    support::broadcastSystemChat(*server, *announcement);
     spdlog::info("[System] [{}] {}", source.name(), message);
-    source.sendMessage("Broadcasted message");
     return 1;
 }
 

@@ -53,10 +53,12 @@
 #include "common/profiler/TraceCategories.hpp"
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp" // ScoreCriteriaRegistry::registerBuiltinCriteria（服务端记分板判据注册）
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Base64.hpp"
+#include "common/util/PathEncoding.hpp"
 #include "common/util/PngInfo.hpp"
 #include "common/util/TimeUtils.hpp"
 #include "common/util/UuidUtils.hpp"
@@ -934,6 +936,47 @@ void MinecraftServer::shutdownSharedStorage()
         m_storage->close();
     }
     m_storage.reset();
+}
+
+Result<void> MinecraftServer::initializeLanguageResources()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "MinecraftServer::initializeLanguageResources");
+
+    // 资源包是语言文件的唯一数据源（assets/<ns>/lang/*.json），与数据包（data/）互不相同。
+    const auto resourcePackDir = gameDirectory().resourcePacksDir();
+    auto scanResult = m_resourcePackList.scanDirectory(resourcePackDir);
+    if (scanResult.failed()) {
+        spdlog::warn("Failed to scan resource pack directory '{}': {}",
+            util::pathToUtf8(resourcePackDir),
+            scanResult.error().toString());
+    } else {
+        spdlog::info("Scanned {} resource packs from '{}'", scanResult.value(), util::pathToUtf8(resourcePackDir));
+    }
+
+    // 与原版数据包同样的守卫：用户目录一个资源包都没有时才注入默认目录下的 Vanilla，
+    // 保证服务端至少有 en_us 语言表可用（控制台/日志的字符串化出口）。
+    const auto vanillaResourcePackDir = GameDirectory::defaultDirectory().resourcePacksDir() / "Vanilla";
+    if (m_resourcePackList.ensureVanillaBuiltinPack(vanillaResourcePackDir) > 0) {
+        spdlog::info("Injected builtin vanilla resource pack from '{}'", util::pathToUtf8(vanillaResourcePackDir));
+    }
+
+    reloadLanguageResources();
+    return Result<void>::ok();
+}
+
+void MinecraftServer::reloadLanguageResources()
+{
+    auto& languages = resource::LanguageManager::instance();
+    auto result = languages.loadLanguage(m_resourcePackList, resource::LanguageManager::DEFAULT_LANGUAGE);
+    if (result.failed()) {
+        spdlog::warn("Failed to load server language '{}': {}",
+            resource::LanguageManager::DEFAULT_LANGUAGE,
+            result.error().toString());
+        return;
+    }
+
+    spdlog::info(
+        "Server language table ready: '{}' ({} entries)", languages.currentLanguage(), languages.translationCount());
 }
 
 Result<size_t> MinecraftServer::saveAllWorldData(bool sync)

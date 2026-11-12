@@ -33,7 +33,9 @@
 #include "common/network/ir/IrPacket.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "common/util/text/TextStyle.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -48,6 +50,19 @@
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/// 原版私聊消息样式：灰色 + 斜体（ChatFormatting.GRAY + italic）。
+::mc::text::Style _whisperStyle()
+{
+    ::mc::text::Style style;
+    style.setColor(::mc::text::TextFormatting::Gray);
+    style.setItalic(true);
+    return style;
+}
+
+} // namespace
 
 void MessageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -89,14 +104,14 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
     const std::string message = context.getArgument<ComponentTextPtr>("message")->text;
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -113,17 +128,14 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
             continue;
         }
 
-        // 构建私聊消息给接收者
-        // 格式: "<sender> whispers to you: <message>" (灰色斜体)
-        std::ostringstream incomingMsg;
-        incomingMsg << "§7§o" << senderName << " whispers to you: " << message;
+        // 接收者：commands.message.display.incoming = "%s whispers to you: %s"（灰色斜体）。
+        auto incoming = ::mc::text::translatable("commands.message.display.incoming", {senderName, message});
+        incoming->setStyle(_whisperStyle());
 
-        // 1.21.11 SystemChat(overlay=false)：私聊文本含 §格式码，按纯文本折叠为 StringTag。
-        // §格式码由客户端在渲染时解析（vanilla Component.literal 同样保留 §）。
         auto conn = targetData->getConnection();
         if (conn && conn->isConnected()) {
             mc::network::ir::play::SystemChat pkt;
-            pkt.content = ::mc::text::plainTextToNbtBytes(incomingMsg.str());
+            pkt.content = ::mc::text::componentToNbtBytes(incoming.get());
             pkt.overlay = false;
             auto sendResult = conn->send(mc::network::ir::IrPacket{
                 mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}});
@@ -133,25 +145,13 @@ i32 MessageCommand::_sendMessage(CommandContext<ServerCommandSource>& context)
                     sendResult.error().message());
             }
         }
-        successCount++;
-    }
 
-    // 给发送者确认
-    if (successCount > 0) {
-        if (playerIds.size() == 1) {
-            auto* targetData = playerManager.getPlayer(playerIds[0]);
-            if (targetData) {
-                // 格式: "You whisper to <target>: <message>" (灰色斜体)
-                std::ostringstream outgoingMsg;
-                outgoingMsg << "§7§oYou whisper to " << targetData->username << ": " << message;
-                source.sendMessage(outgoingMsg.str());
-            }
-        } else {
-            // 多个接收者
-            std::ostringstream outgoingMsg;
-            outgoingMsg << "§7§oYou whisper to " << successCount << " players: " << message;
-            source.sendMessage(outgoingMsg.str());
-        }
+        // 发送者：每个目标一条 commands.message.display.outgoing = "You whisper to %s: %s"。
+        auto outgoing = ::mc::text::translatable("commands.message.display.outgoing", {targetData->username, message});
+        outgoing->setStyle(_whisperStyle());
+        source.sendSuccess(std::move(outgoing), false);
+
+        successCount++;
     }
 
     return successCount;

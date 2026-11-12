@@ -61,6 +61,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -141,7 +142,7 @@ ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
             return ItemStack::EMPTY;
         }
         // 非 LivingEntity 实体没有手持物品，抛出 ERROR_NO_HELD_ITEMS
-        source.sendError("commands.loot.noHeldItem");
+        source.sendFailure(::mc::text::literal("No held item to use as a loot parameter"));
         return ItemStack::EMPTY;
     }
 
@@ -167,13 +168,13 @@ const loot::LootTable* resolveLootTable(ServerCommandSource& source, const std::
 {
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("No server available");
+        source.sendFailure(::mc::text::literal("No server available"));
         return nullptr;
     }
 
     const loot::LootTable* table = server->lootTableManager().getTable(lootTableId);
     if (table == nullptr) {
-        source.sendError("Unknown loot table: " + lootTableId);
+        source.sendFailure(::mc::text::literal("Unknown loot table: " + lootTableId));
         return nullptr;
     }
 
@@ -280,7 +281,7 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     // 获取目标实体的战利品表ID
     std::string lootTableId = target->getLootTableId();
     if (lootTableId.empty()) {
-        source.sendError("Entity " + target->getTypeId() + " has no loot table");
+        source.sendFailure(::mc::text::literal("Entity " + target->getTypeId() + " has no loot table"));
         return {};
     }
 
@@ -333,14 +334,14 @@ std::vector<ItemStack> generateFromMine(ServerCommandSource& source, const Vecto
 {
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return {};
     }
 
     BlockPos pos(minePos.x, minePos.y, minePos.z);
     const BlockState* blockState = world->getBlockState(pos);
     if (blockState == nullptr) {
-        source.sendError("No block at that position");
+        source.sendFailure(::mc::text::literal("No block at that position"));
         return {};
     }
 
@@ -348,7 +349,7 @@ std::vector<ItemStack> generateFromMine(ServerCommandSource& source, const Vecto
     const Block& block = blockState->getBlock();
     const std::string lootTableId = block.getLootTableId();
     if (lootTableId.empty()) {
-        source.sendMessage("Block has no loot table");
+        source.sendSuccess(::mc::text::literal("Block has no loot table"), false);
         return {};
     }
 
@@ -530,13 +531,13 @@ void sendSuccessMessage(ServerCommandSource& source, const std::vector<ItemStack
         std::ostringstream ss;
         ss << "Dropped " << item.getCount() << " [" << (item.getItem() ? item.getItem()->getName() : "unknown") << "]"
            << " from " << sourceDesc;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else if (items.size() > 1) {
         std::ostringstream ss;
         ss << "Dropped " << items.size() << " items from " << sourceDesc;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
-        source.sendMessage("No items generated");
+        source.sendSuccess(::mc::text::literal("No items generated"), false);
     }
 }
 
@@ -815,7 +816,7 @@ i32 LootCommand::lootGive(CommandContext<ServerCommandSource>& context)
     auto selector = context.getArgument<EntitySelector>("players");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched");
+        source.sendFailure(::mc::text::literal("No players matched"));
         return 0;
     }
 
@@ -853,25 +854,25 @@ i32 LootCommand::lootInsert(CommandContext<ServerCommandSource>& context)
 
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
     BlockEntity* blockEntity = world->getBlockEntity(blockPos);
     if (blockEntity == nullptr) {
-        source.sendError("No block entity at that position");
+        source.sendFailure(::mc::text::literal("No block entity at that position"));
         return 0;
     }
 
     auto* container = dynamic_cast<ContainerBlockEntity*>(blockEntity);
     if (container == nullptr) {
-        source.sendError("Block is not a container");
+        source.sendFailure(::mc::text::literal("Block is not a container"));
         return 0;
     }
 
     IInventory* inventory = container->getInventory();
     if (inventory == nullptr) {
-        source.sendError("Container has no inventory");
+        source.sendFailure(::mc::text::literal("Container has no inventory"));
         return 0;
     }
 
@@ -949,32 +950,32 @@ i32 LootCommand::lootReplaceBlock(CommandContext<ServerCommandSource>& context)
 
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
     BlockEntity* blockEntity = world->getBlockEntity(blockPos);
     if (blockEntity == nullptr) {
-        source.sendError("No block entity at that position");
+        source.sendFailure(::mc::text::literal("No block entity at that position"));
         return 0;
     }
 
     auto* container = dynamic_cast<ContainerBlockEntity*>(blockEntity);
     if (container == nullptr) {
-        source.sendError("Block is not a container");
+        source.sendFailure(::mc::text::literal("Block is not a container"));
         return 0;
     }
 
     IInventory* inventory = container->getInventory();
     if (inventory == nullptr) {
-        source.sendError("Container has no inventory");
+        source.sendFailure(::mc::text::literal("Container has no inventory"));
         return 0;
     }
 
     const i32 containerSize = inventory->getContainerSize();
     if (slot < 0 || slot >= containerSize) {
-        source.sendError(
-            "Slot " + std::to_string(slot) + " is out of range (0-" + std::to_string(containerSize - 1) + ")");
+        source.sendFailure(::mc::text::literal(
+            "Slot " + std::to_string(slot) + " is out of range (0-" + std::to_string(containerSize - 1) + ")"));
         return 0;
     }
 
@@ -1020,7 +1021,7 @@ i32 LootCommand::fishGive(CommandContext<ServerCommandSource>& context)
     auto selector = context.getArgument<EntitySelector>("players");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched");
+        source.sendFailure(::mc::text::literal("No players matched"));
         return 0;
     }
 
@@ -1067,7 +1068,7 @@ i32 LootCommand::fishInsert(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
@@ -1137,13 +1138,13 @@ i32 LootCommand::fishReplaceBlock(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
     const i32 containerSize = inventory->getContainerSize();
     if (slot < 0 || slot >= containerSize) {
-        source.sendError("Slot out of range");
+        source.sendFailure(::mc::text::literal("Slot out of range"));
         return 0;
     }
 
@@ -1194,14 +1195,14 @@ i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
 
     auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
-        source.sendMessage("No loot generated from kill target");
+        source.sendSuccess(::mc::text::literal("No loot generated from kill target"), false);
         return 0;
     }
 
     auto giveSelector = context.getArgument<EntitySelector>("players");
     auto givePlayerIds = support::resolvePlayerIds(source, giveSelector);
     if (givePlayerIds.empty()) {
-        source.sendError("No players matched");
+        source.sendFailure(::mc::text::literal("No players matched"));
         return 0;
     }
 
@@ -1249,7 +1250,7 @@ i32 LootCommand::killInsert(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
@@ -1279,7 +1280,7 @@ i32 LootCommand::killReplaceEntity(CommandContext<ServerCommandSource>& context)
     auto replaceSelector = context.getArgument<EntitySelector>("players");
     auto replacePlayerIds = support::resolvePlayerIds(source, replaceSelector);
     if (replacePlayerIds.empty()) {
-        source.sendError("No players matched");
+        source.sendFailure(::mc::text::literal("No players matched"));
         return 0;
     }
 
@@ -1324,13 +1325,13 @@ i32 LootCommand::killReplaceBlock(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
     const i32 containerSize = inventory->getContainerSize();
     if (slot < 0 || slot >= containerSize) {
-        source.sendError("Slot out of range");
+        source.sendFailure(::mc::text::literal("Slot out of range"));
         return 0;
     }
 
@@ -1368,7 +1369,7 @@ i32 LootCommand::mineGive(CommandContext<ServerCommandSource>& context)
     auto selector = context.getArgument<EntitySelector>("players");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched");
+        source.sendFailure(::mc::text::literal("No players matched"));
         return 0;
     }
 
@@ -1418,7 +1419,7 @@ i32 LootCommand::mineInsert(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
@@ -1454,13 +1455,13 @@ i32 LootCommand::mineReplaceBlock(CommandContext<ServerCommandSource>& context)
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
     IInventory* inventory = container ? container->getInventory() : nullptr;
     if (inventory == nullptr) {
-        source.sendError("No container at that position");
+        source.sendFailure(::mc::text::literal("No container at that position"));
         return 0;
     }
 
     const i32 containerSize = inventory->getContainerSize();
     if (slot < 0 || slot >= containerSize) {
-        source.sendError("Slot out of range");
+        source.sendFailure(::mc::text::literal("Slot out of range"));
         return 0;
     }
 

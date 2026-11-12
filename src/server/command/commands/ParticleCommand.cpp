@@ -35,6 +35,7 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -134,14 +135,14 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
     // 解析粒子类型
     auto particleType = _parseParticleType(name);
     if (!particleType.has_value()) {
-        source.sendError("Unknown particle type: " + name);
+        source.sendFailure(::mc::text::literal("Unknown particle type: " + name));
         return 0;
     }
 
     // 获取服务器实例
     auto* server = source.server();
     if (!server) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -154,7 +155,7 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
 
     std::ostringstream ss;
     ss << "Displayed particle '" << name << "' at " << pos.x << ", " << pos.y << ", " << pos.z;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

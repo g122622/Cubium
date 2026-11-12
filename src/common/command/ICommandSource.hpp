@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include <array>
 #include <cstddef>
 #include <functional>
@@ -78,17 +79,43 @@ public:
     virtual ~ICommandSource() = default;
 
     /**
-     * @brief 发送消息给命令源
-     * @param message 消息内容
-     * @param senderUuid 发送者UUID（可选）
+     * @brief 发送成功反馈
+     *
+     * 反馈内容是文本组件而非字符串：面向玩家的文本必须是翻译组件（translatable），
+     * 由客户端按自己的语言表本地化；控制台出口才把组件字符串化。
+     *
+     * @param message 反馈组件
+     * @param broadcastToAdmins 是否同时广播给其他管理员（原版 `sendSuccess` 的 silent 语义取反）
      */
-    virtual void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) = 0;
+    virtual void sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins) = 0;
 
     /**
-     * @brief 发送错误消息给命令源
-     * @param message 错误消息内容
+     * @brief 发送错误反馈（仅发给命令源自己）
+     * @param message 错误组件
      */
-    virtual void sendError(const std::string& message) = 0;
+    virtual void sendFailure(const text::ITextComponent& message) = 0;
+
+    /**
+     * @brief 发送成功反馈（组件所有权转移的便捷重载）
+     *
+     * 允许调用点直接写 `sendSuccess(text::literal("..."), false)`，无需手动解引用。
+     *
+     * @param message 反馈组件（所有权转移）
+     * @param broadcastToAdmins 是否同时广播给其他管理员
+     */
+    void sendSuccess(std::unique_ptr<text::ITextComponent> message, bool broadcastToAdmins)
+    {
+        sendSuccess(*message, broadcastToAdmins);
+    }
+
+    /**
+     * @brief 发送错误反馈（组件所有权转移的便捷重载）
+     * @param message 错误组件（所有权转移）
+     */
+    void sendFailure(std::unique_ptr<text::ITextComponent> message)
+    {
+        sendFailure(*message);
+    }
 
     /**
      * @brief 是否应该接收反馈消息
@@ -113,9 +140,9 @@ public:
  */
 class SilentCommandSource : public ICommandSource {
 public:
-    void sendMessage(const std::string&, const std::optional<Uuid>&) override {}
+    void sendSuccess(const text::ITextComponent&, bool) override {}
 
-    void sendError(const std::string&) override {}
+    void sendFailure(const text::ITextComponent&) override {}
 
     bool shouldReceiveFeedback() const noexcept override
     {

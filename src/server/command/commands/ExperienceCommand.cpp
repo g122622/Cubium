@@ -30,6 +30,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -213,7 +214,7 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家集合（多目标，players() 参数）。
     const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("commands.experience.add.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -232,11 +233,11 @@ i32 ExperienceCommand::addPoints(CommandContext<ServerCommandSource>& context)
 
         std::ostringstream ss;
         ss << "Gave " << amount << " experience points to " << getPlayerName(source, playerId, player);
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     if (successCount == 0) {
-        source.sendError("commands.experience.add.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -252,7 +253,7 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家集合（多目标，players() 参数）。
     const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("commands.experience.add.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -271,11 +272,11 @@ i32 ExperienceCommand::addLevels(CommandContext<ServerCommandSource>& context)
 
         std::ostringstream ss;
         ss << "Gave " << amount << " levels to " << getPlayerName(source, playerId, player);
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     if (successCount == 0) {
-        source.sendError("commands.experience.add.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -291,7 +292,7 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家集合（多目标，players() 参数）。
     const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("commands.experience.set.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -311,11 +312,11 @@ i32 ExperienceCommand::setPoints(CommandContext<ServerCommandSource>& context)
 
         std::ostringstream ss;
         ss << "Set " << getPlayerName(source, playerId, player) << "'s experience to " << amount << " points";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     if (successCount == 0) {
-        source.sendError("commands.experience.set.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -331,7 +332,7 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家集合（多目标，players() 参数）。
     const std::vector<PlayerId> playerIds = resolveTargetPlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("commands.experience.set.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -350,11 +351,11 @@ i32 ExperienceCommand::setLevels(CommandContext<ServerCommandSource>& context)
 
         std::ostringstream ss;
         ss << "Set " << getPlayerName(source, playerId, player) << "'s level to " << amount;
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     if (successCount == 0) {
-        source.sendError("commands.experience.set.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -369,14 +370,14 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendError("commands.experience.query.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
     // 获取 Player 实体
     Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendError("commands.experience.query.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -385,7 +386,7 @@ i32 ExperienceCommand::queryPoints(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << getPlayerName(source, playerId, player) << " has " << totalXp << " experience points";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return totalXp;
 }
@@ -398,14 +399,14 @@ i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
     // 解析目标玩家
     PlayerId playerId = resolveFirstPlayer(source, selector);
     if (playerId == 0) {
-        source.sendError("commands.experience.query.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
     // 获取 Player 实体
     Player* player = getTargetPlayer(source, playerId);
     if (player == nullptr) {
-        source.sendError("commands.experience.query.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("permissions.requires.player"));
         return 0;
     }
 
@@ -414,7 +415,7 @@ i32 ExperienceCommand::queryLevels(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << getPlayerName(source, playerId, player) << " has " << level << " experience levels";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return level;
 }

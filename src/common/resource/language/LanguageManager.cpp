@@ -25,17 +25,20 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/PackType.hpp"
+#include "common/resource/pack/IResourcePack.hpp"
+#include "common/resource/repository/PackRepository.hpp"
 #include "common/util/NumberParsing.hpp"
-#include "pack/IResourcePack.hpp"
-#include "repository/PackRepository.hpp"
 
 #include "common/util/json/JsonRead.hpp"
 #include <cctype>
 #include <cstddef>
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <set>
+#include <shared_mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -60,85 +63,86 @@ LanguageManager& LanguageManager::instance()
 
 Result<void> LanguageManager::loadLanguage(const PackRepository& packList, const std::string& languageCode)
 {
-    return loadLanguage(packList, languageCode, "minecraft");
+    // 扫描资源包内出现的全部命名空间（minecraft 与模组/资源包自有命名空间）。
+    // 某个命名空间没有该语言文件是正常情况，_mergeLanguageFile 会以 ResourceNotFound 跳过。
+    std::vector<std::string> namespaces;
+    auto nsResult = packList.getResourceNamespaces();
+    if (nsResult.success()) {
+        namespaces = nsResult.value();
+    }
+    if (namespaces.empty()) {
+        namespaces.emplace_back("minecraft");
+    }
+    return _loadLanguage(packList, languageCode, namespaces);
 }
 
 Result<void> LanguageManager::loadLanguage(
     const PackRepository& packList, const std::string& languageCode, const std::string& namespace_)
 {
-    // 清空现有翻译
-    clear();
-
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_currentLanguage = languageCode;
-
-    // 获取启用的资源包（按优先级排序）
-    auto packs = packList.getEnabledPacks();
-
-    size_t totalLoaded = 0;
-
-    // 首先加载默认语言 (en_us) 作为回退
-    if (languageCode != DEFAULT_LANGUAGE) {
-        for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
-            auto result = loadLanguageFromPack(**it, DEFAULT_LANGUAGE, namespace_);
-            if (result.success()) {
-                totalLoaded += result.value();
-            }
-        }
-    }
-
-    // 然后加载目标语言（覆盖默认语言的翻译）
-    for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
-        auto result = loadLanguageFromPack(**it, languageCode, namespace_);
-        if (result.success()) {
-            totalLoaded += result.value();
-        }
-    }
-
-    // 如果没有加载任何翻译，记录警告但不返回错误
-    // 这允许使用翻译键作为回退
-    if (totalLoaded == 0) {
-        spdlog::warn(
-            "[LanguageManager] No translations loaded for language '{}' (namespace: {})", languageCode, namespace_);
-    }
-
-    spdlog::info("[LanguageManager] Loaded {} translations for language: {}", m_translations.size(), languageCode);
-
-    // 触发回调
-    if (m_onLanguageChanged) {
-        m_onLanguageChanged();
-    }
-
-    return Result<void>::ok();
+    return _loadLanguage(packList, languageCode, {namespace_});
 }
 
-Result<size_t> LanguageManager::loadLanguageFromPack(
-    const IResourcePack& pack, const std::string& languageCode, const std::string& namespace_)
+Result<void> LanguageManager::_loadLanguage(
+    const PackRepository& packList, const std::string& languageCode, const std::vector<std::string>& namespaces)
 {
-    // 构建语言文件路径: assets/<namespace>/lang/<lang_code>.json
-    std::string filePath = namespace_ + "/lang/" + languageCode + ".json";
+    const auto packs = packList.getEnabledPacks();
 
-    // 检查资源是否存在
+    // 在锁外完成全部读文件与解析，最后一次性替换翻译表。持锁 I/O 会阻塞命令查询，
+    // 而 loadFromJson 复用同一把锁时还会因非递归互斥量自死锁。
+    std::unordered_map<std::string, std::string> merged;
+    size_t loadedFiles = 0;
+
+    const auto mergeFor = [&](const std::string& code) {
+        // 资源包按优先级从低到高遍历：高优先级后写入，覆盖低优先级。
+        for (auto it = packs.rbegin(); it != packs.rend(); ++it) {
+            for (const auto& ns : namespaces) {
+                auto result = _mergeLanguageFile(merged, **it, code, ns);
+                if (result.success()) {
+                    ++loadedFiles;
+                    continue;
+                }
+                if (result.error().code() != ErrorCode::ResourceNotFound) {
+                    spdlog::warn("[LanguageManager] Failed to load '{}/lang/{}.json' from pack '{}': {}",
+                        ns,
+                        code,
+                        (*it)->name(),
+                        result.error().message());
+                }
+            }
+        }
+    };
+
+    // 先加载 en_us 作为回退，再用目标语言覆盖。
+    if (languageCode != DEFAULT_LANGUAGE) {
+        mergeFor(DEFAULT_LANGUAGE);
+    }
+    mergeFor(languageCode);
+
+    return _commitMerged(std::move(merged), languageCode, loadedFiles);
+}
+
+Result<size_t> LanguageManager::_mergeLanguageFile(std::unordered_map<std::string, std::string>& target,
+    const IResourcePack& pack,
+    const std::string& languageCode,
+    const std::string& namespace_)
+{
+    // 资源路径相对于资源包根目录（资源包根下的 assets/ 由 IResourcePack 负责拼接）。
+    const std::string filePath = namespace_ + "/lang/" + languageCode + ".json";
+
     if (!pack.hasResource(PackType::ClientResources, filePath)) {
         return Error(ErrorCode::ResourceNotFound, "Language file not found: " + filePath);
     }
 
-    // 读取文件内容
     auto readResult = pack.readTextResource(PackType::ClientResources, filePath);
     if (readResult.failed()) {
         return readResult.error();
     }
 
-    // 解析 JSON
-    auto parseResult = loadFromJson(readResult.value());
-    if (parseResult.failed()) {
-        return parseResult.error();
-    }
-
-    return parseResult;
+    return _mergeJsonObject(target, readResult.value());
 }
 
-Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
+Result<size_t> LanguageManager::_mergeJsonObject(
+    std::unordered_map<std::string, std::string>& target, const std::string& jsonContent)
 {
     auto parsedJson = util::json::parse(jsonContent);
     if (parsedJson.failed()) {
@@ -151,13 +155,11 @@ Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
         return Error(ErrorCode::InvalidData, "Language file must be a JSON object");
     }
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-
     size_t count = 0;
     for (auto& [key, value] : json.items()) {
         const auto text = util::json::getString(value);
         if (text.success()) {
-            m_translations[key] = text.value();
+            target[key] = text.value();
             ++count;
         }
     }
@@ -165,9 +167,57 @@ Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
     return count;
 }
 
+Result<void> LanguageManager::_commitMerged(
+    std::unordered_map<std::string, std::string>&& merged, const std::string& languageCode, size_t loadedFiles)
+{
+    std::function<void()> callback;
+    size_t total = 0;
+    {
+        std::unique_lock lock(m_mutex);
+        m_translations = std::move(merged);
+        m_currentLanguage = languageCode;
+        total = m_translations.size();
+        callback = m_onLanguageChanged;
+    }
+
+    if (total == 0) {
+        // 没有任何语言文件时仍视为成功：查询回退为键本身。
+        spdlog::warn("[LanguageManager] No translations loaded for language '{}' (no language file in enabled packs)",
+            languageCode);
+    } else {
+        spdlog::info("[LanguageManager] Loaded {} translations for language '{}' from {} language file(s)",
+            total,
+            languageCode,
+            loadedFiles);
+    }
+
+    // 回调在锁外执行：订阅方通常会在回调里查询翻译，持锁回调会自死锁。
+    if (callback) {
+        callback();
+    }
+
+    return Result<void>::ok();
+}
+
+Result<size_t> LanguageManager::loadFromJson(const std::string& jsonContent)
+{
+    std::unordered_map<std::string, std::string> parsed;
+    auto mergeResult = _mergeJsonObject(parsed, jsonContent);
+    if (mergeResult.failed()) {
+        return mergeResult.error();
+    }
+
+    std::unique_lock lock(m_mutex);
+    for (auto& [key, value] : parsed) {
+        m_translations[key] = std::move(value);
+    }
+
+    return mergeResult.value();
+}
+
 void LanguageManager::clear()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::unique_lock lock(m_mutex);
     m_translations.clear();
     m_currentLanguage.clear();
 }
@@ -178,11 +228,12 @@ void LanguageManager::clear()
 
 std::string LanguageManager::get(const std::string& key) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    auto it = m_translations.find(key);
-    if (it != m_translations.end()) {
-        return it->second;
+    {
+        std::shared_lock lock(m_mutex);
+        const auto it = m_translations.find(key);
+        if (it != m_translations.end()) {
+            return it->second;
+        }
     }
 
     // 返回键本身作为回退
@@ -191,7 +242,7 @@ std::string LanguageManager::get(const std::string& key) const
 
 bool LanguageManager::has(const std::string& key) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::shared_lock lock(m_mutex);
     return m_translations.find(key) != m_translations.end();
 }
 
@@ -199,6 +250,24 @@ std::string LanguageManager::get(const std::string& key, const std::vector<std::
 {
     std::string text = get(key);
     return _replacePlaceholders(text, params);
+}
+
+std::string LanguageManager::currentLanguage() const
+{
+    std::shared_lock lock(m_mutex);
+    return m_currentLanguage;
+}
+
+size_t LanguageManager::translationCount() const
+{
+    std::shared_lock lock(m_mutex);
+    return m_translations.size();
+}
+
+void LanguageManager::setOnLanguageChanged(std::function<void()> callback)
+{
+    std::unique_lock lock(m_mutex);
+    m_onLanguageChanged = std::move(callback);
 }
 
 // ============================================================================
@@ -231,33 +300,51 @@ std::vector<std::string> LanguageManager::getAvailableLanguages(
     return std::vector<std::string>(languages.begin(), languages.end());
 }
 
-std::vector<LanguageInfo> LanguageManager::getBuiltinLanguages()
+std::vector<LanguageInfo> LanguageManager::scanLanguages(const PackRepository& packList)
 {
-    // Minecraft 1.16.5 支持的语言列表
-    return {
-        {"en_us", "English", "US", false},
-        {"zh_cn", "简体中文", "CN", false},
-        {"zh_tw", "繁體中文", "TW", false},
-        {"ja_jp", "日本語", "JP", false},
-        {"ko_kr", "한국어", "KR", false},
-        {"de_de", "Deutsch", "DE", false},
-        {"fr_fr", "Français", "FR", false},
-        {"it_it", "Italiano", "IT", false},
-        {"es_es", "Español", "ES", false},
-        {"pt_br", "Português", "BR", false},
-        {"ru_ru", "Русский", "RU", false},
-        {"pl_pl", "Polski", "PL", false},
-        {"nl_nl", "Nederlands", "NL", false},
-        {"sv_se", "Svenska", "SE", false},
-        {"da_dk", "Dansk", "DK", false},
-        {"fi_fi", "Suomi", "FI", false},
-        {"no_no", "Norsk", "NO", false},
-        {"cs_cz", "Čeština", "CZ", false},
-        {"hu_hu", "Magyar", "HU", false},
-        {"tr_tr", "Türkçe", "TR", false},
-        {"ar_sa", "العربية", "SA", true}, // RTL
-        {"he_il", "עברית", "IL", true},   // RTL
-    };
+    std::vector<LanguageInfo> result;
+
+    const auto codes = getAvailableLanguages(packList);
+    result.reserve(codes.size());
+
+    for (const auto& code : codes) {
+        LanguageInfo info;
+        info.code = code;
+
+        // 语言显示名/地区/书写方向来自语言文件自身的 language.* 键（与原版语言列表同源）。
+        // 读取走最高优先级资源包：同一语言的多份文件里，高优先级包说了算。
+        const std::string filePath = "minecraft/lang/" + code + ".json";
+        auto textResult = packList.readTextResource(filePath);
+        if (textResult.success()) {
+            auto parsed = util::json::parse(textResult.value());
+            if (parsed.failed()) {
+                spdlog::warn("[LanguageManager] Failed to parse '{}' while scanning languages: {}",
+                    filePath,
+                    parsed.error().message());
+            } else if (parsed.value().is_object()) {
+                const auto& json = parsed.value();
+                const auto name = util::json::getString(json, "language.name");
+                if (name.success()) {
+                    info.name = name.value();
+                }
+                const auto region = util::json::getString(json, "language.region");
+                if (region.success()) {
+                    info.region = region.value();
+                }
+                const auto bidirectional = util::json::getBool(json, "language.bidirectional");
+                if (bidirectional.success()) {
+                    info.bidirectional = bidirectional.value();
+                }
+            }
+        }
+
+        if (info.name.empty()) {
+            info.name = code;
+        }
+        result.push_back(std::move(info));
+    }
+
+    return result;
 }
 
 // ============================================================================

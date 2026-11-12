@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/command/errors/CommandErrors.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -559,8 +560,17 @@ TEST_F(BlockDataAccessorTest, GetDisplayName_ReturnsFormattedPosition)
     EXPECT_EQ(accessor.getDisplayName(), "block at 10, 20, 30");
 }
 
-TEST_F(BlockDataAccessorTest, GetModifiedMessage_ReturnsFormattedPosition)
+TEST_F(BlockDataAccessorTest, GetModifiedMessage_ReturnsTranslatableWithPosition)
 {
     BlockDataAccessor accessor(&world_, kPos);
-    EXPECT_EQ(accessor.getModifiedMessage(), "Modified block data at 10, 20, 30");
+    auto message = accessor.getModifiedMessage();
+    ASSERT_NE(message, nullptr);
+
+    auto* translation = dynamic_cast<mc::text::TranslationTextComponent*>(message.get());
+    ASSERT_NE(translation, nullptr);
+    EXPECT_EQ(translation->getKey(), "commands.data.block.modified");
+    ASSERT_EQ(translation->getParams().size(), 3u);
+    EXPECT_EQ(translation->getParams()[0]->getUnformattedText(), "10");
+    EXPECT_EQ(translation->getParams()[1]->getUnformattedText(), "20");
+    EXPECT_EQ(translation->getParams()[2]->getUnformattedText(), "30");
 }

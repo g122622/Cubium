@@ -43,6 +43,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/DateTimeUtils.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include <memory>
 #include <sstream>
@@ -143,13 +144,13 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerName.empty()) {
-        source.sendError("commands.ban.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("argument.player.unknown"));
         return 0;
     }
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.ban.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -157,7 +158,7 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
 
     // 检查是否已被封禁
     if (banList.playerBanIsNameBanned(playerName)) {
-        source.sendError("commands.ban.failed.playerAlreadyBanned");
+        source.sendFailure(::mc::text::literal("commands.ban.failed"));
         return 0;
     }
 
@@ -171,7 +172,7 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
 
     // 添加到封禁列表
     if (!banList.playerBanAddEntry(entry)) {
-        source.sendError("commands.ban.failed.addEntry");
+        source.sendFailure(::mc::text::literal("Failed to add the ban entry"));
         return 0;
     }
 
@@ -184,7 +185,7 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
     // 发送成功消息
     std::ostringstream ss;
     ss << "Banned " << playerName << ": " << reason;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     // 如果玩家在线，踢出玩家
     if (playerId != 0) {

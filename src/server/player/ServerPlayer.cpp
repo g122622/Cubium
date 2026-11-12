@@ -1630,8 +1630,10 @@ void ServerPlayer::die(DamageSource& cause)
         const bool showDeathMessages =
             getWorld()->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SHOW_DEATH_MESSAGES);
 
-        // 死亡消息：从 CombatTracker 取 getDeathMessage()。
-        std::string deathMessage = combatTracker().getDeathMessage();
+        // 死亡消息：从 CombatTracker 取组件（translate + 受害者/攻击者显示名），
+        // 服务端不本地化，直接序列化成 Component NBT 下发。
+        const auto deathMessage = combatTracker().getDeathMessage();
+        const std::vector<u8> deathMessageNbt = ::mc::text::componentToNbtBytes(deathMessage.get());
 
         // 对齐 vanilla ServerPlayer.die（ServerPlayer.java:882-909）：
         //   flag ? send KillPacket(getId(), getDeathMessage()) + 按队伍广播
@@ -1639,7 +1641,7 @@ void ServerPlayer::die(DamageSource& cause)
         // 无论 showDeathMessages 与否，都发送 ClientboundPlayerCombatKillPacket 驱动客户端死亡画面。
         mc::network::ir::play::PlayerCombatKill killPkt;
         killPkt.playerId = static_cast<i32>(id());
-        killPkt.message = ::mc::text::plainTextToNbtBytes(showDeathMessages ? deathMessage : std::string{});
+        killPkt.message = showDeathMessages ? deathMessageNbt : ::mc::text::plainTextToNbtBytes(std::string{});
         static_cast<void>(_sendIrPacket(mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(killPkt)}}));
 
@@ -1659,8 +1661,7 @@ void ServerPlayer::die(DamageSource& cause)
             const scoreboard::TeamVisibility visibility =
                 deadTeam != nullptr ? deadTeam->getDeathMessageVisibility() : scoreboard::TeamVisibility::Always;
 
-            // 死亡消息 Component NBT wire 字节（复用 SystemChat.content 的构造方式）。
-            const std::vector<u8> deathMessageNbt = ::mc::text::plainTextToNbtBytes(deathMessage);
+            // 死亡消息 NBT 字节已在上方构造（与 KillPacket 复用同一份）。
             const PlayerId selfPlayerId = playerId();
 
             // 广播判定（对齐 PlayerList.broadcastSystemMessage/ToTeam/ToAllExceptTeam）：

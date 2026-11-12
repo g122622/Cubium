@@ -4,6 +4,7 @@
 
 ```
 support/
+├── ChatBroadcast.hpp/cpp            # 系统聊天广播（/say、/me、队伍消息；组件只序列化一次）
 ├── CommandSuggestionProviders.hpp  # 服务端建议标记及客户端具名建议提供器
 ├── PlayerResolver.hpp               # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
 ├── PlayerResolver.cpp               # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）

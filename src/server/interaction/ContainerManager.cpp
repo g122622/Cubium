@@ -219,8 +219,8 @@ bool ContainerManager::openEntityContainer(PlayerId playerId, INamedContainerPro
 void ContainerManager::_announceContainerOpened(
     PlayerId playerId, mc::ContainerId containerId, mc::ContainerType type, const std::string& title)
 {
-    // 标题：调用方给出的自定义标题优先（如村民显示名），缺省回落到容器类型的默认标题。
-    const std::string resolvedTitle = title.empty() ? std::string(ContainerTypes::getDefaultTitle(type)) : title;
+    // 标题：自定义标题（如村民显示名）原样传给发送端；空串表示使用容器类型的默认翻译键。
+    // 默认键的解析放在发送端，避免这里把字符串键与自定义文本混为一谈。
 
     // 槽位数以实际菜单为准（方块容器可能因双箱/特殊布局与类型默认值不同）。
     i32 slotCount = ContainerTypes::getSlotCount(type);
@@ -229,7 +229,7 @@ void ContainerManager::_announceContainerOpened(
     }
 
     if (m_onContainerOpen) {
-        m_onContainerOpen(playerId, containerId, type, resolvedTitle, slotCount);
+        m_onContainerOpen(playerId, containerId, type, title, slotCount);
     }
 }
 

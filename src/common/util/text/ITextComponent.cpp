@@ -24,15 +24,38 @@
 #include "ITextComponent.hpp"
 #include "StringTextComponent.hpp"
 #include "TranslationTextComponent.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "contents/KeybindTextComponent.hpp"
+#include "contents/NbtTextComponent.hpp"
+#include "contents/ObjectTextComponent.hpp"
+#include "contents/ScoreTextComponent.hpp"
+#include "contents/SelectorTextComponent.hpp"
 #include "util/assert/AssertAll.hpp"
 #include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>
 #include <nlohmann/json_fwd.hpp>
+#include <spdlog/spdlog.h>
 
 namespace mc::text {
+
+namespace {
+
+/**
+ * @brief 读取可选的字符串字段
+ *
+ * 语言/数据包文本组件是不可信输入：字段缺失或类型不符时返回空串，不使用会抛出异常的
+ * `json.get<T>()`。
+ */
+std::string _optionalString(const nlohmann::json& json, const char* field)
+{
+    const auto value = util::json::getString(json, field);
+    return value.success() ? value.value() : std::string{};
+}
+
+} // namespace
 
 void ITextComponent::appendText(const std::string& text)
 {
@@ -48,43 +71,80 @@ std::unique_ptr<ITextComponent> ITextComponent::fromJson(const nlohmann::json& j
 
     // 纯字符串 -> StringTextComponent
     if (json.is_string()) {
-        return std::make_unique<StringTextComponent>(json.get<std::string>());
+        const auto text = util::json::getString(json);
+        return std::make_unique<StringTextComponent>(text.success() ? text.value() : std::string{});
     }
 
-    // 必须是对象
+    // 数组：首元素为主组件，其余为 siblings
+    if (json.is_array()) {
+        return fromJsonArray(json);
+    }
+
     if (!json.is_object()) {
         return std::make_unique<StringTextComponent>("");
     }
 
-    // 根据 JSON 内容判断组件类型
+    // 按 contents 类型分派（与原版 ComponentSerialization 的 type 匹配顺序一致）
+    std::unique_ptr<ITextComponent> component;
 
-    // 翻译组件
-    if (json.contains("translate")) {
-        std::string key = json["translate"].get<std::string>();
-        auto component = std::make_unique<TranslationTextComponent>(std::move(key));
-
-        // 解析参数
-        if (json.contains("with") && json["with"].is_array()) {
-            for (const auto& param : json["with"]) {
-                component->addParam(fromJson(param));
-            }
+    if (const auto* score = util::json::findField(json, "score"); score != nullptr && score->is_object()) {
+        component =
+            std::make_unique<ScoreTextComponent>(_optionalString(*score, "name"), _optionalString(*score, "objective"));
+    } else if (util::json::findField(json, "selector") != nullptr) {
+        auto selector = std::make_unique<SelectorTextComponent>(_optionalString(json, "selector"));
+        if (const auto* separator = util::json::findField(json, "separator"); separator != nullptr) {
+            selector->setSeparator(fromJson(*separator));
+        }
+        component = std::move(selector);
+    } else if (util::json::findField(json, "keybind") != nullptr) {
+        component = std::make_unique<KeybindTextComponent>(_optionalString(json, "keybind"));
+    } else if (util::json::findField(json, "nbt") != nullptr) {
+        NbtDataSourceKind kind = NbtDataSourceKind::Storage;
+        std::string dataSourceValue;
+        if (util::json::findField(json, "block") != nullptr) {
+            kind = NbtDataSourceKind::Block;
+            dataSourceValue = _optionalString(json, "block");
+        } else if (util::json::findField(json, "entity") != nullptr) {
+            kind = NbtDataSourceKind::Entity;
+            dataSourceValue = _optionalString(json, "entity");
+        } else if (util::json::findField(json, "storage") != nullptr) {
+            kind = NbtDataSourceKind::Storage;
+            dataSourceValue = _optionalString(json, "storage");
+        } else {
+            spdlog::warn("Component NBT contents is missing a data source (block/entity/storage)");
         }
 
-        // 解析样式
-        component->setStyle(Style::fromJson(json));
-
-        // 解析子组件
-        if (json.contains("extra") && json["extra"].is_array()) {
-            for (const auto& extra : json["extra"]) {
-                component->append(fromJson(extra));
+        const auto interpret = util::json::getBool(json, "interpret");
+        auto nbt = std::make_unique<NbtTextComponent>(
+            _optionalString(json, "nbt"), interpret.success() && interpret.value(), kind, std::move(dataSourceValue));
+        if (const auto* separator = util::json::findField(json, "separator"); separator != nullptr) {
+            nbt->setSeparator(fromJson(*separator));
+        }
+        component = std::move(nbt);
+    } else if (const auto* object = util::json::findField(json, "object"); object != nullptr && object->is_object()) {
+        component = std::make_unique<ObjectTextComponent>(*object);
+    } else if (util::json::findField(json, "translate") != nullptr) {
+        auto translation = std::make_unique<TranslationTextComponent>(_optionalString(json, "translate"));
+        if (const auto* with = util::json::findField(json, "with"); with != nullptr && with->is_array()) {
+            for (const auto& param : *with) {
+                translation->addParam(fromJson(param));
             }
         }
-
-        return component;
+        component = std::move(translation);
+    } else {
+        // 未知对象：按纯文本组件降级（"text" 缺失时为空串）
+        component = std::make_unique<StringTextComponent>(_optionalString(json, "text"));
     }
 
-    // 默认：字符串组件
-    return createStringFromJson(json);
+    component->setStyle(Style::fromJson(json));
+
+    if (const auto* extra = util::json::findField(json, "extra"); extra != nullptr && extra->is_array()) {
+        for (const auto& sibling : *extra) {
+            component->append(fromJson(sibling));
+        }
+    }
+
+    return component;
 }
 
 std::unique_ptr<ITextComponent> ITextComponent::fromJsonArray(const nlohmann::json& jsonArray)

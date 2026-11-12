@@ -112,7 +112,7 @@ struct KeepAlive {
  * reason 为 JSON 文本组件字符串（组件 NBT 对齐留 Phase6）。
  */
 struct Disconnect {
-    std::string reason; // JSON 文本组件
+    std::vector<u8> reason; // Component NBT wire 字节（自定界）
     BedrockMeta bedrock{};
 
     [[nodiscard]] friend bool operator==(const Disconnect&, const Disconnect&) noexcept = default;
@@ -833,12 +833,13 @@ struct SetPlayerInventory {
  *
  * 线格式：VarInt(containerId)+VarInt(menuType)+文本组件(title)。
  *
- * title 在业务侧是纯文本，出站由 codec 编码为文本组件 NBT，入站再折叠回纯文本。
+ * title 为 Component NBT wire 字节（自定界）：默认容器标题是翻译组件（translate），
+ * 自定义名是纯文本组件；客户端按自己的语言表本地化。
  */
 struct OpenScreen {
     i32 containerId;
     i32 menuType;
-    std::string title; // 窗口标题纯文本
+    std::vector<u8> title; // Component NBT wire 字节
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const OpenScreen&, const OpenScreen&) noexcept = default;
 };

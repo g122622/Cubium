@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -77,7 +78,7 @@ i32 PublishCommand::_publishToWorld(CommandContext<ServerCommandSource>& context
 
     // 检查是否为集成服务器
     if (!server->isIntegrated()) {
-        source.sendError("This command can only be used in singleplayer");
+        source.sendFailure(::mc::text::literal("This command can only be used in singleplayer"));
         return 0;
     }
 
@@ -95,7 +96,7 @@ i32 PublishCommand::_publishToWorld(CommandContext<ServerCommandSource>& context
     // 调用服务器的局域网发布接口
     auto result = server->publishToLan(port, allowCheats);
     if (result.failed()) {
-        source.sendError("Failed to publish world to LAN: " + result.error().message());
+        source.sendFailure(::mc::text::literal("Failed to publish world to LAN: " + result.error().message()));
         return 0;
     }
 
@@ -104,7 +105,7 @@ i32 PublishCommand::_publishToWorld(CommandContext<ServerCommandSource>& context
     if (allowCheats) {
         ss << " with cheats enabled";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

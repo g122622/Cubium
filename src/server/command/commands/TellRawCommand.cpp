@@ -34,6 +34,7 @@
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/json/JsonRead.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -86,7 +87,7 @@ i32 TellRawCommand::_sendRawMessage(CommandContext<ServerCommandSource>& context
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 

@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"

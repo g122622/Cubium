@@ -24,6 +24,7 @@
 #include "VersionCommand.hpp"
 
 #include "common/command/CommandNode.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
 #include <memory>
@@ -47,7 +48,7 @@ void VersionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 i32 VersionCommand::_showVersion(CommandContext<ServerCommandSource>& context)
 {
     // 原版输出 "This server is running ... version 1.21.11"；Cubium 对齐同一目标版本。
-    context.getSource().sendMessage("This server is running Cubium on Minecraft 1.21.11");
+    context.getSource().sendSuccess(::mc::text::literal("This server is running Cubium on Minecraft 1.21.11"), false);
     return 1;
 }
 

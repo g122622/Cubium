@@ -29,6 +29,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -153,7 +154,7 @@ i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -169,13 +170,13 @@ i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
         std::ostringstream ss;
         ss << "World border size will change to " << static_cast<i64>(size) << " blocks over " << timeSeconds
            << " seconds";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         border.setSize(static_cast<f64>(size));
 
         std::ostringstream ss;
         ss << "World border size set to " << static_cast<i64>(size) << " blocks";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return 1;
@@ -187,7 +188,7 @@ i32 WorldBorderCommand::_getBorder(CommandContext<ServerCommandSource>& context)
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -196,7 +197,7 @@ i32 WorldBorderCommand::_getBorder(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << "World border is currently " << static_cast<i64>(currentSize) << " blocks wide";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -207,7 +208,7 @@ i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -220,7 +221,7 @@ i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << "World border center set to " << x << ", " << z;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -231,7 +232,7 @@ i32 WorldBorderCommand::_setDamageAmount(CommandContext<ServerCommandSource>& co
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -242,7 +243,7 @@ i32 WorldBorderCommand::_setDamageAmount(CommandContext<ServerCommandSource>& co
 
     std::ostringstream ss;
     ss << "World border damage per block set to " << damage;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -253,7 +254,7 @@ i32 WorldBorderCommand::_setDamageBuffer(CommandContext<ServerCommandSource>& co
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -264,7 +265,7 @@ i32 WorldBorderCommand::_setDamageBuffer(CommandContext<ServerCommandSource>& co
 
     std::ostringstream ss;
     ss << "World border damage buffer set to " << distance << " blocks";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -275,7 +276,7 @@ i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& con
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -286,7 +287,7 @@ i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& con
 
     std::ostringstream ss;
     ss << "World border warning time set to " << seconds << " seconds";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -297,7 +298,7 @@ i32 WorldBorderCommand::_setWarningDistance(CommandContext<ServerCommandSource>&
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -308,7 +309,7 @@ i32 WorldBorderCommand::_setWarningDistance(CommandContext<ServerCommandSource>&
 
     std::ostringstream ss;
     ss << "World border warning distance set to " << blocks << " blocks";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -319,7 +320,7 @@ i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
     auto* world = source.world();
 
     if (world == nullptr) {
-        source.sendError("No world available.");
+        source.sendFailure(::mc::text::literal("No world available."));
         return 0;
     }
 
@@ -340,13 +341,13 @@ i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
         std::ostringstream ss;
         ss << "World border size will change to " << static_cast<i64>(newSize) << " blocks over " << timeSeconds
            << " seconds";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         border.setSize(newSize);
 
         std::ostringstream ss;
         ss << "World border size set to " << static_cast<i64>(newSize) << " blocks";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return 1;

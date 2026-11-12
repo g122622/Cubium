@@ -34,6 +34,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
@@ -70,13 +71,13 @@ i32 _applySpawnPoint(CommandContext<ServerCommandSource>& context,
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
@@ -98,7 +99,7 @@ i32 _applySpawnPoint(CommandContext<ServerCommandSource>& context,
         ss << "Set spawn point for " << player->username() << " to " << spawnPos.x << ", " << spawnPos.y << ", "
            << spawnPos.z << ", " << config.respawnData.yaw << ", " << config.respawnData.pitch << " in "
            << dimensionIdToString(dimensionId);
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         ++successCount;
     }
 
@@ -155,7 +156,7 @@ i32 SpawnPointCommand::_setSelfSpawnPoint(CommandContext<ServerCommandSource>& c
 
     Player* player = source.player();
     if (player == nullptr) {
-        source.sendError("You must be a player to use this command");
+        source.sendFailure(::mc::text::literal("You must be a player to use this command"));
         return 0;
     }
 
@@ -168,7 +169,7 @@ i32 SpawnPointCommand::_setSelfSpawnPoint(CommandContext<ServerCommandSource>& c
     std::ostringstream ss;
     ss << "Set spawn point to " << spawnPos.x << ", " << spawnPos.y << ", " << spawnPos.z << ", 0.0, 0.0 in "
        << dimensionIdToString(source.dimensionId());
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -178,7 +179,7 @@ i32 SpawnPointCommand::_setPlayerSpawnPoint(CommandContext<ServerCommandSource>&
     const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -192,7 +193,7 @@ i32 SpawnPointCommand::_setPlayerSpawnPointAtPosition(CommandContext<ServerComma
     const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -209,7 +210,7 @@ i32 SpawnPointCommand::_setPlayerSpawnPointAtRotation(CommandContext<ServerComma
     const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 

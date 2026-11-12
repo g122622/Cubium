@@ -232,6 +232,12 @@ mc::Result<void> GameTestServer::initialize(const GameTestServerParams& params)
         spdlog::info("Injected builtin vanilla data pack from '{}'", vanillaDataPackDir.string());
     }
 
+    // 资源包与语言：语言文件属于资源包（assets/<ns>/lang），与数据包（data/）无关。
+    auto languageResult = initializeLanguageResources();
+    if (languageResult.failed()) {
+        spdlog::warn("Failed to initialize language resources: {}", languageResult.error().toString());
+    }
+
     // === 注册表（注册实体类型，因 GameTest 需 spawn 实体）===
     initializeRegistries(true);
 

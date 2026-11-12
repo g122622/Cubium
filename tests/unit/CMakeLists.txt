@@ -1659,6 +1659,8 @@ add_executable(mc_tests
     common/util/text/TextStyleTest.cpp
     common/util/text/TextComponentTest.cpp
     common/util/text/ComponentNbtSerializationTest.cpp
+    # 7 种 contents（text/translate/score/selector/keybind/nbt/object）的 JSON 与 NBT 往返
+    common/util/text/TextComponentContentsTest.cpp
     # 数字格式（记分板 blank/styled/fixed 的渲染、NBT 存档与线格式编码）
     common/util/text/NumberFormatTest.cpp
     # 存储系统测试

@@ -31,6 +31,7 @@
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -64,14 +65,18 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.setblock.failed.noWorld");
+        // 原版只有统一的 commands.setblock.failed；具体原因写服务端日志便于排查。
+        spdlog::warn(
+            "SetBlockCommand: world not available for position ({}, {}, {})", position.x, position.y, position.z);
+        source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
         return 0;
     }
 
     // 获取方块状态
     const BlockState* state = blockInput.state();
     if (state == nullptr) {
-        source.sendError("commands.setblock.failed.invalidBlock");
+        spdlog::warn("SetBlockCommand: invalid block state at ({}, {}, {})", position.x, position.y, position.z);
+        source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
         return 0;
     }
 
@@ -82,7 +87,11 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     if (onlyIfAir) {
         const BlockState* existingBlock = world->getBlockState(position.x, position.y, position.z);
         if (existingBlock != nullptr && !existingBlock->isAir()) {
-            source.sendError("commands.setblock.failed.alreadyExists");
+            spdlog::warn("SetBlockCommand: target block is not air in keep mode at ({}, {}, {})",
+                position.x,
+                position.y,
+                position.z);
+            source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
             return 0;
         }
     }
@@ -95,14 +104,14 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
     // 放置方块
     bool success = world->setBlockState(position.x, position.y, position.z, state);
     if (!success) {
-        source.sendError("commands.setblock.failed");
+        source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
         return 0;
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    ss << "Block placed at " << position.x << ", " << position.y << ", " << position.z;
-    source.sendMessage(ss.str());
+    // 发送反馈：commands.setblock.success 接受 x/y/z 三个参数，并广播给其他管理员。
+    source.sendSuccess(::mc::text::translatable("commands.setblock.success",
+                           {std::to_string(position.x), std::to_string(position.y), std::to_string(position.z)}),
+        true);
 
     return 1;
 }

@@ -36,6 +36,7 @@
 #include "server/command/support/CommandSuggestionProviders.hpp"
 
 #include "common/util/StringUtils.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include <memory>
 #include <sstream>
 #include <string>
@@ -72,13 +73,13 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.pardonip.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     // 验证 IP 格式
     if (!util::isValidIpv4(target)) {
-        source.sendError("commands.pardonip.failed.invalidIp");
+        source.sendFailure(::mc::text::literal("commands.pardonip.invalid"));
         return 0;
     }
 
@@ -88,7 +89,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     if (!banList.ipBanIsBanned(target)) {
         std::ostringstream ss;
         ss << "Could not unban IP " << target << " (not banned)";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -96,7 +97,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     if (!banList.ipBanRemoveEntry(target)) {
         std::ostringstream ss;
         ss << "Failed to remove IP " << target << " from ban list";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -109,7 +110,7 @@ i32 PardonIpCommand::_pardonIp(CommandContext<ServerCommandSource>& context)
     // 发送成功消息
     std::ostringstream ss;
     ss << "Unbanned IP " << target;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

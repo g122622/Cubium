@@ -36,6 +36,7 @@
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
 #include "common/util/json/JsonRead.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/numbers/NumberFormat.hpp"
@@ -476,7 +477,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -485,7 +486,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
         std::ostringstream ss;
         ss << "Objective name '" << name << "' is too long (max " << scoreboard::ScoreObjective::MAX_NAME_LENGTH
            << " characters)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -493,7 +494,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
     if (scoreboard->hasObjective(name)) {
         std::ostringstream ss;
         ss << "An objective with the name '" << name << "' already exists";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -503,7 +504,7 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
     if (!criteriaObj) {
         std::ostringstream ss;
         ss << "Unknown scoreboard criteria '" << criteria << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -515,13 +516,13 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
     auto displayName = std::make_unique<text::StringTextComponent>(displayNameText);
     auto* objective = scoreboard->addObjective(name, *criteriaObj, std::move(displayName));
     if (!objective) {
-        source.sendMessage("Failed to create objective");
+        source.sendSuccess(::mc::text::literal("Failed to create objective"), false);
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Created new objective '" << name << "' with criteria '" << criteria << "'";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -534,7 +535,7 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -543,7 +544,7 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
     if (!objective) {
         std::ostringstream ss;
         ss << "Unknown objective '" << name << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -552,7 +553,7 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
 
     std::ostringstream ss;
     ss << "Removed objective '" << name << "'";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -564,13 +565,13 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
     auto objectives = scoreboard->getObjectives();
     if (objectives.empty()) {
-        source.sendMessage("There are no objectives");
+        source.sendSuccess(::mc::text::literal("There are no objectives"), false);
         return 1;
     }
 
@@ -582,7 +583,7 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
         }
         ss << objectives[i]->getName();
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -597,7 +598,7 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -606,7 +607,7 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     if (!objective) {
         std::ostringstream ss;
         ss << "Unknown objective '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -614,21 +615,21 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     if (objective->getCriteria().isReadOnly()) {
         std::ostringstream ss;
         ss << "Cannot set score for read-only criteria '" << objective->getCriteria().getName() << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
     // 设置分数
     auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
     if (!scoreObj) {
-        source.sendMessage("Failed to create score");
+        source.sendSuccess(::mc::text::literal("Failed to create score"), false);
         return 0;
     }
     scoreObj->setScorePoints(score);
 
     std::ostringstream ss;
     ss << "Set " << target << "'s score in '" << objectiveName << "' to " << score;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -643,7 +644,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -652,7 +653,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     if (!objective) {
         std::ostringstream ss;
         ss << "Unknown objective '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -660,14 +661,14 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     if (objective->getCriteria().isReadOnly()) {
         std::ostringstream ss;
         ss << "Cannot modify score for read-only criteria '" << objective->getCriteria().getName() << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
     // 获取分数
     auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
     if (!scoreObj) {
-        source.sendMessage("Failed to create score");
+        source.sendSuccess(::mc::text::literal("Failed to create score"), false);
         return 0;
     }
     scoreObj->addScore(score);
@@ -675,7 +676,7 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     std::ostringstream ss;
     ss << "Added " << score << " to " << target << "'s score in '" << objectiveName << "' (now "
        << scoreObj->getScorePoints() << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -690,7 +691,7 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -699,7 +700,7 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     if (!objective) {
         std::ostringstream ss;
         ss << "Unknown objective '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -707,14 +708,14 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     if (objective->getCriteria().isReadOnly()) {
         std::ostringstream ss;
         ss << "Cannot modify score for read-only criteria '" << objective->getCriteria().getName() << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
     // 获取分数
     auto* scoreObj = scoreboard->getOrCreateScore(target, *objective);
     if (!scoreObj) {
-        source.sendMessage("Failed to create score");
+        source.sendSuccess(::mc::text::literal("Failed to create score"), false);
         return 0;
     }
     scoreObj->subtractScore(score);
@@ -722,7 +723,7 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     std::ostringstream ss;
     ss << "Subtracted " << score << " from " << target << "'s score in '" << objectiveName << "' (now "
        << scoreObj->getScorePoints() << ")";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -735,7 +736,7 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -752,7 +753,7 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << "Reset scores for " << target;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -768,31 +769,34 @@ i32 ScoreboardCommand::_getScore(CommandContext<ServerCommandSource>& context)
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendFailure(::mc::text::literal("Scoreboard is not available"));
         return 0;
     }
 
     // 获取目标
     auto* objective = scoreboard->getObjective(objectiveName);
     if (!objective) {
-        std::ostringstream ss;
-        ss << "Unknown objective '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
 
-    // 获取分数
+    // 获取分数：无分数时原版用 commands.scoreboard.players.get.null（objective, 目标显示名）。
     auto* scoreObj = scoreboard->getScore(target, *objective);
     if (!scoreObj) {
-        std::ostringstream ss;
-        ss << target << " has no score in '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendFailure(::mc::text::translatable("commands.scoreboard.players.get.null", {objectiveName, target}));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << target << " has " << scoreObj->getScorePoints() << " in '" << objectiveName << "'";
-    source.sendMessage(ss.str());
+    // 原版参数：目标显示名、分数、objective 的格式化显示名。
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(target));
+    args.push_back(::mc::text::literal(std::to_string(scoreObj->getScorePoints())));
+    if (objective->getDisplayName() != nullptr) {
+        args.push_back(objective->getDisplayName()->deepCopy());
+    } else {
+        args.push_back(::mc::text::literal(objectiveName));
+    }
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.get.success", std::move(args)), false);
 
     return 1;
 }
@@ -806,7 +810,7 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -815,7 +819,7 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     if (!objective) {
         std::ostringstream ss;
         ss << "Unknown objective '" << objectiveName << "'";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
@@ -824,14 +828,14 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     if (criteria.getName() != scoreboard::TriggerCriteria::NAME) {
         std::ostringstream ss;
         ss << "Objective '" << objectiveName << "' is not a trigger objective";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 0;
     }
 
     // 获取或创建分数（这会为玩家"准备"触发器）
     auto* score = scoreboard->getOrCreateScore(target, *objective);
     if (!score) {
-        source.sendMessage("Failed to create score");
+        source.sendSuccess(::mc::text::literal("Failed to create score"), false);
         return 0;
     }
 
@@ -840,7 +844,7 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
 
     std::ostringstream ss;
     ss << "Enabled trigger '" << objectiveName << "' for " << target;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -856,7 +860,7 @@ i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context
     // 获取记分板
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -865,7 +869,7 @@ i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context
     if (objectiveNames.empty()) {
         std::ostringstream ss;
         ss << target << " has no scores recorded";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 1;
     }
 
@@ -883,7 +887,7 @@ i32 ScoreboardCommand::_listPlayers(CommandContext<ServerCommandSource>& context
             ss << objectiveNames[i];
         }
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }
@@ -896,16 +900,17 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayName(CommandContext<ServerCommandS
 
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendMessage("Unknown objective '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
         return 0;
     }
     objective->setDisplayName(std::make_unique<text::StringTextComponent>(displayName));
-    source.sendMessage("Set display name of objective '" + name + "' to '" + displayName + "'");
+    source.sendSuccess(
+        ::mc::text::literal("Set display name of objective '" + name + "' to '" + displayName + "'"), false);
     return 1;
 }
 
@@ -917,17 +922,19 @@ i32 ScoreboardCommand::_modifyObjectiveDisplayAutoUpdate(CommandContext<ServerCo
 
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendMessage("Unknown objective '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
         return 0;
     }
 
     objective->setDisplayAutoUpdate(value);
-    source.sendMessage("Set displayAutoUpdate of objective '" + name + "' to " + (value ? "true" : "false"));
+    source.sendSuccess(
+        ::mc::text::literal("Set displayAutoUpdate of objective '" + name + "' to " + (value ? "true" : "false")),
+        false);
     return 1;
 }
 
@@ -939,21 +946,22 @@ i32 ScoreboardCommand::_setObjectiveRenderType(
 
     auto* scoreboard = getScoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendMessage("Unknown objective '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Unknown objective '" + name + "'"), false);
         return 0;
     }
 
     // 原版仅在类型真正变化时才写入并回报，避免重复设置时刷屏。
     if (objective->getRenderType() != renderType) {
         objective->setRenderType(renderType);
-        source.sendMessage(
-            "Set render type of objective '" + name + "' to '" + scoreboard::renderTypeToString(renderType) + "'");
+        source.sendSuccess(::mc::text::literal("Set render type of objective '" + name + "' to '" +
+                               scoreboard::renderTypeToString(renderType) + "'"),
+            false);
     }
 
     return 0;
@@ -968,22 +976,24 @@ i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& cont
 
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     if (!context.hasArgument("objective")) {
         // /scoreboard objectives setdisplay <slot>：清空该槽位。
         scoreboard->setObjectiveInDisplaySlot(slot, nullptr);
-        source.sendMessage("Cleared display slot '" + slotName + "'");
+        source.sendSuccess(::mc::text::literal("Cleared display slot '" + slotName + "'"), false);
         return 1;
     }
     auto* objective = scoreboard->getObjective(context.getArgument<std::string>("objective"));
     if (objective == nullptr) {
-        source.sendMessage("Unknown objective '" + context.getArgument<std::string>("objective") + "'");
+        source.sendSuccess(
+            ::mc::text::literal("Unknown objective '" + context.getArgument<std::string>("objective") + "'"), false);
         return 0;
     }
     scoreboard->setObjectiveInDisplaySlot(slot, objective);
-    source.sendMessage("Set display slot '" + slotName + "' to objective '" + objective->getName() + "'");
+    source.sendSuccess(
+        ::mc::text::literal("Set display slot '" + slotName + "' to objective '" + objective->getName() + "'"), false);
     return 1;
 }
 
@@ -992,7 +1002,7 @@ i32 ScoreboardCommand::_listAllPlayers(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
 
@@ -1001,7 +1011,7 @@ i32 ScoreboardCommand::_listAllPlayers(CommandContext<ServerCommandSource>& cont
         names.insert(name);
     }
     if (names.empty()) {
-        source.sendMessage("There are no tracked players");
+        source.sendSuccess(::mc::text::literal("There are no tracked players"), false);
         return 0;
     }
     std::ostringstream ss;
@@ -1009,7 +1019,7 @@ i32 ScoreboardCommand::_listAllPlayers(CommandContext<ServerCommandSource>& cont
     for (const auto& name : names) {
         ss << " " << name;
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(names.size());
 }
 
@@ -1021,12 +1031,12 @@ i32 ScoreboardCommand::_modifyObjectiveNumberFormat(
 
     auto* scoreboard = getScoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(name);
     if (objective == nullptr) {
-        source.sendError("Unknown objective '" + name + "'");
+        source.sendFailure(::mc::text::literal("Unknown objective '" + name + "'"));
         return 0;
     }
 
@@ -1034,9 +1044,9 @@ i32 ScoreboardCommand::_modifyObjectiveNumberFormat(
 
     // 原版对「设置」与「清除」分别回报（objectiveFormat.set / .clear）。
     if (objective->getNumberFormat().has_value()) {
-        source.sendMessage("Set number format of objective '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Set number format of objective '" + name + "'"), false);
     } else {
-        source.sendMessage("Cleared number format of objective '" + name + "'");
+        source.sendSuccess(::mc::text::literal("Cleared number format of objective '" + name + "'"), false);
     }
     return 1;
 }
@@ -1050,12 +1060,12 @@ i32 ScoreboardCommand::_modifyPlayerNumberFormat(
 
     auto* scoreboard = getScoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendError("Unknown objective '" + objectiveName + "'");
+        source.sendFailure(::mc::text::literal("Unknown objective '" + objectiveName + "'"));
         return 0;
     }
 
@@ -1073,7 +1083,7 @@ i32 ScoreboardCommand::_modifyPlayerNumberFormat(
         }
     }
     if (holders.empty()) {
-        source.sendError("No score holders matched '" + targets + "'");
+        source.sendFailure(::mc::text::literal("No score holders matched '" + targets + "'"));
         return 0;
     }
 
@@ -1088,9 +1098,11 @@ i32 ScoreboardCommand::_modifyPlayerNumberFormat(
 
     const std::string who = _describeTargets(holders);
     if (numberFormat.has_value()) {
-        source.sendMessage("Set number format of " + who + " in objective '" + objectiveName + "'");
+        source.sendSuccess(
+            ::mc::text::literal("Set number format of " + who + " in objective '" + objectiveName + "'"), false);
     } else {
-        source.sendMessage("Cleared number format of " + who + " in objective '" + objectiveName + "'");
+        source.sendSuccess(
+            ::mc::text::literal("Cleared number format of " + who + " in objective '" + objectiveName + "'"), false);
     }
     return static_cast<i32>(holders.size());
 }
@@ -1104,12 +1116,12 @@ i32 ScoreboardCommand::_modifyPlayerDisplayName(
 
     auto* scoreboard = getScoreboard(source);
     if (scoreboard == nullptr) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     if (objective == nullptr) {
-        source.sendError("Unknown objective '" + objectiveName + "'");
+        source.sendFailure(::mc::text::literal("Unknown objective '" + objectiveName + "'"));
         return 0;
     }
 
@@ -1126,7 +1138,7 @@ i32 ScoreboardCommand::_modifyPlayerDisplayName(
         }
     }
     if (holders.empty()) {
-        source.sendError("No score holders matched '" + targets + "'");
+        source.sendFailure(::mc::text::literal("No score holders matched '" + targets + "'"));
         return 0;
     }
 
@@ -1140,9 +1152,11 @@ i32 ScoreboardCommand::_modifyPlayerDisplayName(
 
     const std::string who = _describeTargets(holders);
     if (displayJson.has_value()) {
-        source.sendMessage("Set display name of " + who + " in objective '" + objectiveName + "'");
+        source.sendSuccess(
+            ::mc::text::literal("Set display name of " + who + " in objective '" + objectiveName + "'"), false);
     } else {
-        source.sendMessage("Cleared display name of " + who + " in objective '" + objectiveName + "'");
+        source.sendSuccess(
+            ::mc::text::literal("Cleared display name of " + who + " in objective '" + objectiveName + "'"), false);
     }
     return static_cast<i32>(holders.size());
 }
@@ -1158,19 +1172,19 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
 
     auto* scoreboard = getScoreboard(source);
     if (!scoreboard) {
-        source.sendMessage("Scoreboard is not available");
+        source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
     auto* objective = scoreboard->getObjective(objectiveName);
     auto* sourceObjective = scoreboard->getObjective(sourceObjectiveName);
     if (objective == nullptr || sourceObjective == nullptr) {
-        source.sendMessage("Unknown objective");
+        source.sendSuccess(::mc::text::literal("Unknown objective"), false);
         return 0;
     }
     auto* targetScore = scoreboard->getScore(targets, *objective);
     auto* sourceScore = scoreboard->getScore(sourceName, *sourceObjective);
     if (targetScore == nullptr || sourceScore == nullptr) {
-        source.sendMessage("Could not get score");
+        source.sendSuccess(::mc::text::literal("Could not get score"), false);
         return 0;
     }
 
@@ -1186,7 +1200,7 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
         result *= rhs;
     } else if (operation == "/=" || operation == "%=") {
         if (rhs == 0) {
-            source.sendError("Cannot divide by zero");
+            source.sendFailure(::mc::text::literal("Cannot divide by zero"));
             return 0;
         }
         result = operation == "/=" ? result / rhs : result % rhs;
@@ -1194,11 +1208,13 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
         result = operation == "<" ? std::min(result, rhs) : std::max(result, rhs);
     } else if (operation == "><") {
         std::swap(targetScore, sourceScore);
-        source.sendMessage("Swapped " + targets + " and " + sourceName + " on " + objectiveName);
+        source.sendSuccess(
+            ::mc::text::literal("Swapped " + targets + " and " + sourceName + " on " + objectiveName), false);
         return 1;
     }
     targetScore->setScorePoints(result);
-    source.sendMessage("Set " + targets + " on " + objectiveName + " to " + std::to_string(result));
+    source.sendSuccess(
+        ::mc::text::literal("Set " + targets + " on " + objectiveName + " to " + std::to_string(result)), false);
     return result;
 }
 

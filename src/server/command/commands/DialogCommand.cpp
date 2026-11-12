@@ -4,6 +4,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -21,7 +22,7 @@ i32 _show(CommandContext<ServerCommandSource>& context)
     const ResourceLocation dialogId(context.getArgument<std::string>("dialog"));
     auto packet = server::net::resolveDialogIr(dialogId);
     if (packet.failed()) {
-        source.sendError(packet.error().message());
+        source.sendFailure(::mc::text::literal(packet.error().message()));
         return 0;
     }
     const auto targets = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));

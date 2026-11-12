@@ -225,9 +225,14 @@ server/command
    - 问题：`HelpCommand` 中的帮助信息是硬编码的
    - 解决：添加新命令时需同步更新 `s_commandHelp` 数组
 
-10. **命令反馈未发送**
-    - 问题：命令执行后玩家看不到反馈
-    - 解决：确保通过 `source.sendMessage()` 发送反馈消息
+10. **命令反馈必须是翻译组件**
+    - 接口：`ICommandSource::sendSuccess(const ITextComponent&, bool broadcastToAdmins)` /
+      `sendFailure(const ITextComponent&)`（旧的 `sendMessage/sendError` 字符串通道已删除）。
+    - 面向玩家的文本一律用 `text::translatable("commands.xxx", {参数})`；客户端按自己的语言表本地化。
+      纯英文文案用 `text::literal(...)` 仅作为无法对齐原版键时的兜底。
+    - `broadcastToAdmins=true` 会额外广播给其他权限 >= GameMaster 的玩家（原版 `sendSuccess` 语义）。
+    - 控制台出口由 `ServerCommandSource::_deliver` 用服务端 en_us 语言表字符串化后写日志。
+    - `/say`、`/me`、队伍消息经 `support::broadcastSystemChat` 广播，不要自己拼字符串。
 
 11. **SetWorldSpawnCommand 朝向参数（对齐 MC 1.21.11）**
     - `/setworldspawn` 支持三种语法：无参数（pos=floor(玩家位置)，rotation=ZERO_ROTATION(0,0)）、仅位置（rotation=ZERO_ROTATION）、位置+旋转

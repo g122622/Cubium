@@ -381,21 +381,21 @@ std::unique_ptr<BlockEntity> CommandBlockEntity::clone() const
 // ICommandSource 接口实现
 // ============================================================================
 
-void CommandBlockEntity::sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid)
+void CommandBlockEntity::sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins)
 {
-    MC_UNUSED(senderUuid);
-    // 命令方块的输出存储在 lastOutput 中
+    MC_UNUSED(broadcastToAdmins);
+    // 命令方块的输出存储在 lastOutput 中；lastOutput 是字符串字段，按服务端语言表字符串化。
     if (m_trackOutput) {
-        m_lastOutput = message;
+        m_lastOutput = message.getUnformattedText();
         setChanged();
     }
 }
 
-void CommandBlockEntity::sendError(const std::string& message)
+void CommandBlockEntity::sendFailure(const text::ITextComponent& message)
 {
-    // 命令方块的错误输出存储在 lastOutput 中
+    // 命令方块的错误输出存储在 lastOutput 中。
     if (m_trackOutput) {
-        m_lastOutput = message;
+        m_lastOutput = message.getUnformattedText();
         setChanged();
     }
 }

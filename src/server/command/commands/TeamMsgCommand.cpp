@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -36,6 +37,8 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc::command {
 namespace {
@@ -92,7 +95,7 @@ i32 TeamMsgCommand::_sendTeamMessage(CommandContext<ServerCommandSource>& contex
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr || !source.isPlayer()) {
-        source.sendError("Only players can use this command");
+        source.sendFailure(::mc::text::translatable("permissions.requires.player"));
         return 0;
     }
 
@@ -102,18 +105,21 @@ i32 TeamMsgCommand::_sendTeamMessage(CommandContext<ServerCommandSource>& contex
     auto& scoreboard = server->scoreboard();
     auto* team = _playerTeam(scoreboard, senderName);
     if (team == nullptr || team->getMembers().empty()) {
-        source.sendError("You are not in a team");
+        source.sendFailure(::mc::text::translatable("commands.teammsg.failed.noteam"));
         return 0;
     }
 
-    // 原版 TeamMsgCommand：组成 "<sender> -> [team]: <message>" 发给队伍里的每个在线成员，
-    // 包括发送者自己（发送者收到的是同样的文本，而不是额外的确认消息）。
-    std::ostringstream line;
-    line << senderName << " -> [" << _teamName(*team) << "]: " << message;
+    // 原版：队伍成员收到 chat.type.team.text = "%s <%s> %s"（队伍名, 发送者, 消息）；
+    // 发送者额外收到 chat.type.team.sent = "-> %s <%s> %s"。
+    const std::string teamName = _teamName(*team);
+    auto teamText = ::mc::text::translatable("chat.type.team.text", {teamName, senderName, message});
+    const std::vector<u8> content = ::mc::text::componentToNbtBytes(teamText.get());
 
     auto& players = server->playerManager();
-    i32 sent = 0;
     for (const auto& memberName : team->getMembers()) {
+        if (memberName == senderName) {
+            continue; // 发送者走下面的 team.sent 专用消息
+        }
         auto* data = players.findByUsername(memberName);
         if (data == nullptr) {
             continue;
@@ -123,20 +129,19 @@ i32 TeamMsgCommand::_sendTeamMessage(CommandContext<ServerCommandSource>& contex
             continue;
         }
         mc::network::ir::play::SystemChat packet;
-        packet.content = ::mc::text::plainTextToNbtBytes(line.str());
+        packet.content = content;
         packet.overlay = false;
         auto result = conn->send(mc::network::ir::IrPacket{
             mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(packet)}});
         if (result.failed()) {
             continue;
         }
-        ++sent;
     }
 
-    if (sent == 0) {
-        source.sendError("No team members online");
-        return 0;
-    }
+    // 发送者始终收到 outgoing 形式（即使队伍里只有自己）——与原版 ChatType 的
+    // TEAM_MSG_COMMAND_OUTGOING 一致。
+    auto sentText = ::mc::text::translatable("chat.type.team.sent", {teamName, senderName, message});
+    source.sendSuccess(std::move(sentText), false);
     return 1;
 }
 

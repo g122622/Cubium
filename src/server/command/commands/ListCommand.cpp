@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -78,7 +79,7 @@ i32 ListCommand::_listPlayers(CommandContext<ServerCommandSource>& context)
 
     std::ostringstream ss;
     ss << "There are " << playerCount << " player(s) online";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return static_cast<i32>(playerCount);
 }
@@ -100,7 +101,7 @@ i32 ListCommand::_listPlayerUuids(CommandContext<ServerCommandSource>& context)
     for (const auto& [name, uuid] : players) {
         ss << " " << name << " (" << uuid << ")";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return static_cast<i32>(players.size());
 }

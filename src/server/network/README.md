@@ -174,10 +174,12 @@ swap 出来逐 sid 回调 `m_onDisconnect`。所有 session map 变动与玩家�
 `TcpTransport`/`pipeline` 走 VarInt21 帧化 + zlib 压缩（threshold=256）。解压后有最大包大小上限，
 超过判非法断开。
 
-### 8. `Disconnect` 的 reason 必须是纯文本
+### 8. `Disconnect.reason` / `OpenScreen.title` 是 Component NBT 字节
 
-codec 会把 reason 编码为 NBT `StringTag`（vanilla `Component.literal(text)` 的纯文本折叠路径）。
-误传 JSON 字符串走 `writeString`，客户端按 NBT 解码时会把首字节当 tag id，报 `Invalid tag id`。
+IR 字段本身保存自定界的 Component NBT 字节（纯文本折叠为 `StringTag`，`translate` 组件为
+`CompoundTag`），codec 直接透传，**不是**裸字符串也不是 JSON 文本。误写裸 String 时客户端按 NBT
+解码会把首字节当 tag id，报 `Invalid tag id`。`Connection::sendDisconnect(reason)` 会把传入字符串
+当翻译键序列化；调用方要本地化时传 `multiplayer.disconnect.*` 等原版键。
 
 ### 9. RegistryData 的 NBT 是刻意留白
 

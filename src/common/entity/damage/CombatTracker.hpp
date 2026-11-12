@@ -31,6 +31,7 @@
 #include "CombatEntry.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -117,10 +118,14 @@ public:
     [[nodiscard]] LivingEntity* getBestAttackerLiving() const;
 
     /**
-     * @brief 生成死亡消息
-     * @return 死亡消息字符串
+     * @brief 生成死亡消息组件
+     *
+     * 使用伤害来源的 `death.attack.*` 键，参数为受害者显示名（有攻击者时追加攻击者显示名）；
+     * 摔落后被攻击的情形使用 `death.fell.assist`。服务端只负责透传，由客户端本地化。
+     *
+     * @return 死亡消息组件
      */
-    [[nodiscard]] std::string getDeathMessage() const;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getDeathMessage() const;
 
     /**
      * @brief 检查是否有战斗记录

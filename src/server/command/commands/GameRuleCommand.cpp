@@ -32,6 +32,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/gamerule/GameRule.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -118,7 +119,7 @@ i32 GameRuleCommand::_executeQueryRule(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     server::ServerWorld* world = source.world();
     if (!world) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
@@ -132,7 +133,7 @@ i32 GameRuleCommand::_executeQueryRule(CommandContext<ServerCommandSource>& cont
         message += fmt::format(" (default: {})", defaultStr);
     }
 
-    source.sendMessage("Game rule " + ruleName + " is currently set to: " + message);
+    source.sendSuccess(::mc::text::literal("Game rule " + ruleName + " is currently set to: " + message), false);
     return 1;
 }
 
@@ -141,14 +142,14 @@ i32 GameRuleCommand::_executeSetRule(CommandContext<ServerCommandSource>& contex
     auto& source = context.getSource();
     server::ServerWorld* world = source.world();
     if (!world) {
-        source.sendError("No world available");
+        source.sendFailure(::mc::text::literal("No world available"));
         return 0;
     }
 
     auto& gameRules = world->getGameRules();
     const auto ruleClass = world::gamerule::GameRules::getRuleClass(ruleName);
     if (!ruleClass) {
-        source.sendError("Can't find a game rule named " + ruleName);
+        source.sendFailure(::mc::text::literal("Can't find a game rule named " + ruleName));
         return 0;
     }
 
@@ -161,12 +162,12 @@ i32 GameRuleCommand::_executeSetRule(CommandContext<ServerCommandSource>& contex
     }
 
     if (!gameRules.setTypedFromString(ruleName, std::string(*ruleClass), valueStr, nullptr)) {
-        source.sendError("Invalid value for game rule " + ruleName + ": " + valueStr);
+        source.sendFailure(::mc::text::literal("Invalid value for game rule " + ruleName + ": " + valueStr));
         return 0;
     }
 
     const std::string displayValue = gameRules.getValueAsString(ruleName);
-    source.sendMessage("Game rule " + ruleName + " has been updated to " + displayValue);
+    source.sendSuccess(::mc::text::literal("Game rule " + ruleName + " has been updated to " + displayValue), false);
     spdlog::info("Game rule '{}' changed to '{}' by {}", ruleName, displayValue, source.name());
     return 1;
 }

@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -53,11 +54,11 @@ i32 StopCommand::_stop(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
-    source.sendMessage("Stopping server");
+    source.sendSuccess(::mc::text::literal("Stopping server"), false);
     server->requestStop();
     return 1;
 }

@@ -31,6 +31,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeSource.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
@@ -56,7 +57,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
@@ -66,28 +67,29 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
     // 解析生物群系
     auto biomeId = _parseBiomeId(biomeName);
     if (!biomeId.has_value()) {
-        source.sendError("Unknown biome: " + biomeName);
-        source.sendError("Use /locate biome with a valid biome ID (e.g., plains, desert, forest)");
+        source.sendFailure(::mc::text::literal("Unknown biome: " + biomeName));
+        source.sendFailure(
+            ::mc::text::literal("Use /locate biome with a valid biome ID (e.g., plains, desert, forest)"));
         return 0;
     }
 
     // 获取 ServerWorld
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("World not available");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 获取区块管理器和生成器
     auto* chunkManager = world->chunkManager();
     if (chunkManager == nullptr) {
-        source.sendError("Chunk manager not available");
+        source.sendFailure(::mc::text::literal("Chunk manager not available"));
         return 0;
     }
 
     auto* generator = chunkManager->generator();
     if (generator == nullptr) {
-        source.sendError("Chunk generator not available");
+        source.sendFailure(::mc::text::literal("Chunk generator not available"));
         return 0;
     }
 
@@ -97,7 +99,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
 
     std::ostringstream ss;
     ss << "Searching for biome '" << biomeName << "' near (" << searchCenter.x << ", " << searchCenter.z << ")...";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     // 创建生物群系匹配谓词
     auto predicate = [targetBiome = biomeId.value()](BiomeId biome) {
@@ -114,7 +116,7 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
 
     world::biome::IBiomeSource* biomeSource = generator->getBiomeSource();
     if (biomeSource == nullptr) {
-        source.sendError("Biome source not available");
+        source.sendFailure(::mc::text::literal("Biome source not available"));
         return 0;
     }
 
@@ -136,12 +138,12 @@ i32 LocateBiomeCommand::locateBiome(CommandContext<ServerCommandSource>& context
         std::ostringstream resultSs;
         resultSs << "Found " << biomeName << " at (" << result->x << ", " << result->z << ") "
                  << "(" << distance << " blocks away)";
-        source.sendMessage(resultSs.str());
+        source.sendSuccess(::mc::text::literal(resultSs.str()), false);
         return 1;
     } else {
         std::ostringstream errorSs;
         errorSs << "Could not find biome '" << biomeName << "' within " << SEARCH_RADIUS << " blocks";
-        source.sendError(errorSs.str());
+        source.sendFailure(::mc::text::literal(errorSs.str()));
         return 0;
     }
 }

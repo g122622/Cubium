@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include <optional>
 #include <string>
 #include <utility>
@@ -257,27 +258,31 @@ inline nlohmann::json ClickEvent::toJson() const
 
 inline ClickEvent ClickEvent::fromJson(const nlohmann::json& json)
 {
-    if (!json.is_object() || !json.contains("action") || !json.contains("value")) {
+    if (!json.is_object()) {
         return ClickEvent();
     }
 
-    const auto& actionStr = json["action"].get<std::string>();
-    const auto& value = json["value"].get<std::string>();
+    // 不可信输入：字段缺失或类型不符时走默认值，不使用抛出取值的 json.get<T>()。
+    const auto actionStr = util::json::getString(json, "action");
+    const auto value = util::json::getString(json, "value");
+    if (!actionStr.success()) {
+        return ClickEvent();
+    }
 
     ClickAction action = ClickAction::RunCommand;
-    if (actionStr == "open_url") {
+    if (actionStr.value() == "open_url") {
         action = ClickAction::OpenUrl;
-    } else if (actionStr == "open_file") {
+    } else if (actionStr.value() == "open_file") {
         action = ClickAction::OpenFile;
-    } else if (actionStr == "run_command") {
+    } else if (actionStr.value() == "run_command") {
         action = ClickAction::RunCommand;
-    } else if (actionStr == "suggest_command") {
+    } else if (actionStr.value() == "suggest_command") {
         action = ClickAction::SuggestCommand;
-    } else if (actionStr == "copy_to_clipboard") {
+    } else if (actionStr.value() == "copy_to_clipboard") {
         action = ClickAction::CopyToClipboard;
     }
 
-    return ClickEvent(action, value);
+    return ClickEvent(action, value.success() ? value.value() : std::string{});
 }
 
 inline nlohmann::json HoverEvent::toJson() const
@@ -305,19 +310,24 @@ inline nlohmann::json HoverEvent::toJson() const
 
 inline HoverEvent HoverEvent::fromJson(const nlohmann::json& json)
 {
-    if (!json.is_object() || !json.contains("action") || !json.contains("value")) {
+    if (!json.is_object()) {
         return HoverEvent();
     }
 
-    const auto& actionStr = json["action"].get<std::string>();
-    const auto& value = json["value"].get<std::string>();
+    // 不可信输入：字段缺失或类型不符时走默认值，不使用抛出取值的 json.get<T>()。
+    const auto actionStr = util::json::getString(json, "action");
+    const auto value = util::json::getString(json, "value");
+    if (!actionStr.success()) {
+        return HoverEvent();
+    }
 
-    if (actionStr == "show_text") {
-        return HoverEvent::showText(value);
-    } else if (actionStr == "show_item") {
-        return HoverEvent::showItem(value);
-    } else if (actionStr == "show_entity") {
-        return HoverEvent::showEntity(value);
+    const std::string text = value.success() ? value.value() : std::string{};
+    if (actionStr.value() == "show_text") {
+        return HoverEvent::showText(text);
+    } else if (actionStr.value() == "show_item") {
+        return HoverEvent::showItem(text);
+    } else if (actionStr.value() == "show_entity") {
+        return HoverEvent::showEntity(text);
     }
 
     return HoverEvent();

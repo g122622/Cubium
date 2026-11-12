@@ -169,7 +169,7 @@ public:
 
     /**
      * @brief 获取容器显示名称
-     * @return 容器翻译键 "container.chestBoat"
+     * @return 容器翻译键 "container.chest"
      */
     [[nodiscard]] std::string getDisplayName() const override;
 

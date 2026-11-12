@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -58,17 +59,18 @@ i32 SaveOnCommand::_enableAutoSave(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (!server) {
-        source.sendMessage("Error: Server not available");
+        source.sendSuccess(::mc::text::literal("Error: Server not available"), false);
         return 0;
     }
 
     if (server->isSharedStorageReadonlyForeignWorld()) {
-        source.sendMessage("Automatic saving remains disabled: current world is a readonly foreign save");
+        source.sendSuccess(
+            ::mc::text::literal("Automatic saving remains disabled: current world is a readonly foreign save"), false);
         return 0;
     }
 
     server->setAutoSaveEnabled(true);
-    source.sendMessage("Automatic saving is now enabled");
+    source.sendSuccess(::mc::text::literal("Automatic saving is now enabled"), false);
     return 1;
 }
 

@@ -1042,7 +1042,7 @@ void LivingEntity::die(DamageSource& cause)
     if (m_world != nullptr && !m_world->isClientSide() && hasCustomName()) {
         const auto displayName = getDisplayName();
         const std::string name = displayName != nullptr ? displayName->getUnformattedText() : getTypeId();
-        spdlog::info("Named entity {} died: {}", name, m_combatTracker.getDeathMessage());
+        spdlog::info("Named entity {} died: {}", name, m_combatTracker.getDeathMessage()->getUnformattedText());
     }
 
     // 5. dead = true（LivingEntity.java:1447）

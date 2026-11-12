@@ -35,6 +35,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp" // Player（实体旁路解析目标类型）
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -181,7 +182,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
     const auto& selector = context.getArgument<EntitySelector>("targets");
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -189,7 +190,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
-        source.sendError("Unknown effect: " + effectName);
+        source.sendFailure(::mc::text::literal("Unknown effect: " + effectName));
         return 0;
     }
     entity::effect::EffectType effectType = effectTypeOpt.value();
@@ -235,7 +236,7 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
         ss << " " << (amplifier + 1);
     }
     ss << " to " << successCount << " player(s)";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }
@@ -253,7 +254,7 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
     }
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -271,7 +272,7 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
         successCount += static_cast<i32>(effectCount);
     }
 
-    source.sendMessage("Cleared all effects");
+    source.sendSuccess(::mc::text::literal("Cleared all effects"), false);
     return successCount;
 }
 
@@ -283,7 +284,7 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -291,7 +292,7 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
 
     auto effectTypeOpt = support::tryParseEffectType(effectName);
     if (!effectTypeOpt.has_value()) {
-        source.sendError("Unknown effect: " + effectName);
+        source.sendFailure(::mc::text::literal("Unknown effect: " + effectName));
         return 0;
     }
     entity::effect::EffectType effectType = effectTypeOpt.value();
@@ -313,7 +314,7 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
 
     std::ostringstream ss;
     ss << "Cleared " << support::getEffectCommandName(effectType) << " from " << successCount << " player(s)";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return successCount;
 }

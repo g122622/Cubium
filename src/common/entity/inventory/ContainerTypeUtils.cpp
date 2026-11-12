@@ -90,61 +90,58 @@ i32 getSlotCount(ContainerType type)
 
 const char* getDefaultTitle(ContainerType type)
 {
+    // 返回的是翻译键而非英文文本：容器标题以翻译组件下发，由客户端按自己的语言表本地化。
     switch (type) {
         case ContainerType::Generic9x1:
-            return "Chest";
         case ContainerType::Generic9x2:
-            return "Chest";
         case ContainerType::Generic9x3:
-            return "Chest";
         case ContainerType::Generic9x4:
-            return "Chest";
         case ContainerType::Generic9x5:
-            return "Chest";
         case ContainerType::Generic9x6:
-            return "Chest";
+            return "container.chest";
         case ContainerType::Generic3x3:
-            return "Dispenser";
+            return "container.dispenser";
         case ContainerType::Anvil:
-            return "Anvil";
+            return "container.repair";
         case ContainerType::Beacon:
-            return "Beacon";
+            return "container.beacon";
         case ContainerType::BlastFurnace:
-            return "Blast Furnace";
+            return "container.blast_furnace";
         case ContainerType::BrewingStand:
-            return "Brewing Stand";
+            return "container.brewing";
         case ContainerType::Crafting:
-            return "Crafting";
+            return "container.crafting";
         case ContainerType::Enchantment:
-            return "Enchanting";
+            return "container.enchant";
         case ContainerType::Furnace:
-            return "Furnace";
+            return "container.furnace";
         case ContainerType::Grindstone:
-            return "Grindstone";
+            return "container.grindstone_title";
         case ContainerType::Hopper:
-            return "Hopper";
+            return "container.hopper";
         case ContainerType::Lectern:
-            return "Lectern";
+            return "container.lectern";
         case ContainerType::Loom:
-            return "Loom";
+            return "container.loom";
         case ContainerType::Merchant:
-            return "Villager";
+            // 原版交易界面标题是村民名（merchant.title 带职业参数），这里用村民默认名兜底。
+            return "entity.minecraft.villager";
         case ContainerType::ShulkerBox:
-            return "Shulker Box";
+            return "container.shulkerBox";
         case ContainerType::Smithing:
-            return "Smithing Table";
+            return "container.upgrade";
         case ContainerType::Smoker:
-            return "Smoker";
+            return "container.smoker";
         case ContainerType::Cartography:
-            return "Cartography Table";
+            return "container.cartography_table";
         case ContainerType::Stonecutter:
-            return "Stonecutter";
+            return "container.stonecutter";
         case ContainerType::Crafter:
-            return "Crafter";
+            return "container.crafter";
         case ContainerType::Player:
-            return "Inventory";
+            return "container.inventory";
         default:
-            return "Container";
+            return "container.chest";
     }
 }
 

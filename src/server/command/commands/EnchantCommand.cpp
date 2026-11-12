@@ -37,6 +37,7 @@
 #include "common/item/enchantment/Enchantment.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -92,7 +93,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
@@ -112,7 +113,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
     // 获取附魔实例
     const item::enchant::Enchantment* enchantment = item::enchant::EnchantmentRegistry::get(enchantmentId);
     if (enchantment == nullptr) {
-        source.sendError("Unknown enchantment: " + enchantmentName);
+        source.sendFailure(::mc::text::literal("Unknown enchantment: " + enchantmentName));
         return 0;
     }
 
@@ -121,7 +122,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
         std::ostringstream ss;
         ss << "Level " << level << " is too high for " << enchantmentName << " (maximum is " << enchantment->maxLevel()
            << ")";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -147,7 +148,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
         // 检查物品是否为空
         if (heldItem.isEmpty()) {
             if (playerIds.size() == 1) {
-                source.sendError(player->username() + " has no item in their hand");
+                source.sendFailure(::mc::text::literal(player->username() + " has no item in their hand"));
             }
             continue;
         }
@@ -155,7 +156,8 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
         // 检查附魔是否可应用于该物品
         if (!enchantment->canApply(heldItem)) {
             if (playerIds.size() == 1) {
-                source.sendError("The enchantment " + enchantmentName + " cannot be applied to this item");
+                source.sendFailure(
+                    ::mc::text::literal("The enchantment " + enchantmentName + " cannot be applied to this item"));
             }
             continue;
         }
@@ -172,7 +174,8 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
 
         if (!compatible) {
             if (playerIds.size() == 1) {
-                source.sendError("The enchantment " + enchantmentName + " is incompatible with existing enchantments");
+                source.sendFailure(::mc::text::literal(
+                    "The enchantment " + enchantmentName + " is incompatible with existing enchantments"));
             }
             continue;
         }
@@ -184,7 +187,7 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
 
     // 发送成功消息
     if (successCount == 0) {
-        source.sendError("Could not enchant any items");
+        source.sendFailure(::mc::text::literal("Could not enchant any items"));
         return 0;
     }
 
@@ -195,11 +198,11 @@ i32 EnchantCommand::_enchantItem(CommandContext<ServerCommandSource>& context)
     if (successCount == 1) {
         std::ostringstream ss;
         ss << "Applied " << enchantDisplayName << " to 1 player";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "Applied " << enchantDisplayName << " to " << successCount << " players";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return successCount;

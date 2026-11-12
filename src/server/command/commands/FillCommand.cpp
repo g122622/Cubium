@@ -31,6 +31,7 @@
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/base/types/BlockUpdateFlags.hpp"
@@ -93,21 +94,21 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     // 获取世界
     server::ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("commands.fill.failed.noWorld");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
     // 检查方块数量限制
     i32 blockCount = calculateBlockCount(from, to);
     if (blockCount > 32768) {
-        source.sendError("commands.fill.failed.tooManyBlocks");
+        source.sendFailure(::mc::text::literal("Too many blocks in the specified area"));
         return 0;
     }
 
     // 获取填充方块
     const BlockState* fillState = blockInput.state();
     if (fillState == nullptr) {
-        source.sendError("commands.fill.failed.invalidBlock");
+        source.sendFailure(::mc::text::literal("commands.fill.failed"));
         return 0;
     }
 
@@ -230,7 +231,7 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
     // 发送反馈
     std::ostringstream ss;
     ss << "Filled " << blocksModified << " blocks";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return blocksModified;
 }

@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ITextComponent.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include <functional>
 #include <memory>
@@ -80,14 +81,14 @@ public:
      * @brief 获取数据修改成功的消息
      * @return 消息文本
      */
-    [[nodiscard]] virtual std::string getModifiedMessage() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> getModifiedMessage() const = 0;
 
     /**
      * @brief 获取查询结果的消息
      * @param nbt 查询到的 NBT 数据
      * @return 消息文本
      */
-    [[nodiscard]] virtual std::string getQueryMessage(const nbt::tags::tag& nbt) const = 0;
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const = 0;
 
     /**
      * @brief 获取带缩放的查询结果消息
@@ -96,7 +97,8 @@ public:
      * @param value 缩放后的值
      * @return 消息文本
      */
-    [[nodiscard]] virtual std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const = 0;
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> getGetMessage(
+        const NbtPath& path, f64 scale, i32 value) const = 0;
 };
 
 /**
@@ -116,9 +118,10 @@ public:
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
-    [[nodiscard]] std::string getModifiedMessage() const override;
-    [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getGetMessage(
+        const NbtPath& path, f64 scale, i32 value) const override;
 
     /**
      * @brief 检查位置是否有方块实体
@@ -159,9 +162,10 @@ public:
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
-    [[nodiscard]] std::string getModifiedMessage() const override;
-    [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getGetMessage(
+        const NbtPath& path, f64 scale, i32 value) const override;
 
     /**
      * @brief 检查实体是否有效
@@ -199,9 +203,10 @@ public:
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
-    [[nodiscard]] std::string getModifiedMessage() const override;
-    [[nodiscard]] std::string getQueryMessage(const nbt::tags::tag& nbt) const override;
-    [[nodiscard]] std::string getGetMessage(const NbtPath& path, f64 scale, i32 value) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getGetMessage(
+        const NbtPath& path, f64 scale, i32 value) const override;
 
 private:
     CommandStorage* m_storage;

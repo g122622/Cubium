@@ -14,6 +14,13 @@ text/
 ├── ITextComponentFwd.hpp   # 前向声明（避免循环依赖）
 ├── StringTextComponent.hpp # 纯文本组件实现
 ├── TranslationTextComponent.hpp/cpp  # 翻译键组件（支持多语言）
+├── contents/               # 原版其余 5 种 contents（与 text/translate 合称 7 种）
+│   ├── ScoreTextComponent.hpp    # 记分板分数（{"score":{name,objective}}）
+│   ├── SelectorTextComponent.hpp # 实体选择器（{"selector":...,"separator":...}）
+│   ├── KeybindTextComponent.hpp  # 按键绑定（{"keybind":"key.jump"}）
+│   ├── NbtTextComponent.hpp      # NBT 路径（{"nbt":...,"interpret":...,"block"/"entity"/"storage":...}）
+│   └── ObjectTextComponent.hpp   # 内联对象（{"object":{atlas/sprite 或 player}}，子对象原样透传）
+├── ComponentFactory.hpp/cpp # 组件工厂（literal / translatable / translatableEscape）
 ├── ComponentUtils.hpp      # 文本组件工具函数（wrapInSquareBrackets 等）
 ├── ComponentNbtSerialization.hpp/cpp # ITextComponent ↔ NBT 标签/线格式字节
 ├── TextParser.hpp/cpp      # § 代码解析器（传统格式转 ITextComponent）
@@ -39,6 +46,8 @@ ITextComponent.hpp (依赖 TextStyle)
 StringTextComponent.hpp   TranslationTextComponent.hpp
 │                        (依赖 LanguageManager)
 │
+├── contents/* (5 种 contents，均依赖 ITextComponent)
+├── ComponentFactory.hpp (依赖 String/Translation 组件)
 ├── ComponentUtils.hpp (依赖 ITextComponent + TranslationTextComponent)
 │
 ComponentNbtSerialization.hpp (依赖 ITextComponent + StyleNbt + NbtIo)
@@ -141,7 +150,21 @@ text->appendText("World");
 `componentFromNbtTag` 等返回 `Result<std::unique_ptr<T>>`，`value()` 内部会转移所有权。同一表达式里
 调用两次，第二次拿到 nullptr —— 后续解引用即空指针崩溃。必须先把所有权取到局部变量：`auto v = r.value();`
 
-### 10. Component 根标签不一定是 Compound
+### 10. 7 种 contents 的键名必须与 MAP_CODEC 一致
+
+`score` / `selector` / `keybind` / `nbt` / `object` 的字段名直接决定真 Java 客户端能否解码：
+`nbt` 组件的 `interpret` 是 ByteTag（`0x01`），数据源是同层的 `block`/`entity`/`storage`，
+不是嵌套 `source`；`object` 子对象（atlas/sprite 或 player profile）**原样透传**，不要拆字段
+重写，否则 ResolvableProfile 等结构会丢字段。`ObjectTextComponent` 的字符串化内容是 U+FFFC
+占位符。
+
+### 11. 工厂返回基类 `unique_ptr<ITextComponent>`
+
+`text::translatable` / `text::literal` 返回基类指针（便于直接传给 `sendSuccess/sendFailure`），
+需要 `getKey()`/`getParams()` 时先 `dynamic_cast<TranslationTextComponent*>`。`sendSuccess`
+的 `unique_ptr` 重载会解引用后同步调用，临时对象生命周期安全。
+
+### 12. Component 根标签不一定是 Compound
 
 `ComponentSerialization` 经 `NbtOps` 编码后，可折叠纯文本是 **StringTag(0x08)**，只有带样式/siblings
 的才是 CompoundTag(0x0A)。读线格式字节时不能假定根是 `0x0A`；写出请用

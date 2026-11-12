@@ -33,10 +33,14 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
+#include "server/access/AccessManager.hpp"
+#include "server/access/base/OpListManagerTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/network/outbound/PacketSender.hpp"
 #include "server/player/ServerPlayer.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
 #include <optional>
@@ -110,18 +114,62 @@ server::ServerWorld* ServerCommandSource::world() const noexcept
     return dimension != nullptr ? dimension->world() : nullptr;
 }
 
-void ServerCommandSource::sendMessage(const std::string& message, const std::optional<Uuid>& /*senderUuid*/
-)
+void ServerCommandSource::sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins)
 {
-    if (m_player) {
+    if (shouldReceiveFeedback()) {
+        _deliver(message);
+    }
+
+    if (!broadcastToAdmins || m_server == nullptr) {
+        return;
+    }
+
+    // 广播给其他权限 >= GameMaster 的玩家。内容只序列化一次，避免每个接收者重复编码。
+    const std::vector<u8> content = ::mc::text::componentToNbtBytes(&message);
+    const PlayerId selfPlayerId = m_playerId;
+    const server::AccessManager& access = m_server->accessManager();
+
+    m_server->playerManager().forEachPlayer([&content, &access, selfPlayerId](server::ServerPlayerData& data) {
+        if (data.playerId == selfPlayerId) {
+            return;
+        }
+        if (static_cast<u8>(access.operatorGetLevel(data.uuid)) < static_cast<u8>(server::OpLevel::GameMaster)) {
+            return;
+        }
+
+        mc::network::ir::play::SystemChat pkt;
+        pkt.content = content;
+        pkt.overlay = false;
+        static_cast<void>(data.send(mc::network::ir::IrPacket{
+            mc::network::protocol::ConnectionProtocol::Play, mc::network::ir::PlayPacket{std::move(pkt)}}));
+    });
+}
+
+void ServerCommandSource::sendFailure(const text::ITextComponent& message)
+{
+    if (!shouldReceiveErrors()) {
+        return;
+    }
+
+    // 原版 sendFailure 在组件上叠加红色样式；deepCopy 避免修改调用方持有的组件。
+    auto styled = message.deepCopy();
+    styled->setStyle(styled->getStyle().applyFormat(text::TextFormatting::Red));
+    _deliver(*styled);
+}
+
+void ServerCommandSource::_deliver(const text::ITextComponent& message)
+{
+    if (m_player != nullptr) {
         m_player->sendSystemMessage(message);
         return;
-    } else if (m_playerId != 0) {
+    }
+
+    if (m_playerId != 0) {
         if (m_server != nullptr) {
             // 无实体 ServerPlayer 引用但有 playerId（如远程命令源）：经 PacketSender 下发
-            // SystemChat(overlay=false)。消息按纯文本折叠为 StringTag，显示在聊天窗口。
+            // SystemChat(overlay=false)，保留完整组件结构。
             mc::network::ir::play::SystemChat pkt;
-            pkt.content = ::mc::text::plainTextToNbtBytes(message);
+            pkt.content = ::mc::text::componentToNbtBytes(&message);
             pkt.overlay = false;
             m_server->packetSender().sendToPlayer(m_playerId,
                 mc::network::ir::IrPacket{
@@ -129,24 +177,18 @@ void ServerCommandSource::sendMessage(const std::string& message, const std::opt
             return;
         }
 
-        spdlog::info("[System -> {}] {}", m_name, message);
+        spdlog::info("[System -> {}] {}", m_name, message.getUnformattedText());
         return;
     }
 
-    // 非玩家命令源（控制台/RCON/命令方块外部入口）：写日志，并经虚函数出口暴露给派生类
-    // （终端控制台据此把回执送进自己的事件区）。
-    spdlog::info("{}", message);
-    onConsoleMessage(message);
+    // 非玩家命令源（控制台/RCON/命令方块外部入口）：组件字符串化后写日志，并经虚函数出口
+    // 暴露给派生类（终端控制台据此把回执送进自己的事件区）。
+    const std::string text = message.getUnformattedText();
+    spdlog::info("{}", text);
+    onConsoleMessage(text);
 }
 
 void ServerCommandSource::onConsoleMessage(const std::string& /*message*/) {}
-
-void ServerCommandSource::sendError(const std::string& message)
-{
-    // 错误消息使用红色格式（对于支持的客户端）
-    std::string formattedMessage = "§c" + message;
-    sendMessage(formattedMessage);
-}
 
 bool ServerCommandSource::shouldReceiveFeedback() const noexcept
 {

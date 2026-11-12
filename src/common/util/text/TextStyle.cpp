@@ -24,6 +24,7 @@
 #include "TextStyle.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/json/JsonRead.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include <algorithm>
 #include <cctype>
@@ -363,46 +364,60 @@ nlohmann::json Style::toJson() const
 
 Style Style::fromJson(const nlohmann::json& json)
 {
+    // 文本组件来自数据包/网络等不可信输入：一律走 util::json 的返回 Result 的读取函数，
+    // 不使用会在类型不符时抛异常的 json.get<T>()。
     Style style;
 
-    if (json.contains("color") && json["color"].is_string()) {
-        const std::string text = json["color"].get<std::string>();
+    const auto color = util::json::getString(json, "color");
+    if (color.success()) {
         // 原版写 "#RRGGBB"；这里也接受颜色名，以便读取旧数据与手写 JSON。
-        // 任意 RGB 直接用 TextColor 承载，不需要反查具名颜色
-        const std::optional<TextColor> parsedHex = TextColor::parseColor(text);
-        style.m_color = parsedHex;
-    }
-    if (json.contains("bold") && json["bold"].is_boolean()) {
-        style.m_bold = json["bold"].get<bool>();
-    }
-    if (json.contains("italic") && json["italic"].is_boolean()) {
-        style.m_italic = json["italic"].get<bool>();
-    }
-    if (json.contains("underlined") && json["underlined"].is_boolean()) {
-        style.m_underlined = json["underlined"].get<bool>();
-    }
-    if (json.contains("strikethrough") && json["strikethrough"].is_boolean()) {
-        style.m_strikethrough = json["strikethrough"].get<bool>();
-    }
-    if (json.contains("obfuscated") && json["obfuscated"].is_boolean()) {
-        style.m_obfuscated = json["obfuscated"].get<bool>();
-    }
-    if (json.contains("clickEvent") && json["clickEvent"].is_object()) {
-        style.m_clickEvent = ClickEvent::fromJson(json["clickEvent"]);
-    }
-    if (json.contains("hoverEvent") && json["hoverEvent"].is_object()) {
-        style.m_hoverEvent = HoverEvent::fromJson(json["hoverEvent"]);
+        style.m_color = TextColor::parseColor(color.value());
     }
 
-    if (json.contains("insertion") && json["insertion"].is_string()) {
-        style.m_insertion = json["insertion"].get<std::string>();
+    const auto bold = util::json::getBool(json, "bold");
+    if (bold.success()) {
+        style.m_bold = bold.value();
     }
+    const auto italic = util::json::getBool(json, "italic");
+    if (italic.success()) {
+        style.m_italic = italic.value();
+    }
+    const auto underlined = util::json::getBool(json, "underlined");
+    if (underlined.success()) {
+        style.m_underlined = underlined.value();
+    }
+    const auto strikethrough = util::json::getBool(json, "strikethrough");
+    if (strikethrough.success()) {
+        style.m_strikethrough = strikethrough.value();
+    }
+    const auto obfuscated = util::json::getBool(json, "obfuscated");
+    if (obfuscated.success()) {
+        style.m_obfuscated = obfuscated.value();
+    }
+
+    if (const auto* clickEvent = util::json::findField(json, "clickEvent");
+        clickEvent != nullptr && clickEvent->is_object()) {
+        style.m_clickEvent = ClickEvent::fromJson(*clickEvent);
+    }
+    if (const auto* hoverEvent = util::json::findField(json, "hoverEvent");
+        hoverEvent != nullptr && hoverEvent->is_object()) {
+        style.m_hoverEvent = HoverEvent::fromJson(*hoverEvent);
+    }
+
+    const auto insertion = util::json::getString(json, "insertion");
+    if (insertion.success()) {
+        style.m_insertion = insertion.value();
+    }
+
     // ARGB 颜色按整数读取；原版 `Codec.INT` 不接受浮点，这里同样只认整型。
-    if (json.contains("shadow_color") && json["shadow_color"].is_number_integer()) {
-        style.m_shadowColor = json["shadow_color"].get<i32>();
+    const auto shadowColor = util::json::getInt32(json, "shadow_color");
+    if (shadowColor.success()) {
+        style.m_shadowColor = shadowColor.value();
     }
-    if (json.contains("font") && json["font"].is_string()) {
-        style.m_font = json["font"].get<std::string>();
+
+    const auto font = util::json::getString(json, "font");
+    if (font.success()) {
+        style.m_font = font.value();
     }
 
     return style;

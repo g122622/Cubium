@@ -247,17 +247,17 @@ class CommandErrors {
 public:
     static CommandError requiresPlayer()
     {
-        return CommandError(CommandErrorType::PermissionDenied, "commands.requires.player");
+        return CommandError(CommandErrorType::PermissionDenied, "permissions.requires.player");
     }
 
     static CommandError requiresEntity()
     {
-        return CommandError(CommandErrorType::PermissionDenied, "commands.requires.entity");
+        return CommandError(CommandErrorType::PermissionDenied, "permissions.requires.entity");
     }
 
     static CommandError permissionDenied([[maybe_unused]] i32 required)
     {
-        return CommandError(CommandErrorType::PermissionDenied, "commands.permission.denied");
+        return CommandError(CommandErrorType::PermissionDenied, "command.unknown.command");
     }
 };
 

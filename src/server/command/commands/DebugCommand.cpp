@@ -25,6 +25,7 @@
 
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/FunctionArgument.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/CommandSuggestionProviders.hpp"
 
@@ -79,13 +80,13 @@ void DebugCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
 
 i32 DebugCommand::_start(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("Debug profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("Debug profiling is not supported by this server"));
     return 0;
 }
 
 i32 DebugCommand::_stop(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("Debug profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("Debug profiling is not supported by this server"));
     return 0;
 }
 
@@ -93,7 +94,8 @@ i32 DebugCommand::_function(CommandContext<ServerCommandSource>& context)
 {
     auto& enabled = _functionDebugEnabled();
     enabled = !enabled;
-    context.getSource().sendMessage(enabled ? "Function debug output enabled" : "Function debug output disabled");
+    context.getSource().sendSuccess(
+        ::mc::text::literal(enabled ? "Function debug output enabled" : "Function debug output disabled"), false);
     return 1;
 }
 

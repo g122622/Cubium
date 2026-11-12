@@ -28,6 +28,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -61,7 +62,7 @@ i32 SetIdleTimeoutCommand::_setTimeout(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
@@ -70,7 +71,7 @@ i32 SetIdleTimeoutCommand::_setTimeout(CommandContext<ServerCommandSource>& cont
 
     std::ostringstream ss;
     ss << "Set idle timeout to " << timeout << " minute(s)";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 

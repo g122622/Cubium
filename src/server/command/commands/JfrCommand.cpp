@@ -24,6 +24,7 @@
 #include "JfrCommand.hpp"
 
 #include "common/command/CommandNode.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
 #include <memory>
@@ -57,13 +58,13 @@ void JfrCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
 i32 JfrCommand::_start(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("JFR profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("JFR profiling is not supported by this server"));
     return 0;
 }
 
 i32 JfrCommand::_stop(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("JFR profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("JFR profiling is not supported by this server"));
     return 0;
 }
 

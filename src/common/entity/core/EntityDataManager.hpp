@@ -88,23 +88,24 @@ struct PoseValue {
  * @brief Optional<Component> 字段值包装
  *
  * 对齐 vanilla 1.21.11 Entity.DATA_CUSTOM_NAME（OptionalComponent serializer，
- * EntityDataSerializers id=6）。wire = 1 byte present + 若 present 则 NBT Component
- * （纯文本折叠为 StringTag 0x08 + U16 BE 长度 + UTF8，与 writeTextComponentNbt 同源）。
+ * EntityDataSerializers id=6）。wire = 1 byte present + 若 present 则 NBT Component。
+ * 直接保存 Component NBT wire 字节（自定界）：纯文本折叠为 StringTag，翻译组件为
+ * CompoundTag `{translate:...}`，与 `componentToNbtBytes` 同源。
  */
 struct OptionalComponentValue {
     bool present{false};
-    std::string text; // present 时为组件纯文本（getUnformattedText）
+    std::vector<u8> nbt; // present 时为 Component NBT wire 字节（自定界）
 
     OptionalComponentValue() = default;
 
-    OptionalComponentValue(bool p, std::string t) noexcept
+    OptionalComponentValue(bool p, std::vector<u8> data) noexcept
         : present(p)
-        , text(std::move(t))
+        , nbt(std::move(data))
     {}
 
     bool operator==(const OptionalComponentValue& other) const noexcept
     {
-        return present == other.present && text == other.text;
+        return present == other.present && nbt == other.nbt;
     }
 
     bool operator!=(const OptionalComponentValue& other) const noexcept

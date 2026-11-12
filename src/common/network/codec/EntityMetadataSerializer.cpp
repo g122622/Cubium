@@ -29,6 +29,7 @@
 #include "common/network/backend/java/codecs/DataComponentPatchCodec.hpp"
 #include "common/network/backend/java/mappings/JavaBlockStateIdMap.hpp"
 #include "common/network/buffer/ByteBuf.hpp"
+#include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/packets/play/ItemStackView.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -298,15 +299,12 @@ void EntityMetadataSerializer::serializeEntry(u16 id, const entity::DataValue& v
             break;
         }
         case 11: { // OptionalComponentValue → OPTIONAL_COMPONENT
-            // 1 byte present + 若 present 则 NBT Component：纯文本折叠 StringTag 0x08 + U16 BE 长度 + UTF8
-            // （对齐 vanilla OPTIONAL_COMPONENT_STREAM_CODEC + ComponentSerialization，本项目纯文本走
-            // writeTextComponentNbt 的 StringTag 折叠形式）。
+            // 1 byte present + 若 present 则 Component NBT 字节（自定界）：纯文本折叠为 StringTag，
+            // 翻译组件为 CompoundTag `{translate:...}`，与原版 OPTIONAL_COMPONENT 的 Component 语义一致。
             const auto comp = value.get<entity::OptionalComponentValue>();
             output.push_back(comp.present ? 1 : 0);
             if (comp.present) {
-                output.push_back(0x08); // StringTag id
-                _writeBigEndianU16(static_cast<u16>(comp.text.size()), output);
-                output.insert(output.end(), comp.text.begin(), comp.text.end());
+                output.insert(output.end(), comp.nbt.begin(), comp.nbt.end());
             }
             break;
         }
@@ -477,33 +475,48 @@ bool EntityMetadataSerializer::deserialize(const std::vector<u8>& data, entity::
             }
             case MetadataSerializerId::OptionalComponent: {
                 // 1.21.11 OPTIONAL_COMPONENT = 1 byte present + 若 present 则 NBT Component。
-                // 本项目纯文本折叠为 StringTag 0x08 + U16 BE 长度 + UTF8（与 writeTextComponentNbt 同源）。
+                // 保存原始 NBT 字节（StringTag 纯文本或 CompoundTag 翻译组件），供后续原样透传。
                 if (offset >= data.size()) {
                     return false;
                 }
                 const bool present = data[offset++] != 0;
-                std::string text;
+                std::vector<u8> componentNbt;
                 if (present) {
                     if (offset >= data.size()) {
                         return false;
                     }
-                    const u8 tagId = data[offset++];
-                    if (tagId != 0x08) {
-                        // 非 StringTag 折叠形式（真复合 NBT 组件），暂不支持——停止解析。
+                    const u8 tagId = data[offset];
+                    if (tagId == 0x08) {
+                        // StringTag：0x08 + U16 BE 长度 + UTF8。
+                        if (offset + 3 > data.size()) {
+                            return false;
+                        }
+                        const auto len = static_cast<u16>((static_cast<u16>(data[offset + 1]) << 8) | data[offset + 2]);
+                        const usize total = 3 + static_cast<usize>(len);
+                        if (offset + total > data.size()) {
+                            return false;
+                        }
+                        componentNbt.assign(data.begin() + static_cast<std::ptrdiff_t>(offset),
+                            data.begin() + static_cast<std::ptrdiff_t>(offset + total));
+                        offset += total;
+                    } else if (tagId == 0x0A) {
+                        // CompoundTag：借 NbtIo 解析以确定自定界长度（不解释内容）。
+                        network::buffer::ByteBuf buf(data.data() + offset, data.size() - offset);
+                        const usize before = buf.readableBytes();
+                        auto root = network::buffer::nbt_io::readRootCompound(buf);
+                        if (root.failed()) {
+                            return false;
+                        }
+                        const usize consumed = before - buf.readableBytes();
+                        componentNbt.assign(data.begin() + static_cast<std::ptrdiff_t>(offset),
+                            data.begin() + static_cast<std::ptrdiff_t>(offset + consumed));
+                        offset += consumed;
+                    } else {
                         return false;
                     }
-                    u16 len = 0;
-                    if (!_readBigEndianU16(data.data(), data.size(), offset, len)) {
-                        return false;
-                    }
-                    if (offset + static_cast<size_t>(len) > data.size()) {
-                        return false;
-                    }
-                    text.assign(reinterpret_cast<const char*>(data.data() + offset), static_cast<size_t>(len));
-                    offset += static_cast<size_t>(len);
                 }
                 (void)manager.setRaw(
-                    index, entity::DataValue(entity::OptionalComponentValue{present, std::move(text)}));
+                    index, entity::DataValue(entity::OptionalComponentValue{present, std::move(componentNbt)}));
                 manager.clearDirty(index);
                 break;
             }

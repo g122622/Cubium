@@ -118,8 +118,8 @@ public:
 
     // ========== ICommandSource 接口 ==========
 
-    void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
-    void sendError(const std::string& message) override;
+    void sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins) override;
+    void sendFailure(const text::ITextComponent& message) override;
     [[nodiscard]] bool shouldReceiveFeedback() const override;
     [[nodiscard]] bool shouldReceiveErrors() const override;
     [[nodiscard]] bool allowLogging() const override;

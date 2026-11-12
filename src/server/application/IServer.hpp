@@ -275,6 +275,15 @@ public:
     [[nodiscard]] virtual const resource::DataPackRepository& dataPackList() const = 0;
 
     /**
+     * @brief 重新加载服务端语言表
+     *
+     * 服务端只加载默认语言（en_us），供控制台/日志把翻译组件字符串化；
+     * 面向玩家的文本以翻译组件原样下发，由客户端按自己的语言表本地化。
+     * `/reload` 调用本方法使语言文件改动生效，不重新扫描资源包目录。
+     */
+    virtual void reloadLanguageResources() = 0;
+
+    /**
      * @brief 获取掉落表管理器
      * @return 掉落表管理器引用
      */

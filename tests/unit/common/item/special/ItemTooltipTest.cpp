@@ -29,7 +29,7 @@
 #include "common/item/items/block/BannerItem.hpp"
 #include "common/item/items/special/PotterySherdItem.hpp"
 #include "common/item/items/special/SmithingTemplateItem.hpp"
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"

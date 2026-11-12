@@ -32,6 +32,7 @@
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -83,7 +84,7 @@ void LocateCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto poiArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ParsedResourceOrTag>>(
         "poi", ResourceOrTagArgumentType::resourceOrTag("minecraft:point_of_interest_type"));
     poiArg->setCommand([](CommandContext<ServerCommandSource>& context) {
-        context.getSource().sendError("commands.locate.poi.notImplemented");
+        context.getSource().sendFailure(::mc::text::literal("Unable to locate the structure"));
         return 0;
     });
     poiNode->addChild(poiArg);
@@ -97,7 +98,7 @@ i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
@@ -111,16 +112,16 @@ i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
     const world::gen::structure::StructureSet* structureSet = structureSetRegistry.findByStructure(structureId);
     if (structureSet == nullptr) {
-        source.sendError("Unknown structure: " + structureName);
-        source.sendError(
-            "Use structure IDs like minecraft:village, minecraft:desert_pyramid, minecraft:stronghold, etc.");
+        source.sendFailure(::mc::text::literal("Unknown structure: " + structureName));
+        source.sendFailure(::mc::text::literal(
+            "Use structure IDs like minecraft:village, minecraft:desert_pyramid, minecraft:stronghold, etc."));
         return 0;
     }
 
     // 获取 ServerWorld
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("World not available");
+        source.sendFailure(::mc::text::literal("World not available"));
         return 0;
     }
 
@@ -141,12 +142,12 @@ i32 LocateCommand::_locateStructure(CommandContext<ServerCommandSource>& context
         std::ostringstream ss;
         ss << "Found " << structureId.toString() << " at (" << result->x << ", " << result->z << ") "
            << "(" << distance << " blocks away)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
         return 1;
     } else {
         std::ostringstream errorSs;
         errorSs << "Could not find structure '" << structureId.toString() << "' within " << SEARCH_RADIUS << " blocks";
-        source.sendError(errorSs.str());
+        source.sendFailure(::mc::text::literal(errorSs.str()));
         return 0;
     }
 }

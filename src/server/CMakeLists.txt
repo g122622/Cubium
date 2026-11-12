@@ -337,6 +337,7 @@ add_library(mc_server_shared OBJECT
     command/CommandRegistry.cpp
     command/ServerCommandSource.cpp
     command/data/DataAccessor.cpp
+    command/support/ChatBroadcast.cpp
     command/support/EffectResolver.cpp
     command/support/EntityResolver.cpp
     command/support/FunctionSuggestionProvider.cpp

@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -86,13 +87,13 @@ i32 DifficultyCommand::_queryDifficulty(CommandContext<ServerCommandSource>& con
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
     std::ostringstream ss;
     ss << "The difficulty is " << support::getDifficultyCommandName(server->difficulty());
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(server->difficulty());
 }
 
@@ -101,19 +102,21 @@ i32 DifficultyCommand::_setDifficulty(CommandContext<ServerCommandSource>& conte
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendMessage("Server not available");
+        source.sendSuccess(::mc::text::literal("Server not available"), false);
         return 0;
     }
 
     const Difficulty difficulty = context.getArgument<Difficulty>("difficulty");
     if (server->difficulty() == difficulty) {
-        source.sendMessage(
-            "Difficulty is already set to " + std::string(support::getDifficultyCommandName(difficulty)));
+        source.sendSuccess(::mc::text::literal("Difficulty is already set to " +
+                               std::string(support::getDifficultyCommandName(difficulty))),
+            false);
         return 0;
     }
 
     server->setDifficulty(difficulty);
-    source.sendMessage("Set difficulty to " + std::string(support::getDifficultyCommandName(difficulty)));
+    source.sendSuccess(
+        ::mc::text::literal("Set difficulty to " + std::string(support::getDifficultyCommandName(difficulty))), false);
     return 1;
 }
 

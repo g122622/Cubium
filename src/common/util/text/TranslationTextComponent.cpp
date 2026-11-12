@@ -22,7 +22,7 @@
  */
 
 #include "TranslationTextComponent.hpp"
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/util/NumberParsing.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include <cctype>

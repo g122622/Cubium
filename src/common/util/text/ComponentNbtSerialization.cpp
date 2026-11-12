@@ -27,11 +27,17 @@
 #include "common/network/buffer/ByteBuf.hpp"
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/StyleNbt.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
+#include "common/util/text/contents/KeybindTextComponent.hpp"
+#include "common/util/text/contents/NbtTextComponent.hpp"
+#include "common/util/text/contents/ObjectTextComponent.hpp"
+#include "common/util/text/contents/ScoreTextComponent.hpp"
+#include "common/util/text/contents/SelectorTextComponent.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -59,16 +65,54 @@ bool isCollapsible(const ITextComponent& component)
 }
 
 /// 把不可折叠组件递归序列化为 compound_tag（contents + style + extra）。
-/// contents 支持纯文本（StringTextComponent → "text" 键）与翻译（TranslationTextComponent →
-/// "translate" + "with" 键，对齐 vanilla TranslatableContents.MAP_CODEC）；其余类型以
-/// text=getUnformattedText 降级承载。
+/// contents 覆盖原版全部 7 种：text / translate / score / selector / keybind / nbt / object，
+/// 字段名与各 Contents 的 MAP_CODEC 一致。
 void writeComponentToCompound(nbt::tags::compound_tag& comp, const ITextComponent& component)
 {
     // contents：纯文本走 "text" 键（对齐 PlainTextContents.MAP_CODEC fieldOf("text")）
     const auto* str = dynamic_cast<const StringTextComponent*>(&component);
     const auto* translatable = dynamic_cast<const TranslationTextComponent*>(&component);
+    const auto* score = dynamic_cast<const ScoreTextComponent*>(&component);
+    const auto* selector = dynamic_cast<const SelectorTextComponent*>(&component);
+    const auto* keybind = dynamic_cast<const KeybindTextComponent*>(&component);
+    const auto* nbtContents = dynamic_cast<const NbtTextComponent*>(&component);
+    const auto* object = dynamic_cast<const ObjectTextComponent*>(&component);
     if (str != nullptr) {
         comp.put("text", str->getText());
+    } else if (score != nullptr) {
+        // ScoreContents：{"score":{"name":...,"objective":...}}
+        auto scoreTag = std::make_unique<nbt::tags::compound_tag>();
+        scoreTag->put("name", score->name());
+        scoreTag->put("objective", score->objective());
+        comp.value.emplace("score", std::unique_ptr<nbt::tags::tag>(scoreTag.release()));
+    } else if (selector != nullptr) {
+        // SelectorContents：{"selector":...,"separator":<Component>?}
+        comp.put("selector", selector->selector());
+        if (selector->separator() != nullptr) {
+            comp.value.emplace("separator", componentToNbtTag(selector->separator().get()));
+        }
+    } else if (keybind != nullptr) {
+        // KeybindContents：{"keybind":"key.jump"}
+        comp.put("keybind", keybind->key());
+    } else if (nbtContents != nullptr) {
+        // NbtContents：{"nbt":...,"interpret":1b,"separator":<Component>?,"block"/"entity"/"storage":...}
+        comp.put("nbt", nbtContents->path());
+        if (nbtContents->isInterpreting()) {
+            comp.put("interpret", static_cast<std::int8_t>(1));
+        }
+        if (nbtContents->separator() != nullptr) {
+            comp.value.emplace("separator", componentToNbtTag(nbtContents->separator().get()));
+        }
+        comp.put(nbtContents->dataSourceKey(), nbtContents->dataSourceValue());
+    } else if (object != nullptr) {
+        // ObjectContents：{"object":{...}}，子对象按原样转 NBT（结构与客户端 codec 对应）。
+        auto objectTag = ::mc::nbt::jsonToNbt(object->object());
+        if (objectTag != nullptr) {
+            comp.value.emplace("object", std::unique_ptr<nbt::tags::tag>(objectTag.release()));
+        } else {
+            spdlog::warn("Component object serialization failed; falling back to plain text");
+            comp.put("text", component.getUnformattedText());
+        }
     } else if (translatable != nullptr) {
         // 翻译组件：translate(键) + with(参数列表)，对齐 vanilla TranslatableContents.MAP_CODEC
         // （fieldOf("translate") + optionalFieldOf("with")）。真 Java 客户端据此查语言表本地化，
@@ -150,6 +194,30 @@ const nbt::tags::string_tag* _findString(const nbt::tags::compound_tag& tag, con
     return dynamic_cast<const nbt::tags::string_tag*>(it->second.get());
 }
 
+/// 取某个键的复合标签值；键不存在或类型不符返回 nullptr
+const nbt::tags::compound_tag* _findCompound(const nbt::tags::compound_tag& tag, const char* key)
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return nullptr;
+    }
+    return dynamic_cast<const nbt::tags::compound_tag*>(it->second.get());
+}
+
+/// 取某个键的 ByteTag 值（NBT 布尔）；键不存在或类型不符返回 nullopt
+std::optional<i8> _findByte(const nbt::tags::compound_tag& tag, const char* key)
+{
+    const auto it = tag.value.find(key);
+    if (it == tag.value.end()) {
+        return std::nullopt;
+    }
+    const auto* byte = dynamic_cast<const nbt::tags::byte_tag*>(it->second.get());
+    if (byte == nullptr) {
+        return std::nullopt;
+    }
+    return byte->value;
+}
+
 } // namespace
 
 Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag& tag)
@@ -167,10 +235,59 @@ Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag
 
     const auto& comp = dynamic_cast<const nbt::tags::compound_tag&>(tag);
 
-    // contents：text 优先，其次 translate（与写出方向对称）
+    // contents：按写出方向的同一套键识别 7 种 contents
     std::unique_ptr<ITextComponent> result;
     if (const auto* textTag = _findString(comp, "text"); textTag != nullptr) {
         result = std::make_unique<StringTextComponent>(textTag->value);
+    } else if (const auto* scoreTag = _findCompound(comp, "score"); scoreTag != nullptr) {
+        const auto* name = _findString(*scoreTag, "name");
+        const auto* objective = _findString(*scoreTag, "objective");
+        result = std::make_unique<ScoreTextComponent>(
+            name != nullptr ? name->value : std::string{}, objective != nullptr ? objective->value : std::string{});
+    } else if (const auto* selectorTag = _findString(comp, "selector"); selectorTag != nullptr) {
+        auto selector = std::make_unique<SelectorTextComponent>(selectorTag->value);
+        const auto separatorIt = comp.value.find("separator");
+        if (separatorIt != comp.value.end()) {
+            auto separator = componentFromNbtTag(*separatorIt->second);
+            if (separator.failed()) {
+                return separator.error();
+            }
+            selector->setSeparator(separator.value());
+        }
+        result = std::move(selector);
+    } else if (const auto* keybindTag = _findString(comp, "keybind"); keybindTag != nullptr) {
+        result = std::make_unique<KeybindTextComponent>(keybindTag->value);
+    } else if (const auto* nbtPathTag = _findString(comp, "nbt"); nbtPathTag != nullptr) {
+        NbtDataSourceKind kind = NbtDataSourceKind::Storage;
+        std::string dataSourceValue;
+        if (const auto* blockTag = _findString(comp, "block"); blockTag != nullptr) {
+            kind = NbtDataSourceKind::Block;
+            dataSourceValue = blockTag->value;
+        } else if (const auto* entityTag = _findString(comp, "entity"); entityTag != nullptr) {
+            kind = NbtDataSourceKind::Entity;
+            dataSourceValue = entityTag->value;
+        } else if (const auto* storageTag = _findString(comp, "storage"); storageTag != nullptr) {
+            kind = NbtDataSourceKind::Storage;
+            dataSourceValue = storageTag->value;
+        } else {
+            return Error(ErrorCode::InvalidData,
+                "Component NBT contents is missing a data source (block/entity/storage)",
+                "text::componentFromNbtTag");
+        }
+
+        auto nbt = std::make_unique<NbtTextComponent>(
+            nbtPathTag->value, _findByte(comp, "interpret").value_or(0) != 0, kind, std::move(dataSourceValue));
+        const auto separatorIt = comp.value.find("separator");
+        if (separatorIt != comp.value.end()) {
+            auto separator = componentFromNbtTag(*separatorIt->second);
+            if (separator.failed()) {
+                return separator.error();
+            }
+            nbt->setSeparator(separator.value());
+        }
+        result = std::move(nbt);
+    } else if (const auto objectIt = comp.value.find("object"); objectIt != comp.value.end()) {
+        result = std::make_unique<ObjectTextComponent>(::mc::nbt::nbtToJson(*objectIt->second));
     } else if (const auto* translateTag = _findString(comp, "translate"); translateTag != nullptr) {
         std::vector<std::unique_ptr<ITextComponent>> params;
         const auto withIt = comp.value.find("with");
@@ -190,8 +307,9 @@ Result<std::unique_ptr<ITextComponent>> componentFromNbtTag(const nbt::tags::tag
         }
         result = std::make_unique<TranslationTextComponent>(translateTag->value, std::move(params));
     } else {
-        return Error(
-            ErrorCode::InvalidData, "Component NBT has neither 'text' nor 'translate'", "text::componentFromNbtTag");
+        return Error(ErrorCode::InvalidData,
+            "Component NBT has no recognized contents (text/translate/score/selector/keybind/nbt/object)",
+            "text::componentFromNbtTag");
     }
 
     // style（字段与 contents 同层平铺）
@@ -301,26 +419,6 @@ std::optional<std::string> readStringTag(const std::vector<u8>& nbtBytes)
     return std::string(reinterpret_cast<const char*>(nbtBytes.data() + 3), len);
 }
 
-/// 从 CompoundTag 取 "text" 键的字符串值（不递归 extra，近似纯文本）。找不到返回空。
-std::string extractTextFromCompound(const nbt::tags::compound_tag& comp)
-{
-    const auto it = comp.value.find("text");
-    if (it != comp.value.end()) {
-        const auto* str = dynamic_cast<const nbt::tags::string_tag*>(it->second.get());
-        if (str != nullptr) {
-            return str->value;
-        }
-    }
-    const auto trIt = comp.value.find("translate");
-    if (trIt != comp.value.end()) {
-        const auto* str = dynamic_cast<const nbt::tags::string_tag*>(trIt->second.get());
-        if (str != nullptr) {
-            return str->value;
-        }
-    }
-    return {};
-}
-
 } // namespace
 
 std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
@@ -351,9 +449,11 @@ std::string componentNbtBytesToPlainText(const std::vector<u8>& nbtBytes)
             // value map 的偏移）。必须先把所有权取到局部变量再用。
             std::unique_ptr<mc::nbt::tags::compound_tag> root = result.success() ? result.value() : nullptr;
             if (root != nullptr) {
-                std::string text = extractTextFromCompound(*root);
-                if (!text.empty()) {
-                    return text;
+                // 还原组件后交给组件的字符串化出口：translate 会查服务端语言表，
+                // extra/siblings 与嵌套参数也一并拼进来，比只取 "text" 键完整。
+                auto component = componentFromNbtTag(*root);
+                if (component.success()) {
+                    return component.value()->getUnformattedText();
                 }
             }
         }

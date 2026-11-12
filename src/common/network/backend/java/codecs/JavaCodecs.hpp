@@ -303,11 +303,11 @@ inline void writeByteArray(B& buf, const u8* data, usize size)
 {
     return makeCodec<ir::login::Disconnect>(
         [](B& buf, const ir::login::Disconnect& v) {
-            writeTextComponentNbt(buf, v.reason);
+            writeComponentNbt(buf, v.reason);
         },
         [](B& buf) -> Result<ir::login::Disconnect> {
             ir::login::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
+            MC_TRY_ASSIGN(v.reason, readComponentNbt(buf));
             return v;
         });
 }

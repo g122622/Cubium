@@ -23,8 +23,8 @@
 
 #include "item/items/BannerPatternItem.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
-#include "resource/LanguageManager.hpp"
 #include <string>
 #include <utility>
 #include <vector>

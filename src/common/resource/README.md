@@ -20,7 +20,8 @@ src/common/resource/
 │   ├── PackRepository.hpp/cpp      # 客户端资源包仓库（原 ResourcePackList），默认 PackType::ClientResources
 │   └── DataPackRepository.hpp      # 服务端数据包仓库（原 DataPackList），默认 PackType::ServerData
 ├── VanillaResources.hpp/cpp        # 原版模型/方块状态等基础资源
-├── LanguageManager.hpp/cpp         # 多语言翻译管理器，从资源包加载语言文件，支持占位符替换
+├── language/                       # 多语言子系统
+│   └── LanguageManager.hpp/cpp     # 语言表加载与翻译查询（资源包 assets/<ns>/lang/*.json）
 ├── tag/                            # 通用标签加载骨架（被具体标签系统复用）
 │   └── GenericTagLoader.hpp/cpp    # 两阶段标签加载器：JSON 解析 + 多数据包 replace 合并 + # 引用依赖解析
 └── metadata/                       # 资源元数据
@@ -47,7 +48,8 @@ src/common/resource/
 - `PackListBase` 是资源包列表基类，提取了 `PackRepository` 和 `DataPackRepository` 的公共逻辑（优先级管理、并发查询、变更通知等）。
 - `PackRepository` 继承 `PackListBase`，管理多个客户端资源包实例，默认使用 `PackType::ClientResources`，支持 `loadFromSettings`/`saveToSettings`。
 - `DataPackRepository` 继承 `PackListBase`，限定 `PackType::ServerData`，服务战利品表、配方等数据加载。
-- `LanguageManager` 从 `PackRepository` 加载语言文件，为 `TranslationTextComponent` 提供翻译服务。
+- `language/LanguageManager` 从 `PackRepository` 加载语言文件，为 `TranslationTextComponent` 提供翻译服务；
+  服务端启动时只加载 en_us，用于控制台/日志把翻译组件字符串化。
 
 ## 上下游外部依赖关系
 
@@ -74,9 +76,14 @@ src/common/resource/
 - **`addPack()` 不是纯内存操作**：会在锁外创建和初始化资源包，再做二次插入校验。
 - **`ZipResourcePack` 缓存已加锁**：但资源包本身仍应通过 `PackRepository` 统一访问。
 - **资源路径统一使用 `/`**：Windows 路径分隔符会在内部规范化。
-- **`LanguageManager::instance()` 是全局单例**：需要手动调用 `loadLanguage()` 加载语言文件。
+- **语言文件属于资源包，不属于数据包**：路径是 `assets/<ns>/lang/<code>.json`（PackType::ClientResources）；
+  `data/` 下没有语言文件。服务端装配路径见 `MinecraftServer::initializeLanguageResources()`。
+- **`LanguageManager::instance()` 是全局单例**：需要显式调用 `loadLanguage()`；服务端启动时自动加载 en_us。
 - **`TranslationTextComponent` 默认使用 `LanguageManager::instance()`**：可通过 `setLanguageManager()` 覆盖。
+- **加载与查询共用一把读写锁**：`loadLanguage` 在锁外读文件/解析，最后一次性替换翻译表；不要在持锁状态下
+  调用 `get()` 或语言变更回调（会自死锁）。
 - **语言文件占位符**：支持 `%s`（顺序参数）、`%1$s`/`%2$s`（位置参数）、`%%`（转义百分号）。
+- **未加载任何语言时 `get()` 原样返回键**：面向玩家的文本必须走组件翻译键，不能依赖服务端字符串表兜底。
 - **`IResourcePack` 的路径工具方法**：`normalizePath`、`makeTypedPath`、`matchesExtension` 是静态保护方法，供子类复用。
 - **`InMemoryResourcePack` 统一接口**：使用 `addResource(PackType, path, content)` 方法，`addClientResource`/`addServerDataResource` 为便捷方法。
 - **`GenericTagLoader` 是通用骨架，不直接面向成员类型**：它只负责 JSON 解析、多数据包合并、`#` 引用依赖解析，成员解析 / 读取 / 写入通过三个回调（`TagMemberResolver` / `TagMemberReader` / `TagFiller`）注入。具体标签系统（`BlockTagLoader` / `FluidTagLoader` / `GameEventTagLoader`）各自提供回调，把成员映射为 `size_t` 索引并落回自身注册表。新增一类标签时复用此骨架，不要重写两阶段加载逻辑。

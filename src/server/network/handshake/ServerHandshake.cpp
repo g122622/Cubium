@@ -35,6 +35,7 @@
 #include "common/network/ir/packets/status/StatusPackets.hpp"
 #include "common/network/protocol/ConnectionProtocol.hpp"
 #include "common/util/UuidUtils.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
 #include "server/network/base/ServerClientConnection.hpp"
@@ -168,7 +169,8 @@ Result<void> ServerHandshakeStateMachine::_handleHandshake(const mc::network::ir
             mc::text::TranslationTextComponent comp(key);
             comp.addParam(std::make_unique<mc::text::StringTextComponent>("1.21.11"));
             mc::network::ir::login::Disconnect dc;
-            dc.reason = comp.toJson().dump();
+            // reason 是 Component NBT wire 字节；直接序列化翻译组件，保留 translate/with。
+            dc.reason = ::mc::text::componentToNbtBytes(&comp);
             (void)m_conn.send(mc::network::ir::IrPacket{
                 mc::network::protocol::ConnectionProtocol::Login, mc::network::ir::LoginPacket{std::move(dc)}});
             spdlog::info("ServerHandshake: rejected protocol {} (expected {}): {}",

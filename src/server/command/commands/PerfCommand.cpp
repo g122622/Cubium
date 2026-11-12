@@ -24,6 +24,7 @@
 #include "PerfCommand.hpp"
 
 #include "common/command/CommandNode.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 
 #include <memory>
@@ -56,13 +57,13 @@ void PerfCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
 i32 PerfCommand::_start(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("Profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("Profiling is not supported by this server"));
     return 0;
 }
 
 i32 PerfCommand::_stop(CommandContext<ServerCommandSource>& context)
 {
-    context.getSource().sendError("Profiling is not supported by this server");
+    context.getSource().sendFailure(::mc::text::literal("Profiling is not supported by this server"));
     return 0;
 }
 

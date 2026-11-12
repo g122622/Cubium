@@ -30,6 +30,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/access/base/BannedPlayerListTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -95,13 +96,13 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     }
 
     if (playerName.empty()) {
-        source.sendError("commands.pardon.failed.noPlayer");
+        source.sendFailure(::mc::text::literal("argument.player.unknown"));
         return 0;
     }
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.pardon.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -111,7 +112,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     if (!banList.playerBanIsNameBanned(playerName)) {
         std::ostringstream ss;
         ss << "Could not unban " << playerName << " (not banned)";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -119,7 +120,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     if (!banList.playerBanRemoveEntryByName(playerName)) {
         std::ostringstream ss;
         ss << "Failed to remove " << playerName << " from ban list";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -132,7 +133,7 @@ i32 PardonCommand::_pardonPlayer(CommandContext<ServerCommandSource>& context)
     // 发送成功消息
     std::ostringstream ss;
     ss << "Unbanned " << playerName;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return 1;
 }

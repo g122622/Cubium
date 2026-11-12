@@ -1407,8 +1407,8 @@ add_library(mc_common STATIC
     # Resource - Metadata
     resource/metadata/AnimationMetadata.cpp
 
-    # Resource - Language
-    resource/LanguageManager.cpp
+    # Resource - Language（语言文件加载与翻译查询，服务端只加载 en_us 用于字符串化）
+    resource/language/LanguageManager.cpp
 
     # NBT (Named Binary Tag) Library
     util/nbt/Nbt.cpp
@@ -1422,6 +1422,7 @@ add_library(mc_common STATIC
     util/text/TextParser.cpp
     util/text/TranslationTextComponent.cpp
     util/text/ComponentNbtSerialization.cpp
+    util/text/ComponentFactory.cpp
     # 数字格式（记分板分数的渲染格式：blank / styled / fixed）
     util/text/numbers/NumberFormat.cpp
     util/text/numbers/NumberFormatCodec.cpp

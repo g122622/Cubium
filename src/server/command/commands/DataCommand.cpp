@@ -38,6 +38,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
@@ -493,7 +494,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
     auto world = source.world();
 
     if (world == nullptr) {
-        _sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -501,7 +502,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        _sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -519,7 +520,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            _sendError(source, "commands.data.get.pathNotFound");
+            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
             return 0;
         }
 
@@ -530,21 +531,21 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
             if (context.hasArgument("scale")) {
                 const f64 scale = context.getArgument<f64>("scale");
                 i32 scaledValue = _scaleValue(*result, scale);
-                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                source.sendSuccess(accessor.getGetMessage(path, scale, scaledValue), false);
                 return scaledValue;
             }
 
             i32 resultValue = _getSingleResult(*result);
-            source.sendMessage(accessor.getQueryMessage(*result));
+            source.sendSuccess(accessor.getQueryMessage(*result), false);
             return resultValue;
         } else {
             // 多个结果
-            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            source.sendSuccess(::mc::text::literal("Found " + std::to_string(results.size()) + " matches"), false);
             return static_cast<i32>(results.size());
         }
     } else {
         // 没有路径，返回整个 NBT
-        source.sendMessage(accessor.getQueryMessage(*data));
+        source.sendSuccess(accessor.getQueryMessage(*data), false);
         return 1;
     }
 }
@@ -555,7 +556,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -563,7 +564,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
     auto entities = support::EntityResolver::resolve(source, selector);
 
     if (entities.empty()) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "argument.entity.notfound.entity");
         return 0;
     }
 
@@ -586,7 +587,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            _sendError(source, "commands.data.get.pathNotFound");
+            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
             return 0;
         }
 
@@ -597,19 +598,19 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
             if (context.hasArgument("scale")) {
                 const f64 scale = context.getArgument<f64>("scale");
                 i32 scaledValue = _scaleValue(*result, scale);
-                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                source.sendSuccess(accessor.getGetMessage(path, scale, scaledValue), false);
                 return scaledValue;
             }
 
             i32 resultValue = _getSingleResult(*result);
-            source.sendMessage(accessor.getQueryMessage(*result));
+            source.sendSuccess(accessor.getQueryMessage(*result), false);
             return resultValue;
         } else {
-            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            source.sendSuccess(::mc::text::literal("Found " + std::to_string(results.size()) + " matches"), false);
             return static_cast<i32>(results.size());
         }
     } else {
-        source.sendMessage(accessor.getQueryMessage(*data));
+        source.sendSuccess(accessor.getQueryMessage(*data), false);
         return 1;
     }
 }
@@ -620,7 +621,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (server == nullptr) {
-        _sendError(source, "commands.data.storage.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -643,7 +644,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            _sendError(source, "commands.data.get.pathNotFound");
+            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
             return 0;
         }
 
@@ -653,19 +654,19 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
             if (context.hasArgument("scale")) {
                 const f64 scale = context.getArgument<f64>("scale");
                 i32 scaledValue = _scaleValue(*result, scale);
-                source.sendMessage(accessor.getGetMessage(path, scale, scaledValue));
+                source.sendSuccess(accessor.getGetMessage(path, scale, scaledValue), false);
                 return scaledValue;
             }
 
             i32 resultValue = _getSingleResult(*result);
-            source.sendMessage(accessor.getQueryMessage(*result));
+            source.sendSuccess(accessor.getQueryMessage(*result), false);
             return resultValue;
         } else {
-            source.sendMessage("Found " + std::to_string(results.size()) + " matches");
+            source.sendSuccess(::mc::text::literal("Found " + std::to_string(results.size()) + " matches"), false);
             return static_cast<i32>(results.size());
         }
     } else {
-        source.sendMessage(accessor.getQueryMessage(*data));
+        source.sendSuccess(accessor.getQueryMessage(*data), false);
         return 1;
     }
 }
@@ -726,13 +727,13 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             if (context.hasArgument("sourcePos")) {
                 auto world = source.world();
                 if (world == nullptr) {
-                    _sendError(source, "commands.data.block.failed.noWorld");
+                    _sendError(source, "commands.data.block.invalid");
                     return 0;
                 }
                 Vector3i pos = BlockPosArgumentType::getBlockPos(context, "sourcePos", source);
                 BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
                 if (!accessor.isValid()) {
-                    _sendError(source, "commands.data.block.failed.noBlockEntity");
+                    _sendError(source, "commands.data.block.invalid");
                     return 0;
                 }
                 {
@@ -766,7 +767,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             else if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
                 auto* server = source.server();
                 if (server == nullptr) {
-                    _sendError(source, "commands.data.storage.failed.noServer");
+                    source.sendFailure(::mc::text::literal("Server not available"));
                     return 0;
                 }
                 StorageDataAccessor accessor(&server->commandStorage(), *storageId);
@@ -779,7 +780,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
                     sourceValues = std::move(sourceValuesResult).value();
                 }
             } else {
-                _sendError(source, "commands.data.modify.invalidSource");
+                source.sendFailure(::mc::text::literal("Invalid data source"));
                 return 0;
             }
         }
@@ -806,7 +807,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
     if (context.hasArgument("targetPos")) {
         auto world = source.world();
         if (world == nullptr) {
-            _sendError(source, "commands.data.block.failed.noWorld");
+            _sendError(source, "commands.data.block.invalid");
             return 0;
         }
         Vector3i pos = BlockPosArgumentType::getBlockPos(context, "targetPos", source);
@@ -819,7 +820,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         if (const auto* storageId = std::any_cast<ResourceLocation>(&raw)) {
             auto* server = source.server();
             if (server == nullptr) {
-                _sendError(source, "commands.data.storage.failed.noServer");
+                source.sendFailure(::mc::text::literal("Server not available"));
                 return 0;
             }
             targetAccessor = std::make_unique<StorageDataAccessor>(&server->commandStorage(), *storageId);
@@ -828,7 +829,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             MC_ASSERT_RELEASE_MSG(selectorValue != nullptr, "DataCommand: target argument has an unexpected type");
             auto entities = support::EntityResolver::resolve(source, *selectorValue);
             if (entities.empty()) {
-                _sendError(source, "commands.data.entity.failed.noEntity");
+                _sendError(source, "argument.entity.notfound.entity");
                 return 0;
             }
             auto accessor = std::make_unique<EntityDataAccessor>(entities.front());
@@ -836,12 +837,12 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             targetAccessor = std::move(accessor);
         }
     } else {
-        _sendError(source, "commands.data.modify.invalidTarget");
+        source.sendFailure(::mc::text::literal("Invalid data target"));
         return 0;
     }
 
     if (!targetValid) {
-        _sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -857,7 +858,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         {
             const nbt::tags::tag* value = sourceValues.empty() ? nullptr : sourceValues.front().get();
             if (value == nullptr) {
-                _sendError(source, "commands.data.modify.missingValue");
+                source.sendFailure(::mc::text::literal("Missing value"));
                 return 0;
             }
             auto setResult = targetPath.set(*data, [value]() -> std::unique_ptr<nbt::tags::tag> {
@@ -892,7 +893,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         }
         case 3: // merge
             if (sourceValues.empty() || sourceValues.front()->id() != nbt::TagId::Compound) {
-                _sendError(source, "commands.data.modify.merge.expectedCompound");
+                source.sendFailure(::mc::text::literal("Expected a compound value"));
                 return 0;
             }
             {
@@ -917,12 +918,12 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             break;
         }
         default:
-            _sendError(source, "commands.data.modify.invalidOperation");
+            source.sendFailure(::mc::text::literal("Invalid operation"));
             return 0;
     }
 
     if (count == 0) {
-        _sendError(source, "commands.data.modify.invalidPath");
+        source.sendFailure(::mc::text::literal("Invalid NBT path"));
         return 0;
     }
 
@@ -931,7 +932,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         _sendCommandError(source, mergeResult.error());
         return 0;
     }
-    source.sendMessage(targetAccessor->getModifiedMessage());
+    source.sendSuccess(targetAccessor->getModifiedMessage(), false);
     return count;
 }
 
@@ -941,7 +942,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
     auto world = source.world();
 
     if (world == nullptr) {
-        _sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -952,7 +953,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        _sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -974,7 +975,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.set.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -985,7 +986,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -995,7 +996,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1005,7 +1006,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "argument.entity.notfound.entity");
         return 0;
     }
 
@@ -1014,7 +1015,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        _sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.invalid");
         return 0;
     }
 
@@ -1035,7 +1036,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.set.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -1048,7 +1049,7 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -1062,7 +1063,7 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (server == nullptr) {
-        _sendError(source, "commands.data.storage.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1086,7 +1087,7 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.set.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -1099,7 +1100,7 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -1111,7 +1112,7 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
     auto world = source.world();
 
     if (world == nullptr) {
-        _sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -1121,7 +1122,7 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        _sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -1130,7 +1131,7 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
         _sendCommandError(source, mergeResult.error());
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return 1;
 }
 
@@ -1140,7 +1141,7 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1149,7 +1150,7 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "argument.entity.notfound.entity");
         return 0;
     }
 
@@ -1158,7 +1159,7 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        _sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.invalid");
         return 0;
     }
 
@@ -1167,7 +1168,7 @@ i32 DataCommand::_mergeEntity(CommandContext<ServerCommandSource>& context)
         _sendCommandError(source, mergeResult.error());
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return 1;
 }
 
@@ -1180,7 +1181,7 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (server == nullptr) {
-        _sendError(source, "commands.data.storage.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1192,7 +1193,7 @@ i32 DataCommand::_mergeStorage(CommandContext<ServerCommandSource>& context)
         _sendCommandError(source, mergeResult.error());
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return 1;
 }
 
@@ -1204,7 +1205,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
     auto world = source.world();
 
     if (world == nullptr) {
-        _sendError(source, "commands.data.block.failed.noWorld");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -1214,7 +1215,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
-        _sendError(source, "commands.data.block.failed.noBlockEntity");
+        _sendError(source, "commands.data.block.invalid");
         return 0;
     }
 
@@ -1233,7 +1234,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.remove.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -1245,7 +1246,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
 
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -1255,7 +1256,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
     auto* server = source.server();
 
     if (server == nullptr) {
-        _sendError(source, "commands.data.entity.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1264,7 +1265,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
 
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
-        _sendError(source, "commands.data.entity.failed.noEntity");
+        _sendError(source, "argument.entity.notfound.entity");
         return 0;
     }
 
@@ -1273,7 +1274,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
     EntityDataAccessor accessor(entity);
 
     if (accessor.isPlayer()) {
-        _sendError(source, "commands.data.entity.failed.player");
+        _sendError(source, "commands.data.entity.invalid");
         return 0;
     }
 
@@ -1292,7 +1293,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.remove.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -1304,7 +1305,7 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
 
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -1317,7 +1318,7 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
 
     auto* server = source.server();
     if (server == nullptr) {
-        _sendError(source, "commands.data.storage.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -1339,7 +1340,7 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        _sendError(source, "commands.data.remove.pathNotFound");
+        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
         return 0;
     }
 
@@ -1351,7 +1352,7 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
 
         return 0;
     }
-    source.sendMessage(accessor.getModifiedMessage());
+    source.sendSuccess(accessor.getModifiedMessage(), false);
     return count;
 }
 
@@ -1419,16 +1420,23 @@ i32 DataCommand::_scaleValue(const nbt::tags::tag& tag, f64 scale)
     return static_cast<i32>(std::floor(value * scale));
 }
 
-void DataCommand::_sendError(ServerCommandSource& source, const std::string& message)
+void DataCommand::_sendError(ServerCommandSource& source, const std::string& key)
 {
-    source.sendMessage("§c" + message);
+    // 入参约定为翻译键；缺失翻译时客户端会显示键名本身，便于发现未对齐的键。
+    source.sendFailure(::mc::text::translatable(key));
 }
 
 void DataCommand::_sendCommandError(ServerCommandSource& source, const CommandError& error)
 {
-    // 数据过深是写入前的整体拒绝，与"路径不存在"不同，需要给出明确的错误提示
+    // 错误已携带组件时直接透传（保留 translate/with 与样式）。
+    if (error.component() != nullptr) {
+        source.sendFailure(*error.component());
+        return;
+    }
+
+    // 数据过深是写入前的整体拒绝，与"路径不存在"不同，需要给出明确的错误提示。
     if (error.type() == CommandErrorType::NbtPathDataTooDeep) {
-        _sendError(source, "commands.data.set.tooDeep");
+        _sendError(source, "arguments.nbtpath.too_deep");
         return;
     }
     _sendError(source, error.message());

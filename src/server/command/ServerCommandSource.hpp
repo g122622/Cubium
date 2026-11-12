@@ -41,6 +41,10 @@ namespace mc {
 class ServerPlayer;
 class Entity;
 
+namespace text {
+class ITextComponent;
+}
+
 namespace server {
 class ServerWorld;
 class IServer;
@@ -86,20 +90,36 @@ public:
 
     // ========== ICommandSource 接口实现 ==========
 
-    void sendMessage(const std::string& message, const std::optional<Uuid>& senderUuid = std::nullopt) override;
+    // 基类的 unique_ptr 便捷重载在派生类中会被同名虚函数隐藏，显式引入。
+    using ICommandSource::sendFailure;
+    using ICommandSource::sendSuccess;
 
     /**
-     * @brief 发送错误消息
-     * @param message 错误消息内容
+     * @brief 发送成功反馈
      *
-     * 错误消息会以红色显示（对于支持的客户端）
+     * 玩家源直接下发文本组件（保留 translate/with，由客户端本地化）；无实体但有
+     * playerId 的远程源经 PacketSender 下发；控制台源把组件字符串化后写日志。
+     * broadcastToAdmins 为 true 时额外广播给其他权限 >= GameMaster 的玩家。
+     *
+     * @param message 反馈组件
+     * @param broadcastToAdmins 是否广播给其他管理员
      */
-    void sendError(const std::string& message) override;
+    void sendSuccess(const text::ITextComponent& message, bool broadcastToAdmins) override;
+
+    /**
+     * @brief 发送错误反馈
+     *
+     * 在组件上叠加红色样式（原版 `sendFailure` 的 `withStyle(ChatFormatting.RED)`），
+     * 只发给命令源自己。
+     *
+     * @param message 错误组件
+     */
+    void sendFailure(const text::ITextComponent& message) override;
 
     /**
      * @brief 非玩家命令源的输出出口
      *
-     * 在 sendMessage 完成 spdlog 记录后被调用，message 仍带 § 样式码（如错误消息的 §c 前缀）。
+     * 在控制台分支把组件字符串化后被调用，message 为纯文本（无 § 样式码）。
      * 默认空实现；派生类（如终端控制台命令源）可覆写以把回执送入自定义输出目标。
      *
      * @param message 原始消息文本
@@ -320,6 +340,14 @@ public:
      * @brief 创建控制台命令源
      */
     static ServerCommandSource forConsole(server::IServer* server);
+
+private:
+    /**
+     * @brief 把组件投递给当前命令源（玩家/远程玩家/控制台三种出口）
+     *
+     * @param message 待投递组件
+     */
+    void _deliver(const text::ITextComponent& message);
 
 protected:
     /// 用给定上下文构造（供派生命令源共享基类状态，如终端控制台命令源）。

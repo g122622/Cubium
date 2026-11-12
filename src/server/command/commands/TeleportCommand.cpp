@@ -35,6 +35,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
@@ -169,7 +170,7 @@ struct DestinationInfo {
         static_cast<i32>(position.y),
         static_cast<i32>(std::floor(position.z)));
     if (!world::isInSpawnableBounds(containing.x, containing.y, containing.z)) {
-        source.sendError("commands.teleport.invalidPosition");
+        source.sendFailure(::mc::text::translatable("commands.teleport.invalidPosition"));
         return 0;
     }
 
@@ -346,27 +347,27 @@ i32 TeleportCommand::_teleportToEntity(CommandContext<ServerCommandSource>& cont
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendError("You must be a player to teleport yourself");
+        source.sendFailure(::mc::text::literal("You must be a player to teleport yourself"));
         return 0;
     }
 
     const EntitySelector selector = context.getArgument<EntitySelector>("destination");
     DestinationInfo destination;
     if (!tryResolveDestinationPlayer(source, selector, destination)) {
-        source.sendError("No matching destination player was found");
+        source.sendFailure(::mc::text::literal("No matching destination player was found"));
         return 0;
     }
 
     const i32 teleportedCount =
         teleportPlayers(source, {source.playerId()}, destination.position, destination.rotation);
     if (teleportedCount == 0) {
-        source.sendMessage("Failed to teleport player");
+        source.sendSuccess(::mc::text::literal("Failed to teleport player"), false);
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Teleported " << source.name() << " to " << destination.username;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -383,20 +384,20 @@ i32 TeleportCommand::_teleportToPosition(CommandContext<ServerCommandSource>& co
     MC_ASSERT_RELEASE(server != nullptr);
 
     if (!source.isPlayer()) {
-        source.sendError("You must be a player to teleport yourself");
+        source.sendFailure(::mc::text::literal("You must be a player to teleport yourself"));
         return 0;
     }
 
     const Vector3d position = readTargetPosition(context);
     const i32 teleportedCount = teleportPlayers(source, {source.playerId()}, position, source.rotation());
     if (teleportedCount == 0) {
-        source.sendMessage("Failed to teleport player");
+        source.sendSuccess(::mc::text::literal("Failed to teleport player"), false);
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Teleported " << source.name() << " to " << position.x << ", " << position.y << ", " << position.z;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return 1;
 }
 
@@ -469,7 +470,7 @@ i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>
 
     DestinationInfo destination;
     if (!tryResolveDestinationPlayer(source, destinationSelector, destination)) {
-        source.sendError("No matching destination player was found");
+        source.sendFailure(::mc::text::literal("No matching destination player was found"));
         return 0;
     }
 
@@ -478,13 +479,13 @@ i32 TeleportCommand::_teleportTargetToEntity(CommandContext<ServerCommandSource>
     i32 teleportedCount = teleportPlayers(source, targetPlayerIds, destination.position, destination.rotation);
     teleportedCount += teleportNonPlayerEntities(source, targets, destination.position, destination.rotation);
     if (teleportedCount == 0) {
-        source.sendError("No matching entities were found");
+        source.sendFailure(::mc::text::literal("No matching entities were found"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Teleported " << teleportedCount << " entity(s) to " << destination.username;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return teleportedCount;
 }
 
@@ -504,14 +505,14 @@ i32 TeleportCommand::_teleportTargetToPosition(CommandContext<ServerCommandSourc
     i32 teleportedCount = teleportPlayers(source, targetPlayerIds, position, source.rotation());
     teleportedCount += teleportNonPlayerEntities(source, targets, position, source.rotation());
     if (teleportedCount == 0) {
-        source.sendError("No matching entities were found");
+        source.sendFailure(::mc::text::literal("No matching entities were found"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Teleported " << teleportedCount << " entity(s) to " << position.x << ", " << position.y << ", "
        << position.z;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return teleportedCount;
 }
 

@@ -31,6 +31,7 @@
 
 #include "common/network/NetworkTestFixtures.hpp"
 #include "common/network/ir/IrPacket.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <gtest/gtest.h>
 
@@ -221,7 +222,8 @@ TEST_F(NetworkTestBase, PlayOpenScreen)
     OpenScreen in{};
     in.containerId = 5;
     in.menuType = 1; // 通用 9 格容器
-    in.title = R"({"text":"Chest"})";
+    // 标题是 Component NBT wire 字节（IR 层已是自定界字节，codec 直接透传）。
+    in.title = ::mc::text::plainTextToNbtBytes("Chest");
     auto out = roundTripGeneric(*tables()->playCb, PlayPacket{in});
     ASSERT_EQ(out.index(), 41u);
     EXPECT_EQ(std::get<OpenScreen>(out), in);

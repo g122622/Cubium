@@ -30,6 +30,7 @@
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/FunctionSuggestionProvider.hpp"
@@ -117,19 +118,20 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
 
     // 不允许在同 tick 调度
     if (time == 0) {
-        source.sendError(ERROR_SAME_TICK);
+        source.sendFailure(::mc::text::literal(ERROR_SAME_TICK));
         return 0;
     }
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Schedule command requires a server instance");
+        source.sendFailure(::mc::text::literal("Schedule command requires a server instance"));
         return 0;
     }
 
     // /schedule 仅支持直接函数引用，不支持标签引用
     if (funcResult.isTag()) {
-        source.sendError("Cannot schedule a function tag, only individual functions can be scheduled");
+        source.sendFailure(
+            ::mc::text::literal("Cannot schedule a function tag, only individual functions can be scheduled"));
         return 0;
     }
 
@@ -141,7 +143,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     if (!functionManager.hasFunction(functionId)) {
         std::ostringstream ss;
         ss << "Unknown function '" << functionId.toString() << "'";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -166,7 +168,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     } else {
         ss << " (replace mode)";
     }
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return static_cast<i32>(targetTick % static_cast<u64>(std::numeric_limits<i32>::max()));
 }
@@ -177,7 +179,7 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
 
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("Schedule command requires a server instance");
+        source.sendFailure(::mc::text::literal("Schedule command requires a server instance"));
         return 0;
     }
 
@@ -189,13 +191,13 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
     i32 removedCount = timerQueue.remove(eventId);
 
     if (removedCount == 0) {
-        source.sendError(ERROR_CANT_REMOVE);
+        source.sendFailure(::mc::text::literal(ERROR_CANT_REMOVE));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Cleared " << removedCount << " scheduled function(s) for '" << eventId << "'";
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return removedCount;
 }

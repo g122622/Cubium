@@ -124,7 +124,7 @@ struct LoginAcknowledged {
  * @brief Disconnect（S→C，登录阶段踢出）
  */
 struct Disconnect {
-    std::string reason; // JSON 文本组件
+    std::vector<u8> reason; // Component NBT wire 字节（自定界）
     BedrockMeta bedrock{};
     [[nodiscard]] friend bool operator==(const Disconnect&, const Disconnect&) noexcept = default;
 };

@@ -48,6 +48,7 @@
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -939,8 +940,9 @@ std::unique_ptr<text::ITextComponent> ItemStack::getDisplayName() const
         return m_extras->itemName->deepCopy();
     }
 
-    // 否则返回物品名称
-    return std::make_unique<text::StringTextComponent>(m_item->getName());
+    // 否则返回物品默认名：必须是翻译组件（item.<ns>.<path>），由客户端按自己的语言表
+    // 本地化；写成纯文本会把原始翻译键暴露给玩家（如 "item.minecraft.stone"）。
+    return std::make_unique<text::TranslationTextComponent>(m_item->getTranslationKey());
 }
 
 // ============================================================================

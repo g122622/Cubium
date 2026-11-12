@@ -30,6 +30,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 
@@ -62,7 +63,7 @@ i32 _applyRotation(ServerCommandSource& source, const std::vector<Entity*>& enti
         }
     }
     if (entities.empty()) {
-        source.sendError("No entity was found");
+        source.sendFailure(::mc::text::literal("No entity was found"));
         return 0;
     }
     return static_cast<i32>(entities.size());
@@ -147,7 +148,7 @@ i32 RotateCommand::_rotateFacingEntity(CommandContext<ServerCommandSource>& cont
     Entity* target =
         support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("facingEntity"));
     if (target == nullptr) {
-        source.sendError("No entity was found");
+        source.sendFailure(::mc::text::literal("No entity was found"));
         return 0;
     }
     // 锚点缺省为眼睛高度（原版朝实体看时默认瞄眼睛）。

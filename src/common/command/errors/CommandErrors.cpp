@@ -23,12 +23,19 @@
 
 #include "CommandErrors.hpp"
 
-#include "common/resource/LanguageManager.hpp"
+#include "common/resource/language/LanguageManager.hpp"
+#include "common/util/text/ITextComponent.hpp"
 
 namespace mc::command {
 
 std::string CommandError::translatedMessage() const
 {
+    // 组件错误直接取字符串化结果（translatable 经服务端语言表解析）；字符串错误按语言表
+    // 查找，找不到时回退原文（翻译键本身或英文）。
+    if (m_component != nullptr) {
+        return m_component->getUnformattedText();
+    }
+
     const LanguageManager& languages = LanguageManager::instance();
     if (!languages.has(m_message)) {
         return m_message;

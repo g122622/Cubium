@@ -25,6 +25,8 @@
 #include "common/network/pipeline/Connection.hpp"
 #include "common/network/pipeline/OutboundPacket.hpp"
 #include "common/network/transport/TcpTransport.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -182,7 +184,11 @@ TEST_F(ConnectionWireAsyncTest, DisconnectUsesPhaseAfterQueuedReconfiguration)
     buffer::RegistryByteBuf bytes(frames[1].data(), frames[1].size());
     auto decoded = tables()->configurationCb->decode(bytes);
     ASSERT_TRUE(decoded.success());
-    EXPECT_EQ(std::get<ir::configuration::Disconnect>(decoded.value()).reason, "Maintenance");
+    // reason 是 Component NBT wire 字节：sendDisconnect 把字符串当翻译键，序列化为
+    // CompoundTag {translate:"Maintenance"}，故按同一组件的字节断言。
+    const auto expected = ::mc::text::translatable("Maintenance");
+    EXPECT_EQ(std::get<ir::configuration::Disconnect>(decoded.value()).reason,
+        ::mc::text::componentToNbtBytes(expected.get()));
 }
 
 TEST_F(ConnectionWireAsyncTest, WrongPhaseFailsAsynchronouslyAndClosesConnection)

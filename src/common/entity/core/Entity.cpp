@@ -74,6 +74,7 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TranslationTextComponent.hpp"
@@ -354,7 +355,7 @@ void Entity::registerData()
     // 顺序反则 wire index 2 发 Boolean 而真客户端按 Optional 校验，set_entity_data 崩。
     m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
     m_dataManager.registerParam(DATA_AIR_PARAM, maxAir());
-    m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
+    m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::vector<u8>{}});
     m_dataManager.registerParam(DATA_CUSTOM_NAME_VISIBLE_PARAM, false);
     m_dataManager.registerParam(DATA_SILENT_PARAM, false);
     m_dataManager.registerParam(DATA_NO_GRAVITY_PARAM, false);
@@ -521,12 +522,13 @@ void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
     auto* c = m_entityContext->tryGetComponent<ecs::EntityStateComponent>();
     MC_ASSERT_RELEASE(c != nullptr);
     c->m_customName = std::move(name);
-    // 数据管理器存 OptionalComponentValue（present + 纯文本），用于网络同步。
+    // 数据管理器存 OptionalComponentValue（present + Component NBT 字节），用于网络同步；
+    // 保留 translate/with 结构，客户端按自己的语言表本地化自定义名。
     if (c->m_customName) {
-        m_dataManager.set(
-            DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{true, c->m_customName->getUnformattedText()});
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM,
+            entity::OptionalComponentValue{true, ::mc::text::componentToNbtBytes(c->m_customName.get())});
     } else {
-        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::string{}});
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, entity::OptionalComponentValue{false, std::vector<u8>{}});
     }
 }
 

@@ -32,6 +32,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -111,13 +112,13 @@ i32 KickCommand::_kickPlayers(CommandContext<ServerCommandSource>& context)
     }
 
     if (kickedCount == 0) {
-        source.sendError("No matching players were found");
+        source.sendFailure(::mc::text::literal("No matching players were found"));
         return 0;
     }
 
     std::ostringstream ss;
     ss << "Kicked " << kickedCount << " player(s): " << reason;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return kickedCount;
 }
 

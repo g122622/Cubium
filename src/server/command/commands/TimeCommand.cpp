@@ -30,6 +30,7 @@
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -76,9 +77,7 @@ inline constexpr i32 MIDNIGHT_TIME = 18000; // 午夜
     server->timeManager().setDayTime(time);
     const i32 updatedDayTime = normalizedDayTime(server->timeManager());
 
-    std::ostringstream ss;
-    ss << "Set the time to " << updatedDayTime;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::translatable("commands.time.set", updatedDayTime), true);
     return updatedDayTime;
 }
 
@@ -178,9 +177,7 @@ i32 TimeCommand::_addTime(CommandContext<ServerCommandSource>& context)
     server->timeManager().addDayTime(value);
     const i32 updatedDayTime = normalizedDayTime(server->timeManager());
 
-    std::ostringstream ss;
-    ss << "Set the time to " << updatedDayTime;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::translatable("commands.time.set", updatedDayTime), true);
     return updatedDayTime;
 }
 
@@ -201,13 +198,11 @@ i32 TimeCommand::_queryTime(CommandContext<ServerCommandSource>& context)
     } else if (type == "gametime") {
         value = static_cast<i32>(timeManager.gameTime() % INT32_MAX);
     } else {
-        source.sendError("Unknown query type: " + type);
+        source.sendFailure(::mc::text::literal("Unknown time type: " + type));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "The time query returned " << value;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::translatable("commands.time.query", value), false);
     return value;
 }
 

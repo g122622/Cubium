@@ -148,38 +148,4 @@ private:
     std::string m_text;
 };
 
-/**
- * @brief 从 JSON 创建 StringTextComponent
- *
- * 内部函数，供 ITextComponent::fromJson 使用。
- *
- * @param json JSON 对象
- * @return 文本组件
- */
-inline std::unique_ptr<StringTextComponent> createStringFromJson(const nlohmann::json& json)
-{
-    std::string text;
-    if (json.is_string()) {
-        text = json.get<std::string>();
-    } else if (json.is_object() && json.contains("text")) {
-        text = json["text"].get<std::string>();
-    } else {
-        text = "";
-    }
-
-    auto component = std::make_unique<StringTextComponent>(std::move(text));
-
-    if (json.is_object()) {
-        component->setStyle(Style::fromJson(json));
-
-        if (json.contains("extra") && json["extra"].is_array()) {
-            for (const auto& extra : json["extra"]) {
-                component->append(ITextComponent::fromJson(extra));
-            }
-        }
-    }
-
-    return component;
-}
-
 } // namespace mc::text

@@ -32,6 +32,7 @@
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -211,13 +212,13 @@ i32 PanelCommand::_refresh(CommandContext<ServerCommandSource>& context)
     // MinecraftServer.cpp（它只为基准测试登记最小符号闭包），Release 链接期必然失败。
     server::IServer* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
     PanelDetailStore* store = _panelStore(source);
     if (store == nullptr) {
-        source.sendError(NO_PANEL_HINT);
+        source.sendFailure(::mc::text::literal(NO_PANEL_HINT));
         return 0;
     }
 
@@ -226,7 +227,7 @@ i32 PanelCommand::_refresh(CommandContext<ServerCommandSource>& context)
     const usize lineCount = lines.size();
     store->update(std::move(lines));
 
-    source.sendMessage(fmt::format("Panel refreshed ({} lines)", lineCount));
+    source.sendSuccess(::mc::text::literal(fmt::format("Panel refreshed ({} lines)", lineCount)), false);
     return static_cast<i32>(lineCount);
 }
 
@@ -235,33 +236,35 @@ i32 PanelCommand::_describeBlock(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available for this command source");
+        source.sendFailure(::mc::text::literal("No world available for this command source"));
         return 0;
     }
 
     const Vector3i position = BlockPosArgumentType::getBlockPos(context, "pos", source);
     ChunkData* chunk = _requireChunk(*world, position);
     if (chunk == nullptr) {
-        source.sendError("That chunk is not loaded");
+        source.sendFailure(::mc::text::literal("That chunk is not loaded"));
         return 0;
     }
 
     const BlockPos pos(position.x, position.y, position.z);
     const BlockState* state = chunk->getBlockState(position.x, position.y, position.z);
     if (state == nullptr) {
-        source.sendError("No block data at this position");
+        source.sendFailure(::mc::text::literal("No block data at this position"));
         return 0;
     }
 
-    source.sendMessage(
-        fmt::format("Block at {}, {}, {}: {}", position.x, position.y, position.z, panel::describeBlockState(state)));
+    source.sendSuccess(
+        ::mc::text::literal(fmt::format(
+            "Block at {}, {}, {}: {}", position.x, position.y, position.z, panel::describeBlockState(state))),
+        false);
 
     // 方块实体是位置的附加信息：有就打印一份压缩后的 NBT，没有就明确说明。
     if (const BlockEntity* blockEntity = world->getBlockEntity(pos); blockEntity != nullptr) {
         const ::mc::nbt::CompoundTag tag = blockEntity->getUpdateTag();
-        source.sendMessage("Block entity: " + panel::describeNbt(tag, MAX_NBT_LENGTH));
+        source.sendSuccess(::mc::text::literal("Block entity: " + panel::describeNbt(tag, MAX_NBT_LENGTH)), false);
     } else {
-        source.sendMessage("Block entity: none");
+        source.sendSuccess(::mc::text::literal("Block entity: none"), false);
     }
     return 1;
 }
@@ -274,7 +277,7 @@ i32 PanelCommand::_describePlaces(CommandContext<ServerCommandSource>& context)
     // MinecraftServer.cpp（它只为基准测试登记最小符号闭包），Release 链接期必然失败。
     server::IServer* server = source.server();
     if (server == nullptr) {
-        source.sendError("Server not available");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -328,7 +331,7 @@ i32 PanelCommand::_describePlaces(CommandContext<ServerCommandSource>& context)
     });
 
     if (places.empty()) {
-        source.sendError("No loaded blocks to sample");
+        source.sendFailure(::mc::text::literal("No loaded blocks to sample"));
         return 0;
     }
 
@@ -341,8 +344,9 @@ i32 PanelCommand::_describePlaces(CommandContext<ServerCommandSource>& context)
             index + static_cast<usize>(rng.nextInt(static_cast<i32>(std::min<usize>(remaining, 0x7FFFFFFF))));
         std::swap(places[index], places[pick]);
         const PlaceSample& sample = places[index];
-        source.sendMessage(
-            fmt::format(" {} {} {} {} ({})", sample.dimension, sample.x, sample.y, sample.z, sample.block));
+        source.sendSuccess(::mc::text::literal(fmt::format(
+                               " {} {} {} {} ({})", sample.dimension, sample.x, sample.y, sample.z, sample.block)),
+            false);
     }
     return static_cast<i32>(limit);
 }
@@ -352,16 +356,17 @@ i32 PanelCommand::_describeBiome(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     ServerWorld* world = source.world();
     if (world == nullptr) {
-        source.sendError("No world available for this command source");
+        source.sendFailure(::mc::text::literal("No world available for this command source"));
         return 0;
     }
 
     const Vector3i position = BlockPosArgumentType::getBlockPos(context, "pos", source);
-    source.sendMessage(fmt::format("Biome at {}, {}, {}: {}",
-        position.x,
-        position.y,
-        position.z,
-        _runtimeBiomeName(*world, position.x, position.y, position.z)));
+    source.sendSuccess(::mc::text::literal(fmt::format("Biome at {}, {}, {}: {}",
+                           position.x,
+                           position.y,
+                           position.z,
+                           _runtimeBiomeName(*world, position.x, position.y, position.z))),
+        false);
     return 1;
 }
 

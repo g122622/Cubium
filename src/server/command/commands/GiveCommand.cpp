@@ -45,6 +45,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -265,20 +266,20 @@ i32 GiveCommand::_giveItem(CommandContext<ServerCommandSource>& context)
     std::vector<PlayerId> targetPlayerIds = support::resolvePlayerIds(source, selector);
 
     if (targetPlayerIds.empty()) {
-        source.sendError("commands.give.failed.noPlayer");
+        source.sendFailure(::mc::text::translatable("argument.player.unknown"));
         return 0;
     }
 
     // 获取物品
     ItemInput itemInput = context.getArgument<ItemInput>("item");
     if (!itemInput.isValid()) {
-        source.sendError("commands.give.failed.invalidItem");
+        source.sendFailure(::mc::text::literal("Unknown item"));
         return 0;
     }
 
     const Item* item = itemInput.getItem();
     if (item == nullptr) {
-        source.sendError("commands.give.failed.invalidItem");
+        source.sendFailure(::mc::text::literal("Unknown item"));
         return 0;
     }
 
@@ -296,24 +297,26 @@ i32 GiveCommand::_giveItem(CommandContext<ServerCommandSource>& context)
                                                : giveItemToPlayers(source, targetPlayerIds, item, count);
 
     if (successCount <= 0) {
-        source.sendError("commands.give.failed.noSpace");
+        // 原版没有「背包满」错误：给予失败时多余物品会掉落在世界，命令仍算成功。
+        // 该项目在无法放入时直接失败，用英文提示并记录日志。
+        spdlog::warn(
+            "GiveCommand: failed to give {} x {} to {} player(s)", count, item->getName(), targetPlayerIds.size());
+        source.sendFailure(::mc::text::literal("No space in the inventory to give the item"));
         return 0;
     }
 
-    // 发送反馈消息
-    // 格式：
-    // - 单个玩家: "Gave 64 [Stone] to Steve"
-    // - 多个玩家: "Gave 64 [Stone] to 3 players"
-    std::ostringstream ss;
-    ss << "Gave " << count << " [" << item->getName() << "] to ";
-
+    // 发送反馈：原版按目标数量选择 single/multiple 键，参数依次为
+    // 数量、物品显示名、目标玩家显示名（或目标玩家数）。
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(std::to_string(count)));
+    args.push_back(::mc::text::translatable(item->getTranslationKey()));
     if (targetPlayerIds.size() == 1) {
-        ss << describeTargets(source, targetPlayerIds);
+        args.push_back(::mc::text::literal(describeTargets(source, targetPlayerIds)));
+        source.sendSuccess(::mc::text::translatable("commands.give.success.single", std::move(args)), true);
     } else {
-        ss << targetPlayerIds.size() << " players";
+        args.push_back(::mc::text::literal(std::to_string(targetPlayerIds.size())));
+        source.sendSuccess(::mc::text::translatable("commands.give.success.multiple", std::move(args)), true);
     }
-
-    source.sendMessage(ss.str());
 
     return successCount;
 }

@@ -599,7 +599,7 @@ TEST_F(CommandDispatcherTest, PermissionDeniedWhenLiteralMatchesButNoPermission)
     const auto ex = result.getException();
     ASSERT_TRUE(ex.has_value());
     EXPECT_EQ(ex->type(), CommandErrorType::PermissionDenied);
-    EXPECT_EQ(ex->message(), "commands.permission.denied");
+    EXPECT_EQ(ex->message(), "command.unknown.command");
 }
 
 // 输入不匹配任何命令时不应误报为权限不足，仍走 Unknown command 路径。

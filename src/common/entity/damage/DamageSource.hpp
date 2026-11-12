@@ -635,13 +635,13 @@ public:
             case DamageType::FallingStalactite:
                 return "death.attack.fallingStalactite";
             case DamageType::WindBurst:
-                return "death.attack.windBurst";
+                return "death.attack.mob";
             case DamageType::MaceSmash:
                 return "death.attack.mace_smash";
             case DamageType::SonicBoom:
                 return "death.attack.sonic_boom";
             case DamageType::BadRespawnPoint:
-                return "death.attack.badRespawnPoint";
+                return "death.attack.badRespawnPoint.message";
             case DamageType::OutsideBorder:
                 return "death.attack.outsideBorder";
             case DamageType::GenericKill:
@@ -801,7 +801,7 @@ public:
                 return "death.attack.trident";
             case DamageType::MobProjectile:
             case DamageType::Spit:
-                return "death.attack.mobProjectile";
+                return "death.attack.mob";
             case DamageType::Fireball:
             case DamageType::UnattributedFireball:
                 return "death.attack.fireball";
@@ -822,7 +822,7 @@ public:
             case DamageType::SonicBoom:
                 return "death.attack.sonic_boom";
             case DamageType::BadRespawnPoint:
-                return "death.attack.badRespawnPoint";
+                return "death.attack.badRespawnPoint.message";
             case DamageType::Fireworks:
                 return "death.attack.fireworks";
             case DamageType::LightningBolt:

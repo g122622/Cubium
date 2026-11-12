@@ -30,6 +30,7 @@
 #include "common/network/buffer/NbtIo.hpp"
 #include "common/network/ir/IrPacket.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/ComponentNbtSerialization.hpp"
 
 #include <gtest/gtest.h>
 
@@ -157,7 +158,7 @@ TEST_F(NetworkTestBase, LoginAcknowledged)
 TEST_F(NetworkTestBase, LoginDisconnect)
 {
     login::Disconnect in{};
-    in.reason = R"({"text":"Banned!"})";
+    in.reason = ::mc::text::plainTextToNbtBytes("Banned!");
     auto out = roundTripGeneric(*tables()->loginCb, LoginPacket{in});
     ASSERT_EQ(out.index(), 6u);
     EXPECT_EQ(std::get<login::Disconnect>(out), in);
@@ -264,7 +265,7 @@ TEST_F(NetworkTestBase, ConfigurationSelectKnownPacksSb)
 TEST_F(NetworkTestBase, ConfigurationDisconnectCb)
 {
     configuration::Disconnect in{};
-    in.reason = R"({"text":"Config error"})";
+    in.reason = ::mc::text::plainTextToNbtBytes("Config error");
     auto out = roundTripGeneric(*tables()->configurationCb, ConfigurationPacket{in});
     ASSERT_EQ(out.index(), 2u);
     EXPECT_EQ(std::get<configuration::Disconnect>(out), in);

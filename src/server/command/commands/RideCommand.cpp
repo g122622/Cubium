@@ -26,6 +26,7 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -72,15 +73,15 @@ i32 RideCommand::_mount(CommandContext<ServerCommandSource>& context)
     Entity* passenger = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("target"));
     Entity* vehicle = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("vehicle"));
     if (passenger == nullptr || vehicle == nullptr) {
-        source.sendError("No entity was found");
+        source.sendFailure(::mc::text::literal("No entity was found"));
         return 0;
     }
     if (passenger == vehicle) {
-        source.sendError("An entity cannot ride itself");
+        source.sendFailure(::mc::text::literal("An entity cannot ride itself"));
         return 0;
     }
     if (!passenger->startRiding(*vehicle)) {
-        source.sendError("That entity can't ride this one");
+        source.sendFailure(::mc::text::literal("That entity can't ride this one"));
         return 0;
     }
     return 1;
@@ -91,11 +92,11 @@ i32 RideCommand::_dismount(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     Entity* passenger = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("target"));
     if (passenger == nullptr) {
-        source.sendError("No entity was found");
+        source.sendFailure(::mc::text::literal("No entity was found"));
         return 0;
     }
     if (!passenger->isRiding()) {
-        source.sendError("That entity is not riding anything");
+        source.sendFailure(::mc::text::literal("That entity is not riding anything"));
         return 0;
     }
     passenger->stopRiding();

@@ -30,6 +30,7 @@
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/util/text/ComponentNbtSerialization.hpp"
 #include "common/world/dimension/Dimension.hpp"
 #include "server/application/MinecraftServer.hpp"
@@ -87,9 +88,10 @@ void ChatHandler::handleChatMessagePacket(PlayerId playerId, const mc::network::
     // 广播 ClientboundPlayerChatPacket；本项目降级为 SystemChat，语义等价——都进聊天框）。
     //
     // 此前这里只写一行服务端日志、没有任何广播通路，多人游戏里聊天完全不可用且零报错。
-    const std::string rendered = "<" + player->username + "> " + message;
+    // 文本按原版 chat.type.text 组件下发（"%s: %s"），由客户端本地化并保留翻译结构。
+    auto chatComponent = ::mc::text::translatable("chat.type.text", {player->username, message});
     mc::network::ir::play::SystemChat pkt;
-    pkt.content = ::mc::text::plainTextToNbtBytes(rendered);
+    pkt.content = ::mc::text::componentToNbtBytes(chatComponent.get());
     pkt.overlay = false;
 
     const DimensionId senderDimension = _playerDimension(playerId);

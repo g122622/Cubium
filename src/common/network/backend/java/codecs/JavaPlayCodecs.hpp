@@ -248,11 +248,11 @@ inline void writeSpawnInfo(B& buf, const ir::play::CommonPlayerSpawnInfo& s)
 {
     return makeCodec<ir::play::Disconnect>(
         [](B& buf, const ir::play::Disconnect& v) {
-            writeTextComponentNbt(buf, v.reason);
+            writeComponentNbt(buf, v.reason);
         },
         [](B& buf) -> Result<ir::play::Disconnect> {
             ir::play::Disconnect v{};
-            MC_TRY_ASSIGN(v.reason, readTextComponentNbt(buf));
+            MC_TRY_ASSIGN(v.reason, readComponentNbt(buf));
             return v;
         });
 }
@@ -1508,20 +1508,15 @@ inline void writePalettedContainerWire(B& buf, const ir::play::PalettedContainer
         [](B& buf, const ir::play::OpenScreen& v) {
             buf.writeVarInt(v.containerId);
             buf.writeVarInt(v.menuType);
-            // 标题是文本组件（Component），wire 上是自定界的 NBT——纯文本折叠成 StringTag，
-            // 不是裸字符串。写成裸 String 时首字节会被对端当作 NBT tag id：长度恰好落在
-            // 非 StringTag 的合法 tag 上能蒙混过关（标题解成垃圾值，客户端不报错），落在
-            // StringTag(0x08) 上则直接抛解析错误——整个窗口打不开。标题长度不同表现不同，
-            // 极易被误判成「某个容器类型有问题」。
-            writeComponentNbt(buf, ::mc::text::plainTextToNbtBytes(v.title));
+            // 标题是文本组件（Component），IR 里已是自定界的 Component NBT 字节；
+            // 不能写成裸 String：首字节会被对端当作 NBT tag id，窗口直接打不开。
+            writeComponentNbt(buf, v.title);
         },
         [](B& buf) -> Result<ir::play::OpenScreen> {
             ir::play::OpenScreen v{};
             MC_TRY_ASSIGN(v.containerId, buf.readVarInt());
             MC_TRY_ASSIGN(v.menuType, buf.readVarInt());
-            std::vector<u8> titleNbt;
-            MC_TRY_ASSIGN(titleNbt, readComponentNbt(buf));
-            v.title = ::mc::text::componentNbtBytesToPlainText(titleNbt);
+            MC_TRY_ASSIGN(v.title, readComponentNbt(buf));
             return v;
         });
 }

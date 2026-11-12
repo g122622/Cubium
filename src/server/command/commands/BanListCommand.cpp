@@ -28,6 +28,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/access/base/BannedIpListTypes.hpp"
 #include "server/access/base/BannedPlayerListTypes.hpp"
 #include "server/application/IServer.hpp"
@@ -78,7 +79,7 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.banlist.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -91,7 +92,7 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
     size_t total = bannedPlayers.size() + bannedIps.size();
 
     if (total == 0) {
-        source.sendMessage("There are no banned players or IPs");
+        source.sendSuccess(::mc::text::literal("There are no banned players or IPs"), false);
         return 0;
     }
 
@@ -127,7 +128,7 @@ i32 BanListCommand::listAll(CommandContext<ServerCommandSource>& context)
         ss << "]";
     }
 
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(total);
 }
 
@@ -136,7 +137,7 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.banlist.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -144,7 +145,7 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
     auto entries = banList.playerBanGetAllEntries();
 
     if (entries.empty()) {
-        source.sendMessage("There are no banned players");
+        source.sendSuccess(::mc::text::literal("There are no banned players"), false);
         return 0;
     }
 
@@ -164,7 +165,7 @@ i32 BanListCommand::listPlayers(CommandContext<ServerCommandSource>& context)
         ss << entries[i].name;
     }
 
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(entries.size());
 }
 
@@ -173,7 +174,7 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto* server = source.server();
     if (server == nullptr) {
-        source.sendError("commands.banlist.failed.noServer");
+        source.sendFailure(::mc::text::literal("Server not available"));
         return 0;
     }
 
@@ -181,7 +182,7 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
     auto entries = banList.ipBanGetAllEntries();
 
     if (entries.empty()) {
-        source.sendMessage("There are no banned IPs");
+        source.sendSuccess(::mc::text::literal("There are no banned IPs"), false);
         return 0;
     }
 
@@ -200,7 +201,7 @@ i32 BanListCommand::listIps(CommandContext<ServerCommandSource>& context)
         ss << entries[i].ip;
     }
 
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
     return static_cast<i32>(entries.size());
 }
 

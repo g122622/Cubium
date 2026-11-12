@@ -33,6 +33,7 @@
 #include "common/entity/damage/CombatEntry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -257,21 +258,20 @@ LivingEntity* CombatTracker::getBestAttackerLiving() const
     return dynamic_cast<LivingEntity*>(attacker);
 }
 
-std::string CombatTracker::getDeathMessage() const
+std::unique_ptr<text::ITextComponent> CombatTracker::getDeathMessage() const
 {
     if (!m_owner) {
-        return "entity died";
+        return ::mc::text::literal("entity died");
     }
 
-    std::string ownerName = m_owner->getDisplayName()->getUnformattedText();
+    auto ownerName = m_owner->getDisplayName();
 
-    // 检查是否有摔落伤害
+    // 摔落后被补刀：原版使用 death.fell.assist（受害者, 攻击者）。
     if (!m_entries.empty()) {
         const CombatEntry* fallEntry = nullptr;
         const CombatEntry* attackEntry = nullptr;
         f32 fallDamage = 0.0f;
 
-        // 找到摔落伤害和攻击伤害
         for (const auto& entry : m_entries) {
             const DamageSource* source = entry.source();
             if (!source) {
@@ -288,63 +288,33 @@ std::string CombatTracker::getDeathMessage() const
             }
         }
 
-        // 如果有攻击后有摔落，使用摔落死亡消息
         if (fallEntry && attackEntry && !fallEntry->fallSuffix().empty()) {
             // 经 id 反查（见 getBestAttacker 的说明），不解引用 clone 内的裸指针。
             Entity* attacker = _resolveEntity(attackEntry->trueSourceId());
-            if (attacker) {
-                return ownerName + " fell from a high place whilst trying to escape " +
-                    attacker->getDisplayName()->getUnformattedText();
+            if (attacker != nullptr) {
+                std::vector<std::unique_ptr<text::ITextComponent>> args;
+                args.push_back(std::move(ownerName));
+                args.push_back(attacker->getDisplayName());
+                return ::mc::text::translatable("death.fell.assist", std::move(args));
             }
         }
     }
 
     const CombatEntry* bestEntry = getBestEntry();
-    if (!bestEntry) {
-        return ownerName + " died";
+    const DamageSource* source = bestEntry != nullptr ? bestEntry->source() : nullptr;
+    if (source == nullptr) {
+        return ::mc::text::translatable("death.attack.generic", std::move(ownerName));
     }
 
-    const DamageSource* source = bestEntry->source();
-    if (!source) {
-        return ownerName + " died";
-    }
-
-    // 根据伤害来源类型生成死亡消息。注意 deathMessageKey / isFire / isLava 等
-    // 都是 DamageSource 上的静态属性，不触碰实体指针，可安全直接使用。
+    // 有攻击者时原版给 death.attack.* 传两个参数（受害者, 攻击者）；环境伤害只有一个参数。
+    // 未使用的多余参数由占位符替换忽略，因此统一构造参数列表即可。
+    std::vector<std::unique_ptr<text::ITextComponent>> args;
+    args.push_back(std::move(ownerName));
     Entity* attacker = _resolveEntity(bestEntry->trueSourceId());
-
-    if (attacker) {
-        // 使用带攻击者的死亡消息
-        return ownerName + " was slain by " + attacker->getDisplayName()->getUnformattedText();
+    if (attacker != nullptr) {
+        args.push_back(attacker->getDisplayName());
     }
-
-    // 环境伤害
-    if (source->isFire()) {
-        return ownerName + " burned to death";
-    }
-    if (source->isLava()) {
-        return ownerName + " tried to swim in lava";
-    }
-    if (source->isDrown()) {
-        return ownerName + " drowned";
-    }
-    if (source->isFall()) {
-        return ownerName + " fell from a high place";
-    }
-    if (source->isExplosion()) {
-        return ownerName + " blew up";
-    }
-    if (source->isMagic()) {
-        return ownerName + " was killed by magic";
-    }
-    if (source->isStarve()) {
-        return ownerName + " starved to death";
-    }
-    if (source->isCactus()) {
-        return ownerName + " was pricked to death";
-    }
-
-    return ownerName + " died";
+    return ::mc::text::translatable(source->deathMessageKey(), std::move(args));
 }
 
 i32 CombatTracker::getCombatDuration() const

@@ -23,8 +23,8 @@
 
 #include <gtest/gtest.h>
 
-#include "common/resource/LanguageManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/language/LanguageManager.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"

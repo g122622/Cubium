@@ -33,6 +33,7 @@
 #include "common/core/Types.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -98,7 +99,7 @@ i32 RecipeCommand::_giveRecipe(CommandContext<ServerCommandSource>& context)
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched the selector");
+        source.sendFailure(::mc::text::literal("No players matched the selector"));
         return 0;
     }
 
@@ -118,11 +119,11 @@ i32 RecipeCommand::_giveRecipe(CommandContext<ServerCommandSource>& context)
         ResourceLocation recipeId(recipeStr);
         const auto* recipe = crafting::RecipeManager::instance().getRecipe(recipeId);
         if (recipe == nullptr) {
-            source.sendError("Unknown recipe: " + recipeStr);
+            source.sendFailure(::mc::text::literal("Unknown recipe: " + recipeStr));
             return 0;
         }
         if (recipe->isDynamic()) {
-            source.sendError("Cannot give dynamic recipe: " + recipeStr);
+            source.sendFailure(::mc::text::literal("Cannot give dynamic recipe: " + recipeStr));
             return 0;
         }
         recipesToGive.push_back(recipeId);
@@ -151,11 +152,11 @@ i32 RecipeCommand::_giveRecipe(CommandContext<ServerCommandSource>& context)
     if (recipeStr == "*") {
         std::ostringstream ss;
         ss << "Gave all recipes to " << successCount << " player(s)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "Gave recipe '" << recipeStr << "' to " << successCount << " player(s)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return successCount;
@@ -173,7 +174,7 @@ i32 RecipeCommand::_takeRecipe(CommandContext<ServerCommandSource>& context)
 
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
-        source.sendError("No players matched the selector");
+        source.sendFailure(::mc::text::literal("No players matched the selector"));
         return 0;
     }
 
@@ -193,7 +194,7 @@ i32 RecipeCommand::_takeRecipe(CommandContext<ServerCommandSource>& context)
         ResourceLocation recipeId(recipeStr);
         const auto* recipe = crafting::RecipeManager::instance().getRecipe(recipeId);
         if (recipe == nullptr) {
-            source.sendError("Unknown recipe: " + recipeStr);
+            source.sendFailure(::mc::text::literal("Unknown recipe: " + recipeStr));
             return 0;
         }
         recipesToTake.push_back(recipeId);
@@ -222,11 +223,11 @@ i32 RecipeCommand::_takeRecipe(CommandContext<ServerCommandSource>& context)
     if (recipeStr == "*") {
         std::ostringstream ss;
         ss << "Took all recipes from " << successCount << " player(s)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     } else {
         std::ostringstream ss;
         ss << "Took recipe '" << recipeStr << "' from " << successCount << " player(s)";
-        source.sendMessage(ss.str());
+        source.sendSuccess(::mc::text::literal(ss.str()), false);
     }
 
     return successCount;

@@ -36,6 +36,7 @@
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -217,7 +218,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     // 原版 /spreadplayers 的 targets 就是实体集合，非玩家实体（盔甲架、动物等）同样会被分散。
     auto matchedEntities = support::EntityResolver::resolve(source, selector);
     if (matchedEntities.empty()) {
-        source.sendError("No entities matched the selector");
+        source.sendFailure(::mc::text::literal("No entities matched the selector"));
         return 0;
     }
 
@@ -241,7 +242,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     // 获取世界
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendError("World not found");
+        source.sendFailure(::mc::text::literal("World not found"));
         return 0;
     }
 
@@ -250,7 +251,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     if (maxHeight < minY) {
         std::ostringstream ss;
         ss << "Invalid height " << maxHeight << ": must be at least " << minY;
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -258,7 +259,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     const i32 positionCount = respectTeams ? _getNumberOfTeams(*server, targets) : static_cast<i32>(targets.size());
 
     if (positionCount == 0) {
-        source.sendError("No positions to spread");
+        source.sendFailure(::mc::text::literal("No positions to spread"));
         return 0;
     }
 
@@ -286,7 +287,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
            << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.y) << " - too many "
            << (respectTeams ? "teams" : "entities") << " for spread distance " << std::fixed << std::setprecision(2)
            << spreadDistance << " (max distance is " << std::fixed << std::setprecision(2) << algorithmMinDist << ")";
-        source.sendError(ss.str());
+        source.sendFailure(::mc::text::literal(ss.str()));
         return 0;
     }
 
@@ -298,7 +299,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     ss << "Spread " << positionCount << " " << (respectTeams ? "team" : "entity") << (positionCount != 1 ? "s" : "")
        << " around (" << static_cast<i32>(center.x) << ", " << static_cast<i32>(center.y) << ")"
        << " with average distance " << std::fixed << std::setprecision(2) << avgMinDist;
-    source.sendMessage(ss.str());
+    source.sendSuccess(::mc::text::literal(ss.str()), false);
 
     return positionCount;
 }
