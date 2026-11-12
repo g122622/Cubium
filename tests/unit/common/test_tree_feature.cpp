@@ -28,6 +28,7 @@
 #include "common/world/block/registry/vanilla/GardenBlocks.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/FeatureSpread.hpp"
@@ -35,6 +36,7 @@
 #include "server/world/gen/feature/state/BlockStateProvider.hpp"
 #include "server/world/gen/feature/tree/TreeFeature.hpp"
 #include "server/world/gen/feature/tree/decorator/PlaceOnGroundDecorator.hpp"
+#include "server/world/gen/feature/tree/decorator/SimpleTreeDecorators.hpp"
 #include "server/world/gen/feature/tree/decorator/TreeDecorator.hpp"
 #include "server/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "server/world/gen/feature/tree/foliage/FancyFoliagePlacer.hpp"
@@ -797,5 +799,85 @@ TEST_F(TreeFeaturePlacementWorldTest, FancyTrunkMatchesJavaOnBothSidesOfWorldOri
         ASSERT_NE(branch, nullptr);
         EXPECT_EQ(branch->get(RotatedPillarBlock::AXIS()), Axis::Z);
         EXPECT_EQ(rng.nextInt(), 1190043011);
+    }
+}
+
+TEST_F(TreeFeaturePlacementWorldTest, BeehiveDecoratorStoresBeesInGeneratedNest)
+{
+    using namespace world::gen::feature::tree::decorator;
+
+    // 树干高 3 格（y=1..3），树叶只放在树干顶端一侧，使目标层取到 y=1。
+    const BlockPos base(8, 1, 8);
+    std::vector<BlockPos> logs;
+    for (i32 y = 1; y <= 3; ++y) {
+        logs.emplace_back(base.x, y, base.z);
+        setWorldBlock(base.x, y, base.z, &VanillaBlocks::OAK_LOG->defaultState());
+    }
+    setWorldBlock(base.x + 1, 3, base.z, &VanillaBlocks::OAK_LEAVES->defaultState());
+
+    // 概率 1.0：采样必然命中放置分支。
+    // 候选点是「该层每根原木 × 3 个水平方向」，共 3 个，shuffle 会交换 (2,1) 两次。
+    constexpr i32 kCandidateCount = 3;
+    math::JavaLegacyRandom random(7);
+    BeehiveDecorator decorator(1.0f);
+    TreeDecoratorContext context(*m_region,
+        nullptr,
+        nullptr,
+        [this](const BlockPos& pos, const BlockState* state) {
+            m_region->setBlockState(pos, state);
+        },
+        random,
+        logs,
+        {BlockPos(base.x + 1, 3, base.z)},
+        {});
+
+    // 同口径再跑一条随机流，算出装饰器应当写入的蜜蜂（数量与停留时间）。
+    // 注意：shuffle 每次交换都要消耗一次 nextInt（n 个候选点合计 n-1 次），
+    // 因此必须把「概率判定 → shuffle → 蜜蜂数量 → 每只停留时间」整段重放，
+    // 不能只重放首尾两步，否则取到的"期望值"来自错位的随机流。
+    math::JavaLegacyRandom expectedRandom(7);
+    expectedRandom.nextFloat(); // 概率判定
+    std::vector<i32> shuffleScratch(kCandidateCount);
+    expectedRandom.shuffle(shuffleScratch);
+    std::vector<i32> expectedTicks;
+    const i32 expectedBeeCount = 2 + expectedRandom.nextInt(2);
+    for (i32 k = 0; k < expectedBeeCount; ++k) {
+        expectedTicks.push_back(expectedRandom.nextInt(599));
+    }
+
+    decorator.place(context);
+
+    // 找出树旁的蜂巢。
+    BlockPos nestPos;
+    bool found = false;
+    for (const BlockPos& candidate : {BlockPos(base.x + 1, 2, base.z),
+             BlockPos(base.x - 1, 2, base.z),
+             BlockPos(base.x, 2, base.z + 1),
+             BlockPos(base.x, 2, base.z - 1)}) {
+        const BlockState* state = m_region->getBlockState(candidate);
+        if (state != nullptr && state->is(block_registry::NaturalBlocks::BEE_NEST)) {
+            nestPos = candidate;
+            found = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(found) << "bee nest should be placed next to the trunk at the target layer";
+
+    // 蜂巢放在树叶最低 Y-1 与树干最低 Y+1 的较大者所在层，且朝向固定朝南。
+    EXPECT_EQ(nestPos.y, 2);
+    EXPECT_EQ(m_region->getBlockState(nestPos)->get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+
+    auto* hive = dynamic_cast<blockentity::BeehiveBlockEntity*>(m_region->getBlockEntity(nestPos));
+    ASSERT_NE(hive, nullptr) << "WorldGenRegion must create the block entity while generating";
+    ASSERT_EQ(hive->getOccupantCount(), expectedBeeCount);
+
+    // 停留时间必须与随机流一一对应：写入蜜蜂不是"只消耗随机数"。
+    nlohmann::json saved;
+    hive->save(saved);
+    ASSERT_TRUE(saved.contains("bees"));
+    ASSERT_EQ(saved["bees"].size(), expectedTicks.size());
+    for (size_t i = 0; i < expectedTicks.size(); ++i) {
+        EXPECT_EQ(saved["bees"][i].value("ticks_in_hive", -1), expectedTicks[i]);
+        EXPECT_FALSE(saved["bees"][i].value("has_nectar", true));
     }
 }

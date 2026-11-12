@@ -156,6 +156,24 @@ bool BeehiveBlockEntity::addOccupant(BeeEntity& bee)
     return true;
 }
 
+bool BeehiveBlockEntity::storeBee(i32 ticksInHive)
+{
+    if (isFull()) {
+        return false;
+    }
+
+    // 世界生成期写入的蜜蜂既没采过蜜也没带花，停留时长从给定值起算（新蜜蜂为 0），
+    // 与「无花粉」的最短停留时间配套——它们出巢时不会交付花蜜。
+    BeeOccupant occupant;
+    occupant.hasNectar = false;
+    occupant.ticksInHive = ticksInHive;
+    occupant.minTicksInHive = MIN_OCCUPATION_TICKS_NECTARLESS;
+    m_bees.push_back(occupant);
+
+    setChanged();
+    return true;
+}
+
 void BeehiveBlockEntity::emptyAllLivingFromHive(
     IWorld& world, Player* player, const BlockState& state, BeeReleaseStatus releaseStatus)
 {

@@ -33,6 +33,7 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"
 #include "server/world/gen/feature/ConfiguredFeatureRegistry.hpp"
@@ -132,17 +133,17 @@ void BeehiveDecorator::place(const TreeDecoratorContext& context) const
                 BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
             context.setBlock(pos, nest);
         }
-        // MC: level.getBlockEntity(pos, BEEHIVE).ifPresent(h -> {
-        //         i32 j = 2 + random.nextInt(2);
-        //         for (i32 k = 0; k < j; k++) h.storeBee(Occupant.create(random.nextInt(599)));
-        //     });
-        // 【必须照数消耗】写入蜜蜂会推进随机流；不消耗的话，同一棵树上后续装饰器
-        // （例如 *_leaf_litter 树型的 place_on_ground）取点会整体错开。
-        // TODO: worldgen 阶段尚未创建蜂巢 BlockEntity，「入场时带随机数量蜜蜂」的实际效果未实现，
-        //       此处只对齐随机数消耗；待 worldgen 支持 BlockEntity 后补齐蜜蜂写入。
+        // 刚放下的蜂巢会同步创建方块实体（WorldGenRegion::setBlockState），随即可写入蜜蜂：
+        // 每只蜜蜂占 2~3 只、巢内停留时间（age_in_hive）各取 [0, 599) 的随机值。
+        // 写入蜜蜂同样要推进随机流——若蜂巢方块实体缺失（测试桩等情况）仍需照数消耗，
+        // 否则同一棵树上后续装饰器（例如 *_leaf_litter 树型的 place_on_ground）取点会整体错开。
+        auto* hive = dynamic_cast<blockentity::BeehiveBlockEntity*>(context.getBlockEntity(pos));
         const i32 beeCount = 2 + random.nextInt(2);
         for (i32 k = 0; k < beeCount; ++k) {
-            (void)random.nextInt(599);
+            const i32 ticksInHive = random.nextInt(599);
+            if (hive != nullptr) {
+                hive->storeBee(ticksInHive);
+            }
         }
         return; // 对应原版 findFirst：放置一个即止
     }

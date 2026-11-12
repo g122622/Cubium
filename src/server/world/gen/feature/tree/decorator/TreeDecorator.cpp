@@ -35,6 +35,7 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/state/BlockState.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/parser/BlockStateProviderParser.hpp"
 
@@ -107,6 +108,11 @@ bool TreeDecoratorContext::isAir(const BlockPos& pos) const
     // MC: level.isStateAtPosition(pos, BlockStateBase::isAir)。项目 nullptr 视为空气。
     const BlockState* state = m_region.getBlockState(pos);
     return state == nullptr || state->isAir();
+}
+
+BlockEntity* TreeDecoratorContext::getBlockEntity(const BlockPos& pos) const
+{
+    return m_region.getBlockEntity(pos);
 }
 
 bool TreeDecoratorContext::checkBlock(

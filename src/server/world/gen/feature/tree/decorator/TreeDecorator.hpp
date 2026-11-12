@@ -45,6 +45,8 @@ class ChunkPrimer;
 
 using world::chunk::ChunkPrimer;
 
+class BlockEntity;
+
 namespace world {
 namespace gen {
 namespace feature {
@@ -88,6 +90,16 @@ public:
 
     /// MC TreeDecorator.Context.isAir。
     [[nodiscard]] bool isAir(const BlockPos& pos) const;
+
+    /**
+     * @brief 读取位置上的方块实体（对应原版 `Context.level().getBlockEntity(pos)`）
+     *
+     * 生成期写方块会同步创建方块实体（`WorldGenRegion::setBlockState`），因此装饰器
+     * 刚放下的蜂巢能立刻取到自己的 `BeehiveBlockEntity` 并写入蜜蜂。
+     *
+     * @return 方块实体指针；位置没有方块实体或区块不可访问时返回 nullptr
+     */
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) const;
 
     /**
      * @brief 检查世界中当前方块是否满足谓词

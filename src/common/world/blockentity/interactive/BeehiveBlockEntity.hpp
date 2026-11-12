@@ -168,6 +168,16 @@ public:
     void emptyAllLivingFromHive(IWorld& world, Player* player, const BlockState& state, BeeReleaseStatus releaseStatus);
 
     /**
+     * @brief 直接存入一只巢内停留了指定 tick 数的蜜蜂
+     * @param ticksInHive 该蜜蜂已在巢内的 tick 数（新蜜蜂为 0）
+     *
+     * 对应原版 `BeehiveBlockEntity.storeBee(Occupant)`。世界生成阶段的蜂巢装饰器用它
+     * 写入「入场时自带 2~3 只蜜蜂」（每只的停留时间取 [0, 599) 的随机值）。
+     * 超过容量上限时拒绝写入并返回 false——调用方按原版仍会照数消耗随机数。
+     */
+    bool storeBee(i32 ticksInHive);
+
+    /**
      * @brief 蜂巢是否已满
      * @return 蜜蜂数量是否达到上限（3只）
      */
