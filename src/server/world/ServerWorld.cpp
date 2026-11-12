@@ -243,9 +243,12 @@ Result<void> ServerWorld::initialize()
     bool hasSkyLight = dimensionType.hasSkyLight();
     m_lightManager = std::make_unique<WorldLightManager>(this, true, hasSkyLight);
 
+    // 原版 Level.canHaveWeather：有天空光照、无天花板、且不是末地。
+    // 无天气能力的维度不推进天气周期（下界/末地恒为晴天）。
+    const bool canHaveWeather =
+        dimensionType.hasSkyLight() && !dimensionType.hasCeiling() && m_config.dimension != DimensionManager::THE_END;
     m_weatherManager = std::make_unique<WeatherManager>();
-    m_weatherManager->initialize(m_config.seed);
-    m_weatherManager->setWorld(this);
+    m_weatherManager->initialize(m_config.seed, canHaveWeather);
 
     // 初始化游戏事件分发器
     m_gameEventDispatcher = std::make_unique<gameevent::GameEventDispatcher>(*this);
@@ -789,14 +792,13 @@ void ServerWorld::applyLevelRuntimeData(const world::storage::LevelRuntimeData& 
         return;
     }
 
-    m_weatherManager->setWeatherCycleEnabled(true);
-    if (runtimeData.thundering) {
-        m_weatherManager->setThunder(std::max(runtimeData.thunderTime, 1));
-    } else if (runtimeData.raining) {
-        m_weatherManager->setRain(std::max(runtimeData.rainTime, 1));
-    } else {
-        m_weatherManager->setClear(std::max(runtimeData.clearWeatherTime, 1));
-    }
+    // 直接恢复存档中保存的四个天气字段，并按原版 prepareWeather 恢复强度；
+    // 不能走 setX 命令语义（会把 clearWeatherTime=0 强制成晴天、并重置计时器）。
+    m_weatherManager->restoreState(runtimeData.clearWeatherTime,
+        runtimeData.rainTime,
+        runtimeData.raining,
+        runtimeData.thunderTime,
+        runtimeData.thundering);
 }
 
 // ============================================================================
@@ -1502,57 +1504,18 @@ void ServerWorld::tick()
 
     // 调试世界不执行天气 tick
     if (!isDebugWorld() && m_weatherManager) {
+        // 对应原版 advanceWeatherCycle 中读取 GameRules.ADVANCE_WEATHER。
+        m_weatherManager->setWeatherCycleEnabled(
+            m_gameRules.getBoolean(world::gamerule::GameRuleKeys::ADVANCE_WEATHER));
         m_weatherManager->tick();
 
-        // 雷暴时尝试生成闪电实体（trySpawnLightning 内部已含 isThundering/isRaining、概率、
-        // canRainAt、canSeeSky 判定）
-        auto [ok, pos] = m_weatherManager->trySpawnLightning();
-        if (ok) {
-            // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
-            auto* registry = entityRegistry();
-            if (registry == nullptr) {
-                return;
-            }
-
-            // 对齐 vanilla ServerLevel.tickThunder：闪电落点按区域难度判定是否生成陷阱骷髅马，
-            // 生成时闪电只作视觉效果（不再伤害/点燃）。
-            bool skeletonTrap = false;
-            if (m_gameRules.getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS)) {
-                const f64 difficulty =
-                    static_cast<f64>(entity::combat::DifficultyInstance::at(*this, pos).getEffectiveDifficulty()) *
-                    static_cast<f64>(mc::weather::WeatherConstants::SKELETON_HORSE_TRAP_CHANCE);
-                // 对齐 vanilla：落点下方是避雷针时不生成陷阱马（避雷针把闪电引走）。
-                const BlockState* belowState =
-                    pos.y > world::MIN_BUILD_HEIGHT ? getBlockState(pos.down().x, pos.down().y, pos.down().z) : nullptr;
-                const bool belowLightningRod = belowState != nullptr &&
-                    dynamic_cast<const mc::blocks::LightningRodBlock*>(&belowState->getBlock()) != nullptr;
-                skeletonTrap = getRandom().nextDouble() < difficulty && !belowLightningRod;
-            }
-            if (skeletonTrap) {
-                const auto* skeletonHorseType = entity::VanillaEntityTypeKeys::SKELETON_HORSE;
-                std::unique_ptr<Entity> horse =
-                    skeletonHorseType != nullptr ? skeletonHorseType->create(this, *registry) : nullptr;
-                if (horse != nullptr) {
-                    if (auto* skeletonHorse = dynamic_cast<SkeletonHorseEntity*>(horse.get())) {
-                        // 对齐 vanilla：陷阱马成年（setAge(0)）并开启陷阱（玩家靠近 10 格触发骑手）。
-                        skeletonHorse->setChild(false);
-                        skeletonHorse->setTrap(true);
-                    }
-                    horse->setPosition(
-                        static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
-                    (void)spawnEntity(std::move(horse));
-                }
-            }
-
-            auto bolt = entity::LightningBoltEntity::create(this, *registry);
-            auto* boltEntity = static_cast<entity::LightningBoltEntity*>(bolt.get());
-            bolt->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
-            // 陷阱闪电只作视觉效果（对齐 vanilla LightningBolt.setVisualOnly(true)）。
-            boltEntity->setEffectOnly(skeletonTrap);
-            EntityInstanceId boltId = spawnEntity(std::move(bolt));
-            if (boltId == 0) {
-                spdlog::warn("Failed to spawn lightning bolt at ({}, {}, {})", pos.x, pos.y, pos.z);
-            }
+        // 闪电：原版 ServerChunkCache.tickSpawningChunk 对每个实体 ticking 区块调用
+        // ServerLevel.tickThunder，即每个区块每 tick 独立判定 1/100000。
+        if (m_weatherManager->isRaining() && m_weatherManager->isThundering() && m_chunkManager) {
+            m_chunkManager->forEachTickingChunk([this](ChunkData& chunk) {
+                _tickThunder(chunk);
+                return true;
+            });
         }
     }
 
@@ -1795,6 +1758,68 @@ BlockPos ServerWorld::getBlockRandomPos(i32 chunkX, i32 sectionY, i32 chunkZ)
 
     return BlockPos(
         chunkX + (i & SECTION_MASK), sectionY + ((i >> 16) & SECTION_MASK), chunkZ + ((i >> 8) & SECTION_MASK));
+}
+
+void ServerWorld::_tickThunder(ChunkData& chunk)
+{
+    MC_ASSERT_RELEASE(m_weatherManager != nullptr);
+
+    // 原版 tickThunder：每个实体 ticking 区块每 tick 独立判定 1/100000。
+    if (m_random.nextInt(mc::weather::WeatherConstants::LIGHTNING_CHANCE_DENOMINATOR) != 0) {
+        return;
+    }
+
+    // 随机列用世界 LCG（原版 Level.getBlockRandomPos），与随机刻/降水共享同一随机流。
+    const BlockPos randomPos = getBlockRandomPos(chunk.x() * world::CHUNK_WIDTH, 0, chunk.z() * world::CHUNK_WIDTH);
+    auto target = m_weatherManager->findLightningTarget(*this, chunk, randomPos);
+    if (!target.has_value()) {
+        return;
+    }
+    const BlockPos pos = *target;
+
+    // ECS 迁移：实体构造需要 registry 句柄，ClientWorld 返回 nullptr 表客户端不接入 ECS
+    auto* registry = entityRegistry();
+    if (registry == nullptr) {
+        return;
+    }
+
+    // 闪电落点按区域难度判定是否生成陷阱骷髅马，生成时闪电只作视觉效果（不再伤害/点燃）。
+    bool skeletonTrap = false;
+    if (m_gameRules.getBoolean(world::gamerule::GameRuleKeys::SPAWN_MOBS)) {
+        const f64 difficulty =
+            static_cast<f64>(entity::combat::DifficultyInstance::at(*this, pos).getEffectiveDifficulty()) *
+            static_cast<f64>(mc::weather::WeatherConstants::SKELETON_HORSE_TRAP_CHANCE);
+        // 落点下方是避雷针时不生成陷阱马（避雷针把闪电引走）。
+        const BlockState* belowState =
+            pos.y > world::MIN_BUILD_HEIGHT ? getBlockState(pos.down().x, pos.down().y, pos.down().z) : nullptr;
+        const bool belowLightningRod = belowState != nullptr &&
+            dynamic_cast<const mc::blocks::LightningRodBlock*>(&belowState->getBlock()) != nullptr;
+        skeletonTrap = getRandom().nextDouble() < difficulty && !belowLightningRod;
+    }
+    if (skeletonTrap) {
+        const auto* skeletonHorseType = entity::VanillaEntityTypeKeys::SKELETON_HORSE;
+        std::unique_ptr<Entity> horse =
+            skeletonHorseType != nullptr ? skeletonHorseType->create(this, *registry) : nullptr;
+        if (horse != nullptr) {
+            if (auto* skeletonHorse = dynamic_cast<SkeletonHorseEntity*>(horse.get())) {
+                // 陷阱马成年并开启陷阱（玩家靠近 10 格触发骑手）。
+                skeletonHorse->setChild(false);
+                skeletonHorse->setTrap(true);
+            }
+            horse->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+            (void)spawnEntity(std::move(horse));
+        }
+    }
+
+    auto bolt = entity::LightningBoltEntity::create(this, *registry);
+    auto* boltEntity = static_cast<entity::LightningBoltEntity*>(bolt.get());
+    bolt->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+    // 陷阱闪电只作视觉效果。
+    boltEntity->setEffectOnly(skeletonTrap);
+    EntityInstanceId boltId = spawnEntity(std::move(bolt));
+    if (boltId == 0) {
+        spdlog::warn("Failed to spawn lightning bolt at ({}, {}, {})", pos.x, pos.y, pos.z);
+    }
 }
 
 void ServerWorld::tickPrecipitation(i32 randomTickSpeed)

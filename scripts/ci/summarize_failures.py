@@ -73,6 +73,7 @@ _GH_LOG_PREFIX = re.compile(r"^.*?\d{4}-\d{2}-\d{2}T[\d:.]+Z\s?")
 
 _JOB_LABELS = {
     "prepare": "工具准备",
+    "source-collection": "游离源文件扫描（仅记录 + 告警）",
     "workers": "编译 Worker",
     "build": "测试构建（RelWithDebInfo + ASan/UBSan）",
     "release-build": "发布构建（Release，无 profiler/sanitizer）",
@@ -339,6 +340,43 @@ def collect_sanitizer_failures(artifacts_dir: Path) -> list[str]:
                     findings.append(f"{filename}: {line.strip()}")
     return _dedupe(findings)
 
+def collect_source_collection(artifacts_dir: Path) -> dict | None:
+    """读取游离源文件扫描结论。
+
+    artifact 里放的是扫描器的原始 JSON 与校验器生成的 Markdown 摘要。这里只做读取，
+    不重新判定：判定口径集中在 `verify_source_collection.py`，避免两处漂移。
+    读不到（本次没跑、或 job 在产出前就失败）时返回 None，报告按“未采集”处理。
+    """
+    markdown_path = artifacts_dir / "source-collection" / "source-collection.md"
+    if markdown_path.is_file():
+        try:
+            return {"markdown": _read_text(markdown_path)}
+        except OSError:
+            return None
+    return None
+
+
+def source_collection_needs_attention(artifacts_dir: Path) -> bool:
+    """游离扫描是否要求人工跟进：存在游离文件，或结论不可采信。
+
+    与 job 的 success/failure 无关——扫描 job 刻意恒为 success，失败信号只在这里体现。
+    """
+    for path in sorted(artifacts_dir.rglob("source-collection.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            # 报告损坏同样需要人工看一眼。
+            return True
+        if not isinstance(data, dict):
+            return True
+        if data.get("verdict") != "complete":
+            return True
+        counts = data.get("counts")
+        if not isinstance(counts, dict) or not isinstance(counts.get("orphan"), int) or counts["orphan"] > 0:
+            return True
+    return False
+
+
 def _report_assets(artifacts_dir: Path, run_url: str) -> tuple[Path, str]:
     """图表集中归档，并使用既有 image-data 分支提供报告中的图片地址。"""
     directory = artifacts_dir / "_report_charts"
@@ -455,6 +493,9 @@ def has_failures(job_status: dict[str, str], artifacts_dir: Path) -> bool:
         return True
     if collect_sanitizer_failures(artifacts_dir):
         return True
+    # 游离源文件扫描：job 恒为 success（不阻塞流水线），结论只能从产物里查。
+    if source_collection_needs_attention(artifacts_dir):
+        return True
     for path in artifacts_dir.rglob("benchmark-compare.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -519,10 +560,25 @@ def build_body(
                 outcome += "；崩溃或报告错误"
         elif job_id == "e2e-tests":
             outcome = f"失败 {len(e2e_failures)}；跳过 {len(e2e_skipped)}"
+        elif job_id == "source-collection":
+            collected = collect_source_collection(artifacts_dir)
+            if collected is None:
+                outcome = "未提供扫描结论"
+            elif source_collection_needs_attention(artifacts_dir):
+                outcome = "需要人工跟进（存在游离或结论不可采信）"
+            else:
+                outcome = "无游离源文件"
         lines.append(f"| {label} | {_STATUS_ICON.get(status, status)} | {outcome} |")
     lines.append("")
 
     lines.extend(runner_info_section(job_status, artifacts_dir, run_url))
+
+    source_collection = collect_source_collection(artifacts_dir)
+    if source_collection is not None:
+        lines.append(source_collection["markdown"])
+        lines.append("")
+        lines.append("> 游离源文件扫描**不阻塞**流水线：job 恒为 success，结论只在此处体现。")
+        lines.append("")
 
     sanitizer_failures = collect_sanitizer_failures(artifacts_dir)
     if sanitizer_failures:

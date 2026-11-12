@@ -28,6 +28,7 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
+#include "sound/jukebox/JukeboxSongs.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/blocks/functional/LecternBlock.hpp"
@@ -166,7 +167,7 @@ TEST_F(LecternEntityTest, SaveLoad_PreservesBookAndPage)
 TEST_F(LecternEntityTest, PreRemoveSideEffects_DropsBookWhenHasBook)
 {
     // 对齐 vanilla LecternBlockEntity.preRemoveSideEffects：HAS_BOOK 时按 FACING 掉落书本。
-    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    blocks::LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
     DroppingTestWorld world;
 
     const BlockPos pos(1, 2, 3);
@@ -185,7 +186,7 @@ TEST_F(LecternEntityTest, PreRemoveSideEffects_DropsBookWhenHasBook)
 
 TEST_F(LecternEntityTest, PreRemoveSideEffects_NoBookDoesNotDrop)
 {
-    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    blocks::LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
     DroppingTestWorld world;
 
     const BlockPos pos(1, 2, 3);
@@ -201,7 +202,7 @@ TEST_F(LecternEntityTest, PreRemoveSideEffects_NoBookDoesNotDrop)
 
 TEST_F(LecternEntityTest, PreRemoveSideEffects_NoWorldDoesNotCrash)
 {
-    LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
+    blocks::LecternBlock block(BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f));
     LecternEntity entity(BlockPos(1, 2, 3)); // 不设世界
     ASSERT_TRUE(entity.setBook(ItemStack(m_book, 1)));
 
@@ -225,8 +226,14 @@ TEST_F(LecternEntityTest, Clone_CopiesBookAndProgress)
     EXPECT_EQ(copy->getOpenCount(), 1);
 }
 
-class JukeboxEntityTest : public ::testing::Test {
+class LecternJukeboxEntityTest : public ::testing::Test {
 protected:
+    static void SetUpTestSuite()
+    {
+        // 唱片机播放依赖 JukeboxSongs 注册表（声音事件 -> 歌曲），未初始化时 startPlaying 会直接停止。
+        JukeboxSongs::initialize();
+    }
+
     void SetUp() override
     {
         Items::ensureInitialized();
@@ -240,26 +247,27 @@ protected:
     Item* m_stick = nullptr;
 };
 
-TEST_F(JukeboxEntityTest, StartPlaying_OnlyWorksForMusicDisc)
+TEST_F(LecternJukeboxEntityTest, StartPlaying_OnlyWorksForMusicDisc)
 {
     DummyWorld world;
     JukeboxEntity entity(BlockPos(1, 2, 3));
-    entity.setRecord(ItemStack(m_stick, 1));
+    entity.setRecord(ItemStack(m_stick, 1), world);
 
     entity.startPlaying(world);
     EXPECT_FALSE(entity.isPlaying());
     EXPECT_EQ(entity.getComparatorSignal(), 0);
 
-    entity.setRecord(ItemStack(m_disc13, 1));
+    entity.setRecord(ItemStack(m_disc13, 1), world);
     entity.startPlaying(world);
     EXPECT_TRUE(entity.isPlaying());
     EXPECT_GT(entity.getComparatorSignal(), 0);
 }
 
-TEST_F(JukeboxEntityTest, SaveLoadAndClone_PreserveRecordState)
+TEST_F(LecternJukeboxEntityTest, SaveLoadAndClone_PreserveRecordState)
 {
+    DummyWorld world;
     JukeboxEntity original(BlockPos(3, 4, 5));
-    original.setRecord(ItemStack(m_discCat, 1));
+    original.setRecord(ItemStack(m_discCat, 1), world);
 
     nlohmann::json data;
     original.save(data);

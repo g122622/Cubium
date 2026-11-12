@@ -44,7 +44,7 @@ using namespace mc::entity::ai::goal;
 
 // ==================== DolphinEntity Test Fixture ====================
 
-class DolphinEntityTest : public ::testing::Test {
+class DolphinEntityGoalsTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -62,13 +62,13 @@ protected:
 
 // ==================== DolphinEntity State Tests ====================
 
-TEST_F(DolphinEntityTest, DefaultState_NotGotFish)
+TEST_F(DolphinEntityGoalsTest, DefaultState_NotGotFish)
 {
     // 海豚默认状态应为没有得到鱼
     EXPECT_FALSE(dolphin->hasGotFish());
 }
 
-TEST_F(DolphinEntityTest, SetGotFish_ChangesState)
+TEST_F(DolphinEntityGoalsTest, SetGotFish_ChangesState)
 {
     dolphin->setGotFish(true);
     EXPECT_TRUE(dolphin->hasGotFish());
@@ -77,7 +77,7 @@ TEST_F(DolphinEntityTest, SetGotFish_ChangesState)
     EXPECT_FALSE(dolphin->hasGotFish());
 }
 
-TEST_F(DolphinEntityTest, TreasurePos_CanBeSet)
+TEST_F(DolphinEntityGoalsTest, TreasurePos_CanBeSet)
 {
     BlockPos pos(100, 50, 200);
     dolphin->setTreasurePos(pos);
@@ -87,7 +87,7 @@ TEST_F(DolphinEntityTest, TreasurePos_CanBeSet)
     EXPECT_TRUE(dolphin->hasTreasureTarget());
 }
 
-TEST_F(DolphinEntityTest, ClearTreasureTarget_ResetsState)
+TEST_F(DolphinEntityGoalsTest, ClearTreasureTarget_ResetsState)
 {
     BlockPos pos(100, 50, 200);
     dolphin->setTreasurePos(pos);
@@ -97,7 +97,7 @@ TEST_F(DolphinEntityTest, ClearTreasureTarget_ResetsState)
     EXPECT_FALSE(dolphin->hasTreasureTarget());
 }
 
-TEST_F(DolphinEntityTest, GuidingPlayer_CanBeSet)
+TEST_F(DolphinEntityGoalsTest, GuidingPlayer_CanBeSet)
 {
     dolphin->setGuidingPlayer(true, 12345);
     EXPECT_TRUE(dolphin->isGuidingPlayer());
@@ -107,19 +107,19 @@ TEST_F(DolphinEntityTest, GuidingPlayer_CanBeSet)
     EXPECT_FALSE(dolphin->isGuidingPlayer());
 }
 
-TEST_F(DolphinEntityTest, MaxAir_IsCorrect)
+TEST_F(DolphinEntityGoalsTest, MaxAir_IsCorrect)
 {
     // MC 1.16.5: 海豚最大空气值 = 4800 tick (4分钟)
     EXPECT_EQ(dolphin->maxAir(), 4800);
 }
 
-TEST_F(DolphinEntityTest, EyeHeight_IsCorrect)
+TEST_F(DolphinEntityGoalsTest, EyeHeight_IsCorrect)
 {
     // MC 1.16.5: 海豚眼睛高度 = 0.3f
     EXPECT_FLOAT_EQ(dolphin->eyeHeight(), 0.3f);
 }
 
-TEST_F(DolphinEntityTest, WidthAndHeight_AreCorrect)
+TEST_F(DolphinEntityGoalsTest, WidthAndHeight_AreCorrect)
 {
     // MC 1.16.5: 海豚尺寸
     EXPECT_FLOAT_EQ(dolphin->width(), 0.9f);
@@ -420,26 +420,26 @@ TEST_F(PlayWithItemsGoalTest, Constants_AreCorrect)
 
 // ==================== DolphinEntity Food Tests ====================
 
-TEST_F(DolphinEntityTest, IsFoodItem_ReturnsTrueForCod)
+TEST_F(DolphinEntityGoalsTest, IsFoodItem_ReturnsTrueForCod)
 {
     // MC 1.16.5: 鳕鱼是海豚的食物
     // 需要完整的 ItemStack 实现，这里只验证方法存在
     SUCCEED();
 }
 
-TEST_F(DolphinEntityTest, IsFoodItem_ReturnsTrueForSalmon)
+TEST_F(DolphinEntityGoalsTest, IsFoodItem_ReturnsTrueForSalmon)
 {
     // MC 1.16.5: 鲑鱼是海豚的食物
     SUCCEED();
 }
 
-TEST_F(DolphinEntityTest, IsFoodItem_ReturnsTrueForPufferfish)
+TEST_F(DolphinEntityGoalsTest, IsFoodItem_ReturnsTrueForPufferfish)
 {
     // MC 1.16.5: 河豚是海豚的食物
     SUCCEED();
 }
 
-TEST_F(DolphinEntityTest, IsFoodItem_ReturnsTrueForTropicalFish)
+TEST_F(DolphinEntityGoalsTest, IsFoodItem_ReturnsTrueForTropicalFish)
 {
     // MC 1.16.5: 热带鱼是海豚的食物
     SUCCEED();
@@ -447,26 +447,26 @@ TEST_F(DolphinEntityTest, IsFoodItem_ReturnsTrueForTropicalFish)
 
 // ==================== DolphinEntity Navigation Tests ====================
 
-TEST_F(DolphinEntityTest, HasPath_ReturnsFalseWithoutNavigator)
+TEST_F(DolphinEntityGoalsTest, HasPath_ReturnsFalseWithoutNavigator)
 {
     // 没有世界时，导航器不存在
     EXPECT_FALSE(dolphin->hasPath());
 }
 
-TEST_F(DolphinEntityTest, ClearNavigationPath_DoesNotCrash)
+TEST_F(DolphinEntityGoalsTest, ClearNavigationPath_DoesNotCrash)
 {
     dolphin->clearNavigationPath();
     SUCCEED();
 }
 
-TEST_F(DolphinEntityTest, CloseToTarget_ReturnsFalseWithoutPath)
+TEST_F(DolphinEntityGoalsTest, CloseToTarget_ReturnsFalseWithoutPath)
 {
     EXPECT_FALSE(dolphin->closeToTarget());
 }
 
 // ==================== DolphinEntity Jumping Tests ====================
 
-TEST_F(DolphinEntityTest, Jumping_CanBeSet)
+TEST_F(DolphinEntityGoalsTest, Jumping_CanBeSet)
 {
     dolphin->setJumping(true);
     EXPECT_TRUE(dolphin->isJumping());
@@ -477,7 +477,7 @@ TEST_F(DolphinEntityTest, Jumping_CanBeSet)
 
 // ==================== Goal Registration Tests ====================
 
-TEST_F(DolphinEntityTest, Goals_AreRegistered)
+TEST_F(DolphinEntityGoalsTest, Goals_AreRegistered)
 {
     // 海豚实体应该有 AI 目标注册
     // 目标选择器应该包含注册的目标
@@ -530,7 +530,7 @@ TEST_F(PlayWithItemsGoalTest, SearchRadius_IsCorrect)
 
 // ==================== Integration Tests ====================
 
-TEST_F(DolphinEntityTest, MultipleGoals_CanCoexist)
+TEST_F(DolphinEntityGoalsTest, MultipleGoals_CanCoexist)
 {
     // 创建多个目标
     auto jumpGoal = std::make_unique<DolphinJumpGoal>(dolphin.get(), 10);
@@ -545,7 +545,7 @@ TEST_F(DolphinEntityTest, MultipleGoals_CanCoexist)
     EXPECT_EQ(playGoal->getTypeName(), "PlayWithItemsGoal");
 }
 
-TEST_F(DolphinEntityTest, GoalFlags_AreCorrect)
+TEST_F(DolphinEntityGoalsTest, GoalFlags_AreCorrect)
 {
     // DolphinJumpGoal: Jump, Move
     // SwimToTreasureGoal: Move, Look

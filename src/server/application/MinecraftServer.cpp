@@ -1895,7 +1895,9 @@ void MinecraftServer::checkAllPlayersSleeping()
         }
 
         auto* world = dim->world();
-        if (auto* weather = world->weatherManager(); weather != nullptr && weather->weatherCycleEnabled()) {
+        // 原版睡觉重置天气的条件：ADVANCE_WEATHER 开启且当前正在下雨。
+        if (auto* weather = world->weatherManager();
+            weather != nullptr && weather->weatherCycleEnabled() && weather->isRaining()) {
             weather->resetWeather();
         }
 

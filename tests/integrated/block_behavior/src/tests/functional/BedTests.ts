@@ -18,13 +18,14 @@
 //   - updatePostPlacement（:138-165）：配对半床缺失（facingState.isAir()）→ 当前床自毁变 air；
 //     facing==otherDir 且 facingState 有 OCCUPIED → 同步 occupied。
 //   - ServerPlayer::trySleep（ServerPlayer.cpp:375-441）：前置检查——isPlayerNearBed（水平3垂直2）、
-//     isBedObstructed（床头/床尾上方+起床位有站立空间）、canSleepAtTime（晴天 dayTime∈[12542,23459]
-//     或雷暴）、非创造 isBedSurroundedByMonsters。全通过→startSleeping→返 OK。
-//   - canSleepAtTime（SleepManager.cpp:45-63）：晴天 dayTime∈[12542,23459]；降雨∈[12010,23991]；雷暴任意。
+//     isBedObstructed（床头/床尾上方+起床位有站立空间）、canSleepAtTime（天空减暗 >= 4，即
+//     BedRule.WHEN_DARK / isDarkOutside）、非创造 isBedSurroundedByMonsters。全通过→startSleeping→返 OK。
+//   - canSleepAtTime（SleepManager.cpp）：InternalLightUtils::calculateSkyDarkening(dayTime,
+//     isRaining, isThundering) >= 4；降雨 +3、雷暴 +10，因此雷暴时白天也可入睡。
 //
 // 派发链路：SimulatedPlayer 继承 ServerPlayer，tryStartSleeping 委托 trySleep（前置检查）。
 //   GameTest batch("night") 设 dayTime=18000（Cubium GameTestServer.cpp:329 TimeOfDayEnvironment），
-//   满足 canSleepAtTime 夜间范围。interactWithBlock（空手右键）→ 方块侧交互 睡眠分支。
+//   该时刻天空减暗为 11，满足 canSleepAtTime。interactWithBlock（空手右键）→ 方块侧交互 睡眠分支。
 //
 // 测试覆盖（1 个场景，覆盖 wiki 主世界夜晚睡眠占用 OCCUPIED 翻转核心确定行为）：
 //   1. 夜晚睡眠占用：双半红床（foot facing=North + head）+ batch("night") + interactWithBlock（空手右键
@@ -54,7 +55,7 @@
 // Ref: docs\minecraft-wiki-source\minecraft_wiki\block_床.txt#睡觉（夜晚右键床睡眠，标记占用）
 // Ref: BedBlock.cpp（方块侧交互 睡眠分支 OCCUPIED 翻转；onBlockPlacedBy 自动配对 head；updatePostPlacement 配对缺失自毁）
 // Ref: ServerPlayer.cpp（trySleep 前置：isPlayerNearBed/isBedObstructed/canSleepAtTime/isBedSurroundedByMonsters）
-// Ref: SleepManager.cpp（canSleepAtTime 晴天[12542,23459]/降雨[12010,23991]/雷暴任意）
+// Ref: SleepManager.cpp（canSleepAtTime 天空减暗 >= 4；雨/雷暴加成天空减暗）
 // Ref: GameTestServer.cpp（batch("night") → TimeOfDayEnvironment(18000) 真正设夜晚）
 
 import * as GameTest from "@minecraft/server-gametest";

@@ -217,7 +217,7 @@ TEST_F(MilkBucketItemTest, MilkBucketHasContainerItem)
 // ToolItem 综合测试
 // ============================================================================
 
-class ToolItemTest : public ::testing::Test {
+class NewItemToolTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -225,7 +225,7 @@ protected:
     }
 };
 
-TEST_F(ToolItemTest, AllTierToolsRegistered)
+TEST_F(NewItemToolTest, AllTierToolsRegistered)
 {
     // 验证各层级工具都已注册
     const char* toolTypes[] = {"pickaxe", "axe", "shovel", "hoe", "sword"};
@@ -240,7 +240,7 @@ TEST_F(ToolItemTest, AllTierToolsRegistered)
     }
 }
 
-TEST_F(ToolItemTest, AllTiersHaveCorrectDurability)
+TEST_F(NewItemToolTest, AllTiersHaveCorrectDurability)
 {
     // MC 1.16.5 各层级耐久度
     struct TierDurability {
@@ -259,7 +259,7 @@ TEST_F(ToolItemTest, AllTiersHaveCorrectDurability)
     }
 }
 
-TEST_F(ToolItemTest, ShearsAndFlintAndSteelAreDamageable)
+TEST_F(NewItemToolTest, ShearsAndFlintAndSteelAreDamageable)
 {
     Item* shears = ItemRegistry::instance().getItem(ResourceLocation("minecraft:shears"));
     ASSERT_NE(shears, nullptr);
@@ -274,7 +274,7 @@ TEST_F(ToolItemTest, ShearsAndFlintAndSteelAreDamageable)
 // BlockTags 测试（验证 WOOL 标签）
 // ============================================================================
 
-class BlockTagsTest : public ::testing::Test {
+class ItemWoolTagTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -283,7 +283,7 @@ protected:
     }
 };
 
-TEST_F(BlockTagsTest, WoolTagExists)
+TEST_F(ItemWoolTagTest, WoolTagExists)
 {
     // 验证 WOOL 标签已创建
     EXPECT_NO_THROW({
@@ -292,7 +292,7 @@ TEST_F(BlockTagsTest, WoolTagExists)
     });
 }
 
-TEST_F(BlockTagsTest, WoolTagContainsWoolBlocks)
+TEST_F(ItemWoolTagTest, WoolTagContainsWoolBlocks)
 {
     BlockTag& woolTag = BlockTags::WOOL();
 

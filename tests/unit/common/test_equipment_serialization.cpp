@@ -119,7 +119,7 @@ TEST(EquipmentSlotNamesTest, RoundTrip)
 // PlayerInventory::toNbt 单元测试 - MC 1.21.11 新格式
 // ============================================================================
 
-class PlayerInventoryNbtTest : public ::testing::Test {
+class EquipmentSerializationTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
@@ -127,7 +127,7 @@ protected:
     }
 };
 
-TEST_F(PlayerInventoryNbtTest, ToNbtEmptyInventory)
+TEST_F(EquipmentSerializationTest, ToNbtEmptyInventory)
 {
     PlayerInventory inventory;
 
@@ -149,7 +149,7 @@ TEST_F(PlayerInventoryNbtTest, ToNbtEmptyInventory)
     EXPECT_EQ(*selectedSlot, 0);
 }
 
-TEST_F(PlayerInventoryNbtTest, ToNbtHotbarOnlyNoEquipment)
+TEST_F(EquipmentSerializationTest, ToNbtHotbarOnlyNoEquipment)
 {
     PlayerInventory inventory;
     ItemStack stone = makeStoneStack(32);
@@ -169,7 +169,7 @@ TEST_F(PlayerInventoryNbtTest, ToNbtHotbarOnlyNoEquipment)
     EXPECT_EQ(equipment, nullptr);
 }
 
-TEST_F(PlayerInventoryNbtTest, ToNbtEquipmentNotInInventoryOutput)
+TEST_F(EquipmentSerializationTest, ToNbtEquipmentNotInInventoryOutput)
 {
     // PlayerInventory::toNbt 不写入 equipment 标签
     // equipment 标签由 LivingEntity::addAdditionalSaveData() 负责写入
@@ -187,7 +187,7 @@ TEST_F(PlayerInventoryNbtTest, ToNbtEquipmentNotInInventoryOutput)
     EXPECT_EQ(equipment, nullptr);
 }
 
-TEST_F(PlayerInventoryNbtTest, ToNbtInventoryOnlyHotbarAndMain)
+TEST_F(EquipmentSerializationTest, ToNbtInventoryOnlyHotbarAndMain)
 {
     PlayerInventory inventory;
 
@@ -219,7 +219,7 @@ TEST_F(PlayerInventoryNbtTest, ToNbtInventoryOnlyHotbarAndMain)
     }
 }
 
-TEST_F(PlayerInventoryNbtTest, ToNbtSelectedSlotPreserved)
+TEST_F(EquipmentSerializationTest, ToNbtSelectedSlotPreserved)
 {
     PlayerInventory inventory;
     inventory.setSelectedSlot(7);
@@ -236,7 +236,7 @@ TEST_F(PlayerInventoryNbtTest, ToNbtSelectedSlotPreserved)
 // PlayerInventory::fromNbt 单元测试 - 新格式读取
 // ============================================================================
 
-TEST_F(PlayerInventoryNbtTest, FromNbtNewFormat)
+TEST_F(EquipmentSerializationTest, FromNbtNewFormat)
 {
     // 构建新格式 NBT
     nbt::tags::compound_tag tag;
@@ -282,7 +282,7 @@ TEST_F(PlayerInventoryNbtTest, FromNbtNewFormat)
     EXPECT_TRUE(inventory.getOffhandItem().isEmpty());
 }
 
-TEST_F(PlayerInventoryNbtTest, FromNbtEmptyTag)
+TEST_F(EquipmentSerializationTest, FromNbtEmptyTag)
 {
     nbt::tags::compound_tag tag;
 
@@ -298,7 +298,7 @@ TEST_F(PlayerInventoryNbtTest, FromNbtEmptyTag)
 // PlayerInventory::toNbt + fromNbt 往返测试
 // ============================================================================
 
-TEST_F(PlayerInventoryNbtTest, RoundTripHotbarAndMainOnly)
+TEST_F(EquipmentSerializationTest, RoundTripHotbarAndMainOnly)
 {
     // PlayerInventory::toNbt 只序列化快捷栏和主背包（Slot 0-35），
     // 护甲和副手由 LivingEntity::addAdditionalSaveData() 通过 equipment 标签序列化。
@@ -331,7 +331,7 @@ TEST_F(PlayerInventoryNbtTest, RoundTripHotbarAndMainOnly)
     EXPECT_EQ(restored.getSelectedSlot(), 4);
 }
 
-TEST_F(PlayerInventoryNbtTest, RoundTripWithEquipmentViaFromNbt)
+TEST_F(EquipmentSerializationTest, RoundTripWithEquipmentViaFromNbt)
 {
     // 完整的装备往返测试：手动构建包含 equipment 标签的 NBT，
     // 通过 PlayerInventory::fromNbt 读取，再通过 toNbt 写出，
@@ -419,7 +419,7 @@ TEST_F(PlayerInventoryNbtTest, RoundTripWithEquipmentViaFromNbt)
     EXPECT_EQ(restored.getSelectedSlot(), 4);
 }
 
-TEST_F(PlayerInventoryNbtTest, RoundTripWithoutEquipment)
+TEST_F(EquipmentSerializationTest, RoundTripWithoutEquipment)
 {
     // 不包含装备时的 PlayerInventory 往返测试
     PlayerInventory original;
@@ -450,7 +450,7 @@ TEST_F(PlayerInventoryNbtTest, RoundTripWithoutEquipment)
     EXPECT_EQ(restored.getSelectedSlot(), 8);
 }
 
-TEST_F(PlayerInventoryNbtTest, RoundTripEmptyInventory)
+TEST_F(EquipmentSerializationTest, RoundTripEmptyInventory)
 {
     PlayerInventory original;
 

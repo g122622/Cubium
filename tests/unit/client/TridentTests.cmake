@@ -1,11 +1,13 @@
 # Trident 需要独立的 GoogleTest main，与普通客户端测试保持进程隔离。
 # Trident 渲染引擎测试可执行文件
 # 注意：这里只测试核心组件，不测试 TridentEngine 本体
+# 本文件被 tests/unit/CMakeLists.txt 以 include() 引入，相对路径以 tests/unit/client/ 为基准，
+# 因此测试源写 renderer/...（不要再加一层 client/）。
 add_executable(mc_trident_tests
-    client/renderer/test_trident_engine.cpp
-    client/renderer/PolarBearAnimationTest.cpp
-    client/renderer/EntityRendererCoverageTest.cpp
-    client/renderer/AnimatedMeshCacheTest.cpp
+    renderer/test_trident_engine.cpp
+    renderer/PolarBearAnimationTest.cpp
+    renderer/EntityRendererCoverageTest.cpp
+    renderer/AnimatedMeshCacheTest.cpp
 )
 
 # 添加 Trident 渲染引擎核心组件源文件

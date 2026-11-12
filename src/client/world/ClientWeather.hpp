@@ -208,22 +208,6 @@ public:
         return 1.0f - rainStrength(partialTick);
     }
 
-    /**
-     * @brief 计算天空光照上限
-     *
-     * @return 天空光照上限 (0-15)，0表示无限制
-     */
-    [[nodiscard]] u8 skyLightLimit() const noexcept
-    {
-        if (isThundering()) {
-            return weather::WeatherConstants::THUNDER_SKY_LIGHT_LIMIT;
-        }
-        if (isRaining()) {
-            return weather::WeatherConstants::RAIN_SKY_LIGHT_LIMIT;
-        }
-        return 15;
-    }
-
     // ========== 闪电闪烁效果 ==========
 
     /**

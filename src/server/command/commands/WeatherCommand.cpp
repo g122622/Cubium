@@ -31,6 +31,8 @@
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/dimension/ServerDimension.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 #include "server/world/weather/WeatherManager.hpp"
 
@@ -47,24 +49,26 @@ namespace {
 /// 一秒对应的 tick 数
 constexpr i32 TICKS_PER_SECOND = 20;
 
-/// 默认天气持续时间（秒）
-constexpr i32 DEFAULT_WEATHER_DURATION_SECONDS = 300;
-
 [[nodiscard]] server::WeatherManager* getWeatherManager(ServerCommandSource& source)
 {
-    auto* world = source.world();
-    if (world == nullptr) {
+    // 原版 WeatherCommand 固定操作服务器主世界（overworld），不随命令执行者所在维度变化。
+    auto* server = source.server();
+    if (server == nullptr) {
         return nullptr;
     }
-    return world->weatherManager();
+    auto* overworld = server->dimensionManager().getOverworld();
+    if (overworld == nullptr) {
+        return nullptr;
+    }
+    auto* world = overworld->world();
+    return world != nullptr ? world->weatherManager() : nullptr;
 }
 
-/// 构建天气变化反馈消息
+/// 构建天气变化反馈消息（duration 为命令实际应用的 tick 数）
 [[nodiscard]] std::string buildWeatherMessage(std::string_view weatherType, i32 duration)
 {
-    i32 seconds = duration > 0 ? duration / TICKS_PER_SECOND : DEFAULT_WEATHER_DURATION_SECONDS;
     std::ostringstream ss;
-    ss << "Changing weather to " << weatherType << " for " << seconds << " seconds";
+    ss << "Changing weather to " << weatherType << " for " << duration / TICKS_PER_SECOND << " seconds";
     return ss.str();
 }
 
@@ -133,8 +137,8 @@ i32 WeatherCommand::_setClear(CommandContext<ServerCommandSource>& context)
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    weatherManager->setClear(duration);
-    source.sendMessage(buildWeatherMessage("clear", duration));
+    const i32 appliedDuration = weatherManager->setClear(duration);
+    source.sendMessage(buildWeatherMessage("clear", appliedDuration));
 
     return 1;
 }
@@ -149,8 +153,8 @@ i32 WeatherCommand::_setRain(CommandContext<ServerCommandSource>& context)
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    weatherManager->setRain(duration);
-    source.sendMessage(buildWeatherMessage("rain", duration));
+    const i32 appliedDuration = weatherManager->setRain(duration);
+    source.sendMessage(buildWeatherMessage("rain", appliedDuration));
 
     return 1;
 }
@@ -165,8 +169,8 @@ i32 WeatherCommand::_setThunder(CommandContext<ServerCommandSource>& context)
     }
 
     i32 duration = context.getArgument<i32>("duration");
-    weatherManager->setThunder(duration);
-    source.sendMessage(buildWeatherMessage("thunder", duration));
+    const i32 appliedDuration = weatherManager->setThunder(duration);
+    source.sendMessage(buildWeatherMessage("thunder", appliedDuration));
 
     return 1;
 }
