@@ -221,18 +221,11 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureSta
         const world::gen::structure::StructureSelectionEntry* entry = candidates[chosen];
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
 
-        // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
-        // 采样噪声生物群系，检查是否匹配该结构的 biomeTag。此处使用 getNoiseBiome()
-        // （四分坐标精度，无 Voronoi 缩放）。
-        // TODO: 采样点与原版不一致。原版在 Structure.findValidGenerationPoint 找到的
-        //   **候选生成点**（candidate generation point）处采样：
-        //     biomeSource.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
-        //                               QuartPos.fromBlock(pos.getY()),
-        //                               QuartPos.fromBlock(pos.getZ()))
-        //   而本实现退化为"本区块中心"（block +8）这一固定近似点。二者在群系边界附近
-        //   会给出不同群系，进而使结构在边界处生成/不生成与原版不一致。
-        //   完整实现需先把生成点求出再回传校验，属于结构子系统改造，暂缓。
-        // 同 _hasBiomesForStructureSet：查不到结构定义属配置错误，不得静默跳过。
+        // 查不到结构定义属配置错误，不得静默跳过。
+        // 生物群系校验**不在这里做**：采样点必须是各结构自己算出来的候选生成点，
+        // 而不是本区块中心这种固定近似点——同一点在群系边界附近会归属不同群系，
+        // 用固定近似点会误杀合法结构、也会放过非法结构。该校验由各结构在 generate()
+        // 内部经 isValidBiomeAt() 按其候选生成点完成（见下方 start 处理处的说明）。
         if (structure == nullptr) {
             spdlog::critical("[STRUCT] structure_set '{}' references unregistered structure '{}'",
                 structureSet.id().toString(),

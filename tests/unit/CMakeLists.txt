@@ -1344,6 +1344,7 @@ add_executable(mc_tests
     common/world/gen/feature/template/GravityProcessorHeightmapTest.cpp
     common/world/gen/structure/JungleTempleRotationTest.cpp
     common/world/gen/structure/MineshaftChestMinecartTest.cpp
+    common/world/gen/structure/StructureBiomeSamplePointTest.cpp
     common/world/gen/structure/PlaceEndPortalFramesTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
