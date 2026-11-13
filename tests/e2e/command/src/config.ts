@@ -2,7 +2,7 @@
  * config.ts — 指令端到端 diff 的专属配置。
  *
  * 两侧共享的常量与路径统一放在 tests/e2e/shared/config.ts；本文件只保留 command
- * harness 自己的世界档、棋盘与超时，并 re-export 共享常量。
+ * harness 自己的世界档、棋盘与超时，并转出 harness 内统一使用的共享类型。
  */
 
 import path from "node:path";
@@ -10,18 +10,6 @@ import path from "node:path";
 import { WORK_ROOT } from "../../shared/config.ts";
 import type { ServerProfile } from "../../shared/config.ts";
 
-export {
-    ARTIFACTS_KEEP,
-    BOT_TIMEOUT_MS,
-    CUBIUM_SERVER_EXE,
-    MC_VERSION,
-    PROTOCOL_VERSION,
-    REPO_ROOT,
-    SERVER_READY_TIMEOUT_MS,
-    SERVER_STOP_GRACE_MS,
-    WORK_ROOT,
-    vanillaServerJar,
-} from "../../shared/config.ts";
 export type { ServerKind, ServerProfile } from "../../shared/config.ts";
 
 /** command harness 的工作根目录。 */
@@ -57,9 +45,6 @@ export const COMMAND_FEEDBACK_TIMEOUT_MS = 1_500;
  * 下一条指令的发送间隔，否则会把延迟消息算进下一条。
  */
 export const COMMAND_FEEDBACK_QUIET_MS = 120;
-
-/** 单条用例的上限（只用于兜住挂死）。 */
-export const COMMAND_CASE_TIMEOUT_MS = 60_000;
 
 /** 棋盘基准 Y：放在两侧都存在的空中高度，避开 Cubium(Y=0) 与 vanilla(Y=-64) 的地形差。 */
 export const BOARD_BASE_Y = 100;

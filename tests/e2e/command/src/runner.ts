@@ -173,7 +173,7 @@ export async function runCommandHarness(options: RunnerOptions): Promise<Command
  * @param caseFilter 子串；null 表示不过滤。
  * @returns 选中的用例。
  */
-export function selectCases(cases: readonly CommandCase[], caseFilter: string | null): readonly CommandCase[] {
+function selectCases(cases: readonly CommandCase[], caseFilter: string | null): readonly CommandCase[] {
     if (caseFilter === null) {
         return cases;
     }

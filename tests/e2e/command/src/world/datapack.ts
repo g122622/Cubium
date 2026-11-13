@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 /** 数据包目录名。 */
-export const DATAPACK_NAME = "e2e_command";
+const DATAPACK_NAME = "e2e_command";
 
 /** 数据包格式版本（与仓库内置的原版数据包一致）。 */
 const PACK_FORMAT = 94;

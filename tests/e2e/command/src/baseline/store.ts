@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { MC_VERSION } from "../config.ts";
+import { MC_VERSION } from "../../../shared/config.ts";
 import type { ComparableSide } from "../compare/diff.ts";
 
 /** 基线结构版本；用例契约或存储格式变化时递增。 */
