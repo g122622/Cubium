@@ -2,14 +2,15 @@
  * run.ts — 指令端到端 diff 的唯一入口。
  *
  * 用法（node >= 24 原生 type stripping，ESM）：
- *   node run.ts                     跑全部用例（当前只有冒烟用例）
+ *   node run.ts                     跑全部用例
  *   node run.ts --case=smoke        只跑 id 含该子串的用例
- *   node run.ts --strict            两侧反馈出现差异时以非零码退出
+ *   node run.ts --strict            出现未登记差异时以非零码退出
  *
- * 退出码：0 两侧都完整跑完；1 至少一侧启动/连接/执行失败（或 --strict 下有差异）。
+ * 退出码：0 两侧都完整跑完且无未登记差异（或未开 --strict）；1 至少一侧启动/连接/
+ * 执行失败，或 --strict 下出现未登记差异。
  */
 
-import { collectDiffs, printReport, runCommandHarness } from "./src/runner.ts";
+import { countUnknownDiffs, printReport, runCommandHarness } from "./src/runner.ts";
 
 interface CliOptions {
     caseFilter: string | null;
@@ -36,7 +37,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
                 [
                     "用法：node run.ts [选项]",
                     "  --case=<子串>   只跑 id 含该子串的用例",
-                    "  --strict        两侧反馈出现差异时以非零码退出",
+                    "  --strict        出现未登记差异时以非零码退出",
                 ].join("\n"),
             );
             process.exit(0);
@@ -55,9 +56,9 @@ async function main(): Promise<void> {
     const report = await runCommandHarness({ caseFilter: cli.caseFilter });
     printReport(report);
 
-    const failed = report.results.cubium.error !== undefined || report.results.vanilla.error !== undefined;
-    const hasDiff = collectDiffs(report).length > 0;
-    if (failed || (cli.strict && hasDiff)) {
+    const failed = report.sides.cubium.error !== undefined || report.sides.vanilla.error !== undefined;
+    const unknown = countUnknownDiffs(report);
+    if (failed || (cli.strict && unknown > 0)) {
         process.exit(1);
     }
     process.exit(0);

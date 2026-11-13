@@ -1,12 +1,12 @@
 /*
- * runner.ts — 指令端到端 diff 的编排骨架。
+ * runner.ts — 指令端到端 diff 的编排。
  *
  * 一条 run 的生命周期：
- *   分配端口 → 建独立工作目录 → 写离线 OP → 启动服务端 → 连 bot → 逐条执行用例
- *   → 采集反馈 → 落盘报告 → 停服并清理。
+ *   加载用例 → 分配棋盘 → 两侧各自：启动服务端 → 连 bot → 逐用例执行
+ *   → 归一化 → 逐步骤比对 → 落盘报告 → 停服清理。
  *
- * 首版只有冒烟用例，验证「两侧能同时跑、反馈能采集、差异能定位」这条链路；
- * 用例加载、归一化与 knownDiff 在后续阶段接入。
+ * 两侧**串行**运行且共享同一份用例与棋盘坐标：并行会让端口、世界目录与 bot 日志互相
+ * 干扰，而指令 diff 的规模还远没到需要并行的时候。
  */
 
 import fs from "node:fs";
@@ -22,8 +22,20 @@ import {
     COMMAND_PROFILE,
     COMMAND_SPAWN_TIMEOUT_MS,
     COMMAND_WORK_ROOT,
+    BOARD_BASE_Y,
+    BOARD_SIZE,
     type ServerKind,
 } from "./config.ts";
+import {
+    boardOriginFor,
+    loadCases,
+    substituteCoordinates,
+    type BoardOrigin,
+    type CommandCase,
+} from "./case.ts";
+import { normalizeFeedback } from "./compare/normalize.ts";
+import { compareCase, partitionDiffs, type CaseComparison, type ComparableSide } from "./compare/diff.ts";
+import { runProbes, type ProbeOutcome } from "./observe/probes.ts";
 import { createBot, type BotHandle } from "../../shared/bot/factory.ts";
 import { waitForEvent } from "../../shared/bot/wait.ts";
 import { writeOpsFile } from "../../shared/servers/ops.ts";
@@ -32,40 +44,20 @@ import { startCubiumServer } from "../../shared/servers/cubium.ts";
 import { removeVanillaWorld, startVanillaServer } from "../../shared/servers/vanilla.ts";
 import { makeRunId, vanillaCacheDir } from "../../shared/servers/workspace.ts";
 
-/** 一条用例：一段按顺序执行的指令序列。 */
-export interface CommandCase {
-    /** 用例标识，`/` 分隔分类；`--case` 按子串匹配。 */
-    readonly id: string;
-    readonly commands: readonly string[];
-}
-
-/**
- * 首版用例：覆盖传送、方块写入、条件判断与广播。
- *
- * 这就是 diff 的判定单元——同一段指令在两侧的结果必须同形。
- */
-export const CASES: readonly CommandCase[] = [
-    {
-        id: "smoke/basic_feedback",
-        commands: [
-            "/tp @s 0 100 0 0 0",
-            "/setblock 0 100 0 minecraft:stone",
-            "/execute if block 0 100 0 minecraft:stone run say e2e-ok",
-            "/setblock 0 100 0 minecraft:air",
-        ],
-    },
-];
+/** 相邻棋盘之间的间隙。 */
+const BOARD_GAP = 8;
 
 /** 单条用例在单侧的执行结果。 */
-export interface CaseResult {
+export interface CaseRunResult {
     readonly caseId: string;
     readonly steps: readonly StepResult[];
+    readonly probes: readonly ProbeOutcome[];
 }
 
 /** 单侧的执行结果。 */
 export interface SideResult {
     readonly kind: ServerKind;
-    readonly cases: readonly CaseResult[];
+    readonly cases: readonly CaseRunResult[];
     readonly error?: string;
 }
 
@@ -73,7 +65,8 @@ export interface SideResult {
 export interface CommandReport {
     readonly runId: string;
     readonly generatedAt: string;
-    readonly results: Readonly<Record<ServerKind, SideResult>>;
+    readonly sides: Readonly<Record<ServerKind, SideResult>>;
+    readonly comparisons: readonly CaseComparison[];
 }
 
 /** 运行参数。 */
@@ -89,20 +82,27 @@ export interface RunnerOptions {
  * @returns 运行报告（同时已落盘）。
  */
 export async function runCommandHarness(options: RunnerOptions): Promise<CommandReport> {
-    const cases = selectCases(options.caseFilter);
+    const cases = selectCases(loadCases(), options.caseFilter);
+    if (cases.length === 0) {
+        throw new Error("没有可执行的用例：cases/ 目录为空");
+    }
+
     const runId = makeRunId();
     const runDir = path.join(COMMAND_WORK_ROOT, "runs", runId);
     fs.mkdirSync(runDir, { recursive: true });
 
-    const results: Partial<Record<ServerKind, SideResult>> = {};
+    const sides: Partial<Record<ServerKind, SideResult>> = {};
     for (const kind of ["cubium", "vanilla"] as const) {
-        results[kind] = await runOneSide(kind, cases, runId, runDir);
+        sides[kind] = await runOneSide(kind, cases, runId, runDir);
     }
+    const cubium = sides["cubium"]!;
+    const vanilla = sides["vanilla"]!;
 
     const report: CommandReport = {
         runId,
         generatedAt: new Date().toISOString(),
-        results: results as Record<ServerKind, SideResult>,
+        sides: { cubium, vanilla },
+        comparisons: compareAll(cases, cubium, vanilla),
     };
     writeReport(runId, report, runDir);
     return report;
@@ -113,16 +113,19 @@ export async function runCommandHarness(options: RunnerOptions): Promise<Command
  *
  * 过滤器匹配不到任何用例时直接报错：静默跑 0 条会让「过滤词打错」看起来像通过。
  *
+ * @param cases 全部用例。
  * @param caseFilter 子串；null 表示不过滤。
  * @returns 选中的用例。
  */
-function selectCases(caseFilter: string | null): readonly CommandCase[] {
+export function selectCases(cases: readonly CommandCase[], caseFilter: string | null): readonly CommandCase[] {
     if (caseFilter === null) {
-        return CASES;
+        return cases;
     }
-    const selected = CASES.filter((item) => item.id.includes(caseFilter));
+    const selected = cases.filter((item) => item.id.includes(caseFilter));
     if (selected.length === 0) {
-        throw new Error(`没有 id 含 "${caseFilter}" 的用例（现有：${CASES.map((item) => item.id).join(", ")}）`);
+        throw new Error(
+            `没有 id 含 "${caseFilter}" 的用例（现有：${cases.map((item) => item.id).join(", ") || "无"}）`,
+        );
     }
     return selected;
 }
@@ -173,7 +176,7 @@ async function runOneSide(
             {
                 port,
                 username: COMMAND_BOT_USERNAME,
-                traceLimit: 2_000,
+                traceLimit: 4_000,
             },
             mineflayer.createBot,
         );
@@ -182,13 +185,9 @@ async function runOneSide(
             what: `${kind} bot spawn`,
         });
 
-        const caseResults: CaseResult[] = [];
-        for (const testCase of cases) {
-            const steps: StepResult[] = [];
-            for (const command of testCase.commands) {
-                steps.push(await runStep(handle.bot, command, COMMAND_FEEDBACK_TIMEOUT_MS));
-            }
-            caseResults.push({ caseId: testCase.id, steps });
+        const caseResults: CaseRunResult[] = [];
+        for (const [index, testCase] of cases.entries()) {
+            caseResults.push(await runOneCase(handle.bot, testCase, boardOriginForCase(index)));
         }
         return { kind, cases: caseResults };
     } catch (error) {
@@ -204,6 +203,89 @@ async function runOneSide(
             removeVanillaWorld(vanillaWorldName);
         }
     }
+}
+
+/**
+ * 执行单条用例：先把 bot 钉到棋盘中心，再跑 setup、steps 与 probes。
+ *
+ * @param bot 已就绪的 bot。
+ * @param testCase 用例。
+ * @param origin 本用例的棋盘原点。
+ * @returns 执行结果。
+ */
+async function runOneCase(bot: BotLike, testCase: CommandCase, origin: BoardOrigin): Promise<CaseRunResult> {
+    // 传送本身不计入判定：两侧的 tp 反馈文案存在已知差异，而它只是棋盘定位手段。
+    await runStep(
+        bot,
+        substituteCoordinates("/tp @s {x} {y} {z} 0 0", origin),
+        COMMAND_FEEDBACK_TIMEOUT_MS,
+    );
+    for (const command of testCase.setup) {
+        await runStep(bot, substituteCoordinates(command, origin), COMMAND_FEEDBACK_TIMEOUT_MS);
+    }
+
+    const steps: StepResult[] = [];
+    for (const step of testCase.steps) {
+        steps.push(await runStep(bot, substituteCoordinates(step.command, origin), COMMAND_FEEDBACK_TIMEOUT_MS));
+    }
+    const probes = await runProbes(bot, testCase.probes, origin, COMMAND_FEEDBACK_TIMEOUT_MS);
+    return { caseId: testCase.id, steps, probes };
+}
+
+/** bot 的最小形态（避免 runner 依赖 mineflayer 的具体类型）。 */
+type BotLike = Parameters<typeof runStep>[0];
+
+/** 按索引分配棋盘原点。 */
+function boardOriginForCase(index: number): BoardOrigin {
+    return boardOriginFor(index, BOARD_BASE_Y, BOARD_SIZE, BOARD_GAP);
+}
+
+/**
+ * 逐用例比对两侧结果。
+ *
+ * @param cases 用例（顺序与执行结果一致）。
+ * @param cubium Cubium 侧结果。
+ * @param vanilla vanilla 侧结果。
+ * @returns 比对结果；任一侧整体失败时为空。
+ */
+function compareAll(
+    cases: readonly CommandCase[],
+    cubium: SideResult,
+    vanilla: SideResult,
+): readonly CaseComparison[] {
+    if (cubium.error !== undefined || vanilla.error !== undefined) {
+        return [];
+    }
+    const comparisons: CaseComparison[] = [];
+    for (const [index, testCase] of cases.entries()) {
+        const left = cubium.cases[index];
+        const right = vanilla.cases[index];
+        if (left === undefined || right === undefined) {
+            continue;
+        }
+        comparisons.push(
+            compareCase(
+                {
+                    caseId: testCase.id,
+                    stepCommands: left.steps.map((step) => step.command),
+                    probeCommands: new Map(left.probes.map((probe) => [probe.key, probe.command])),
+                    knownDiffs: testCase.knownDiffs,
+                },
+                toComparable(left),
+                toComparable(right),
+            ),
+        );
+    }
+    return comparisons;
+}
+
+/** 把一侧结果转成可比较形态。 */
+function toComparable(side: CaseRunResult): ComparableSide {
+    return {
+        stepTexts: side.steps.map((step) => normalizeFeedback(step.feedback)),
+        stepTimeouts: side.steps.map((step) => step.timedOut),
+        probeTexts: new Map(side.probes.map((probe) => [probe.key, probe.text])),
+    };
 }
 
 /**
@@ -232,65 +314,66 @@ function writeReport(runId: string, report: CommandReport, runDir: string): void
 }
 
 /**
+ * 统计新差异数量（已登记的 knownDiff 不计入）。
+ *
+ * @param report 运行报告。
+ * @returns 新差异条数。
+ */
+export function countUnknownDiffs(report: CommandReport): number {
+    return report.comparisons.reduce((total, item) => total + partitionDiffs(item).unknown.length, 0);
+}
+
+/**
  * 打印报告摘要。
  *
  * @param report 运行报告。
  */
 export function printReport(report: CommandReport): void {
     console.log(`\nrunId: ${report.runId}`);
+
     for (const kind of ["cubium", "vanilla"] as const) {
-        const side = report.results[kind];
-        console.log(`\n[${kind}]`);
+        const side = report.sides[kind];
         if (side.error !== undefined) {
-            console.log(`  ERROR: ${side.error}`);
+            console.log(`\n[${kind}] ERROR: ${side.error}`);
             continue;
         }
-        for (const item of side.cases) {
-            console.log(`  ${item.caseId}`);
-            for (const step of item.steps) {
-                const text = step.feedback.map((entry) => entry.text).join(" | ");
-                console.log(`    ${step.command}`);
-                console.log(`      -> ${step.timedOut ? "<无反馈>" : text} (${step.elapsedMs}ms)`);
-            }
-        }
+        console.log(`\n[${kind}] ${side.cases.length} 条用例`);
     }
 
-    const diffs = collectDiffs(report);
-    console.log(diffs.length === 0 ? "\n反馈文本：两侧一致。" : `\n反馈差异（${diffs.length}）：\n${diffs.join("\n")}`);
+    let unknownTotal = 0;
+    let knownTotal = 0;
+    let staleTotal = 0;
+    for (const comparison of report.comparisons) {
+        const { known, unknown } = partitionDiffs(comparison);
+        if (known.length === 0 && unknown.length === 0 && comparison.staleKnownDiffs.length === 0) {
+            console.log(`\n✓ ${comparison.caseId}`);
+            continue;
+        }
+
+        console.log(`\n${unknown.length === 0 ? "≈" : "✗"} ${comparison.caseId}`);
+        for (const diff of unknown) {
+            console.log(`  [新差异] ${diff.path} (${diff.category}) ${diff.command}`);
+            console.log(`    cubium: ${formatText(diff.cubium)}`);
+            console.log(`    vanilla: ${formatText(diff.vanilla)}`);
+        }
+        for (const diff of known) {
+            console.log(`  [已登记] ${diff.path} ${diff.known?.reason ?? ""}`);
+        }
+        for (const stale of comparison.staleKnownDiffs) {
+            console.log(`  [登记过期] ${stale.path} —— 本次未出现该差异，可删除登记`);
+        }
+        unknownTotal += unknown.length;
+        knownTotal += known.length;
+        staleTotal += comparison.staleKnownDiffs.length;
+    }
+
+    console.log(
+        `\n合计：新差异 ${unknownTotal}，已登记 ${knownTotal}，登记过期 ${staleTotal}。` +
+            `\n报告：build/e2e/command/artifacts/${report.runId}/report.json`,
+    );
 }
 
-/**
- * 收集两侧反馈差异（逐用例逐步骤比对）。
- *
- * @param report 运行报告。
- * @returns 差异描述行；空数组表示无差异或数据不完整。
- */
-export function collectDiffs(report: CommandReport): string[] {
-    const cubium = report.results.cubium;
-    const vanilla = report.results.vanilla;
-    if (cubium.error !== undefined || vanilla.error !== undefined) {
-        return [];
-    }
-    const lines: string[] = [];
-    const caseCount = Math.min(cubium.cases.length, vanilla.cases.length);
-    for (let caseIndex = 0; caseIndex < caseCount; caseIndex += 1) {
-        const left = cubium.cases[caseIndex];
-        const right = vanilla.cases[caseIndex];
-        if (left === undefined || right === undefined) {
-            continue;
-        }
-        const stepCount = Math.max(left.steps.length, right.steps.length);
-        for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
-            const leftText = left.steps[stepIndex]?.feedback.map((entry) => entry.text).join("\n") ?? "<无此步>";
-            const rightText = right.steps[stepIndex]?.feedback.map((entry) => entry.text).join("\n") ?? "<无此步>";
-            if (leftText === rightText) {
-                continue;
-            }
-            lines.push(
-                `  ${left.caseId} #${stepIndex} ${left.steps[stepIndex]?.command ?? ""}` +
-                    `\n    cubium: ${leftText}\n    vanilla: ${rightText}`,
-            );
-        }
-    }
-    return lines;
+/** 多行文本在报告里压成一行，避免刷屏。 */
+function formatText(text: string): string {
+    return text.length === 0 ? "<无反馈>" : text.replace(/\n/g, " ⏎ ");
 }

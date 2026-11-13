@@ -1,0 +1,15 @@
+{
+  "id": "smoke/basic_feedback",
+  "title": "方块写入、条件判断与广播的反馈链路",
+  "category": "smoke",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:air"
+  ],
+  "steps": [
+    { "command": "/setblock {x} {y} {z} minecraft:stone" },
+    { "command": "/execute if block {x} {y} {z} minecraft:stone run say e2e-ok" },
+    { "command": "/setblock {x} {y} {z} minecraft:air" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

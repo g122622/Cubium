@@ -1,0 +1,17 @@
+{
+  "id": "command/teleport_feedback",
+  "title": "只传送自己的反馈文案",
+  "category": "command",
+  "setup": [],
+  "steps": [
+    { "command": "/tp @s {x} {y} {z} 0 0" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "单目标传送被当成批量分支处理，反馈为「Teleported N entities to ...」，坐标用整数；vanilla 用单个实体的「Teleported <name> to ...」与 6 位小数",
+      "evidence": "src/server/command/commands/TeleportCommand.cpp"
+    }
+  ]
+}

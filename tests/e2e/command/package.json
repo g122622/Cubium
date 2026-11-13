@@ -9,9 +9,7 @@
   },
   "scripts": {
     "test": "node run.ts",
-    "diff": "node run.ts --mode=diff",
-    "record": "node run.ts --mode=record",
-    "regress": "node run.ts --mode=regress"
+    "test:unit": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "minecraft-data": "3.115.0",
