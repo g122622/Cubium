@@ -14,7 +14,7 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt } from "../assert/surface.ts";
-import { delay, waitForCondition } from "../bot/wait.ts";
+import { delay, waitForCondition } from "../../../shared/bot/wait.ts";
 
 /** 超平坦默认层（bedrock 1 / dirt 2 / grass_block 1），两侧应当一致。 */
 const EXPECTED_LAYERS = ["grass_block", "dirt", "dirt", "bedrock"];

@@ -13,7 +13,7 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt } from "../assert/surface.ts";
-import { delay, waitForCondition } from "../bot/wait.ts";
+import { delay, waitForCondition } from "../../../shared/bot/wait.ts";
 
 /**
  * 心跳往返的等待上限。

@@ -14,7 +14,7 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { vec3 } from "../assert/surface.ts";
-import { delay, waitForCondition } from "../bot/wait.ts";
+import { delay, waitForCondition } from "../../../shared/bot/wait.ts";
 // 槽位常量与交互助手统一来自 shared.ts（本文件此前自带一份副本，见该文件的说明）。
 import { clearSlot, INV_HOTBAR_SLOT_0, setSlot, slotItemName } from "./shared.ts";
 

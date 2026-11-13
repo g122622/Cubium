@@ -17,7 +17,7 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
 import { runCommand } from "./shared.ts";
-import { waitForCondition } from "../bot/wait.ts";
+import { waitForCondition } from "../../../shared/bot/wait.ts";
 
 /** 效果名解析（客户端注册表里 speed 恒为 0 号效果）。 */
 const SPEED_EFFECT_ID = 0;

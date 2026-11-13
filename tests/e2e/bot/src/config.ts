@@ -1,56 +1,36 @@
 /*
- * config.ts — e2e harness 的全部常量与路径推导。
+ * config.ts — e2e/bot harness 的专属配置。
  *
- * 约定：本文件只放「不随用例变化」的量。任何随用例变化的量（端口、目录、用例名）
- * 一律由 runner 显式传参，不在此处设默认值——避免数据流被多层默认值掩盖。
+ * 两侧共享的常量（仓库根、Cubium exe、vanilla jar、协议版本、超时）统一放在
+ * tests/e2e/shared/config.ts；本文件只保留 bot harness 自己的基线与用例配置，
+ * 并 re-export 共享常量，让 bot 内部现有的 `../config.ts` 引用保持不变。
  */
 
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { REPO_ROOT } from "../../shared/config.ts";
+import type { ServerProfile as SharedServerProfile } from "../../shared/config.ts";
 
-/** 仓库根目录（tests/e2e/bot/src → 上溯四级）。 */
-export const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
-
-/**
- * Cubium 服务端可执行文件。
- *
- * 按平台补后缀：本仓库使用 Ninja Multi-Config 生成器，Linux 与 Windows 的产物
- * 本地开发从 `build/bin/RelWithDebInfo/` 定位；CI 显式传入隔离构建的绝对路径。
- */
-export const CUBIUM_SERVER_EXE = process.env.CUBIUM_SERVER_EXE !== undefined
-    ? path.resolve(process.env.CUBIUM_SERVER_EXE)
-    : path.join(
-        REPO_ROOT,
-        "build",
-        "bin",
-        "RelWithDebInfo",
-        process.platform === "win32" ? "minecraft-server.exe" : "minecraft-server",
-    );
-
-/** 每次运行的工作根目录（隔离目录、日志、诊断产物都在此下）。 */
-export const WORK_ROOT = path.join(REPO_ROOT, "build", "e2e");
+export { REPO_ROOT };
+export {
+    ARTIFACTS_KEEP,
+    BOT_TIMEOUT_MS,
+    CUBIUM_SERVER_EXE,
+    MC_VERSION,
+    PROTOCOL_VERSION,
+    SERVER_READY_POLL_MS,
+    SERVER_READY_TIMEOUT_MS,
+    SERVER_STOP_GRACE_MS,
+    WORK_ROOT,
+    vanillaServerJar,
+} from "../../shared/config.ts";
+export type { ServerKind, ServerProfile } from "../../shared/config.ts";
 
 /** 基线目录。 */
 export const BASELINE_DIR = path.join(REPO_ROOT, "tests", "e2e", "bot", "baselines");
 
-/** 目标 Minecraft 版本，须与 Cubium 的 kJavaProtocolVersion(774) 精确匹配。 */
-export const MC_VERSION = "1.21.11";
-
-/** 协议号，写入基线 meta 用于失效判定。 */
-export const PROTOCOL_VERSION = 774;
-
 /** 基线 schema 版本。字段结构变更时递增，旧基线将被拒绝比对。 */
 export const BASELINE_SCHEMA_VERSION = 1;
-
-/** 服务端就绪探测：TCP 轮询间隔与总超时。 */
-export const SERVER_READY_POLL_MS = 200;
-export const SERVER_READY_TIMEOUT_MS = 120_000;
-
-/** 服务端优雅停止等待时间（超时后硬杀）。 */
-export const SERVER_STOP_GRACE_MS = 3_000;
 
 /**
  * 单个用例的默认超时（毫秒）。
@@ -61,32 +41,8 @@ export const SERVER_STOP_GRACE_MS = 3_000;
  */
 export const CASE_TIMEOUT_MS = 240_000;
 
-/** bot 连接超时（传给 mineflayer 的 checkTimeoutInterval）。 */
-export const BOT_TIMEOUT_MS = 30_000;
-
 /** 等待 spawn 的上限。 */
 export const SPAWN_TIMEOUT_MS = 30_000;
-
-/** 保留的历史诊断目录数量上限。 */
-export const ARTIFACTS_KEEP = 10;
-
-/** e2e 专用服务端配置（world.viewDistance 等）。 */
-export interface ServerProfile {
-    /** 世界名（同时作为 saves/ 下的目录名）。 */
-    readonly worldName: string;
-    /** 模拟距离。 */
-    readonly simulationDistance: number;
-    /** 视距。区块发送为每 tick 全量抽干，降低视距可显著加快 spawn。 */
-    readonly viewDistance: number;
-    /** 世界类型：e2e 用 flat，因其地形可逐格预测。 */
-    readonly levelType: string;
-    /** 世界种子。 */
-    readonly levelSeed: string;
-    /** 游戏模式。 */
-    readonly gameMode: string;
-    /** 难度。 */
-    readonly difficulty: string;
-}
 
 /**
  * e2e 使用的服务端配置档。
@@ -98,7 +54,7 @@ export interface ServerProfile {
  * TODO: 属性同步包（update_attributes）本身已实现，但属性集合里还没有 block_break_speed
  *       （连同其挖掘耗时消费点）。补齐后这些用例应改回 survival 模式。
  */
-export const E2E_SERVER_PROFILE: ServerProfile = {
+export const E2E_SERVER_PROFILE: SharedServerProfile = {
     worldName: "e2e",
     simulationDistance: 4,
     viewDistance: 4,
@@ -107,19 +63,3 @@ export const E2E_SERVER_PROFILE: ServerProfile = {
     gameMode: "creative",
     difficulty: "peaceful",
 };
-
-/** 官方 vanilla 1.21.11 服务端 jar（本地缓存，双跑对比用）。可用环境变量覆盖。 */
-export function vanillaServerJar(): string {
-    const fromEnv = process.env.MC_VANILLA_JAR;
-    if (fromEnv !== undefined && fromEnv.length > 0) {
-        return fromEnv;
-    }
-    return path.join(
-        os.homedir(),
-        ".gradle",
-        "caches",
-        "fabric-loom",
-        "1.21.11",
-        "minecraft-server.jar",
-    );
-}

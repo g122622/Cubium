@@ -18,7 +18,7 @@ import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
 import { blockNameAt } from "../assert/surface.ts";
-import { delay, waitForCondition } from "../bot/wait.ts";
+import { delay, waitForCondition } from "../../../shared/bot/wait.ts";
 import { INV_HOTBAR_SLOT_0, entityIds, newEntityIds, runCommand, setSlot, waitForSlot } from "./shared.ts";
 
 /** 掉落物实体出现/消失的等待上限。 */

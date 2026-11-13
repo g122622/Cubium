@@ -9,7 +9,7 @@
 import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
-import { delay, waitForCondition, waitForEvent } from "../bot/wait.ts";
+import { delay, waitForCondition, waitForEvent } from "../../../shared/bot/wait.ts";
 
 /** 读 mineflayer 注册表的规模（用于验证 registry_data 被正确解析）。 */
 function registrySizes(bot: Bot): {

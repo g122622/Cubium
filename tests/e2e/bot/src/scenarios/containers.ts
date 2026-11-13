@@ -22,7 +22,7 @@ import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt, vec3 } from "../assert/surface.ts";
-import { delay, waitForCondition } from "../bot/wait.ts";
+import { delay, waitForCondition } from "../../../shared/bot/wait.ts";
 import {
     clearSlot,
     INV_HOTBAR_SLOT_0,

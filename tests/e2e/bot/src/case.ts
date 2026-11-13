@@ -9,10 +9,11 @@
  */
 
 import type { Bot } from "mineflayer";
-import type { PacketTrace } from "./bot/factory.ts";
+import type { PacketTrace } from "../../shared/bot/factory.ts";
+import type { ServerKind } from "../../shared/config.ts";
 
 /** 被测服务端种类。 */
-export type ServerKind = "cubium" | "vanilla";
+export type { ServerKind };
 
 /** 用例运行上下文（由 runner 构造）。 */
 export interface CaseContext {

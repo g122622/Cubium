@@ -19,7 +19,7 @@
 import type { CaseDefinition } from "../case.ts";
 import { expectEq, expectTrue } from "../assert/expect.ts";
 import { blockNameAt, vec3 } from "../assert/surface.ts";
-import { delay } from "../bot/wait.ts";
+import { delay } from "../../../shared/bot/wait.ts";
 
 /** 给 bot 的快捷栏发放方块（creative 模式）。 */
 async function giveBlockToBot(bot: never, itemName: string, count: number): Promise<boolean> {

@@ -12,6 +12,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import mineflayer from "mineflayer";
 import type { Bot } from "mineflayer";
 import {
     BASELINE_DIR,
@@ -22,15 +23,15 @@ import {
     WORK_ROOT,
 } from "./config.ts";
 import type { CaseContext, CaseDefinition, ServerKind } from "./case.ts";
-import { createBot, type BotHandle } from "./bot/factory.ts";
-import { TimeoutError, BotFailureError, waitForCondition, waitForEvent } from "./bot/wait.ts";
+import { createBot, type BotHandle } from "../../shared/bot/factory.ts";
+import { TimeoutError, BotFailureError, waitForCondition, waitForEvent } from "../../shared/bot/wait.ts";
 import { captureSnapshot, type CaseSnapshot } from "./bot/snapshot.ts";
 import { AssertionError } from "./assert/expect.ts";
 import { detectSurfaceY, waitForAreaLoaded } from "./assert/surface.ts";
-import { startCubiumServer } from "./servers/cubium.ts";
-import { removeVanillaWorld, startVanillaServer } from "./servers/vanilla.ts";
-import type { ServerProcess } from "./servers/server-process.ts";
-import { allocateVerifiedPort, waitForPortReleased } from "./servers/port.ts";
+import { startCubiumServer } from "../../shared/servers/cubium.ts";
+import { removeVanillaWorld, startVanillaServer } from "../../shared/servers/vanilla.ts";
+import type { ServerProcess } from "../../shared/servers/server-process.ts";
+import { allocateVerifiedPort, waitForPortReleased } from "../../shared/servers/port.ts";
 import {
     artifactDirFor,
     makeRunId,
@@ -38,8 +39,8 @@ import {
     removeDirQuietly,
     runDirFor,
     vanillaCacheDir,
-} from "./servers/workspace.ts";
-import { writeOpsFile } from "./servers/ops.ts";
+} from "../../shared/servers/workspace.ts";
+import { writeOpsFile } from "../../shared/servers/ops.ts";
 import { compareSnapshot, renderDifferences } from "./baseline/compare.ts";
 import {
     baselinePath,
@@ -307,12 +308,15 @@ async function runSingleCase(
          * 基线抖动（实测：同一用例 3 次运行中有 1 次 onGround 为 false 而其余为 true）。
          */
         const connectOne = async (): Promise<Bot> => {
-            const created = createBot({
-                // 每次连接都读当前的 launch.port：restartServer() 会换端口。
-                port: launch.port,
-                username: botUsername(definition.id, handles.length),
-                traceLimit: TRACE_LIMIT,
-            });
+            const created = createBot(
+                {
+                    // 每次连接都读当前的 launch.port：restartServer() 会换端口。
+                    port: launch.port,
+                    username: botUsername(definition.id, handles.length),
+                    traceLimit: TRACE_LIMIT,
+                },
+                mineflayer.createBot,
+            );
             handles.push(created);
             const label = `bot[${handles.length - 1}]`;
             try {

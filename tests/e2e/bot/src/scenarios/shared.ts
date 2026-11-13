@@ -12,7 +12,7 @@
  */
 
 import type { Bot } from "mineflayer";
-import { waitForCondition } from "../bot/wait.ts";
+import { waitForCondition } from "../../../shared/bot/wait.ts";
 import { vec3 } from "../assert/surface.ts";
 
 /** 玩家背包窗口（containerId=0）的合成结果槽。 */

@@ -15,7 +15,7 @@
 import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
-import { waitForCondition } from "../bot/wait.ts";
+import { waitForCondition } from "../../../shared/bot/wait.ts";
 
 /** 等待 B 收到广播的上限。 */
 const BROADCAST_TIMEOUT_MS = 10_000;

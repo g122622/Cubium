@@ -8,7 +8,7 @@
  * 默认仅在失败时保留；成功用例的工作目录直接删除。
  */
 
-import { persistArtifacts } from "../servers/workspace.ts";
+import { persistArtifacts } from "../../../shared/servers/workspace.ts";
 
 /** 一次失败用例的完整诊断包。 */
 export interface ArtifactBundle {

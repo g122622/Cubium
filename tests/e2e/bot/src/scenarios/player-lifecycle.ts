@@ -18,7 +18,7 @@
 import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
-import { waitForCondition } from "../bot/wait.ts";
+import { waitForCondition } from "../../../shared/bot/wait.ts";
 
 /** 等待实体出现/消失的上限。 */
 const LIFECYCLE_TIMEOUT_MS = 15_000;

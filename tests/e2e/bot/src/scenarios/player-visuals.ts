@@ -12,7 +12,7 @@
 import type { Bot } from "mineflayer";
 import type { CaseDefinition } from "../case.ts";
 import { expectTrue } from "../assert/expect.ts";
-import { waitForCondition } from "../bot/wait.ts";
+import { waitForCondition } from "../../../shared/bot/wait.ts";
 import { INV_HOTBAR_SLOT_0, setSlot } from "./shared.ts";
 
 /** 等待 B 看到 A 的手持物更新的上限。 */

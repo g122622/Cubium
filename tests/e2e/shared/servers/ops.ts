@@ -16,7 +16,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import type { ServerKind } from "../case.ts";
+import type { ServerKind } from "../config.ts";
 
 /** OP 等级：4（Owner），保证 /execute in、/setblock、/fill、/save-all 等全部可用。 */
 const OP_LEVEL = 4;

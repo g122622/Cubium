@@ -8,9 +8,24 @@
  *     update_health(cb, Mojang 名 set_health)，失败时能直接从记录里看出计数为 0。
  */
 
-import mineflayer from "mineflayer";
 import type { Bot } from "mineflayer";
 import { BOT_TIMEOUT_MS, MC_VERSION } from "../config.ts";
+
+/**
+ * mineflayer 的 createBot 函数签名（只约束本模块用到的字段）。
+ *
+ * 由调用方注入而不是在 shared 里直接 import：shared 被多个 harness 共用，各 harness
+ * 的 node_modules 位置不同，把依赖解析留给调用方可以避免 shared 目录额外安装一份。
+ */
+export type MineflayerCreateBot = (options: {
+    host: string;
+    port: number;
+    username: string;
+    version: string;
+    auth: "offline";
+    checkTimeoutInterval: number;
+    hideErrors: boolean;
+}) => Bot;
 
 /** 单条包记录。 */
 export interface PacketRecord {
@@ -134,12 +149,13 @@ export interface BotOptions {
  * 创建一个已连上但尚未等待 spawn 的 bot。
  *
  * @param options 连接参数。
+ * @param mineflayerCreateBot 调用方的 mineflayer.createBot（依赖由调用方提供）。
  * @returns bot 句柄；调用方负责 await 事件并最终 dispose()。
  */
-export function createBot(options: BotOptions): BotHandle {
+export function createBot(options: BotOptions, mineflayerCreateBot: MineflayerCreateBot): BotHandle {
     const trace = new PacketTrace(options.traceLimit);
 
-    const bot = mineflayer.createBot({
+    const bot = mineflayerCreateBot({
         host: "127.0.0.1",
         port: options.port,
         username: options.username,
