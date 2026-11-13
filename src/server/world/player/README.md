@@ -58,7 +58,7 @@ player/
 | `server/network/base/ServerClientConnection.hpp` | ServerClientConnection（网络连接，注入到 ServerPlayer） |
 | `server/world/ServerWorld.hpp` | 服务端世界（spawnEntity、removeEntity） |
 | `server/world/entity/EntityTracker.hpp` | 实体追踪器（trackEntity、untrackEntity） |
-| `server/world/ServerChunkManager.hpp` | 落点搜索时同步加载候选区块 |
+| `server/world/chunk/ServerChunkManager.hpp` | 落点搜索时同步加载候选区块 |
 | `common/world/gamerule/GameRules.hpp` | `spawnRadius` 规则限制搜索半径 |
 
 ### 下游依赖（依赖本模块的）

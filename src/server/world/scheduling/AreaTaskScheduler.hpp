@@ -32,6 +32,9 @@ public:
     /** @brief 空闲时更新执行器；执行器须存活至调度器关闭且计算池排空。 */
     void setExecutor(util::UniversalWorkerPool* executor);
 
+    /** @brief 查询装配的计算池；执行器必须存活至任务排空。 */
+    util::UniversalWorkerPool* executor() const;
+
     /**
      * @brief 接管任务并登记 [center±radius] 区域，radius 小于零时按零处理。
      *

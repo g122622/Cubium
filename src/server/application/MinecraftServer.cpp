@@ -124,8 +124,8 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/settings/ServerSettings.hpp"
 #include "server/stats/StatRegistry.hpp" // StatRegistry::registerBuiltinStats（服务端统计注册表注册）
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"
@@ -1396,14 +1396,13 @@ void MinecraftServer::setupWorldCallbacks()
         // 设置区块卸载回调 - 当区块即将卸载时触发
         world->chunkManager()->setChunkUnloadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
             // 保存并移除区块内实体
-            world->onChunkUnloading(x, z);
             if (auto* cs = serverDim->chunkSendManager()) {
                 cs->onChunkPreUnload(x, z);
             }
         });
 
         // 设置追踪变化回调 - 当玩家进入/离开区块视距时触发
-        world->chunkManager()->ticketManager().setTrackingChangeCallback(
+        world->chunkManager()->setTrackingChangeCallback(
             [serverDim](PlayerId player, ChunkCoord x, ChunkCoord z, bool isTracking) {
                 if (auto* cs = serverDim->chunkSendManager()) {
                     cs->onPlayerTrackingChange(player, x, z, isTracking);
@@ -1425,43 +1424,6 @@ void MinecraftServer::setupWorldCallbacks()
                     mc::network::protocol::ConnectionProtocol::Play,
                     mc::network::ir::PlayPacket{std::move(pkt)},
                 });
-        });
-
-        // 设置实体生成回调
-        world->chunkManager()->setEntitySpawnCallback([this, world](const std::vector<SpawnedEntityData>& entities) {
-            // 通过世界获取 ECS 实体注册表（ServerWorld 持有 m_entityRegistry）
-            auto* registry = world->entityRegistry();
-            if (registry == nullptr) {
-                return;
-            }
-            for (const auto& entityData : entities) {
-                const auto* entityType = entity::EntityRegistry::instance().getType(entityData.entityTypeId);
-                if (!entityType || !entityType->canSummon()) {
-                    continue;
-                }
-                auto entity = entityType->create(world, *registry);
-                if (!entity) {
-                    continue;
-                }
-                entity->setPosition(Vector3(entityData.x, entityData.y, entityData.z));
-                if (world->physicsEngine()) {
-                    entity->setPhysicsEngine(world->physicsEngine());
-                }
-
-                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
-                auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
-                if (mobEntity != nullptr) {
-                    entity::combat::DifficultyInstance difficultyInstance =
-                        entity::combat::DifficultyInstance::at(*world,
-                            BlockPos(static_cast<i32>(std::floor(entityData.x)),
-                                static_cast<i32>(entityData.y),
-                                static_cast<i32>(std::floor(entityData.z))));
-                    mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
-                }
-
-                const EntityInstanceId spawnedId = world->spawnEntity(std::move(entity));
-                MC_UNUSED(spawnedId);
-            }
         });
 
         // 设置光照变化回调：同步数据到 ChunkSection + 广播给客户端
@@ -1730,7 +1692,7 @@ void MinecraftServer::updateClientInformation(
             entity->setPrimaryHand(static_cast<HandSide>(information.mainHand));
         }
         if (auto* chunks = world->chunkManager()) {
-            chunks->ticketManager().setPlayerViewDistance(playerId, information.viewDistance);
+            chunks->setPlayerViewDistance(playerId, information.viewDistance);
         }
     }
     mc::network::ir::play::PlayerInfoUpdate update{};
@@ -2569,7 +2531,7 @@ void MinecraftServer::_updateTickDebugStats(f32 tickTimeMs)
         if (auto* overworld = m_dimensionManager->getOverworld(); overworld != nullptr) {
             if (auto* world = overworld->world(); world != nullptr) {
                 if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
-                    const auto& ticketManager = chunkMgr->ticketManager();
+                    const auto& ticketManager = *chunkMgr;
                     m_debugStats.forcedChunkCount.store(
                         static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
                 }

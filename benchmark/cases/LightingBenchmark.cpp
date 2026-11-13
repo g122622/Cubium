@@ -80,12 +80,33 @@ public:
         return m_chunk->getBlockState(pos.x & 0xF, pos.y, pos.z & 0xF);
     }
 
-    mc::IWorld* getWorld() override { return nullptr; }
-    const mc::IWorld* getWorld() const override { return nullptr; }
+    mc::IWorld* getWorld() override
+    {
+        return nullptr;
+    }
+
+    const mc::IWorld* getWorld() const override
+    {
+        return nullptr;
+    }
+
     void markLightChanged(mc::LightType, const SectionPos&) override {}
-    bool hasSkyLight() const override { return false; }
-    i32 getMinBuildHeight() const override { return mc::world::MIN_BUILD_HEIGHT; }
-    i32 getMaxBuildHeight() const override { return mc::world::MAX_BUILD_HEIGHT; }
+
+    bool hasSkyLight() const override
+    {
+        return false;
+    }
+
+    i32 getMinBuildHeight() const override
+    {
+        return mc::world::MIN_BUILD_HEIGHT;
+    }
+
+    i32 getMaxBuildHeight() const override
+    {
+        return mc::world::MAX_BUILD_HEIGHT;
+    }
+
     i32 getSectionCount() const override
     {
         return (mc::world::MAX_BUILD_HEIGHT - mc::world::MIN_BUILD_HEIGHT) >> 4;
@@ -124,9 +145,8 @@ void Lighting(::benchmark::State& state)
     // 预填：在基准层摆满光源并传播一次，使迭代开始前光照场处于"满光源"稳态。
     chunk->setBlockState(8, BENCH_LIGHT_Y, 8, &mc::VanillaBlocks::GLOWSTONE->defaultState());
     auto* engine = WorldLightManager::acquireBlockLightEngine();
-    engine->updateSectionStatus(SectionPos(static_cast<i32>(BENCH_CHUNK_X), BENCH_LIGHT_Y >> 4,
-                                    static_cast<i32>(BENCH_CHUNK_Z)),
-        false);
+    engine->updateSectionStatus(
+        SectionPos(static_cast<i32>(BENCH_CHUNK_X), BENCH_LIGHT_Y >> 4, static_cast<i32>(BENCH_CHUNK_Z)), false);
     engine->light(&provider, chunk.get(), false);
     WorldLightManager::releaseBlockLightEngine(engine);
 

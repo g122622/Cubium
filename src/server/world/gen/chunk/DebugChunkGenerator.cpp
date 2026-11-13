@@ -32,7 +32,7 @@
 #include "common/world/block/registry/BlockRegistry.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/gen/spawn/WorldGenSpawner.hpp"

@@ -38,7 +38,7 @@
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/generation/base/DecorationStage.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseColumn.hpp"

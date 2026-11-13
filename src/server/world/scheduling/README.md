@@ -15,7 +15,7 @@ scheduling/
 
 ## 上下游外部依赖关系
 
-`ServerChunkManager` 每世界持有一个调度器。`ChunkTaskScheduler`、加载与运行时光照、区块序列化共享该实例。底层依赖 `ITask`、`UniversalWorkerPool`、`ChunkPos` 和标准库；不创建线程，不修改 IO 或客户端 mesh 池的调度策略。
+`ServerWorld` 每世界持有一个调度器，独立生成运行时显式持有自己的实例。`ChunkGenerationScheduler`、加载与运行时光照、区块序列化共享该实例。底层依赖 `ITask`、`UniversalWorkerPool`、`ChunkPos` 和标准库；不创建线程，不修改 IO 或客户端 mesh 池的调度策略。
 
 ## 容易踩的坑
 

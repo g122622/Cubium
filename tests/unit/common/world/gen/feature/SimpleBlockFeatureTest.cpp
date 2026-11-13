@@ -30,7 +30,7 @@
 #include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/feature/ConfiguredFeature.hpp"

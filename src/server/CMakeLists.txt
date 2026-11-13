@@ -461,16 +461,25 @@ add_library(mc_server_shared OBJECT
     test/script/context/ScriptBindingRegistry.cpp
     test/script/context/ScriptGameTestAccessor.cpp
     test/simulated/SimulatedPlayer.cpp
-    world/ChunkLightingProvider.cpp
-    world/ChunkLoadLightTask.cpp
-    world/ChunkProgressionTask.cpp
-    world/ChunkTaskScheduler.cpp
-    world/RuntimeLightTask.cpp
-    world/RuntimeLightingProvider.cpp
-    world/ServerChunkManager.cpp
-    world/ServerLightQueue.cpp
+    world/chunk/lifecycle/generation/ChunkLightingProvider.cpp
+    world/lighting/runtime/ChunkLoadLightTask.cpp
+    world/chunk/lifecycle/generation/ChunkProgressionTask.cpp
+    world/chunk/lifecycle/generation/ChunkGenerationScheduler.cpp
+    world/lighting/runtime/RuntimeLightTask.cpp
+    world/lighting/runtime/RuntimeLightingProvider.cpp
+    world/chunk/ServerChunkManager.cpp
+    world/chunk/lifecycle/ChunkLifecycleController.cpp
+    world/chunk/lifecycle/state/ChunkRegistry.cpp
+    world/chunk/lifecycle/loading/ChunkSourceLoader.cpp
+    world/chunk/lifecycle/unloading/ChunkUnloadController.cpp
+    world/chunk/lifecycle/generation/ChunkStepExecutor.cpp
+    world/chunk/integration/WorldChunkLifecycle.cpp
+    world/chunk/diagnostics/ChunkDiagnostics.cpp
+    world/chunk/lifecycle/demand/ChunkDemandController.cpp
+    world/chunk/lifecycle/demand/base/ChunkDistanceGraph.cpp
+    world/lighting/runtime/ServerLightQueue.cpp
     world/ServerWorld.cpp
-    world/SingleChunkLifecycleManager.cpp
+    world/chunk/lifecycle/state/ChunkHolder.cpp
     world/blockentity/sculk/SculkShriekerHelper.cpp
     world/blockentity/sculk/SculkVibrationSystem.cpp
     world/drop/BlockDropHandler.cpp
@@ -658,8 +667,8 @@ if(WIN32)
 endif()
 
 target_sources(mc_gen PRIVATE
-    world/chunk/pipeline/ChunkDependencies.cpp
-    world/chunk/pipeline/ChunkPyramid.cpp
-    world/chunk/pipeline/ChunkStatus.cpp
+    world/chunk/base/pipeline/ChunkDependencies.cpp
+    world/chunk/base/pipeline/ChunkPyramid.cpp
+    world/chunk/base/pipeline/ChunkStatus.cpp
     world/gen/structure/base/StructureBoundingBox.cpp
 )

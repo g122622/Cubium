@@ -30,12 +30,12 @@ Windows 上项目使用 clang-cl 编译，`compile_commands.json` 会导致 clan
 
 ```bash
 # Bash (Git Bash)
-./scripts/tidy/tidy.sh src/server/world/ServerChunkManager.cpp    # 扫描单个文件
+./scripts/tidy/tidy.sh src/server/world/chunk/ServerChunkManager.cpp    # 扫描单个文件
 ./scripts/tidy/tidy.sh src/common/world/*.cpp                      # 扫描多个文件
 ./scripts/tidy/tidy.sh                                             # 不指定文件则扫描全部 src/
 
 # PowerShell
-.\scripts\tidy\tidy.ps1 src\server\world\ServerChunkManager.cpp
+.\scripts\tidy\tidy.ps1 src\server\world\chunk\ServerChunkManager.cpp
 .\scripts\tidy\tidy.ps1 src\server\world                       # 递归扫描 C++ 源文件和头文件
 .\scripts\tidy\tidy.ps1 --jobs 8 src\server\world                # 指定并发数
 .\scripts\tidy\tidy.ps1                                            # 扫描全部 src/
@@ -107,8 +107,8 @@ MSVC: D:/Program Files/.../MSVC/14.51.36231
 Windows SDK: D:/Windows Kits/10/Include/10.0.26100.0
 Scanning 1 file(s)...
 
-FAIL: src/server/world/ServerChunkManager.cpp
-src/server/world/ServerChunkManager.cpp:47:70: error: the parameter 'waiters'
+FAIL: src/server/world/chunk/ServerChunkManager.cpp
+src/server/world/chunk/ServerChunkManager.cpp:47:70: error: the parameter 'waiters'
   is copied for each invocation but only used as a const reference
   [performance-unnecessary-value-param,-warnings-as-errors]
 

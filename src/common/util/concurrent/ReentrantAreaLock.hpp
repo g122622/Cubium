@@ -111,7 +111,7 @@ private:
  * 1. **分区粒度（coordinateShift）**：区块坐标右移 `coordinateShift` 位得到分区(section)键。
  *    `coordinateShift = 0` 时一个区块一个锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 个区块
  *    共用一个 section 锁，减少哈希表条目数与 `lock`/`unlock` 的 section 操作数，但增大锁竞争粒度。
- *    调用方按场景选择：`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使
+ *    调用方按场景选择：`ChunkGenerationScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使
  *    `2*maxAccessRadius` 锁只触达 1~4 个 section 而非 2025 个。
  *
  * 2. **Node 所有权**：一次 `lock` 调用创建一个 `Node`，该 Node 代表调用线程对区域内所有
@@ -140,7 +140,7 @@ private:
  *
  * ## 在区块生成中的作用
  *
- * `ChunkTaskScheduler` 用它保护 `schedule`/`checkNeighbour`/`onChunkGenComplete` 的原子性：
+ * `ChunkGenerationScheduler` 用它保护 `schedule`/`checkNeighbour`/`onChunkGenComplete` 的原子性：
  * 锁覆盖 `[x±accessRadius, z±accessRadius]`，保证检查邻居状态→建立依赖→创建任务→完成通知
  * 整个流程不被其他线程打断。`onChunkGenComplete` 持有 `2 * maxAccessRadius` 的锁以覆盖
  * 邻居的邻居。
@@ -250,7 +250,7 @@ public:
      *
      * @param coordinateShift 区块坐标右移位数，得到 section 键。0 表示一个区块一个锁条目（最细粒度）；
      *                        N>0 时每 (1<<N)×(1<<N) 个区块共用一个 section 锁。由调用方按场景选择
-     *                        （ChunkTaskScheduler 用 6，对齐 Moonrise getChunkSystemLockShift()）。负值非法。
+     *                        （ChunkGenerationScheduler 用 6，对齐 Moonrise getChunkSystemLockShift()）。负值非法。
      */
     explicit ReentrantAreaLock(i32 coordinateShift)
         : m_coordinateShift(coordinateShift)

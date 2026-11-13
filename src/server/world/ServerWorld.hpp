@@ -22,6 +22,7 @@
  */
 
 #pragma once
+#include "server/world/scheduling/AreaTaskScheduler.hpp"
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -59,15 +60,15 @@
 #include "common/world/tick/manager/TickManager.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
-#include "server/world/RuntimeLightingProvider.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/ServerLightQueue.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/blockevent/BlockEventData.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
 #include "server/world/entity/waypoint/WaypointManager.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/runtime/RuntimeLightingProvider.hpp"
+#include "server/world/lighting/runtime/ServerLightQueue.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
 #include "server/world/weather/WeatherManager.hpp"
@@ -93,8 +94,11 @@ enum class ParticleTypeId : u16;
 }
 
 namespace server {
-class TimeManager; // 前向声明
+namespace sync {
+class ChunkSendManager;
 }
+class TimeManager; // 前向声明
+} // namespace server
 
 namespace loot {
 class LootTableManager; // 前向声明
@@ -158,6 +162,37 @@ public:
     // 初始化
     [[nodiscard]] Result<void> initialize();
     void shutdown();
+
+    /** @brief 本世界的共享区域任务调度入口。 */
+    AreaTaskScheduler& areaTasks() noexcept
+    {
+        return m_areaTasks;
+    }
+
+    /** @brief 装配服务器计算池，须在区域调度空闲时调用。 */
+    void setComputeExecutor(util::UniversalWorkerPool* executor)
+    {
+        m_areaTasks.setExecutor(executor);
+        m_computeExecutor.store(executor, std::memory_order::release);
+    }
+
+    /** @brief 取得世界计算池；不经区块子系统获取。 */
+    util::UniversalWorkerPool* computeExecutor() const
+    {
+        return m_computeExecutor.load(std::memory_order::acquire);
+    }
+
+    /** @brief 装配本维度的区块发送接入。 */
+    void setChunkSendManager(sync::ChunkSendManager* manager)
+    {
+        m_chunkSendManager = manager;
+    }
+
+    /** @brief 主线程区块发送入口。 */
+    sync::ChunkSendManager* chunkSendManager() const
+    {
+        return m_chunkSendManager;
+    }
 
     // ========== 存储系统 ==========
 
@@ -1875,6 +1910,9 @@ private:
     ServerWorldConfig m_config;
     world::storage::SingleLevelStorageManager* m_storage = nullptr; ///< 世界级共享单存档存储门面（不拥有）
     IServer* m_server = nullptr;                                    ///< 服务器接口（不拥有，由 MinecraftServer 注入）
+    AreaTaskScheduler m_areaTasks{nullptr};
+    std::atomic<util::UniversalWorkerPool*> m_computeExecutor{nullptr};
+    sync::ChunkSendManager* m_chunkSendManager = nullptr;
     std::unique_ptr<ServerChunkManager> m_chunkManager;
     /// 本维度 ECS 实体注册表。每维度一个，三维度三 registry 天然隔离。
     /// 必须声明在 m_entityManager 之前（成员按声明顺序构造，registry 先构造，manager 持其引用）。

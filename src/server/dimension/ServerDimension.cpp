@@ -92,13 +92,15 @@ Result<void> ServerDimension::initialize()
     }
 
     // 创建同步管理器
-    m_chunkSendManager = std::make_unique<server::sync::ChunkSendManager>(
-        *m_world->chunkManager(), m_world->chunkManager()->ticketManager());
+    m_chunkSendManager =
+        std::make_unique<server::sync::ChunkSendManager>(*m_world->chunkManager(), m_world->areaTasks());
     m_blockUpdateSyncManager =
-        std::make_unique<server::sync::BlockUpdateSyncManager>(m_world->chunkManager()->ticketManager());
+        std::make_unique<server::sync::BlockUpdateSyncManager>([this](ChunkCoord x, ChunkCoord z) {
+            return m_world->chunkManager()->getTrackingPlayers(x, z);
+        });
 
     // 设置区块发送管理器指针
-    m_world->chunkManager()->setChunkSendManager(m_chunkSendManager.get());
+    m_world->setChunkSendManager(m_chunkSendManager.get());
 
     // 创建生物生成管理器
     m_naturalSpawner = std::make_unique<world::spawn::NaturalSpawner>();
@@ -151,21 +153,19 @@ void ServerDimension::shutdown()
     m_blockUpdateSyncManager.reset();
     m_chunkSendManager->shutdown();
     // 世界仍持有裸指针，解绑后再释放，避免之后任何访问走到悬垂对象。
-    m_world->chunkManager()->setChunkSendManager(nullptr);
+    m_world->setChunkSendManager(nullptr);
 
     // 先关闭本维度的区域调度器（不再接纳新任务、取消排队任务、等待在途任务结束），再销毁
     // 管理器：构建任务完成回调之前任务体已被调度器释放，所以在途任务是常态；排空后本维度
     // 不再有任何引用管理器的任务在计算池里跑，销毁时机也就完全确定。
     //
-    // 必须先标记 ChunkTaskScheduler 正在关闭：取消排队任务会同步触发
+    // 必须先标记 ChunkGenerationScheduler 正在关闭：取消排队任务会同步触发
     // ChunkProgressionTask::onCancel → cancelGeneration → rescheduleChunk → schedule →
     // checkNeighbour 的递归。未标记关闭时该链会沿依赖图逐跳递归，深到足以打爆主线程栈
     // （末地/下界卸载时稳定复现 STACK_OVERFLOW）。ServerChunkManager::shutdown 稍后还会
     // 再次置位并做完整的 holder 取消，此处置位只是让前面的排空不再尝试重调度。
-    if (server::ChunkTaskScheduler* scheduler = m_world->chunkManager()->getTaskScheduler(); scheduler != nullptr) {
-        scheduler->setShuttingDown();
-    }
-    m_world->chunkManager()->areaTasks().shutdown();
+    m_world->chunkManager()->stopScheduling();
+    m_world->areaTasks().shutdown();
     m_chunkSendManager->releaseLifetimeGuard();
     m_chunkSendManager.reset();
 

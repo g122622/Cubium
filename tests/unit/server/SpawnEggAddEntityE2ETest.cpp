@@ -82,7 +82,7 @@
 #include "common/world/entity/JavaEntityTypeIdMap.hpp"
 #include "common/world/spawn/EntitySpawnPlacementRegistry.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"

@@ -54,9 +54,9 @@ Cubium 是一个现代化的 Minecraft 克隆项目，采用客户端-服务器�
 ### 区块生成类型
 - `ChunkStatus`：生成阶段（EMPTY → STRUCTURE_STARTS → STRUCTURE_REFERENCES → BIOMES → NOISE → SURFACE → CARVERS → FEATURES → INITIALIZE_LIGHT → LIGHT → SPAWN → FULL）
 - `ChunkPrimer`：生成过程中的中间区块（累积式，同一对象贯穿所有状态）
-- `ChunkProgressionTask`：单状态推进任务，提交到 UniversalWorkerPool 执行（`src/server/world/`）
-- `ChunkTaskScheduler`：生成调度核心（双向邻居依赖图 + 区域锁，`src/server/world/`）
-- `SingleChunkLifecycleManager`：单区块生命周期状态机（NewChunkHolder 等价物，`src/server/world/`）
+- `ChunkProgressionTask`：单状态推进任务，提交到 UniversalWorkerPool 执行（`src/server/world/chunk/lifecycle/generation/`）
+- `ChunkGenerationScheduler`：生成调度核心（双向邻居依赖图 + 区域锁，`src/server/world/chunk/lifecycle/generation/`）
+- `ChunkHolder`：单区块状态聚合（NewChunkHolder 等价物，`src/server/world/chunk/lifecycle/state/`）
 - `IChunk`：区块接口
 
 ### 生物群系类型
@@ -134,9 +134,9 @@ src/common/world/
 src/common/world/chunk/
 ├── base/                       # 位置与标识纯值类型（ChunkPos、SectionPos、ChunkId）
 ├── data/                       # 区块数据模型（ChunkData、ChunkSection、Heightmap、BiomeContainer、IChunk）
-└── load/                       # 加载票据系统（ChunkLoadTicket、ChunkLoadTicketManager、ChunkDistanceGraph、ChunkLoadLevel）
+└── IChunkManager.hpp           # 公共游戏逻辑的区块访问契约
 
-生成阶段与邻居依赖模型位于 `src/server/world/chunk/pipeline/`；生成中间区块位于 `src/server/world/gen/chunk/`。
+生成阶段与邻居依赖模型位于 `src/server/world/chunk/base/pipeline/`；生成中间区块位于 `src/server/world/gen/chunk/`。
 
 block/
 ├── core/                       # Block 身份与行为扩展入口
@@ -409,12 +409,14 @@ MC 1.21.11 生成期间，`WorldGenContext.getHeight(...)` 走 `WorldGenRegion.g
 
 【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。但需注意，README.md内容可能存在过时、有误、缺乏重要信息的情况，必要时需要结合真实代码进行交叉求证和更正。
 
-例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
+例如：当你修改想修改或查看`src\server\world\chunk\lifecycle\demand\ChunkDemandController.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
 
 - 项目根目录的 README.md
-- src\common\README.md
-- src\common\world\README.md
-- src\common\world\chunk\README.md
+- src\server\README.md
+- src\server\world\README.md
+- src\server\world\chunk\README.md
+- src\server\world\chunk\lifecycle\README.md
+- src\server\world\chunk\lifecycle\demand\README.md
 
 同理，当你对代码职责、接口、架构等做了修改，必须视情况决定是否递归修改/新增目录链上的各级README.md！
 

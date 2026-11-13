@@ -1,7 +1,7 @@
 import mineflayer, { type Bot } from "mineflayer";
 import { once } from "node:events";
 import { performance } from "node:perf_hooks";
-import { MC_VERSION } from "../../e2e/bot/src/config.ts";
+import { MC_VERSION } from "../../e2e/shared/config.ts";
 import type { Options } from "./config.ts";
 
 export interface ClientEvent {

@@ -30,9 +30,9 @@
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
 #include <algorithm>
 #include <atomic>
 #include <functional>
@@ -64,10 +64,9 @@ std::shared_ptr<T> aliasLifetimeGuard(T* self)
 
 } // namespace
 
-ChunkSendManager::ChunkSendManager(
-    ServerChunkManager& chunkManager, world::chunk::ChunkLoadTicketManager& ticketManager)
+ChunkSendManager::ChunkSendManager(ServerChunkManager& chunkManager, AreaTaskScheduler& areaTasks)
     : m_chunkManager(chunkManager)
-    , m_ticketManager(ticketManager)
+    , m_areaTasks(areaTasks)
     , m_lifetimeGuard(aliasLifetimeGuard(this))
 {}
 
@@ -93,7 +92,7 @@ void ChunkSendManager::sendChunkToPlayers(
         }
 
         // 取 ServerCompute 池；启动早期/测试环境未注入时为 nullptr，走同步 fallback。
-        util::UniversalWorkerPool* executor = m_chunkManager.computeExecutor();
+        util::UniversalWorkerPool* executor = m_areaTasks.executor();
         if (executor == nullptr) {
             auto result = world::chunk::VanillaChunkWire::buildLevelChunkWithLightIR(*chunk);
             if (result.success()) {
@@ -129,8 +128,7 @@ void ChunkSendManager::sendChunkToPlayers(
             },
             "server_chunk_build_ir");
 
-        m_chunkManager.areaTasks().submit(
-            std::move(task), nullptr, ChunkPos(x, z), 0, util::TaskPriority::Normal, nullptr);
+        m_areaTasks.submit(std::move(task), nullptr, ChunkPos(x, z), 0, util::TaskPriority::Normal, nullptr);
     } else {
         // 区块未加载，触发异步加载
         // 注意：玩家列表需要复制到回调中
@@ -162,7 +160,7 @@ void ChunkSendManager::sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::sendChunkToTrackingPlayers");
 
-    auto players = m_ticketManager.getTrackingPlayers(x, z);
+    auto players = m_chunkManager.getTrackingPlayers(x, z);
     sendChunkToPlayers(x, z, players, true);
 }
 
@@ -184,7 +182,7 @@ void ChunkSendManager::unloadChunkFromTrackingPlayers(ChunkCoord x, ChunkCoord z
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::unloadChunkFromTrackingPlayers");
 
-    auto players = m_ticketManager.getTrackingPlayers(x, z);
+    auto players = m_chunkManager.getTrackingPlayers(x, z);
     unloadChunkFromPlayers(x, z, players);
 }
 
@@ -219,7 +217,7 @@ void ChunkSendManager::removePlayer(PlayerId playerId)
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Lighting, "ChunkSendManager::removePlayer", "playerId", playerId);
 
-    // 追踪状态由 ChunkLoadTicketManager 管理。
+    // 追踪状态由 ChunkDemandController 管理。
     // 这里额外清理待发送队列里的目标玩家，避免断开后仍尝试发包。
     std::lock_guard<std::mutex> lock(m_readyChunksMutex);
 
@@ -287,7 +285,7 @@ void ChunkSendManager::processPendingSends()
     for (const auto& chunk : chunks) {
         // 发送给每个玩家
         for (PlayerId playerId : chunk.players) {
-            if (chunk.validateTracking && !m_ticketManager.isPlayerTracking(playerId, chunk.x, chunk.z)) {
+            if (chunk.validateTracking && !m_chunkManager.isPlayerTracking(playerId, chunk.x, chunk.z)) {
                 continue;
             }
 

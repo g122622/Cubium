@@ -46,6 +46,7 @@ ChunkData _makeChunk(i32 values)
 class _capturedValue final : public rocksdb::WriteBatch::Handler {
 public:
     std::string bytes;
+
     rocksdb::Status PutCF(uint32_t, const rocksdb::Slice&, const rocksdb::Slice& value) override
     {
         bytes.assign(value.data(), value.size());

@@ -22,9 +22,9 @@
  */
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/load/ChunkDistanceGraph.hpp"
-#include "common/world/chunk/load/ChunkLoadTicket.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkDistanceGraph.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkLoadTicket.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -42,7 +42,7 @@ using namespace mc::world::chunk;
 namespace {
 
 template <typename Predicate>
-void _awaitPropagation(ChunkLoadTicketManager& manager, const Predicate& ready)
+void _awaitPropagation(ChunkDemandController& manager, const Predicate& ready)
 {
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
     do {
@@ -471,17 +471,17 @@ TEST_F(ChunkDistanceGraphExtendedTest, TwoSourcesDifferentLevels)
 }
 
 // ============================================================================
-// ChunkLoadTicketManager 测试
+// ChunkDemandController 测试
 // ============================================================================
 
-class ChunkLoadTicketManagerTest : public ::testing::Test {
+class ChunkDemandControllerTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
 
-TEST_F(ChunkLoadTicketManagerTest, SimulationRangeIsIndependentOfViewDistance)
+TEST_F(ChunkDemandControllerTest, SimulationRangeIsIndependentOfViewDistance)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(16);
     manager.updatePlayerPosition(1, 0, 0);
     EXPECT_TRUE(manager.isTickingChunk(5, 5, 4));
@@ -495,9 +495,9 @@ TEST_F(ChunkLoadTicketManagerTest, SimulationRangeIsIndependentOfViewDistance)
     EXPECT_FALSE(manager.isTickingChunk(0, 0, 4));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ExplicitTickingSourcesKeepTheirPropagationRange)
+TEST_F(ChunkDemandControllerTest, ExplicitTickingSourcesKeepTheirPropagationRange)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.registerTicket(TicketTypes::FORCED, -10, 20, 31, ChunkPos(-10, 20));
     manager.processUpdates();
     EXPECT_TRUE(manager.isTickingChunk(-10, 20, 4));
@@ -508,9 +508,9 @@ TEST_F(ChunkLoadTicketManagerTest, ExplicitTickingSourcesKeepTheirPropagationRan
     EXPECT_FALSE(manager.isTickingChunk(-10, 20, 4));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate)
+TEST_F(ChunkDemandControllerTest, PlayerPositionUpdate)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(10);
 
     std::vector<ChunkCoord> xs;
@@ -538,9 +538,9 @@ TEST_F(ChunkLoadTicketManagerTest, PlayerPositionUpdate)
     EXPECT_TRUE(foundLoad);
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ChunkUnloadWhenPlayerLeaves)
+TEST_F(ChunkDemandControllerTest, ChunkUnloadWhenPlayerLeaves)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2); // 小视距便于测试
 
     // 玩家进入 (0, 0)
@@ -558,9 +558,9 @@ TEST_F(ChunkLoadTicketManagerTest, ChunkUnloadWhenPlayerLeaves)
     EXPECT_FALSE(manager.shouldChunkLoad(0, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ForcedChunk)
+TEST_F(ChunkDemandControllerTest, ForcedChunk)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2);
 
     // 强制加载区块 (100, 100)
@@ -581,9 +581,9 @@ TEST_F(ChunkLoadTicketManagerTest, ForcedChunk)
     EXPECT_FALSE(manager.shouldChunkLoad(100, 100));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, MultiplePlayers)
+TEST_F(ChunkDemandControllerTest, MultiplePlayers)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 玩家 1 在 (0, 0)
@@ -607,9 +607,9 @@ TEST_F(ChunkLoadTicketManagerTest, MultiplePlayers)
     EXPECT_EQ(manager.playerCount(), 1u);
 }
 
-TEST_F(ChunkLoadTicketManagerTest, ViewDistanceChange)
+TEST_F(ChunkDemandControllerTest, ViewDistanceChange)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -634,9 +634,9 @@ TEST_F(ChunkLoadTicketManagerTest, ViewDistanceChange)
     EXPECT_TRUE(manager.shouldChunkLoad(10, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerTest, TicketCount)
+TEST_F(ChunkDemandControllerTest, TicketCount)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
 
     // 初始没有票据
     EXPECT_EQ(manager.totalTicketCount(), 0u);
@@ -649,17 +649,17 @@ TEST_F(ChunkLoadTicketManagerTest, TicketCount)
 }
 
 // ============================================================================
-// ChunkLoadTicketManager 扩展测试
+// ChunkDemandController 扩展测试
 // ============================================================================
 
-class ChunkLoadTicketManagerExtendedTest : public ::testing::Test {
+class ChunkDemandControllerExtendedTest : public ::testing::Test {
 protected:
     void SetUp() override {}
 };
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration)
+TEST_F(ChunkDemandControllerExtendedTest, PortalTicketExpiration)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2);
 
     // 添加 PORTAL 票据（300 tick 生命周期）
@@ -683,9 +683,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PortalTicketExpiration)
     EXPECT_FALSE(manager.shouldChunkLoad(50, 50));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave)
+TEST_F(ChunkDemandControllerExtendedTest, ForcedChunkPersistsAfterPlayerLeave)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2);
 
     // 强制加载区块
@@ -713,9 +713,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedChunkPersistsAfterPlayerLeave)
     EXPECT_FALSE(manager.shouldChunkLoad(100, 100));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks)
+TEST_F(ChunkDemandControllerExtendedTest, MultiplePlayersOverlappingChunks)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 玩家 1 在 (0, 0)
@@ -744,9 +744,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersOverlappingChunks)
     // 注意：实际行为取决于票据传播
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets)
+TEST_F(ChunkDemandControllerExtendedTest, GetChunkTickets)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
 
     // 初始没有票据
     EXPECT_EQ(manager.getChunkTickets(0, 0), nullptr);
@@ -767,9 +767,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, GetChunkTickets)
     EXPECT_EQ(tickets->size(), 1u);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload)
+TEST_F(ChunkDemandControllerExtendedTest, PlayerMovementTriggersLoadUnload)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(3);
 
     std::vector<ChunkPos> loadedChunks;
@@ -806,9 +806,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMovementTriggersLoadUnload)
     EXPECT_FALSE(loadedChunks.empty());
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, SamePlayerPositionUpdate)
+TEST_F(ChunkDemandControllerExtendedTest, SamePlayerPositionUpdate)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 玩家进入
@@ -825,9 +825,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SamePlayerPositionUpdate)
     EXPECT_EQ(manager.totalTicketCount(), ticketCount);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions)
+TEST_F(ChunkDemandControllerExtendedTest, ViewDistanceBoundaryConditions)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(10);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -851,9 +851,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceBoundaryConditions)
     EXPECT_FALSE(manager.shouldChunkLoad(23, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance)
+TEST_F(ChunkDemandControllerExtendedTest, SmallViewDistance)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(1); // 最小视距
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -869,9 +869,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, SmallViewDistance)
     EXPECT_TRUE(manager.shouldChunkLoad(0, 2));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
+TEST_F(ChunkDemandControllerExtendedTest, LargeViewDistance)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(10); // 使用正常视距
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -892,9 +892,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LargeViewDistance)
     EXPECT_FALSE(manager.shouldChunkLoad(12, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition)
+TEST_F(ChunkDemandControllerExtendedTest, NegativePlayerPosition)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, -10, -20);
@@ -908,9 +908,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, NegativePlayerPosition)
     EXPECT_FALSE(manager.shouldChunkLoad(-17, -20)); // 距离7，级别35，不加载
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, RemoveNonExistentPlayer)
+TEST_F(ChunkDemandControllerExtendedTest, RemoveNonExistentPlayer)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 移除不存在的玩家不应该崩溃
@@ -918,9 +918,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, RemoveNonExistentPlayer)
     EXPECT_EQ(manager.playerCount(), 0u);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, RegisterReleaseTicketManually)
+TEST_F(ChunkDemandControllerExtendedTest, RegisterReleaseTicketManually)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
 
     // 手动注册票据
     manager.registerTicket(TicketTypes::FORCED, 100, 200, 31, ChunkPos(100, 200));
@@ -935,9 +935,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, RegisterReleaseTicketManually)
     EXPECT_FALSE(manager.shouldChunkLoad(100, 200));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, MultipleForcedChunks)
+TEST_F(ChunkDemandControllerExtendedTest, MultipleForcedChunks)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2);
 
     // 强制加载多个区块
@@ -977,9 +977,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultipleForcedChunks)
     }
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, DistanceGraphAccess)
+TEST_F(ChunkDemandControllerExtendedTest, DistanceGraphAccess)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -990,9 +990,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, DistanceGraphAccess)
     EXPECT_GT(graph.getLevel(0, 0), -1); // Level should be valid
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges)
+TEST_F(ChunkDemandControllerExtendedTest, LevelChangeCallbackMultipleChanges)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(3);
 
     int loadCount = 0;
@@ -1017,9 +1017,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackMultipleChanges)
     EXPECT_GT(unloadCount, 0);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPlayers)
+TEST_F(ChunkDemandControllerExtendedTest, LevelChangeCallbackCanQueryTrackingPlayers)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(3);
 
     std::promise<void> callbackPromise;
@@ -1033,8 +1033,7 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPl
             return;
         }
 
-        if (newLevel > ChunkLoadTicketManager::MAX_LOADED_LEVEL ||
-            oldLevel <= ChunkLoadTicketManager::MAX_LOADED_LEVEL) {
+        if (newLevel > ChunkDemandController::MAX_LOADED_LEVEL || oldLevel <= ChunkDemandController::MAX_LOADED_LEVEL) {
             return;
         }
 
@@ -1064,20 +1063,20 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, LevelChangeCallbackCanQueryTrackingPl
     worker.join();
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ShouldChunkLoadStaticMethod)
+TEST_F(ChunkDemandControllerExtendedTest, ShouldChunkLoadStaticMethod)
 {
     // 测试静态方法
-    EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(31));
-    EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(32));
-    EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(33));
-    EXPECT_TRUE(ChunkLoadTicketManager::shouldChunkLoad(34));
-    EXPECT_FALSE(ChunkLoadTicketManager::shouldChunkLoad(35));
-    EXPECT_FALSE(ChunkLoadTicketManager::shouldChunkLoad(100));
+    EXPECT_TRUE(ChunkDemandController::shouldChunkLoad(31));
+    EXPECT_TRUE(ChunkDemandController::shouldChunkLoad(32));
+    EXPECT_TRUE(ChunkDemandController::shouldChunkLoad(33));
+    EXPECT_TRUE(ChunkDemandController::shouldChunkLoad(34));
+    EXPECT_FALSE(ChunkDemandController::shouldChunkLoad(35));
+    EXPECT_FALSE(ChunkDemandController::shouldChunkLoad(100));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, UnifiedPlayerSourcePropagation)
+TEST_F(ChunkDemandControllerExtendedTest, UnifiedPlayerSourcePropagation)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -1091,9 +1090,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, UnifiedPlayerSourcePropagation)
     EXPECT_EQ(graph.getLevel(6, 0), 34); // 8方向传播：28+6=34=Border
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMoveRebuildsSingleGraph)
+TEST_F(ChunkDemandControllerExtendedTest, PlayerMoveRebuildsSingleGraph)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -1114,9 +1113,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, PlayerMoveRebuildsSingleGraph)
     EXPECT_NE(manager.distanceGraph().getLevel(0, 0), viewDistanceToLevel(5));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceChangeRebuildsPlayerSourceLevel)
+TEST_F(ChunkDemandControllerExtendedTest, ViewDistanceChangeRebuildsPlayerSourceLevel)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(10);
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
@@ -1137,9 +1136,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceChangeRebuildsPlayerSourc
     EXPECT_EQ(manager.distanceGraph().getLevel(17, 0), 35);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, TrackingPlayersFollowIndependentCoverageSet)
+TEST_F(ChunkDemandControllerExtendedTest, TrackingPlayersFollowIndependentCoverageSet)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(3);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -1153,9 +1152,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, TrackingPlayersFollowIndependentCover
     EXPECT_TRUE(manager.isPlayerTracking(1, 13, 10));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersSameCenterKeepSourceUntilLastLeaves)
+TEST_F(ChunkDemandControllerExtendedTest, MultiplePlayersSameCenterKeepSourceUntilLastLeaves)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -1175,9 +1174,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, MultiplePlayersSameCenterKeepSourceUn
     EXPECT_FALSE(manager.shouldChunkLoad(5, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceShrinkClearsOldPropagationTail)
+TEST_F(ChunkDemandControllerExtendedTest, ViewDistanceShrinkClearsOldPropagationTail)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(10);
     manager.updatePlayerPosition(1, 0, 0);
     manager.processUpdates();
@@ -1193,9 +1192,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ViewDistanceShrinkClearsOldPropagatio
     EXPECT_FALSE(manager.shouldChunkLoad(10, 0));
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedTicketAndPlayerSourceUseSingleMinimumLevel)
+TEST_F(ChunkDemandControllerExtendedTest, ForcedTicketAndPlayerSourceUseSingleMinimumLevel)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     manager.updatePlayerPosition(1, 0, 0);
@@ -1211,9 +1210,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ForcedTicketAndPlayerSourceUseSingleM
     EXPECT_EQ(graph.getLevel(6, 0), viewDistanceToLevel(5) + 6); // 8方向传播：28+6=34=Border
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, TrackingChangeCallbackReportsEnterAndLeave)
+TEST_F(ChunkDemandControllerExtendedTest, TrackingChangeCallbackReportsEnterAndLeave)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(2);
 
     std::vector<std::tuple<PlayerId, ChunkCoord, ChunkCoord, bool>> events;
@@ -1577,7 +1576,7 @@ protected:
 
 TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 没有强制加载区块时，返回空列表
@@ -1587,7 +1586,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksEmpty)
 
 TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载单个区块
@@ -1602,7 +1601,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksSingleChunk)
 
 TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载多个区块
@@ -1634,7 +1633,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksMultipleChunks)
 
 TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载多个区块
@@ -1656,7 +1655,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksAfterRemoval)
 
 TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 添加玩家来源
@@ -1675,7 +1674,7 @@ TEST_F(ForcedChunkQueryTest, GetForcedChunksOnlyReturnsForced)
 
 TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 未强制加载时返回 false
@@ -1698,7 +1697,7 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkBasic)
 
 TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerSources)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 添加玩家来源
@@ -1719,7 +1718,7 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkWithPlayerSources)
 
 TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 测试负坐标
@@ -1734,7 +1733,7 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkNegativeCoordinates)
 
 TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载区块
@@ -1755,7 +1754,7 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkAfterPlayerRemoval)
 
 TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载多个区块
@@ -1780,7 +1779,7 @@ TEST_F(ForcedChunkQueryTest, MultipleForcedChunksConsistency)
 
 TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(5);
 
     // 强制加载区块
@@ -1796,9 +1795,9 @@ TEST_F(ForcedChunkQueryTest, IsForcedChunkDoesNotAffectTickets)
     EXPECT_EQ(manager.getForcedChunks().size(), 1u);
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ClientViewDistanceIsIndependentAndRebuildsTracking)
+TEST_F(ChunkDemandControllerExtendedTest, ClientViewDistanceIsIndependentAndRebuildsTracking)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(4);
     manager.setPlayerViewDistance(1, 2);
     manager.updatePlayerPosition(1, 0, 0);
@@ -1823,9 +1822,9 @@ TEST_F(ChunkLoadTicketManagerExtendedTest, ClientViewDistanceIsIndependentAndReb
     }
 }
 
-TEST_F(ChunkLoadTicketManagerExtendedTest, ClientViewDistanceSurvivesServerLimitChangesAndClearsOnLeave)
+TEST_F(ChunkDemandControllerExtendedTest, ClientViewDistanceSurvivesServerLimitChangesAndClearsOnLeave)
 {
-    ChunkLoadTicketManager manager;
+    ChunkDemandController manager;
     manager.setViewDistance(4);
     manager.setPlayerViewDistance(1, 6);
     manager.updatePlayerPosition(1, 0, 0);

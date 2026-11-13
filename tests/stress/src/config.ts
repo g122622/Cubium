@@ -1,5 +1,5 @@
 import path from "node:path";
-import { CUBIUM_SERVER_EXE, REPO_ROOT } from "../../e2e/bot/src/config.ts";
+import { CUBIUM_SERVER_EXE, REPO_ROOT } from "../../e2e/shared/config.ts";
 
 export type ScenarioId = "movement" | "packets" | "joins";
 

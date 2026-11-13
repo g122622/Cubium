@@ -22,6 +22,7 @@
  */
 
 #pragma once
+#include "server/world/scheduling/AreaTaskScheduler.hpp"
 
 #include "common/core/Types.hpp"
 #include "common/network/ir/packets/play/PlayPacketsExtended.hpp"
@@ -34,16 +35,6 @@
 #include <memory>
 #include <mutex>
 #include <vector>
-
-namespace mc {
-namespace world::chunk {
-class ChunkData;
-}
-} // namespace mc
-
-namespace mc::world::chunk {
-class ChunkLoadTicketManager;
-}
 
 namespace mc::server {
 
@@ -60,7 +51,7 @@ namespace sync {
  * - 玩家追踪变化时发送/卸载区块
  * - 区块卸载前发送卸载通知
  *
- * 与 ChunkLoadTicketManager 协同工作：
+ * 与 ChunkDemandController 协同工作：
  * - 通过 getTrackingPlayers() 获取追踪某区块的玩家
  * - 区块加载完成时自动发送
  * - 追踪变化回调触发发送/卸载
@@ -74,7 +65,7 @@ public:
      * @param chunkManager 区块管理器引用
      * @param ticketManager 票据管理器引用（用于查询追踪玩家）
      */
-    ChunkSendManager(ServerChunkManager& chunkManager, world::chunk::ChunkLoadTicketManager& ticketManager);
+    ChunkSendManager(ServerChunkManager& chunkManager, AreaTaskScheduler& areaTasks);
 
     /**
      * @brief 发送区块给指定玩家列表
@@ -94,7 +85,7 @@ public:
      * @param x 区块X坐标
      * @param z 区块Z坐标
      *
-     * 从 ChunkLoadTicketManager 查询追踪该区块的玩家。
+     * 从 ChunkDemandController 查询追踪该区块的玩家。
      */
     void sendChunkToTrackingPlayers(ChunkCoord x, ChunkCoord z);
 
@@ -120,7 +111,7 @@ public:
      * @param z 区块Z坐标
      * @param isTracking true=玩家开始追踪该区块，false=停止追踪
      *
-     * 由 ChunkLoadTicketManager 的追踪变化回调触发。
+     * 由 ChunkDemandController 的追踪变化回调触发。
      * 追踪进入：发送区块（如已加载）或等待加载
      * 追踪离开：发送卸载通知
      */
@@ -217,7 +208,7 @@ private:
     };
 
     ServerChunkManager& m_chunkManager;
-    world::chunk::ChunkLoadTicketManager& m_ticketManager;
+    AreaTaskScheduler& m_areaTasks;
 
     // 准备好的区块数据队列（包含目标玩家列表）
     std::vector<ReadyChunkData> m_readyChunks;

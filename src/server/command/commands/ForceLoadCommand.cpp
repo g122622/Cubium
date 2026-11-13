@@ -34,13 +34,13 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <memory>
@@ -207,7 +207,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 添加强制加载
-    auto& ticketManager = chunkManager->ticketManager();
+    auto& ticketManager = *chunkManager;
     i32 successCount = 0;
     ChunkPos firstChunk(minChunkX, minChunkZ);
 
@@ -222,7 +222,7 @@ i32 ForceLoadCommand::_addForceLoad(CommandContext<ServerCommandSource>& context
     }
 
     // 处理票据更新
-    ticketManager.processUpdates();
+    ticketManager.processTicketUpdates();
 
     // 发送反馈消息
     const std::string firstChunkText = "[" + std::to_string(firstChunk.x) + ", " + std::to_string(firstChunk.z) + "]";
@@ -290,7 +290,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 移除强制加载
-    auto& ticketManager = chunkManager->ticketManager();
+    auto& ticketManager = *chunkManager;
     i32 removedCount = 0;
 
     for (ChunkCoord cx = minChunkX; cx <= maxChunkX; ++cx) {
@@ -304,7 +304,7 @@ i32 ForceLoadCommand::_removeForceLoad(CommandContext<ServerCommandSource>& cont
     }
 
     // 处理票据更新
-    ticketManager.processUpdates();
+    ticketManager.processTicketUpdates();
 
     if (removedCount == 0) {
         source.sendFailure(::mc::text::translatable("commands.forceload.removed.failure"));
@@ -358,7 +358,7 @@ i32 ForceLoadCommand::_queryForceLoad(CommandContext<ServerCommandSource>& conte
     const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 查询强制加载状态
-    auto& ticketManager = chunkManager->ticketManager();
+    auto& ticketManager = *chunkManager;
     bool isForced = ticketManager.isForcedChunk(chunkX, chunkZ);
 
     const std::string chunkText = "[" + std::to_string(chunkX) + ", " + std::to_string(chunkZ) + "]";
@@ -394,7 +394,7 @@ i32 ForceLoadCommand::_listAllForceLoad(CommandContext<ServerCommandSource>& con
     const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 获取所有强制加载区块
-    auto& ticketManager = chunkManager->ticketManager();
+    auto& ticketManager = *chunkManager;
     std::vector<ChunkPos> forcedChunks = ticketManager.getForcedChunks();
 
     i32 count = static_cast<i32>(forcedChunks.size());
@@ -456,7 +456,7 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
     const std::string dimensionName(_getDimensionName(dimensionId));
 
     // 获取所有强制加载区块并移除
-    auto& ticketManager = chunkManager->ticketManager();
+    auto& ticketManager = *chunkManager;
     std::vector<ChunkPos> forcedChunks = ticketManager.getForcedChunks();
 
     i32 removedCount = 0;
@@ -466,7 +466,7 @@ i32 ForceLoadCommand::_removeAllForceLoad(CommandContext<ServerCommandSource>& c
     }
 
     // 处理票据更新
-    ticketManager.processUpdates();
+    ticketManager.processTicketUpdates();
 
     // 发送反馈消息
     std::ostringstream ss;

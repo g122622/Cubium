@@ -35,15 +35,15 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "server/world/RuntimeLightingProvider.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/ServerLightQueue.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/runtime/RuntimeLightingProvider.hpp"
+#include "server/world/lighting/runtime/ServerLightQueue.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <atomic>
 #include <chrono>
@@ -120,7 +120,6 @@ protected:
 TEST_F(RuntimeLightConcurrencyTest, ProviderKeepaliveAndRange)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 同步生成中心区块 (0,0)，其邻居部分会被加载（radiusAware 生成会触达半径2）
     ChunkData* center = m_manager->requestFullChunkSync(0, 0);
@@ -146,7 +145,6 @@ TEST_F(RuntimeLightConcurrencyTest, ProviderKeepaliveAndRange)
 TEST_F(RuntimeLightConcurrencyTest, ProviderCollectsDirtySections)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     m_manager->requestFullChunkSync(0, 0);
 
@@ -174,7 +172,6 @@ TEST_F(RuntimeLightConcurrencyTest, ProviderCollectsDirtySections)
 TEST_F(RuntimeLightConcurrencyTest, FlushQueueRoundTrip)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 生成中心区块，使 markLightChanged 内部 tryToGetChunkInMem 命中、_syncLightDataToChunk 有 nibble 可读
     m_manager->requestFullChunkSync(0, 0);
@@ -206,7 +203,6 @@ TEST_F(RuntimeLightConcurrencyTest, FlushQueueRoundTrip)
 TEST_F(RuntimeLightConcurrencyTest, WorkerAsyncPropagationAndFlush)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     std::atomic<int> lightChangeCount{0};
     m_world->setOnLightChanged([&lightChangeCount](LightType, const SectionPos&) {

@@ -1257,8 +1257,6 @@ add_library(mc_common STATIC
     world/chunk/data/ChunkSection.cpp
     world/chunk/data/PalettedContainer.cpp
     world/chunk/data/Heightmap.cpp
-    world/chunk/load/ChunkDistanceGraph.cpp
-    world/chunk/load/ChunkLoadTicketManager.cpp
 
     # World - Game Event System
     # Note: .cpp files that depend on server headers are in src/server/world/gameevent/

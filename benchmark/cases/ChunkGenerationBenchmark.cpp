@@ -27,9 +27,9 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -172,11 +172,10 @@ struct ChunkGenFixture {
         world->setChunkManager(std::move(chunkManager));
 
         (void)world->initialize();
-        (void)manager->initialize();
 
         // 基准不注册持久票据，距离图无合法源；若允许自动卸载，"卸载→UNLOAD_COOLDOWN 票据→
         // 距离图源→扩散创建→再卸载"会形成正反馈环，淹没生成吞吐测量。抑制自动卸载候选判定，
-        // 仅在 PauseTiming 区间手动 unloadChunkSync。
+        // 仅在 PauseTiming 区间手动 requestChunkUnload。
         manager->setSuppressAutoUnloadForBenchmark(true);
     }
 
@@ -466,7 +465,7 @@ void drainTickLists(mc::server::ServerWorld& world, u64 ticks)
 /**
  * @brief 区块生成吞吐基准（生产级并行生成系统）
  *
- * 走完整的生产链路：ServerChunkManager 请求聚合 → ChunkTaskScheduler 邻居依赖
+ * 走完整的生产链路：ServerChunkManager 请求聚合 → ChunkGenerationScheduler 邻居依赖
  * 调度（ReentrantAreaLock 区域锁）→ UniversalWorkerPool 区域互斥执行 →
  * ChunkProgressionTask 逐状态推进 → FULL 完成回收。
  *
@@ -615,13 +614,13 @@ void ChunkGeneration(::benchmark::State& state)
         }
 
         // 卸载本批区块（计时暂停区间内，不计入测量）：否则第二轮迭代起全部命中
-        // 内存缓存，测的是缓存查询而非生成。逐区块 unloadChunkSync（存档命中已清空
+        // 内存缓存，测的是缓存查询而非生成。逐区块 requestChunkUnload（存档命中已清空
         // 且未修改，生成区块标记脏会触发一次落盘——位于暂停区间，不影响口径），
         // 随后 tick 排空异步卸载收尾队列，等待内存缓存清空（有界轮询防死循环）。
         state.PauseTiming();
         for (i32 dx = -half; dx < half; ++dx) {
             for (i32 dz = -half; dz < half; ++dz) {
-                g_fixture.manager->unloadChunkSync(CENTER_CHUNK_X + dx, CENTER_CHUNK_Z + dz);
+                g_fixture.manager->requestChunkUnload(CENTER_CHUNK_X + dx, CENTER_CHUNK_Z + dz);
             }
         }
         for (i32 drainTick = 0; drainTick < 1000 && g_fixture.manager->loadedChunkCount() > 0; ++drainTick) {

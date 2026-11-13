@@ -49,8 +49,8 @@
 #include "common/world/gameevent/GameEventTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include <memory>
 #include <utility>
 

@@ -25,8 +25,10 @@
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/ChunkSystemTestAccess.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/base/pipeline/ChunkPyramid.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -179,24 +181,13 @@ protected:
 TEST_F(ServerChunkManagerTest, Constructor)
 {
     EXPECT_EQ(m_manager->loadedChunkCount(), 0);
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0);
+    EXPECT_EQ(m_manager->lifecycleManagerCount(), 0);
     EXPECT_FALSE(m_workerPool->isRunning());
-}
-
-TEST_F(ServerChunkManagerTest, Initialize)
-{
-    m_workerPool->start();
-    auto result = m_manager->initialize();
-    EXPECT_TRUE(result.success());
-    EXPECT_TRUE(m_workerPool->isRunning());
-    m_manager->shutdown();
-    m_workerPool->shutdown();
 }
 
 TEST_F(ServerChunkManagerTest, Shutdown)
 {
     m_workerPool->start();
-    m_manager->initialize();
     EXPECT_TRUE(m_workerPool->isRunning());
 
     m_manager->shutdown();
@@ -254,7 +245,7 @@ TEST_F(ServerChunkManagerTest, RequestStructureReferencesSync_GeneratesDirectDep
     // STRUCTURE_REFERENCES 未达 FULL，区块不发布到 m_chunks
     EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
     // holder 存在（生成链路已创建生命周期管理器）
-    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
+    EXPECT_GE(m_manager->lifecycleManagerCount(), 1);
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk)
@@ -300,7 +291,6 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks)
 TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 持 FORCED 票据保活 (0,0)：生产契约要求调用方为"需要继续使用的区块"持票。
     // 卸载改为事件驱动（票级越阈 + 安全即入队，每 tick 按保底批量回收）后，无票据、无玩家来源的
@@ -334,7 +324,6 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
 TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 持 FORCED 票据保活 (5,5)：生产契约要求调用方为"需要继续使用的区块"持票。
     // 卸载自 acedfd505e 起改为事件驱动（票级越阈 + 安全即入队，每 tick 按保底批量回收），
@@ -370,7 +359,6 @@ TEST_F(ServerChunkManagerTest, GetChunkAsync_Callback)
 TEST_F(ServerChunkManagerTest, GetChunkAsync_AlreadyCached)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 先同步生成
     ChunkData* syncChunk = m_manager->requestFullChunkSync(10, 10);
@@ -398,8 +386,8 @@ TEST_F(ServerChunkManagerTest, UnloadChunk)
     m_manager->requestFullChunkSync(0, 0);
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
 
-    m_manager->unloadChunkSync(0, 0);
-    // requestFullChunkSync 生成的区块是脏块(m_dirty=true),unloadChunkSync 走异步存档保存路径
+    m_manager->requestChunkUnload(0, 0);
+    // requestFullChunkSync 生成的区块是脏块(m_dirty=true),requestChunkUnload 走异步存档保存路径
     // (saveChunkAsyncCallback 后 early-return),实际 m_chunks.erase 推迟到 stage3
     // _finalizeUnloadAfterSave,由主线程 tick() 的 _drainPendingUnloadFinishes 出队完成。
     // 生产环境由服务端主循环 tick 驱动;此处 tick() 推进 stage3 收尾,对齐生产契约。
@@ -420,12 +408,11 @@ TEST_F(ServerChunkManagerTest, UnloadChunk)
 TEST_F(ServerChunkManagerTest, UpdatePlayerPosition)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
 
     // 应该创建区块持有者
-    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
+    EXPECT_GE(m_manager->lifecycleManagerCount(), 1);
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -434,9 +421,8 @@ TEST_F(ServerChunkManagerTest, UpdatePlayerPosition)
 TEST_F(ServerChunkManagerTest, UnloadCooldownDoesNotCreateGenerationWork)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
-    const auto initialHolders = m_manager->singleChunkLifecycleManagerCount();
-    auto& tickets = m_manager->ticketManager();
+    const auto initialHolders = m_manager->lifecycleManagerCount();
+    auto& tickets = ChunkSystemTestAccess::lifecycle(*m_manager).demand;
     tickets.registerTicket(world::chunk::TicketTypes::UNLOAD_COOLDOWN,
         1000,
         1000,
@@ -444,7 +430,7 @@ TEST_F(ServerChunkManagerTest, UnloadCooldownDoesNotCreateGenerationWork)
         world::chunk::Unit{});
     for (u32 tick = 0; tick <= world::chunk::TicketTypes::UNLOAD_COOLDOWN.lifespan(); ++tick) {
         m_manager->tick();
-        EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), initialHolders);
+        EXPECT_EQ(m_manager->lifecycleManagerCount(), initialHolders);
         EXPECT_EQ(m_workerPool->pendingTaskCount(), 0);
         EXPECT_EQ(m_workerPool->runningTaskCount(), 0);
     }
@@ -453,9 +439,8 @@ TEST_F(ServerChunkManagerTest, UnloadCooldownDoesNotCreateGenerationWork)
 TEST_F(ServerChunkManagerTest, UnloadCooldownRetainsExistingChunkUntilExpiry)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
     ASSERT_NE(m_manager->requestFullChunkSync(0, 0), nullptr);
-    auto& tickets = m_manager->ticketManager();
+    auto& tickets = ChunkSystemTestAccess::lifecycle(*m_manager).demand;
     const auto& cooldown = world::chunk::TicketTypes::UNLOAD_COOLDOWN;
     const auto level = world::chunk::ChunkPyramid::maxLevel();
     tickets.registerTicket(cooldown, 0, 0, level, world::chunk::Unit{});
@@ -477,10 +462,9 @@ TEST_F(ServerChunkManagerTest, UnloadCooldownRetainsExistingChunkUntilExpiry)
 TEST_F(ServerChunkManagerTest, RemovePlayer)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
-    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
+    EXPECT_GE(m_manager->lifecycleManagerCount(), 1);
 
     m_manager->removePlayer(1);
 
@@ -504,7 +488,6 @@ TEST_F(ServerChunkManagerTest, SetViewDistance)
 TEST_F(ServerChunkManagerTest, Tick)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 多次 tick 不应崩溃
     for (int i = 0; i < 100; ++i) {
@@ -534,7 +517,6 @@ TEST_F(ServerChunkManagerTest, LoadedChunkCount)
 TEST_F(ServerChunkManagerTest, PendingTaskCount)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 没有待处理任务
     EXPECT_EQ(m_manager->pendingTaskCount(), 0);
@@ -555,7 +537,6 @@ TEST_F(ServerChunkManagerTest, GeneratorNotNull)
 TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -599,7 +580,6 @@ TEST_F(ServerChunkManagerTest, GeneratedChunkHasBlocks)
 TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 4 线程并发把请求坐标入队(纯数据生产,mutex 保护 vector)。
     constexpr int kThreads = 4;
@@ -634,7 +614,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
 
     // 主线程串行消费:requestFullChunkSync 阻塞等待生成完成,期间内部 pump _drainPendingLoadCompletes
     // 推进存档加载完成回调(生成路径 promise 由 worker 线程直接 fulfill,无需外部 tick)。
-    // 满足 requestChunkSync 仅主线程调用的契约。无 worker 池时 ChunkTaskScheduler 在线降级执行。
+    // 满足 requestChunkSync 仅主线程调用的契约。无 worker 池时 ChunkGenerationScheduler 在线降级执行。
     int successCount = 0;
     while (successCount < kTotal) {
         ChunkReq req{};
@@ -678,22 +658,21 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
 // 并发生成与卸载竞态测试
 //
 // 复现场景：worker 线程执行 ChunkProgressionTask::execute → onChunkGenComplete 期间，
-// 主线程 tick→_processChunkUnloads→unloadChunkSync 销毁 holder，导致 use-after-free
+// 主线程 tick→_processChunkUnloads→requestChunkUnload 销毁 holder，导致 use-after-free
 // （notifyWaitingNeighbours 读取已释放 holder 的 m_waitingNeighbours，size=385290616 垃圾值）。
 //
 // 测试策略：
 // 1. 启动 worker 池
-// 2. 一个线程不断请求生成新区块（触发 ChunkTaskScheduler 调度，worker 执行 onChunkGenComplete）
-// 3. 同时不断移除玩家/更新位置（触发票据级别变化→_processChunkUnloads→unloadChunkSync）
+// 2. 一个线程不断请求生成新区块（触发 ChunkGenerationScheduler 调度，worker 执行 onChunkGenComplete）
+// 3. 同时不断移除玩家/更新位置（触发票据级别变化→_processChunkUnloads→requestChunkUnload）
 // 4. 持续运行若干秒，观察是否崩溃
 //
-// 若 holder 在 onChunkGenComplete 期间被 unloadChunkSync 销毁，测试会触发 access violation
+// 若 holder 在 onChunkGenComplete 期间被 requestChunkUnload 销毁，测试会触发 access violation
 // （notifyWaitingNeighbours 读取已释放内存）。
 // ============================================================================
 TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 玩家初始位置在原点，生成初始区块
     m_manager->updatePlayerPosition(1, 0.0, 0.0);
@@ -707,7 +686,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     // 看门狗线程：监控 pending/running 趋势，无进展（running==0 且 pending>0）判定死锁。
     // 正常负载下 mover+generator 各 20 次、每次 sleep 1~2ms，应在数十秒内完成；
     // 若 holder 因依赖图清理缺陷永久阻塞（m_waitingNeighbours 非空 → isSafeToUnload 永假），
-    // unloadChunkSync 重试会级联阻塞邻居，导致 stall。
+    // requestChunkUnload 重试会级联阻塞邻居，导致 stall。
     // STALL_THRESHOLD_SECONDS 为硬超时（真正死锁时 running==0 触发提前 abort；纯吞吐量不足时
     // running>0 持续下降，硬超时给 worker 足够时间消化级联生成任务）。
     // 设 280s 低于 CTest 默认 300s：活锁/死锁/holder 泄漏以明确 std::abort() 诊断退出，
@@ -793,7 +772,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
         }
     });
 
-    // 线程 A：移动玩家位置，触发票据级别变化 → _processChunkUnloads → unloadChunkSync。
+    // 线程 A：移动玩家位置，触发票据级别变化 → _processChunkUnloads → requestChunkUnload。
     // 6 区块半径（viewDistance=8 范围内），减少并发 inflight 任务数，
     // 避免任务饥饿（大规模 mover+generator 会堆积大量 inflight 任务级联阻塞）。
     constexpr int MOVE_ITERATIONS = 20;
@@ -890,7 +869,6 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
 TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 同步生成区块：worker 线程 _finalizeGeneratedChunkSync 入队 PendingPostProcess，
     // 但 _drainPendingPostProcess 仅在 tick() 中执行，故生成完成后 isPostProcessingDone 仍为 false。
@@ -898,12 +876,21 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
     ASSERT_NE(chunk, nullptr);
     EXPECT_FALSE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之前未执行";
 
-    // tick 触发 _drainPendingPostProcess：执行 _postProcessChunk 并置 isPostProcessingDone=true。
-    // 按条件等待，避免后处理入队尚未完成时 tick 空转（见 pumpUntil 注释）。
+    // 注册完成与模拟资格独立；没有需求时不能提前执行生成后处理。
+    ASSERT_TRUE(pumpUntil([this] {
+        return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1;
+    }));
+    EXPECT_FALSE(chunk->isPostProcessingDone());
+    m_manager->registerTicket(world::chunk::TicketTypes::FORCED,
+        0,
+        0,
+        static_cast<i32>(world::chunk::ChunkLoadLevel::BlockTicking),
+        ChunkPos(0, 0));
+    m_manager->processTicketUpdates();
+    ASSERT_TRUE(m_manager->isTickingChunk(0, 0, m_world->entityManager().simulationDistance()));
     EXPECT_TRUE(pumpUntil([chunk] {
         return chunk->isPostProcessingDone();
     })) << "postProcess 应在 tick() drain 之后完成";
-    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1) << "区块加载回调应恰好触发一次";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -912,7 +899,6 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
 TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -935,17 +921,16 @@ TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
 TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     m_manager->requestFullChunkSync(0, 0);
     ASSERT_TRUE(pumpUntil([this] {
         return m_chunkLoadedCallCount.load(std::memory_order::acquire) == 1;
     })) << "区块加载回调应在后处理完成后触发一次";
 
-    // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
+    // 卸载：requestChunkUnload 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
     // m_postProcessedChunks key）由 _drainPendingUnloadFinishes 在后续 tick() 中完成。
     // 循环 tick() 直至区块真正移出内存，匹配生产 tick 驱动的异步卸载语义。
-    m_manager->unloadChunkSync(0, 0);
+    m_manager->requestChunkUnload(0, 0);
     for (int i = 0; i < 200 && m_manager->hasChunkInMem(0, 0); ++i) {
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -966,7 +951,6 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
 TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -975,6 +959,13 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
     EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
     EXPECT_FALSE(chunk->isPostProcessingDone()) << "tick 之前 postProcess 不应执行";
 
+    m_manager->registerTicket(world::chunk::TicketTypes::FORCED,
+        0,
+        0,
+        static_cast<i32>(world::chunk::ChunkLoadLevel::BlockTicking),
+        ChunkPos(0, 0));
+    m_manager->processTicketUpdates();
+    ASSERT_TRUE(m_manager->isTickingChunk(0, 0, m_world->entityManager().simulationDistance()));
     m_manager->tick();
     // 单次 tick() 不足以保证后处理已完成：完成请求的 promise 在 _storeChunkInMemorySync 内
     // fulfill，而承载主线程后处理入队的 _enqueuePostProcess 紧随其后执行（见 pumpUntil 注释），

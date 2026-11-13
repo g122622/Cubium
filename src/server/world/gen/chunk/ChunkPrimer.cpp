@@ -32,7 +32,7 @@
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
 #include "server/world/gen/density/NoiseChunk.hpp"
 #include <array>

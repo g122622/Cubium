@@ -42,7 +42,7 @@
 #include "common/world/block/tags/BlockTagLoader.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/registry/RegistryBootstrap.hpp"
-#include "server/world/ChunkTaskScheduler.hpp"
+#include "server/world/chunk/lifecycle/generation/ChunkGenerationScheduler.hpp"
 #include "server/world/gen/density/DensityFunctionLoader.hpp"
 #include "server/world/gen/noise/NoiseLoader.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorPresetLoader.hpp"
@@ -188,7 +188,7 @@ private:
 
 } // namespace
 
-/// 跨用例隔离监听器：每用例结束后重置 ChunkTaskScheduler 的 thread_local 同步调度上下文。
+/// 跨用例隔离监听器：每用例结束后重置 ChunkGenerationScheduler 的 thread_local 同步调度上下文。
 ///
 /// 全二进制直跑（`mc_tests --gtest_filter=...`）时同 worker 线程跨用例复用 thread_local
 /// SyncSchedulingContext，若上一用例残留 pending 队列，下一用例首次 runInlineAndDrain 会
@@ -199,7 +199,7 @@ class TestIsolationListener : public ::testing::EmptyTestEventListener {
 public:
     void OnTestEnd(const ::testing::TestInfo& /*test_info*/) override
     {
-        mc::server::ChunkTaskScheduler::resetThreadLocalContext();
+        mc::server::ChunkGenerationScheduler::resetThreadLocalContext();
     }
 };
 

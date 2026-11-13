@@ -8,8 +8,8 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/BlockEntityRegistry.hpp"
 #include "common/world/blockentity/interactive/PistonBlockEntity.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -136,7 +136,7 @@ TEST_F(ServerWorldPersistenceTest, FailedUnloadSaveRetainsDirtyChunk)
     // 停止的执行器确定性拒绝保存任务，不需要破坏磁盘或注入生产故障开关。
     util::UniversalWorkerPool stoppedIo(1, "RejectedUnloadSave", 4096);
     m_storage.setIoWorkerPool(&stoppedIo);
-    manager->unloadChunkSync(0, 0);
+    manager->requestChunkUnload(0, 0);
     manager->tick();
     EXPECT_EQ(manager->tryToGetChunkInMem(0, 0), chunk);
     EXPECT_TRUE(chunk->isDirty());
@@ -152,13 +152,13 @@ TEST_F(ServerWorldPersistenceTest, UnloadRetainsChunkModifiedAfterSnapshot)
     auto* chunk = manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
     chunk->setDirty(true);
-    manager->unloadChunkSync(0, 0);
+    manager->requestChunkUnload(0, 0);
     // 保存已完成，卸载收尾尚未执行；模拟主线程继续修改区块。
     chunk->setDirty(true);
     manager->tick();
     EXPECT_EQ(manager->tryToGetChunkInMem(0, 0), chunk);
     EXPECT_TRUE(chunk->isDirty());
-    manager->unloadChunkSync(0, 0);
+    manager->requestChunkUnload(0, 0);
     manager->tick();
     EXPECT_FALSE(manager->hasChunkInMem(0, 0));
     runtimeWorld->shutdown();

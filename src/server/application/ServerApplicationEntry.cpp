@@ -51,8 +51,8 @@
 #include "common/mod/bedrock/addon/pack/BehaviorPackList.hpp" // BehaviorPackList 完整类型（packList()->empty/size）
 #include "common/world/WorldConstants.hpp"                    // SPAWN_CHUNK_RADIUS / toChunkCoord
 #include "common/world/chunk/data/ChunkData.hpp"              // ChunkData 完整类型（requestFullChunkSync 返回值）
-#include "server/world/ServerChunkManager.hpp"                // requestFullChunkSync/tick
 #include "server/world/ServerWorld.hpp"                       // spawnPosition()/chunkManager()
+#include "server/world/chunk/ServerChunkManager.hpp"          // requestFullChunkSync/tick
 #include "server/world/gen/feature/template/TemplateManager.hpp"
 #include "minecraft-reborn/version.h" // 终端标题/服务器信息展示的版本号
 

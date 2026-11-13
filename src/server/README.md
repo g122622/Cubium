@@ -58,7 +58,7 @@ server/
 
 ### 2. 区块同步顺序
 
-区块发送依赖 `ChunkLoadTicketManager` 的追踪回调：
+区块发送依赖 `ChunkDemandController` 的追踪回调：
 1. 玩家移动触发 `PlayerChunkTracker` 更新
 2. `TrackingChangeCallback` 通知 `ChunkSendManager`
 3. 区块加载完成后自动发送给追踪玩家

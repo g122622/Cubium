@@ -23,11 +23,12 @@
 
 #include "common/util/thread/ITask.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "server/world/ChunkTaskScheduler.hpp"
-#include "server/world/ServerChunkManager.hpp"
-#include "server/world/SingleChunkLifecycleManager.hpp"
-#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
-#include "server/world/chunk/pipeline/ChunkStep.hpp"
+#include "server/ChunkSystemTestAccess.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/base/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStep.hpp"
+#include "server/world/chunk/lifecycle/generation/ChunkGenerationScheduler.hpp"
+#include "server/world/chunk/lifecycle/state/ChunkHolder.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/settings/FlatLevelGeneratorSettings.hpp"
@@ -42,7 +43,7 @@
 namespace mc::server {
 namespace demand_test {
 
-using world::chunk::SingleChunkLifecycleManager;
+using world::chunk::ChunkHolder;
 namespace ChunkStatuses = world::chunk::ChunkStatuses;
 constexpr i32 UNLOADED = static_cast<i32>(world::chunk::ChunkLoadLevel::Unloaded);
 
@@ -81,7 +82,7 @@ protected:
         m_generator = generator.get();
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));
         m_manager->setWorkerPool(&m_pool);
-        m_scheduler = m_manager->ensureTaskScheduler();
+        m_scheduler = &ChunkSystemTestAccess::lifecycle(*m_manager).scheduler;
         m_releaseFuture = m_release.get_future().share();
         m_pool.start();
     }
@@ -121,19 +122,19 @@ protected:
         ASSERT_EQ(ready.wait_for(std::chrono::seconds(5)), std::future_status::ready);
     }
 
-    void scheduleFromTicket(SingleChunkLifecycleManager& holder)
+    void scheduleFromTicket(ChunkHolder& holder)
     {
         auto lock = m_scheduler->schedulingLockArea().lock(
-            holder.x(), holder.z(), 2 * ChunkTaskScheduler::getMaxAccessRadius());
+            holder.x(), holder.z(), 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         holder.setLevel(static_cast<i32>(world::chunk::ChunkLoadLevel::Full));
         m_scheduler->schedule(holder.x(), holder.z(), holder);
     }
 
-    void leave(SingleChunkLifecycleManager& holder)
+    void leave(ChunkHolder& holder)
     {
         {
             auto lock = m_scheduler->schedulingLockArea().lock(
-                holder.x(), holder.z(), 2 * ChunkTaskScheduler::getMaxAccessRadius());
+                holder.x(), holder.z(), 2 * ChunkGenerationScheduler::getMaxAccessRadius());
             holder.setLevel(UNLOADED);
         }
         m_scheduler->reconcileGenerationDemand(holder.x(), holder.z());
@@ -141,7 +142,7 @@ protected:
 
     util::UniversalWorkerPool m_pool{1, "DemandTest", 4096};
     std::unique_ptr<ServerChunkManager> m_manager;
-    ChunkTaskScheduler* m_scheduler = nullptr;
+    ChunkGenerationScheduler* m_scheduler = nullptr;
     DemandGenerator* m_generator = nullptr;
     std::promise<void> m_release;
     std::shared_future<void> m_releaseFuture;
@@ -150,7 +151,7 @@ protected:
 
 TEST_F(ChunkGenerationDemandTest, TicketDowngradeLowersTarget)
 {
-    SingleChunkLifecycleManager holder(0, 0);
+    ChunkHolder holder(0, 0);
     holder.setLevel(33);
     EXPECT_EQ(holder.requestedGenStatus(), ChunkStatuses::FULL);
     holder.setLevel(40);
@@ -205,7 +206,7 @@ TEST_F(ChunkGenerationDemandTest, NeighbourStorageResolutionUsesCurrentTicketPri
     auto& centre = m_scheduler->getOrCreateHolder(0, 0);
     auto& neighbour = m_scheduler->getOrCreateHolder(1, 0);
     {
-        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         neighbour.setLevel(static_cast<i32>(world::chunk::ChunkLoadLevel::Full));
         EXPECT_TRUE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
         EXPECT_NE(neighbour.requestPriority(), std::numeric_limits<i32>::max());
@@ -227,12 +228,12 @@ TEST_F(ChunkGenerationDemandTest, DowngradeCancelsQueuedStageAboveRemainingDeman
         for (i32 x = -radius; x <= radius; ++x) {
             auto& neighbour = m_scheduler->getOrCreateHolder(x, z);
             neighbour.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(x, z));
-            neighbour.completeStatusTo(x == 0 && z == 0 ? ChunkStatuses::STRUCTURE_STARTS : ChunkStatuses::FULL);
+            neighbour.onChunkGenComplete(x == 0 && z == 0 ? ChunkStatuses::STRUCTURE_STARTS : ChunkStatuses::FULL);
         }
     }
     auto& holder = m_scheduler->getOrCreateHolder(0, 0);
     {
-        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         holder.setLevel(static_cast<i32>(world::chunk::ChunkLoadLevel::Full));
         holder.prepareGeneration(0);
         holder.noteStorageMissing();
@@ -306,12 +307,12 @@ TEST_F(ChunkGenerationDemandTest, QueuedCancellationRetainsNeighbourReferences)
         for (i32 x = -radius; x <= radius; ++x) {
             auto& neighbour = m_scheduler->getOrCreateHolder(x, z);
             neighbour.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(x, z));
-            neighbour.completeStatusTo(x == 0 && z == 0 ? ChunkStatuses::STRUCTURE_STARTS : ChunkStatuses::FULL);
+            neighbour.onChunkGenComplete(x == 0 && z == 0 ? ChunkStatuses::STRUCTURE_STARTS : ChunkStatuses::FULL);
         }
     }
     auto& holder = m_scheduler->getOrCreateHolder(0, 0);
     {
-        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         holder.setLevel(33);
         holder.prepareGeneration(0);
         holder.noteStorageMissing();
@@ -390,12 +391,12 @@ TEST_F(ChunkGenerationDemandTest, SharedNeighbourKeepsOtherCentresDemand)
 TEST_F(ChunkGenerationDemandTest, RetiredHolderCannotScheduleTaskForCurrentInstance)
 {
     blockWorker();
-    auto retired = std::make_unique<SingleChunkLifecycleManager>(0, 0);
+    auto retired = std::make_unique<ChunkHolder>(0, 0);
     auto& current = m_scheduler->getOrCreateHolder(0, 0);
     retired->setLevel(33);
     retired->prepareGeneration(0);
     retired->noteStorageMissing();
-    auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+    auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
     EXPECT_EQ(m_scheduler->schedule(0, 0, *retired), nullptr);
     EXPECT_FALSE(retired->hasGenerationTask());
     EXPECT_FALSE(current.hasGenerationTask());
@@ -409,10 +410,10 @@ TEST_F(ChunkGenerationDemandTest, UnloadFinishPreservesNewRequestAndTask)
 {
     blockWorker();
     auto& holder = m_scheduler->getOrCreateHolder(0, 0);
-    m_manager->unloadChunkSync(0, 0);
+    m_manager->requestChunkUnload(0, 0);
     auto requested = m_manager->requestChunkAsync(0, 0, ChunkStatuses::STRUCTURE_STARTS);
     {
-        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         m_scheduler->schedule(0, 0, holder);
     }
     m_manager->tick();
@@ -477,9 +478,9 @@ TEST_F(ChunkGenerationDemandTest, ReadyNeighbourStaysPinnedWhileOtherDependencyI
     auto& ready = m_scheduler->getOrCreateHolder(1, 0);
     auto& pending = m_scheduler->getOrCreateHolder(0, 1);
     ready.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(1, 0));
-    ready.completeStatusTo(ChunkStatuses::STRUCTURE_STARTS);
+    ready.onChunkGenComplete(ChunkStatuses::STRUCTURE_STARTS);
     {
-        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = m_scheduler->schedulingLockArea().lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         EXPECT_FALSE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
         EXPECT_TRUE(m_scheduler->checkNeighbour(0, 1, ChunkStatuses::STRUCTURE_STARTS, centre));
         EXPECT_FALSE(m_scheduler->checkNeighbour(1, 0, ChunkStatuses::STRUCTURE_STARTS, centre));
@@ -500,7 +501,7 @@ TEST_F(ChunkGenerationDemandTest, ReadyRequestDoesNotWaitForQueuedHigherStage)
     blockWorker();
     auto& holder = m_scheduler->getOrCreateHolder(0, 0);
     holder.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(0, 0));
-    holder.completeStatusTo(ChunkStatuses::EMPTY);
+    holder.onChunkGenComplete(ChunkStatuses::EMPTY);
     holder.setLevel(33);
     holder.prepareGeneration(0);
     holder.noteStorageMissing();
@@ -519,7 +520,7 @@ TEST_F(ChunkGenerationDemandTest, CancellationAcknowledgementCompletesAlreadyRea
     blockWorker();
     auto& holder = m_scheduler->getOrCreateHolder(0, 0);
     holder.setCurrentChunk(std::make_unique<world::chunk::ChunkPrimer>(0, 0));
-    holder.completeStatusTo(ChunkStatuses::EMPTY);
+    holder.onChunkGenComplete(ChunkStatuses::EMPTY);
     holder.setLevel(33);
     holder.prepareGeneration(0);
     holder.noteStorageMissing();

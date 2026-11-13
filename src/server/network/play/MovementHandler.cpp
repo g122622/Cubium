@@ -248,7 +248,7 @@ void MovementHandler::handlePlayerMovePacket(PlayerId playerId, const mc::networ
     updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
     // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
-    // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
+    // 区块发送由 ChunkDemandController 的追踪变化回调自动处理
     if (world && world->chunkManager()) {
         world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
         world->chunkManager()->processTicketUpdates();
@@ -317,7 +317,7 @@ void MovementHandler::handleTeleportConfirmPacket(PlayerId playerId, const mc::n
         updateEntityTrackingForPlayer(playerId, player->x, player->y, player->z);
 
         // 更新区块管理器的玩家位置（触发区块加载票据和追踪变化）
-        // 区块发送由 ChunkLoadTicketManager 的追踪变化回调自动处理
+        // 区块发送由 ChunkDemandController 的追踪变化回调自动处理
         if (world && world->chunkManager()) {
             world->chunkManager()->updatePlayerPosition(playerId, player->x, player->z);
             world->chunkManager()->processTicketUpdates();

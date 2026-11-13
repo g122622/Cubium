@@ -24,8 +24,8 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "server/network/sync/BlockUpdateSyncManager.hpp"
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -47,7 +47,9 @@ protected:
     void SetUp() override
     {
         m_ticketManager.setViewDistance(8);
-        m_manager = std::make_unique<BlockUpdateSyncManager>(m_ticketManager);
+        m_manager = std::make_unique<BlockUpdateSyncManager>([this](ChunkCoord x, ChunkCoord z) {
+            return m_ticketManager.getTrackingPlayers(x, z);
+        });
         m_manager->setOnBlockUpdate([this](PlayerId playerId, i32 x, i32 y, i32 z, u32 blockStateId) {
             m_sentUpdates.push_back(SentBlockUpdate{playerId, BlockPos(x, y, z), blockStateId});
         });
@@ -65,7 +67,7 @@ protected:
     }
 
 protected:
-    mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
+    mc::world::chunk::ChunkDemandController m_ticketManager;
     std::unique_ptr<BlockUpdateSyncManager> m_manager;
     std::vector<SentBlockUpdate> m_sentUpdates;
 };

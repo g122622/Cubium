@@ -6,45 +6,26 @@
 world/
 ├── blockentity/  # 该领域的子模块
 ├── blockevent/  # 该领域的子模块
-├── chunk/  # 该领域的子模块
+├── chunk/  # 区块运行时、生命周期能力与唯一门面
 ├── drop/  # 该领域的子模块
 ├── entity/  # 该领域的子模块
 ├── gameevent/  # 该领域的子模块
 ├── gen/  # 该领域的子模块
-├── lighting/  # 该领域的子模块
+├── lighting/  # 光照引擎、查询与运行时任务
 ├── player/  # 玩家实体、运行数据与生命周期
-├── scheduling/  # 该领域的子模块
+├── scheduling/  # 世界持有的区域任务执行设施
 ├── spawn/  # 该领域的子模块
 ├── storage/  # 该领域的子模块
 ├── structure/  # 该领域的子模块
 ├── time/  # 共享时间规则与时间线；服务端目录负责运行时推进
 ├── weather/  # 该领域的子模块
-├── ChunkLightingProvider.cpp  # 模块接口与实现
-├── ChunkLightingProvider.hpp  # LIGHT 生成阶段的光照提供者适配器
-├── ChunkLoadLightTask.cpp  # 模块接口与实现
-├── ChunkLoadLightTask.hpp  # 区块加载光照 worker 任务（对齐 Moonrise ThreadedLevelLightEngine）
-├── ChunkProgressionTask.cpp  # 模块接口与实现
-├── ChunkProgressionTask.hpp  # 单状态推进任务（对齐 Moonrise ChunkProgressionTask + ChunkUpgradeGenericStatusTask）
-├── ChunkTaskScheduler.cpp  # 模块接口与实现
-├── ChunkTaskScheduler.hpp  # 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
-├── RuntimeLightTask.cpp  # 模块接口与实现
-├── RuntimeLightTask.hpp  # 运行时方块变更光照传播 worker 任务
-├── RuntimeLightingProvider.cpp  # 模块接口与实现
-├── RuntimeLightingProvider.hpp  # 运行时方块变更在 worker 线程传播用的光照提供者
-├── ServerChunkManager.cpp  # 在时间预算内消费入口快照，未处理的旧任务始终排在新任务之前
-├── ServerChunkManager.hpp  # 区块步骤依赖信息
-├── ServerLightQueue.cpp  # 模块接口与实现
-├── ServerLightQueue.hpp  # 运行时方块变更光照延迟队列
 ├── ServerWorld.cpp  # 模块接口与实现
-├── ServerWorld.hpp  # 服务端世界配置结构
-├── SingleChunkLifecycleManager.cpp  # 模块接口与实现
-├── SingleChunkLifecycleManager.hpp  # 单区块生命周期管理器（对齐 Moonrise NewChunkHolder）
-└── StaticChunkCache2D.hpp  # 预分配的二维区块缓存，构造时一次性填充所有条目
+└── ServerWorld.hpp  # 服务端世界配置结构
 ```
 
 ## 内部模块关系
 
-各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
+ServerWorld 编排世界模拟并持有共享区域执行器；chunk 承接区块需求和生命周期，lighting 承接光照传播，gen 提供生成算法，storage 提供持久化。生成、光照和序列化复用同一世界的区域执行器。
 
 ## 上下游外部依赖关系
 
@@ -77,62 +58,15 @@ world/
 
 卸载收尾发现持有者仍被引用时，以最弱生成级别注册冷却票据。冷却存在期间保留持有者，到期后恢复回收。生成邻域和退场回调只更新已有持有者，邻居依赖由调度器按需创建，避免冷却传播重新引发生成与卸载循环。
 
-### 区块异步生成架构（Moonrise 对齐）
-区块生成系统已对齐 Moonrise mod 架构，彻底消除跑图时的 "missing chunk in access window" / "chunk status below request" 错误。核心设计：
+### 区块发布与世界接入
 
-- **`ChunkTaskScheduler`**（`ChunkTaskScheduler.hpp/cpp`）：调度核心。`schedule(x, z, holder)` 一次只推进一步状态；`checkNeighbour` 验证邻居是否达到 `ChunkStep::getRequiredStatusAtRadius(distance)` 所需状态，未就绪则建立**双向依赖图**（`center.addBlockingNeighbour` / `neighbour.addWaitingNeighbour`）并挂起任务，**绝不返回低状态区块**；`onChunkGenComplete` 在任务完成时推进 `currentGenStatus`、释放邻居引用计数、通知等待的邻居重新调度。持有 `ReentrantAreaLock m_schedulingLockArea`（coordinateShift=6，对齐 Moonrise getChunkSystemLockShift()；每 section 覆盖 64×64 区块，使 2*maxAccessRadius 锁只触达 1~4 个 section），保证 检查→建依赖→创建任务→完成→通知 全流程原子。
-- **`SingleChunkLifecycleManager`**（NewChunkHolder 等价物）：持有**可变 `std::unique_ptr<ChunkPrimer> m_currentChunk`** + `m_currentGenStatus`（非不可变快照）。`getChunkIfPresentUnchecked(status)` 检查 `m_currentGenStatus.isAtLeast(status)` 后返回 `m_currentChunk`（同一累积 Primer）。`onChunkGenComplete(status)` 推进 `m_currentGenStatus`（primer 同一对象，无需重存）。
-- **`ChunkProgressionTask`**：单状态推进任务。`execute` 从 `StaticChunkCache2D<shared_ptr<SingleChunkLifecycleManager>>` 构建 `WorldGenRegion`（转换为 `vector<IChunk*>`，所有邻居已由 `checkNeighbour` 保证达到所需状态），调用 `_executeStepTask`，推进 primer 状态，FULL 完成时 `_finalizeGeneratedChunkSync` 转 `ChunkData` 存入内存缓存。
-- **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
-- **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 的外层入口持 `2*maxAccessRadius` 锁，`onChunkGenComplete` 持 `maxAccessRadius` 锁；解锁后重调度时持 `2*maxAccessRadius` 锁。
-- **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`server/world/chunk/pipeline/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
-- **世界区域依赖**（`scheduling/AreaTaskScheduler`）：各坐标维护任务顺序，全部坐标就绪后才提交通用计算池；生成、加载光照、运行时光照和区块序列化共用一个实例，不同世界互不阻塞。
+区块门面只承接业务操作，内部由生命周期控制器编排需求、来源、生成和卸载。注册表统一发布与移除；来源与 primer 一并安装，存档命中进入 Loaded 状态。加载错误不能重新生成覆盖存档。
 
-**并发模型**：邻居在任务执行期间可变（ChunkPrimer 累积式），但调度保证无并发写冲突——`checkNeighbour` 确保任务开始前所有邻居达所需状态，世界 `AreaTaskScheduler` 串行化重叠写区域（等价 Moonrise `AreaDependentQueue`）。这使 FEATURES/LIGHT 跨区块写邻居成为设计预期，而非 bug。
+阶段请求按各自目标交付；FULL 数据存在不代表实体接入、后处理或光照发送已经完成。世界接入在主线程按预算消费激活消息，消息必须校验原 holder 身份。生成后处理等待模拟资格；同一生命周期至多注册一次。
 
-详见 `docs/BUG-WorldGenRegion-Access-Window.md`（问题根因）。
+保存失败恢复脏状态并冷却，保存后变脏或恢复需求则中止退场。退场与请求登记共用调度锁。存储在途表由存储自身结清，完成接收端在区块运行时关闭后仍能安全接收并丢弃迟到回调。
 
-### 存档命中区块的加载状态必须显式置为 Loaded
-
-`ChunkData` 构造时默认 `ChunkLoadStatus::Empty`，而运行时方块变更的光照任务（`BlockStarLightEngine::canUseChunk`）只接受 `Generated`/`Loaded`。存档命中路径（`ServerChunkManager::_onChunkLoadComplete`）必须显式 `setStatus(ChunkLoadStatus::Loaded)`，否则读档世界的方块光更新会被静默跳过：放/拆光源后邻格 blockLight 恒为旧值，且没有任何日志。
-
-### 区块可用性的宣告必须与区块安装同时生效
-
-`SingleChunkLifecycleManager` 对外宣告"该区块在某个状态可用"（`sourceState ∈ {LoadedFromStorage, Ready}` 或 `currentGenStatus` 达标）时，`m_currentChunk` 必须已经非空。存档命中路径统一走 `publishStorageLoaded(primer)`：在**同一临界区**内安装 primer、把 `currentGenStatus` 推进到 FULL（存档区块即完整区块）、把 `sourceState` 推进到 `LoadedFromStorage`；`noteStorageMissing()` 只负责"确认存档缺失"。任何"先推进状态、后安装区块"的写法都会让并发调度者（`schedule` 的空区块分支、`checkNeighbour` 的就绪判定、`buildNeighbourCache` 的 primer 取用）观察到"状态已就绪但区块缺失"，据此为该 holder 重复调度一次 EMPTY 加载，最终让依赖邻居取到空 primer 并在生成区域里崩溃。`markLoadedFromStorageReady` 与 `setCurrentChunk` 内均有不变量断言把关。
-
-### 调度判据必须是一次原子读取
-
-判断 holder 能否推进状态，需要同时知道"区块对象是否存在"与"存档来源是否已解析 / 生成状态是否达标"。这些字段虽在同一临界区内一并写入，但若**分多次加锁读取**，两次读取之间仍可能跨越一次状态发布，读出"区块为空 + 状态就绪"这一在真实状态中并不存在的组合。故 `ChunkTaskScheduler::schedule` 统一用 `SingleChunkLifecycleManager::generationSnapshot()` 一次取齐；`buildNeighbourCache` 对邻居用 `getChunkIfPresentUnchecked`（状态 ∧ 对象的合取）而非只比较状态。
-
-### 区块卸载是事件驱动 + 保底批量（Moonrise 对齐）
-
-`ServerChunkManager` 的卸载路径不再有周期性全量扫描，也没有秒级延迟观察期：
-
-- **候选入队**：票级越过加载阈值（`shouldLoad()==false`）、生成任务设置/清除、邻居引用计数 0↔1、依赖图增删等**状态变更点**都会经 `SingleChunkLifecycleManager` 的卸载状态观察者回调触发 `_updateUnloadCandidate`，满足「票级越阈 + `isSafeToUnload()` + 无玩家追踪 + 无在途保存」即进入候选队列。原「每 20 tick 全量扫描 + 30 秒延迟」已删除。
-- **每 tick 出队**：`_processChunkUnloads` 按保底批量 `max(50, 候选数×5%)` 取用（对齐 Moonrise `minChunkUnloadCount`/`minChunkUnloadFraction`）；该值是下限而非上限——小队列一次清空，大队列按保底量平滑推进。队列惰性移除：撤出候选只改成员集合，deque 中的残留键弹出时丢弃。
-- **三阶段卸载**：stage1（主线程捕获脏区块快照并置位「卸载在途」标记）→ stage2（ServerIO 异步落盘）→ stage3（`_finalizeUnloadAfterSave` 在调度锁内复核 holder 身份、加载需求和 `isSafeToUnload`，通过后才清理并移除 holder）。无脏数据的区块同样入队延后一个 tick 收尾，给出「玩家在相邻 tick 返回即中止卸载」的反悔窗口。
-- **失败退避**：stage3 发现仍不安全（邻居在用、依赖图未清）时注册 `UNLOAD_COOLDOWN` 票据把该区块按最弱生成级别保留 100 tick，到期后票级升过阈值自然重评候选资格；不再每 tick 立即重试。
-- **已删除**：`CHUNK_UNLOAD_DELAY_MS`（30 秒延迟）、`UNLOAD_CHECK_INTERVAL_TICKS`、`MAX_UNLOADS_PER_TICK`、以及此前不可启用的 `m_maxLoadedChunks` 软上限强制卸载（Moonrise 与原版均无全局已加载上限；限制内存应靠视距与加载/发送速率限制，而非强制卸载应当加载的区块）。
-
-### 测试夹具必须注入存储线程池
-
-`SingleLevelStorageManager` 在未注入 ServerIO/ServerCompute 池时会降级为**在调用线程内联**读写存档。卸载按保底批量推进（每 tick 至少 `max(50, 候选数×5%)` 个区块），同步写盘（紧凑数组快照捕获与 RocksDB 写入，压缩由数据库自身处理）会把 tick 线程垄断到秒级，进而饿死每 tick 只执行一次的 `_drainPendingLoadCompletes`，表现为大批 holder 长期停在 `ResolvingStorage`、生成请求迟迟不完成。使用 `ServerChunkManager` 的测试夹具须与生产（`MinecraftServer`）一样注入两个池，并注意池创建后必须 `start()`。
-
-### 区块需求、结果交接与世界后处理分开推进
-
-`processTicketUpdates()` 只推进距离图并调度加载，登录、移动与光照票据不能在该阶段接收大量存档结果。
-`processPendingChunkTasks()` 在推进票据后接收入口处的一批完成项；处理期间新到达的结果留给下一次推进。
-需要同步数据的调用方使用 `requestChunkSync()`，由目标 Future 决定何时返回，不能把票据生效等同于数据就绪。
-
-存储层回传结果前已经补齐缺失高度图。`_onChunkLoadComplete` 保持区块对象与来源状态的原子发布，
-`onChunkLoaded` / `m_chunkLoadedCallback` 则经后处理队列延后到 `tick()`，避免在发布调用链中修改世界。
-完成交接仍保留重入守卫，禁止嵌套消费同一队列。
-
-### 卸载保存失败与快照后的修改
-
-保存结果必须随卸载完成项回传。保存失败时恢复脏标记、保留内存区块并退避重试；快照完成后
-区块再次变脏时应中止本次卸载，重新保存后才能移除。worker 也会读取的卸载门控标志必须使用原子访问。
-请求登记须与最终卸载共用调度区域锁，并在锁外推进期间保留 holder 共享所有权。
+测试夹具若需异步存储，必须显式注入并启动 IO 与 Compute 池；无池时读写内联执行。
 
 ### 实体追踪器内存泄漏
 实体销毁后未从追踪器取消追踪会导致泄漏。`ServerWorld::destroyEntity()` 会自动处理追踪器状态更新（内部调 `entityTracker().untrackEntity()`）。如果直接调用 `entityManager().destroyEntity()`，需要手动调用 `entityTracker().untrackEntity()`。

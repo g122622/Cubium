@@ -28,8 +28,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/application/IServer.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>

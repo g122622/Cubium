@@ -21,7 +21,7 @@ src/server/network/sync/
 ```
 
 > 光照数据同步（`markLightChanged`/`_syncLightDataToChunk`）统一由 `ServerWorld` 承担，没有独立的
-> `LightSyncManager`。区块加载光照由 `server/world/ChunkLoadLightTask` 在 worker 线程完成后，
+> `LightSyncManager`。区块加载光照由 `server/world/lighting/runtime/ChunkLoadLightTask` 在 worker 线程完成后，
 > 经 `ServerWorld` 续延队列回主线程 flush + send。
 >
 > 实体同步/广播也没有独立的 `EntitySyncManager`：实体生成/销毁/移动/可见性由 `EntityTracker::tick`
@@ -73,7 +73,7 @@ src/server/network/sync/
 | `common/world/chunk/base/{ChunkId,ChunkPos}.hpp` | 区块标识与坐标 |
 | `common/world/WorldConstants.hpp` | `CHUNK_LOAD_RADIUS` 等 |
 | `common/util/thread/UniversalWorkerPool.hpp` | 序列化任务的 worker 池 |
-| `server/world/ServerWorld.hpp`、`server/world/ServerChunkManager.hpp` | 世界与区块状态 |
+| `server/world/ServerWorld.hpp`、`server/world/chunk/ServerChunkManager.hpp` | 世界与区块状态 |
 
 ### 下游依赖（依赖本模块的）
 

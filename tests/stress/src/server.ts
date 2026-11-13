@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ServerProcess } from "../../e2e/bot/src/servers/server-process.ts";
-import { allocateVerifiedPort } from "../../e2e/bot/src/servers/port.ts";
-import { writeOpsFile } from "../../e2e/bot/src/servers/ops.ts";
+import { ServerProcess } from "../../e2e/shared/servers/server-process.ts";
+import { allocateVerifiedPort } from "../../e2e/shared/servers/port.ts";
+import { writeOpsFile } from "../../e2e/shared/servers/ops.ts";
 import type { Options } from "./config.ts";
 
 export { ServerProcess };

@@ -41,7 +41,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/UuidUtils.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"

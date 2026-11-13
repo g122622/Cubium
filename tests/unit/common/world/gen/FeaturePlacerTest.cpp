@@ -23,7 +23,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"

@@ -1,0 +1,246 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#pragma once
+
+#include "common/core/Types.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+
+namespace mc::world::chunk {
+
+/**
+ * @brief 区块距离图 - 管理 BFS 级别传播
+ *
+ * 核心算法：Dijkstra 风格的最短路径传播。
+ *
+ * 工作原理：
+ * 1. 源区块设置初始级别（如玩家位置 level=23）
+ * 2. 级别向相邻区块传播，每次传播 +1
+ * 3. 相邻区块的级别 = min(当前级别, 源级别+1)
+ *
+ * @example
+ * @code
+ * ChunkDistanceGraph graph;
+ *
+ * // 设置回调函数
+ * graph.setLevelChangeCallback([](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+ *     if (newLevel <= 34 && oldLevel > 34) {
+ *         // 区块被加载
+ *     } else if (newLevel > 34 && oldLevel <= 34) {
+ *         // 区块被卸载
+ *     }
+ * });
+ *
+ * // 设置源区块（玩家位置）
+ * graph.updateSourceLevel(0, 0, 23, true);  // level = 33 - 10（视距）
+ *
+ * // 处理更新
+ * graph.processUpdates(1000);
+ * @endcode
+ *
+ * @note 必须调用 processUpdates() 才能处理更新队列中的更新
+ */
+class ChunkDistanceGraph {
+public:
+    using ChunkCallback = std::function<void(ChunkCoord, ChunkCoord, i32, i32)>;
+
+    /// 传播上限（最外沿级别）。达到该级别的区块不再继续向外传播——它同时是"生成 halo
+    /// 的最外圈"（可能被邻居生成按需使用），持有者必须保留。
+    static constexpr i32 MAX_LEVEL = 45;
+
+    /// "未被任何源触达"的哨兵级别（= ChunkLoadLevel::Unloaded）。
+    /// 与 MAX_LEVEL 区分：45 = halo 最外沿（保留），46 = 传播范围之外（可立即回收）。
+    /// getLevel() 对无级别区块返回该哨兵；onLevelChanged 的新级别也用它表达"已离开传播范围"。
+    static constexpr i32 UNREACHED_LEVEL = MAX_LEVEL + 1;
+
+    ChunkDistanceGraph() noexcept = default;
+    virtual ~ChunkDistanceGraph() = default;
+
+    /**
+     * @brief 更新源位置级别
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param level 新级别
+     * @param isDecreasing true 表示级别降低（区块变得更重要）
+     *
+     * @note 此方法将更新加入队列，需要调用 processUpdates() 处理
+     *
+     * @example
+     * @code
+     * // 玩家进入区块，级别降低
+     * graph.updateSourceLevel(0, 0, 23, true);
+     *
+     * // 玩家离开区块，级别升高
+     * graph.updateSourceLevel(0, 0, 34, false);
+     * @endcode
+     */
+    void updateSourceLevel(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);
+
+    /**
+     * @brief 处理所有待处理的更新
+     *
+     * @param maxToProcess 最大处理数量
+     * @return 实际处理的更新数量
+     *
+     * @note 必须定期调用此方法来处理更新队列
+     * @note 大量更新可能需要多次调用
+     */
+    i32 processUpdates(i32 maxToProcess);
+
+    /**
+     * @brief 获取区块当前级别
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return 区块级别，如果未设置返回 MAX_LEVEL
+     */
+    [[nodiscard]] i32 getLevel(ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 设置区块级别变化回调
+     *
+     * @param callback 回调函数 (x, z, oldLevel, newLevel)
+     *
+     * @note 级别降低意味着区块变得更重要（需要加载）
+     * @note 级别升高意味着区块变得更不重要（可能卸载）
+     */
+    void setLevelChangeCallback(ChunkCallback callback)
+    {
+        m_levelChangeCallback = std::move(callback);
+    }
+
+    /**
+     * @brief 清空所有数据
+     *
+     * @warning 这会清空所有区块的级别信息和更新队列
+     */
+    void clear();
+
+protected:
+    /**
+     * @brief 获取源级别
+     *
+     * 子类可以重写此方法以提供票据源。
+     * 默认实现返回 MAX_LEVEL（无票据）。
+     */
+    [[nodiscard]] virtual i32 getSourceLevel(ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 当区块级别改变时调用
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param oldLevel 旧级别
+     * @param newLevel 新级别
+     */
+    virtual void onLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
+
+    /// 区块位置转换为键（供子类使用）
+    [[nodiscard]] static u64 posToKey(ChunkCoord x, ChunkCoord z)
+    {
+        return mc::math::chunkPosToId(x, z);
+    }
+
+    /// 键转换为区块位置（供子类使用）
+    static void keyToPos(u64 key, ChunkCoord& x, ChunkCoord& z)
+    {
+        mc::math::idToChunkPos(key, x, z);
+    }
+
+private:
+    /// 不加锁的读取实现。仅供已持有 m_mutex 的本类方法调用（processUpdates 的批处理循环）。
+    [[nodiscard]] i32 _getLevelLocked(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] i32 _getSourceLevelLocked(ChunkCoord x, ChunkCoord z) const;
+
+    void _enqueueUpdate(ChunkCoord x, ChunkCoord z);
+
+    /// 传播级别到相邻区块
+    void _propagateToNeighbors(ChunkCoord x, ChunkCoord z);
+
+    /// 区块级别映射
+    std::unordered_map<u64, i32> m_levels;
+
+    /// 源级别映射（由 updateSourceLevel 写入）
+    std::unordered_map<u64, i32> m_sourceLevels;
+
+    /// 待处理更新队列（区块 key）
+    std::queue<u64> m_updateQueue;
+
+    /// 去重集合，避免同一 key 重复入队导致批处理配额被无效消耗
+    std::unordered_set<u64> m_pendingKeys;
+
+    /// processUpdates 重入守卫（防御性）。
+    ///
+    /// processUpdates 在循环内调用 onLevelChanged 回调，该回调经 ChunkDemandController/
+    /// ServerChunkManager 回到票据与调度逻辑，可能再次触发本图的 updateSourceLevel/
+    /// _enqueueUpdate，甚至再次进入 processUpdates。嵌套消费同一队列会让内层消费与外层
+    /// 循环交错改写 m_updateQueue。
+    ///
+    /// 实测症状：ASAN heap-use-after-free（deque::_M_push_back_aux ← _enqueueUpdate），
+    /// 即一次 push_back 向一个已被 _M_reallocate_map 释放的旧 map 写入。该栈只能说明
+    /// "队列容器在两次 push 之间被外部改动过"，尚不能唯一归因于重入（也可能是回调路径
+    /// 销毁了本图/其宿主）。本守卫消除其中"嵌套消费"这一类成因，成本极低且不影响单层
+    /// 语义；剩余成因待进一步定位。
+    ///
+    /// 【线程契约】本类型不是线程安全的：m_levels / m_sourceLevels / m_updateQueue 均无锁。
+    /// 实测报告中的 free 与 use 都发生在同一线程（ASAN "freed by thread T0" + "thread T0"），
+    /// 故该缺陷不是数据竞争。调用方必须保证同一图实例的访问集中在服务端主线程
+    /// （ServerChunkManager 的 worker 线程已在 _resolveStorageForScheduling 处显式回避读取
+    /// m_levels，见 ServerChunkManager.cpp 的相关注释）。本守卫不能替代该约定，它只防同线程
+    /// 重入；若未来需要跨线程访问，必须补真正的互斥量。
+    ///
+    /// TODO: 若该 ASAN 报告复现，需在 onLevelChanged 前后加宿主生命周期断言，确认回调
+    /// 是否可能在 processUpdates 未返回时销毁 ChunkDemandController/本图。
+    bool m_processing = false;
+
+    /// 并发保护。
+    ///
+    /// 本图按「仅主线程访问」的契约原本无锁，但 ServerChunkManager::_getOrCreateLifecycleManager
+    /// 会经 m_ticketManager.getChunkLevel 从 **worker 线程** 读 m_levels（栈：
+    /// ChunkGenerationScheduler::checkNeighbour → getOrCreateHolder → getChunkLevel → getLevel），
+    /// 而主线程同时在 processUpdates 里写同一张表。unordered_map 插入触发 rehash 时会释放
+    /// 旧桶数组，worker 侧正在进行的 find 随即读到已释放内存——线上表现为 SIGSEGV at 0x8，
+    /// 栈顶落在 std::_Hashtable::_M_find_before_node。
+    ///
+    /// 该跨线程读取是必需的（worker 需要知道自己该以什么级别创建 holder），因此按本文件
+    /// 原有注释的指引补互斥量。
+    ///
+    /// 【重要】用普通 mutex 即可，但**回调必须在临界区之外调用**：processUpdates 的循环里
+    /// 会调用 onLevelChanged，该回调经票据/调度逻辑回到 ServerChunkManager，可能反向同步
+    /// 等待 worker 线程——而 worker 正在等这把锁，持锁调回调立刻死锁（实测：所有区块用例
+    /// 全部超时无输出）。因此循环内改用 _getLevelLocked/_getSourceLevelLocked 这类不加锁
+    /// 的内部实现，并只在需要时短暂加锁。
+    mutable std::mutex m_mutex;
+
+    /// 级别改变回调
+    ChunkCallback m_levelChangeCallback;
+};
+
+} // namespace mc::world::chunk

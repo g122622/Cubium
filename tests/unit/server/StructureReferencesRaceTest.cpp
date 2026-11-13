@@ -39,8 +39,8 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -198,7 +198,6 @@ protected:
 TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
 
     // 十三乘十三网格推进到结构引用阶段，保留结构起点填充及跨区块读取的并发。
     // 本用例不验证噪声、装饰和光照，无需把所有中心区块继续推进到 FULL。
@@ -251,8 +250,8 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 //   primer 析构,worker 仍持裸 ChunkPrimer* → ACCESS_VIOLATION at 0x50。
 //
 // 修复（cb2a3f7f5,对齐 Moonrise StaticCache2D<GenerationChunkHolder> 强引用语义）：
-//   m_neighbours 改为 StaticChunkCache2D<std::shared_ptr<SingleChunkLifecycleManager>>。
-//   worker 持邻居 holder 的 shared_ptr,holder 不被 unloadChunkSync 析构,其 m_currentChunk
+//   m_neighbours 改为 StaticChunkCache2D<std::shared_ptr<ChunkHolder>>。
+//   worker 持邻居 holder 的 shared_ptr,holder 不被 requestChunkUnload 析构,其 m_currentChunk
 //   (unique_ptr<ChunkPrimer>) 存活,裸 ChunkPrimer* 在遍历期间有效。cancelGeneration 释放引用
 //   计数仅影响 isSafeToUnload 判定,不再致 primer 析构（shared_ptr 保活）。
 //
@@ -265,7 +264,6 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
 TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50Repro)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
 
     // 先在原点周围生成一片区块到 STRUCTURE_REFERENCES，使半径 8 邻居完成 STRUCTURE_STARTS
     // （m_structureStarts 已填充），为后续 STRUCTURE_REFERENCES 读邻居提供结构起点。
@@ -397,7 +395,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     });
 
     // 线程 A：激进传送玩家。每次传送到远处，触发大批区块 ticket 级别下降（shouldLoad=false）→
-    // _processChunkUnloads→unloadChunkSync→cancelGeneration（释放邻居引用计数）→邻居卸载。
+    // _processChunkUnloads→requestChunkUnload→cancelGeneration（释放邻居引用计数）→邻居卸载。
     // 再传回原点附近，触发重新生成。反复横跳最大化 cancel 与 STRUCTURE_REFERENCES 并发窗口。
     // 迭代数/远距原为 200/48 区块,产生 cancel-reschedule 任务风暴超过 8 worker + 单线程 tick
     // 消化能力,稳定表现为 CTest 超时(非 UAF——0x50 已由 cb2a3f7f5 的 shared_ptr<SCLM> 修复)。
@@ -540,7 +538,6 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
 TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
 
     // 玩家初始位置在原点
     m_manager->updatePlayerPosition(1, 0.0, 0.0);

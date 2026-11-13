@@ -46,8 +46,8 @@
 #include "server/network/sync/ChunkSendManager.hpp"
 #include "server/player/lifecycle/PlayerManager.hpp"
 #include "server/player/runtime/ServerPlayerData.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/BiomeLoader.hpp"
 #include "server/world/gen/biome/source/EndBiomeSource.hpp"
@@ -241,8 +241,7 @@ void ServerDimensionManager::playerJoinDimension(PlayerId playerId, DimensionId 
     if (m_server != nullptr) {
         const auto* data = m_server->playerManager().getPlayer(playerId);
         if (data != nullptr && data->clientInformation.has_value()) {
-            dim->world()->chunkManager()->ticketManager().setPlayerViewDistance(
-                playerId, data->clientInformation->viewDistance);
+            dim->world()->chunkManager()->setPlayerViewDistance(playerId, data->clientInformation->viewDistance);
         }
     }
 }

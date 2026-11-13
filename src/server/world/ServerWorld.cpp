@@ -27,8 +27,6 @@
 #undef BYTE_SIZE
 
 #include "ServerWorld.hpp"
-#include "ChunkLoadLightTask.hpp"
-#include "ServerChunkManager.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -120,10 +118,10 @@
 #include "server/network/outbound/MapPacketBuilder.hpp"
 #include "server/network/sync/ChunkSendManager.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "server/world/RuntimeLightingProvider.hpp"
 #include "server/world/blockentity/sculk/SculkShriekerHelper.hpp"
 #include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/blockevent/BlockEventData.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/FeaturePlacer.hpp"
 #include "server/world/gen/chunk/FlatChunkGenerator.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
@@ -131,6 +129,8 @@
 #include "server/world/gen/feature/end/EndSpikeFeature.hpp"
 #include "server/world/lighting/engine/BaseLightEngine.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/runtime/ChunkLoadLightTask.hpp"
+#include "server/world/lighting/runtime/RuntimeLightingProvider.hpp"
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include "server/world/storage/blockentity/BlockEntityStorageManager.hpp"
 #include "server/world/storage/core/LevelDatCodec.hpp"
@@ -222,11 +222,6 @@ Result<void> ServerWorld::initialize()
 
     // 确保区块管理器始终使用世界配置中的视距。
     m_chunkManager->setViewDistance(m_config.viewDistance);
-
-    auto result = m_chunkManager->initialize();
-    if (result.failed()) {
-        return result;
-    }
 
     // 注意：区块加载/卸载回调由 MinecraftServer::setupWorldCallbacks() 设置，
     // 其中会调用 onChunkLoaded/onChunkUnloading 来处理实体持久化。
@@ -425,7 +420,7 @@ void ServerWorld::shutdown()
         m_chunkManager->setChunkLoadedCallback(nullptr);
         m_chunkManager->setChunkUnloadedCallback(nullptr);
         m_chunkManager->setChunkCacheCenterCallback(nullptr);
-        m_chunkManager->ticketManager().setTrackingChangeCallback(nullptr);
+        m_chunkManager->setTrackingChangeCallback(nullptr);
     }
 
     // 再停止区块管理器，避免后台生成/加载回调在世界子系统拆除后继续触发方块更新。
@@ -1950,7 +1945,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
 size_t ServerWorld::chunkCount() const
 {
     if (m_chunkManager) {
-        return m_chunkManager->singleChunkLifecycleManagerCount();
+        return m_chunkManager->lifecycleManagerCount();
     }
     return 0;
 }
@@ -2948,7 +2943,7 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     MC_ASSERT_RELEASE(m_chunkManager != nullptr);
     m_chunkManager->addLightTicket(x, z);
 
-    util::UniversalWorkerPool* executor = m_chunkManager->computeExecutor();
+    util::UniversalWorkerPool* executor = computeExecutor();
     if (executor == nullptr) {
         // 启动早期/测试环境：主线程同步执行（无 worker 池）。
         RuntimeLightingProvider provider(*this, x, z);
@@ -2957,8 +2952,7 @@ void ServerWorld::enqueueChunkLoadLight(ChunkCoord x, ChunkCoord z)
     }
 
     auto task = std::make_unique<ChunkLoadLightTask>(*this, x, z);
-    m_chunkManager->areaTasks().submit(
-        std::move(task), nullptr, ChunkPos(x, z), 2, util::TaskPriority::Normal, nullptr);
+    areaTasks().submit(std::move(task), nullptr, ChunkPos(x, z), 2, util::TaskPriority::Normal, nullptr);
 }
 
 void ServerWorld::_enqueueChunkSend(ChunkCoord x, ChunkCoord z)
@@ -2994,7 +2988,7 @@ void ServerWorld::_drainPendingChunkSends()
         return;
     }
 
-    sync::ChunkSendManager* sendManager = m_chunkManager ? m_chunkManager->chunkSendManager() : nullptr;
+    sync::ChunkSendManager* sendManager = m_chunkManager ? chunkSendManager() : nullptr;
     for (const auto& [x, z] : pending) {
         // send serialize 读已 flush 的 ChunkSection nibble（flush 先于 send）。
         // 区块已不在 m_chunks 时 sendChunkToTrackingPlayers 内部跳过（hasChunkInMem 校验）。
@@ -3084,7 +3078,7 @@ void ServerWorld::_executeChunkLoadLight(RuntimeLightingProvider& provider, Chun
         markLightChanged(type, pos);
     }
 
-    sync::ChunkSendManager* sendManager = m_chunkManager ? m_chunkManager->chunkSendManager() : nullptr;
+    sync::ChunkSendManager* sendManager = m_chunkManager ? chunkSendManager() : nullptr;
     if (sendManager != nullptr) {
         sendManager->sendChunkToTrackingPlayers(x, z);
     }

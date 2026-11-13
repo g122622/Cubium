@@ -64,10 +64,6 @@ namespace mc::scoreboard {
 class ScoreboardDataManager;
 }
 
-namespace mc::server {
-class ServerChunkManager;
-}
-
 namespace mc::world::storage {
 
 /**
@@ -522,7 +518,6 @@ public:
 
     /// 区块卸载保存的收尾需要清理进行中保存追踪表，该表是本类的内部状态，
     /// 只有掌握"该区块保存已完成且无新保存启动"这一前提的 ServerChunkManager 才可调用。
-    friend class mc::server::ServerChunkManager;
 
 private:
     /** @brief 登记由本存档持有的异步请求，覆盖读盘、恢复与保存收尾。 */
@@ -566,10 +561,6 @@ private:
 
     /// 保存任务从未启动时的兜底清理（池未启动/队列被清空清空），唤醒等待者避免永久挂起。
     void _abandonPendingChunkSave(PendingChunkSave save);
-
-    /// 移除指定区块的进行中卸载保存条目（保存完成后由 ServerChunkManager stage3 调用）。
-    /// 仅在 ServerChunkManager 保证该区块保存已完成且无新保存启动时调用（主线程 stage3）。
-    void _removePendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
     std::unique_ptr<RocksDBDatabase> m_db;

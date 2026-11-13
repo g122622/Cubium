@@ -37,12 +37,14 @@ description: 参照mc源码，列出高质量计划，为项目实现新功能
 
 【重要】为了节省上下文，请你尽量阅读各级目录的 README.md 来获取你需要的信息，而不是直接查看代码文件。
 
-例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
+例如：当你修改想修改或查看`src\server\world\chunk\lifecycle\demand\ChunkDemandController.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
 
 - 项目根目录的 README.md
-- src\common\README.md
-- src\common\world\README.md
-- src\common\world\chunk\README.md
+- src\server\README.md
+- src\server\world\README.md
+- src\server\world\chunk\README.md
+- src\server\world\chunk\lifecycle\README.md
+- src\server\world\chunk\lifecycle\demand\README.md
 
 请你不仅自己要严格遵照上述要求，而且在给子代理的prompt中也要要求它们先查看相关目录链上的README.md来获取信息，而不是直接查看代码文件。
 

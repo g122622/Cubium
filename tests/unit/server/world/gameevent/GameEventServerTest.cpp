@@ -26,15 +26,15 @@
 #include "common/TempDirHelper.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
-#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/DynamicGameEventListener.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkLoadLevel.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -906,7 +906,7 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_AllChunksBlockTi
     using mc::world::chunk::ChunkLoadLevel;
     for (i32 dx = -1; dx <= 1; ++dx) {
         for (i32 dz = -1; dz <= 1; ++dz) {
-            i32 level = chunkManager->ticketManager().getChunkLevel(dx, dz);
+            i32 level = chunkManager->getChunkLevel(dx, dz);
             EXPECT_LE(level, static_cast<i32>(ChunkLoadLevel::BlockTicking))
                 << "Chunk (" << dx << ", " << dz << ") level=" << level;
         }

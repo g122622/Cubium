@@ -255,7 +255,7 @@ void ServerConsole::_collectMetrics()
 
         const i32 simulationDistance = world->entityManager().simulationDistance();
         chunkManager->forEachLoadedChunk([&snapshot, chunkManager, simulationDistance](const ChunkData& chunk) {
-            if (chunkManager->ticketManager().isTickingChunk(chunk.x(), chunk.z(), simulationDistance)) {
+            if (chunkManager->isTickingChunk(chunk.x(), chunk.z(), simulationDistance)) {
                 ++snapshot.tickingChunkCount;
             }
             snapshot.blockEntityCount += chunk.blockEntityCount();

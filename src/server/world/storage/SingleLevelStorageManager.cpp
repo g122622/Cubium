@@ -704,7 +704,7 @@ PendingChunkSave SingleLevelStorageManager::_registerPendingChunkSave(ChunkCoord
     {
         std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
         // 覆盖旧条目：ServerChunkManager 保证同一区块同一时刻仅有一个进行中卸载保存
-        // （unloadChunkSync stage1 检查 m_unloadSaveInProgress，stage3 才完成移除）。
+        // （requestChunkUnload stage1 检查 m_unloadSaveInProgress，stage3 才完成移除）。
         auto& entry = m_pendingChunkSaves[descKey];
         entry.save = owner;
         entry.waiters.clear();
@@ -742,13 +742,6 @@ void SingleLevelStorageManager::_abandonPendingChunkSave(PendingChunkSave save)
 {
     // 保存任务从未启动（池未启动/队列被清空）：唤醒等待者，避免加载永久挂起
     _completePendingChunkSave(std::move(save));
-}
-
-void SingleLevelStorageManager::_removePendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension)
-{
-    SectionKey descKey{x, z, 0, dimension};
-    std::lock_guard<std::mutex> lock(m_pendingChunkSavesMutex);
-    m_pendingChunkSaves.erase(descKey);
 }
 
 void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,

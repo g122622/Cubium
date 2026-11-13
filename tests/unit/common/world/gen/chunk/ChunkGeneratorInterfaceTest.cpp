@@ -38,8 +38,8 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
-#include "server/world/chunk/pipeline/ChunkStep.hpp"
+#include "server/world/chunk/base/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStep.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -254,7 +254,7 @@ TEST_F(BaseChunkGeneratorTest, ChunkStep_LightWriteRadius)
     // 即所有前序步骤累积依赖的最大半径（对齐 Moonrise 的 neighbourReadRadius =
     // getAccumulatedRadiusOf(EMPTY)，主世界中 EMPTY 为最外圈状态）。LIGHT 继承
     // STRUCTURE_REFERENCES 的 radius-8 STRUCTURE_STARTS 依赖及其前序偏移，累积到 11
-    // （与 FULL 的 accumulatedRadius=11 一致，见 ChunkTaskScheduler 注释）。半径2邻居
+    // （与 FULL 的 accumulatedRadius=11 一致，见 ChunkGenerationScheduler 注释）。半径2邻居
     // 经 ChunkLightingProvider fallback 到 ServerWorld::getChunkForLight 自取，不影响此值。
     const ChunkStep& step = ChunkPyramid::generationPyramid().getStepTo(ChunkStatuses::LIGHT);
     EXPECT_EQ(step.blockStateWriteRadius(), 2);

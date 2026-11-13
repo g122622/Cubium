@@ -153,7 +153,7 @@ context.region->setDifficulty(m_world->difficulty());
 | 模块 | 用途 |
 |------|------|
 | `server/world/ServerWorld` | 服务端世界管理，创建和调用区块生成器 |
-| `world/chunk/ChunkLoadTicketManager` | 区块加载管理，触发区块生成任务 |
+| `world/chunk/ChunkDemandController` | 区块加载管理，触发区块生成任务 |
 | `world/dimension/Dimension` | 维度创建，构建区块生成器实例 |
 
 ## 容易踩的坑

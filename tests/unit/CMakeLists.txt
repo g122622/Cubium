@@ -1060,11 +1060,13 @@ add_executable(mc_tests
     server/MiningManagerTest.cpp
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
-    # test_chunk_worker_pool 已删除（ChunkGenerateTask 被 ChunkProgressionTask + ChunkTaskScheduler 取代）
-    # GenerationChunkCache 已删除（被 StaticChunkCache2D + ChunkTaskScheduler 取代）
+    # test_chunk_worker_pool 已删除（ChunkGenerateTask 被 ChunkProgressionTask + ChunkGenerationScheduler 取代）
+    # GenerationChunkCache 已删除（被 StaticChunkCache2D + ChunkGenerationScheduler 取代）
     # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
     server/world/ChunkGenerationDemandTest.cpp
+    server/world/chunk/ChunkRuntimeBoundaryTest.cpp
+    server/world/chunk/ChunkHolderTest.cpp
     server/world/time/TimeManagerTest.cpp
     server/player/lifecycle/PlayerManagerTest.cpp
     server/network/outbound/PacketSenderTest.cpp

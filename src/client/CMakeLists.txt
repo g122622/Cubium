@@ -497,16 +497,16 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/access/admission/BannedIpList.cpp
     ${CMAKE_SOURCE_DIR}/src/server/access/permission/OpListManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/lifecycle/generation/ChunkGenerationScheduler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/scheduling/AreaTaskScheduler.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ServerLightQueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightingProvider.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/RuntimeLightTask.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLoadLightTask.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/lifecycle/generation/ChunkProgressionTask.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/lifecycle/generation/ChunkLightingProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/ServerChunkManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/chunk/lifecycle/state/ChunkHolder.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/lighting/runtime/ServerLightQueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/lighting/runtime/RuntimeLightingProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/lighting/runtime/RuntimeLightTask.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/lighting/runtime/ChunkLoadLightTask.cpp
     # 光照引擎与管理器（自 common/world/lighting 迁入 server，与 server/CMakeLists.txt 一致）
     ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BaseLightEngine.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/lighting/engine/BlockLightEngine.cpp

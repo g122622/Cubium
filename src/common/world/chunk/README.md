@@ -6,13 +6,12 @@
 chunk/
 ├── base/  # 本领域共享的基础类型与定义
 ├── data/  # 该领域的子模块
-├── load/  # 该领域的子模块
 └── IChunkManager.hpp  # 区块管理器接口
 ```
 
 ## 内部模块关系
 
-各文件承接目录树中标明的单一职责，通过同领域接口组合。独占的辅助实现位于使用者目录下。
+base 提供坐标和标识，data 提供共享区块模型，IChunkManager 为公共游戏逻辑提供访问契约。服务端的票据、阶段与生命周期位于 server/world/chunk。
 
 ## 上下游外部依赖关系
 
@@ -23,8 +22,8 @@ chunk/
 - 目录按领域职责组织；跨领域协作通过明确入口和基础类型。
 - 新增或迁移源文件时同步更新所有消费目标的 CMake 清单。
 
-1. **`ChunkLoadTicketManager::tick()` 必须每 tick 调用一次** — 带生命周期票据（PORTAL 300t、POST_TELEPORT 5t、UNLOAD_COOLDOWN 100t 等）的剩余 tick 只在这里递减；漏调会让它们永不失效，其钉住的票级也不会释放（历史上 `tick()` 无调用方，导致票据过期机制整体失效）。显式 ticket、玩家 source 和追踪系统的更新仍是批处理的，需要在添加/移除后调用 `processUpdates()`
-2. **线程安全** — `SingleChunkLifecycleManager` 使用互斥锁；`ChunkData` 和 `ChunkPrimer` 不是线程安全的
+1. **`ChunkDemandController::tick()` 必须每 tick 调用一次** — 带生命周期票据（PORTAL 300t、POST_TELEPORT 5t、UNLOAD_COOLDOWN 100t 等）的剩余 tick 只在这里递减；漏调会让它们永不失效，其钉住的票级也不会释放（历史上 `tick()` 无调用方，导致票据过期机制整体失效）。显式 ticket、玩家 source 和追踪系统的更新仍是批处理的，需要在添加/移除后调用 `processUpdates()`
+2. **线程安全** — `ChunkHolder` 使用互斥锁；`ChunkData` 和 `ChunkPrimer` 不是线程安全的
 3. **区块段懒创建** — 设置空气方块不会创建区块段；写入非空气方块才会创建
 4. **光照初始化是惰性的** — 天空光照默认 15（全亮），方块光照默认 0（无光），两者都**不预分配**底层 2048 字节缓冲：**数组为空即代表默认值**（`getSkyLight` 对空数组返回 15、`getBlockLight` 返回 0），只有真正写入非默认值时才按需分配（`NibbleArray::set` 与可变 `data()` 都会 `ensureAllocated`）。空数组与「全 15」在格式上等价，原生存档不保存光照，加载后由光照任务重算。改动此处语义时必须同时核对这两处。**光照的权威副本只有 `ChunkData` 的 `SWMRNibbleArray` 一处**（`ChunkSection` 不持有光照）
 5. **level 语义** — 级别越小优先级越高；级别 ≤ 34（`ChunkLoadLevel::Border`）的区块应该被加载，≤ 32（BlockTicking）的区块才推进游戏逻辑

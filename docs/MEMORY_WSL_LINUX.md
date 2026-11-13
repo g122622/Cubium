@@ -100,7 +100,7 @@ TODO(临时诊断)）。
 | `PalettedContainer` 存储（storage/palette/hashMap） | 11.0 | 16% | 三次独立堆分配 |
 | `ServerTickList` 的 `ScheduledTick`（流体 tick） | 6.8 | 10% | **基准口径产物，见 §3.5** |
 | `SWMRNibbleArray` 缓冲（天空光/方块光） | 6.7 | 10% | 见 §五靶点 7 |
-| `SingleChunkLifecycleManager` 邻居集 | 4.5 | 7% | — |
+| `ChunkHolder` 邻居集 | 4.5 | 7% | — |
 | `CompiledDensityFunction::newInstance`（区块级求值器） | 4.4 | 6% | 见 §五靶点 5 |
 | `NoiseInterpolator` 双 slice | 3.1 | 5% | 对齐原版，不可削 |
 | `ChunkProgressionTask::executeEmptyLoad` | 1.7 | 2% | — |

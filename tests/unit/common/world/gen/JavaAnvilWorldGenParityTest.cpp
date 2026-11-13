@@ -131,7 +131,7 @@
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/aquifer/Aquifer.hpp"
 #include "server/world/gen/aquifer/FluidPickerFactory.hpp"

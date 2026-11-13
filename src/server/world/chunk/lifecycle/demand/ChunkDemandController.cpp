@@ -1,0 +1,641 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
+#include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
+#include "common/util/assert/AssertMacros.hpp"
+#include "common/world/chunk/base/ChunkPos.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkDistanceGraph.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkLoadLevel.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkLoadTicket.hpp"
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <cstdlib>
+#include <mutex>
+#include <optional>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+using namespace mc::trace;
+
+namespace {
+
+/// 卸载重试冷却票据的生命周期（tick）
+constexpr mc::u32 _UNLOAD_COOLDOWN_TICKS = 100;
+
+struct TrackingChangeEvent {
+    mc::PlayerId playerId;
+    mc::ChunkCoord x;
+    mc::ChunkCoord z;
+    bool isTracking;
+};
+
+} // namespace
+
+namespace mc::world::chunk {
+
+// ============================================================================
+// 预定义票据类型
+// ============================================================================
+
+namespace TicketTypes {
+// 强制加载票据
+const ChunkLoadTicketType<ChunkPos> FORCED = ChunkLoadTicketType<ChunkPos>::create("forced");
+
+// 传送门票据（300 tick 生命周期）
+const ChunkLoadTicketType<ChunkPos> PORTAL = ChunkLoadTicketType<ChunkPos>::create("portal", 300);
+
+// 传送后票据（5 tick 生命周期）
+const ChunkLoadTicketType<u32> POST_TELEPORT = ChunkLoadTicketType<u32>::create("post_teleport", 5);
+
+// 未知票据
+const ChunkLoadTicketType<ChunkPos> UNKNOWN = ChunkLoadTicketType<ChunkPos>::create("unknown");
+
+// 世界启动票据
+const ChunkLoadTicketType<Unit> START = ChunkLoadTicketType<Unit>::create("start");
+
+// 末影龙战斗票据
+const ChunkLoadTicketType<Unit> DRAGON = ChunkLoadTicketType<Unit>::create("dragon");
+
+// 光照计算票据
+const ChunkLoadTicketType<ChunkPos> LIGHT = ChunkLoadTicketType<ChunkPos>::create("light");
+
+// 卸载重试冷却票据（100 tick 生命周期）
+const ChunkLoadTicketType<Unit> UNLOAD_COOLDOWN =
+    ChunkLoadTicketType<Unit>::create("unload_cooldown", _UNLOAD_COOLDOWN_TICKS);
+
+} // namespace TicketTypes
+
+// ============================================================================
+// ChunkTicketSet 实现
+// ============================================================================
+
+bool ChunkTicketSet::addTicket(ChunkLoadTicket ticket)
+{
+    // 去重
+    for (const auto& existingTicket : m_tickets) {
+        if (existingTicket == ticket) {
+            return false;
+        }
+    }
+
+    m_tickets.push_back(std::move(ticket));
+    return true;
+}
+
+std::optional<ChunkLoadTicket> ChunkTicketSet::removeTicket(const ChunkLoadTicket& ticket)
+{
+    for (auto it = m_tickets.begin(); it != m_tickets.end(); ++it) {
+        if (*it == ticket) {
+            std::optional<ChunkLoadTicket> removed = std::move(*it);
+            m_tickets.erase(it);
+            return removed;
+        }
+    }
+    return std::nullopt;
+}
+
+i32 ChunkTicketSet::getMinLevel() const noexcept
+{
+    if (m_tickets.empty()) {
+        return static_cast<i32>(ChunkLoadLevel::MaxLevel);
+    }
+
+    i32 minLevel = static_cast<i32>(ChunkLoadLevel::MaxLevel);
+    for (const auto& ticket : m_tickets) {
+        if (ticket.level() < minLevel) {
+            minLevel = ticket.level();
+        }
+    }
+    return minLevel;
+}
+
+i32 ChunkTicketSet::tickLifetimes()
+{
+    i32 removed = 0;
+    auto it = m_tickets.begin();
+    while (it != m_tickets.end()) {
+        if (it->tickLifetime()) {
+            it = m_tickets.erase(it);
+            ++removed;
+        } else {
+            ++it;
+        }
+    }
+    return removed;
+}
+
+i32 ChunkTicketSet::timedTicketCount() const
+{
+    i32 count = 0;
+    for (const auto& ticket : m_tickets) {
+        if (ticket.hasTimeout()) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+// ============================================================================
+// ChunkDemandController 实现
+// ============================================================================
+
+ChunkDemandController::ChunkDemandController()
+    : m_viewDistance(10)
+{
+    // 设置距离图回调（统一用于所有来源）
+    m_distanceGraph.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
+        if (m_levelChangeCallback) {
+            m_levelChangeCallback(x, z, oldLevel, newLevel);
+        }
+    });
+}
+
+void ChunkDemandController::_addTicket(ChunkPos pos, ChunkLoadTicket ticket)
+{
+    u64 key = _posToKey(pos.x, pos.z);
+
+    auto& ticketSet = m_chunkTickets[key];
+    const bool hasTimeout = ticket.hasTimeout();
+    const bool added = ticketSet.addTicket(std::move(ticket));
+
+    // 去重未实际加入时集合内容不变，无需重算索引
+    if (added && hasTimeout) {
+        m_expiringChunks.insert(key);
+    }
+
+    m_dirtyChunks.insert(key);
+}
+
+void ChunkDemandController::_removeTicket(ChunkPos pos, const ChunkLoadTicket& ticket)
+{
+    u64 key = _posToKey(pos.x, pos.z);
+
+    auto it = m_chunkTickets.find(key);
+    if (it == m_chunkTickets.end()) {
+        return;
+    }
+
+    const std::optional<ChunkLoadTicket> removed = it->second.removeTicket(ticket);
+    if (!removed.has_value()) {
+        return;
+    }
+
+    // 只有移除带生命周期票据才可能影响过期索引
+    if (removed->hasTimeout()) {
+        _refreshExpiringIndex(key);
+    }
+
+    // 如果票据集合为空，移除整个条目
+    if (it->second.empty()) {
+        m_chunkTickets.erase(it);
+        m_expiringChunks.erase(key);
+    }
+
+    // 标记区块为脏
+    m_dirtyChunks.insert(key);
+}
+
+void ChunkDemandController::_refreshExpiringIndex(u64 key)
+{
+    auto it = m_chunkTickets.find(key);
+    if (it == m_chunkTickets.end() || it->second.timedTicketCount() == 0) {
+        m_expiringChunks.erase(key);
+        return;
+    }
+    m_expiringChunks.insert(key);
+}
+
+void ChunkDemandController::updatePlayerPosition(PlayerId playerId, ChunkCoord x, ChunkCoord z)
+{
+    ChunkPos newPos(x, z);
+    auto& state = m_playerStates[playerId];
+    if (state.hasPosition && state.center.x == x && state.center.z == z) {
+        return;
+    }
+
+    const std::optional<ChunkPos> oldPos = state.hasPosition ? std::optional<ChunkPos>(state.center) : std::nullopt;
+    const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
+
+    if (oldPos.has_value()) {
+        _updatePlayerSourceCenter(&oldPos.value(), &newPos);
+    } else {
+        _updatePlayerSourceCenter(nullptr, &newPos);
+    }
+
+    state.center = newPos;
+    state.hasPosition = true;
+    state.trackedChunks = _buildTrackedChunkSet(playerId, x, z);
+    m_playerPositions[playerId] = newPos;
+
+    // 中心变化（含首次设置）：通知上层发送 SetChunkCacheCenter。须先于 _applyTrackingDelta
+    // 触发的区块发送——客户端 ClientChunkCache.Storage.inRange 依赖 viewCenterX/Z 判定，
+    // 中心未更新前到达的区块会被丢弃（“not in the view range”）。
+    if (m_chunkCacheCenterCallback) {
+        m_chunkCacheCenterCallback(playerId, x, z);
+    }
+
+    _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
+    processUpdates();
+}
+
+void ChunkDemandController::removePlayer(PlayerId playerId)
+{
+    m_playerViewDistances.erase(playerId);
+    auto stateIt = m_playerStates.find(playerId);
+    if (stateIt == m_playerStates.end()) {
+        m_playerPositions.erase(playerId);
+        return;
+    }
+
+    const PlayerSourceState state = stateIt->second;
+    if (state.hasPosition) {
+        _updatePlayerSourceCenter(&state.center, nullptr);
+    }
+
+    _applyTrackingDelta(playerId, state.trackedChunks, {});
+    m_playerStates.erase(stateIt);
+    m_playerPositions.erase(playerId);
+    processUpdates();
+}
+
+i32 ChunkDemandController::getChunkLevel(ChunkCoord x, ChunkCoord z) const
+{
+    return m_distanceGraph.getLevel(x, z);
+}
+
+bool ChunkDemandController::isTickingChunk(ChunkCoord x, ChunkCoord z, i32 simulationDistance) const
+{
+    for (const auto& [player, center] : m_playerPositions) {
+        MC_UNUSED(player);
+        const i64 distance =
+            std::max(std::abs(static_cast<i64>(x) - center.x), std::abs(static_cast<i64>(z) - center.z));
+        if (distance <= static_cast<i64>(simulationDistance) + 1) {
+            return true;
+        }
+    }
+    for (const auto& [key, level] : m_tickingTicketSources) {
+        const ChunkCoord sourceX = static_cast<ChunkCoord>(key >> 32);
+        const ChunkCoord sourceZ = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+        const i64 distance = std::max(std::abs(static_cast<i64>(x) - sourceX), std::abs(static_cast<i64>(z) - sourceZ));
+        if (distance <= static_cast<i64>(ChunkLoadLevel::BlockTicking) - level) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ChunkDemandController::tick()
+{
+    // 过期处理只遍历"存在带生命周期票据"的区块，而非全部票据集合。
+    // 遍历期间会修改 m_expiringChunks（到期票据被移除后该区块不再需要逐 tick 处理），
+    // 故先取键快照。
+    if (!m_expiringChunks.empty()) {
+        const std::vector<u64> expiringKeys(m_expiringChunks.begin(), m_expiringChunks.end());
+        for (u64 key : expiringKeys) {
+            auto it = m_chunkTickets.find(key);
+            if (it == m_chunkTickets.end()) {
+                m_expiringChunks.erase(key);
+                continue;
+            }
+
+            const i32 removed = it->second.tickLifetimes();
+            const bool nowEmpty = it->second.empty();
+            const bool stillHasTimedTicket = !nowEmpty && it->second.timedTicketCount() > 0;
+
+            if (nowEmpty) {
+                m_chunkTickets.erase(key);
+            }
+            if (removed > 0) {
+                // 票据级别可能因此升高，标记为待重算
+                m_dirtyChunks.insert(key);
+            }
+            if (!stillHasTimedTicket) {
+                m_expiringChunks.erase(key);
+            }
+        }
+    }
+
+    // 处理距离图更新
+    processUpdates();
+}
+
+void ChunkDemandController::setViewDistance(i32 distance)
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "ChunkDemandController::setViewDistance");
+
+    const i32 clampedDistance = std::clamp(distance, 2, 32);
+
+    if (m_viewDistance == clampedDistance) {
+        return;
+    }
+
+    m_viewDistance = clampedDistance;
+
+    for (const auto& [playerId, state] : m_playerStates) {
+        if (state.hasPosition) {
+            m_dirtyChunks.insert(_posToKey(state.center.x, state.center.z));
+        }
+    }
+    _rebuildAllPlayerSources();
+    processUpdates();
+}
+
+size_t ChunkDemandController::totalTicketCount() const
+{
+    size_t count = 0;
+    for (const auto& [key, ticketSet] : m_chunkTickets) {
+        count += ticketSet.size();
+    }
+    return count;
+}
+
+void ChunkDemandController::forceChunk(ChunkCoord x, ChunkCoord z, bool force)
+{
+    ChunkPos pos(x, z);
+    ChunkLoadTicket ticket(TicketTypes::FORCED, static_cast<i32>(ChunkLoadLevel::Full), pos);
+
+    if (force) {
+        _addTicket(pos, ticket);
+    } else {
+        _removeTicket(pos, ticket);
+    }
+
+    processUpdates();
+}
+
+void ChunkDemandController::processUpdates()
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Chunk,
+        "ChunkDemandController::processUpdates",
+        "dirtyChunkCount",
+        m_dirtyChunks.size(),
+        "playerCount",
+        m_playerStates.size());
+
+    for (u64 key : m_dirtyChunks) {
+        ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
+        ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+        _refreshChunkSourceLevel(x, z);
+    }
+    m_dirtyChunks.clear();
+
+    // 回调可能触发存档解析或争用调度锁，固定条数无法约束主线程耗时。
+    // 保留数量上限，同时按单个节点检查墙钟预算；未完成的传播留待后续推进。
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+    for (i32 processed = 0; processed < 1000; ++processed) {
+        if (m_distanceGraph.processUpdates(1) == 0 || std::chrono::steady_clock::now() >= deadline) {
+            break;
+        }
+    }
+}
+
+void ChunkDemandController::_refreshChunkSourceLevel(ChunkCoord x, ChunkCoord z)
+{
+    const u64 key = _posToKey(x, z);
+
+    i32 sourceLevel = ChunkDistanceGraph::UNREACHED_LEVEL;
+    auto ticketIt = m_chunkTickets.find(key);
+    if (ticketIt != m_chunkTickets.end()) {
+        sourceLevel = std::min(sourceLevel, ticketIt->second.getMinLevel());
+    }
+    if (isTickingChunkLevel(sourceLevel)) {
+        m_tickingTicketSources[key] = sourceLevel;
+    } else {
+        m_tickingTicketSources.erase(key);
+    }
+
+    auto playerIt = m_playerSourceCounts.find(key);
+    if (playerIt != m_playerSourceCounts.end() && playerIt->second > 0) {
+        sourceLevel = std::min(sourceLevel, viewDistanceToLevel(m_viewDistance));
+    }
+
+    const bool isDecreasing = sourceLevel < m_distanceGraph.getLevel(x, z);
+    m_distanceGraph.updateSourceLevel(x, z, sourceLevel, isDecreasing);
+}
+
+void ChunkDemandController::_updatePlayerSourceCenter(const ChunkPos* oldPos, const ChunkPos* newPos)
+{
+    if (oldPos != nullptr) {
+        const u64 oldKey = _posToKey(oldPos->x, oldPos->z);
+        auto it = m_playerSourceCounts.find(oldKey);
+        if (it != m_playerSourceCounts.end()) {
+            --it->second;
+            if (it->second <= 0) {
+                m_playerSourceCounts.erase(it);
+            }
+        }
+        m_dirtyChunks.insert(oldKey);
+    }
+
+    if (newPos != nullptr) {
+        const u64 newKey = _posToKey(newPos->x, newPos->z);
+        ++m_playerSourceCounts[newKey];
+        m_dirtyChunks.insert(newKey);
+    }
+}
+
+void ChunkDemandController::setPlayerViewDistance(PlayerId playerId, i32 distance)
+{
+    const i32 requestedDistance = std::clamp(distance, 2, 32);
+    const auto previous = m_playerViewDistances.find(playerId);
+    if (previous != m_playerViewDistances.end() && previous->second == requestedDistance) {
+        return;
+    }
+    m_playerViewDistances[playerId] = requestedDistance;
+    if (auto it = m_playerStates.find(playerId); it != m_playerStates.end() && it->second.hasPosition) {
+        auto& state = it->second;
+        auto trackedChunks = _buildTrackedChunkSet(playerId, state.center.x, state.center.z);
+        _applyTrackingDelta(playerId, state.trackedChunks, trackedChunks);
+        state.trackedChunks = std::move(trackedChunks);
+    }
+}
+
+std::unordered_set<u64> ChunkDemandController::_buildTrackedChunkSet(
+    PlayerId playerId, ChunkCoord centerX, ChunkCoord centerZ) const
+{
+    const auto request = m_playerViewDistances.find(playerId);
+    const i32 distanceLimit =
+        request == m_playerViewDistances.end() ? m_viewDistance : std::min(m_viewDistance, request->second);
+    std::unordered_set<u64> chunks;
+    for (i32 dx = -distanceLimit; dx <= distanceLimit; ++dx) {
+        for (i32 dz = -distanceLimit; dz <= distanceLimit; ++dz) {
+            const i32 distance = std::max(std::abs(dx), std::abs(dz));
+            if (distance <= distanceLimit) {
+                chunks.insert(_posToKey(centerX + dx, centerZ + dz));
+            }
+        }
+    }
+    return chunks;
+}
+
+void ChunkDemandController::_applyTrackingDelta(
+    PlayerId playerId, const std::unordered_set<u64>& oldChunks, const std::unordered_set<u64>& newChunks)
+{
+    std::vector<TrackingChangeEvent> trackingEvents;
+    {
+        std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+
+        for (u64 key : newChunks) {
+            if (oldChunks.find(key) != oldChunks.end()) {
+                continue;
+            }
+            m_chunkTrackingPlayers[key].insert(playerId);
+            if (m_trackingChangeCallback) {
+                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                trackingEvents.push_back({playerId, cx, cz, true});
+            }
+        }
+
+        for (u64 key : oldChunks) {
+            if (newChunks.find(key) != newChunks.end()) {
+                continue;
+            }
+            auto it = m_chunkTrackingPlayers.find(key);
+            if (it != m_chunkTrackingPlayers.end()) {
+                it->second.erase(playerId);
+                if (it->second.empty()) {
+                    m_chunkTrackingPlayers.erase(it);
+                }
+            }
+
+            if (m_trackingChangeCallback) {
+                ChunkCoord cx = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord cz = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                trackingEvents.push_back({playerId, cx, cz, false});
+            }
+        }
+    }
+
+    for (const auto& event : trackingEvents) {
+        m_trackingChangeCallback(event.playerId, event.x, event.z, event.isTracking);
+    }
+}
+
+void ChunkDemandController::_rebuildAllPlayerSources()
+{
+    for (const auto& [key, count] : m_playerSourceCounts) {
+        MC_UNUSED(count);
+        m_dirtyChunks.insert(key);
+    }
+    m_playerSourceCounts.clear();
+
+    for (auto& [playerId, state] : m_playerStates) {
+        if (!state.hasPosition) {
+            continue;
+        }
+
+        const std::unordered_set<u64> oldTrackedChunks = state.trackedChunks;
+        state.trackedChunks = _buildTrackedChunkSet(playerId, state.center.x, state.center.z);
+        _applyTrackingDelta(playerId, oldTrackedChunks, state.trackedChunks);
+
+        const u64 key = _posToKey(state.center.x, state.center.z);
+        ++m_playerSourceCounts[key];
+        m_dirtyChunks.insert(key);
+    }
+}
+
+const ChunkTicketSet* ChunkDemandController::getChunkTickets(ChunkCoord x, ChunkCoord z) const
+{
+    u64 key = _posToKey(x, z);
+    auto it = m_chunkTickets.find(key);
+    if (it != m_chunkTickets.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+std::vector<PlayerId> ChunkDemandController::getTrackingPlayers(ChunkCoord x, ChunkCoord z) const
+{
+    u64 key = _posToKey(x, z);
+    std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+
+    std::vector<PlayerId> result;
+    auto it = m_chunkTrackingPlayers.find(key);
+    if (it != m_chunkTrackingPlayers.end()) {
+        result.assign(it->second.begin(), it->second.end());
+    }
+    return result;
+}
+
+bool ChunkDemandController::isPlayerTracking(PlayerId playerId, ChunkCoord x, ChunkCoord z) const
+{
+    u64 key = _posToKey(x, z);
+    std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+
+    auto it = m_chunkTrackingPlayers.find(key);
+    if (it == m_chunkTrackingPlayers.end()) {
+        return false;
+    }
+    return it->second.find(playerId) != it->second.end();
+}
+
+bool ChunkDemandController::hasTrackingPlayers(u64 chunkKey) const
+{
+    std::lock_guard<std::mutex> lock(m_trackingPlayersMutex);
+
+    auto it = m_chunkTrackingPlayers.find(chunkKey);
+    return it != m_chunkTrackingPlayers.end() && !it->second.empty();
+}
+
+std::vector<ChunkPos> ChunkDemandController::getForcedChunks() const
+{
+    std::vector<ChunkPos> result;
+
+    // 遍历所有票据集合，找出包含 FORCED 票据的区块
+    for (const auto& [key, ticketSet] : m_chunkTickets) {
+        for (const auto& ticket : ticketSet.tickets()) {
+            if (ticket.typeName() == "forced") {
+                ChunkCoord x = static_cast<ChunkCoord>(key >> 32);
+                ChunkCoord z = static_cast<ChunkCoord>(key & 0xFFFFFFFF);
+                result.emplace_back(x, z);
+                break; // 一个区块只需添加一次
+            }
+        }
+    }
+
+    return result;
+}
+
+bool ChunkDemandController::isForcedChunk(ChunkCoord x, ChunkCoord z) const
+{
+    const ChunkTicketSet* tickets = getChunkTickets(x, z);
+    if (tickets == nullptr) {
+        return false;
+    }
+
+    for (const auto& ticket : tickets->tickets()) {
+        if (ticket.typeName() == "forced") {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+} // namespace mc::world::chunk

@@ -41,7 +41,7 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/base/pipeline/ChunkPyramid.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include <set>

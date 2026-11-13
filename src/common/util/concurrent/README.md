@@ -45,19 +45,21 @@ ReentrantAreaLock
 
 | 模块 | 用途 |
 |------|------|
-| `server/world/ChunkTaskScheduler` | 保护 `schedule`/`checkNeighbour`/`onChunkGenComplete` 的原子性，覆盖 `[x±accessRadius, z±accessRadius]` 区域 |
-| `server/world/ServerChunkManager` | 通过 `ChunkTaskScheduler` 间接使用 |
+| `server/world/chunk/lifecycle/generation/ChunkGenerationScheduler` | 保护 `schedule`/`checkNeighbour`/`onChunkGenComplete` 的原子性，覆盖 `[x±accessRadius, z±accessRadius]` 区域 |
+| `server/world/chunk/ServerChunkManager` | 通过 `ChunkGenerationScheduler` 间接使用 |
 
-## ReentrantAreaLock 设计要点
+## 容易踩的坑
 
-- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键。`coordinateShift = 0` 时一区块一锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 区块共用一个 section 锁。由调用方按场景选择——`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使 `2*maxAccessRadius` 锁只触达 1~4 个 section。
+### 区域锁不变量
+
+- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键。`coordinateShift = 0` 时一区块一锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 区块共用一个 section 锁。由调用方按场景选择——`ChunkGenerationScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使 `2*maxAccessRadius` 锁只触达 1~4 个 section。
 - **Node 所有权（shared_ptr）**：一次 `lock` 创建一个 `Node`（`shared_ptr` 管理），代表调用线程对区域内所有 section 的占有。`m_nodes` 哈希表、持有线程的 `LockHandle`、阻塞线程的 `park` 引用共同保活 Node，对齐 Moonrise 的 GC 语义（C++ 无 GC，用 `shared_ptr` + `enable_shared_from_this` 等价实现）。
 - **不相交不变量**：不同线程不能同时持有相交区域；相交时后到者阻塞等待。同线程重入只允许"完全被覆盖"的子区域（相交但不被覆盖触发断言）。
 - **RAII**：`lock`/`tryLock` 返回 `LockHandle`（持有 `shared_ptr<Node>`），析构时 `unlock`（移除 section + 排空等待队列 + unpark）再释放 `shared_ptr`。
 - **坐标打包**：section 键 `(sectionX, sectionZ)` 打包为 `u64`（高 32 位 Z，低 32 位 X），对齐 Moonrise `IntPairUtil.key`。
 - **分段锁实现**：`m_nodes` 用 `ConcurrentLong2ObjectHashTable`（每桶 mutex 分段锁 putIfAbsent/remove/get，对齐 Moonrise `synchronized(node)`），等待队列用 per-Node 的 `MultiThreadedQueue` + `LockSupport` park/unpark，替代旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
 
-## 无锁等待协议（park/unpark + MultiThreadedQueue）
+### 无锁等待协议（park/unpark + MultiThreadedQueue）
 
 冲突线程的阻塞与唤醒流程（对齐 Moonrise `ReentrantAreaLock.lock`）：
 
@@ -67,7 +69,7 @@ ReentrantAreaLock
 4. 持有线程 `unlock`：`remove` 所有 section，`pollOrBlockAdds` 循环取出等待者并 `unpark`。
 5. `pollOrBlockAdds` 的"取队首 or 阻止入队"原子语义保证不丢唤醒：unlock 排空时若队列空则 preventAdds，lock 的 `add` 返回 false（被阻止）直接重试，不 park；若 lock 先 `add` 成功，unlock 的 `pollOrBlockAdds` 必取到该线程并 unpark。
 
-## 容易踩的坑
+### 并发与生命周期约束
 
 1. **Node 生命周期（use-after-free）**：阻塞线程持有冲突 Node 的 `shared_ptr`（`park`）期间遍历其 `MultiThreadedQueue` 链表（`add` 的 CAS），持有线程可能并发 `unlock` + 释放 `LockHandle`。`shared_ptr` 保证 Node 在 `add` + `park` 期间存活，`~MultiThreadedQueue` 链表析构延迟到最后一个 `shared_ptr` 释放。**不要**把 Node 改回 `unique_ptr` 或裸指针——会 reintroduce use-after-free。
 2. **`park` 必须是 `shared_ptr`**：`putIfAbsent` 返回 `shared_ptr`（拷贝保活），阻塞线程的 `park` 局部变量持有该拷贝。若用裸指针，持有线程释放 Node 后 `park->add` 遍历已释放链表。
@@ -79,7 +81,7 @@ ReentrantAreaLock
 8. **`ConcurrentLong2ObjectHashTable` 不 resize**：固定 4096 桶 + 链表。区块 section 数量有上界（活跃区块范围），无需 resize。每桶 `std::mutex` 分段锁，物理摘除在锁内完成（无逻辑删除节点堆积、无 ABA），对齐 Moonrise `synchronized(node)`。
 9. **`~MultiThreadedQueue` 必须从 `m_first`（物理链表头）遍历，不能用 `m_head`**：`m_head` 只是"逻辑队首"，`pollOrBlockAdds` 取走元素时把它前移到后继节点，但节点从不摘链（元素被 `exchange` 置空）。若从 `m_head` 出发，被前移越过的前缀（含构造期哨兵）永远不释放——nightly 集成测试实测泄漏 3696 个此类节点（区块调度锁的等待队列），并因 LeakSanitizer 报错使 20/24 分片 SIGABRT 退出。`m_first` 构造后不可变；死结（自环）终止遍历。回归测试见 `MultiThreadedQueueTest.DestructorReleasesConsumedPrefixNodes`（依赖 `liveNodeCount()` 计数器）。
 
-## 性能要点（重构动机）
+### 锁粒度与性能
 
 旧实现（mutex + condition_variable）的 `ReentrantAreaLock::unlock:notify` 是 Perfetto 追踪的最大自耗时热点（635ms / 332 次），根因：
 
@@ -100,13 +102,4 @@ ReentrantAreaLock
 - 不相交区域的 lock/unlock 完全并行（不同桶、不同 Node），不被大区域 unlock 阻塞。
 - 与 Moonrise `ConcurrentChainedLong2ReferenceHashTable` 的 `synchronized(node)` 分段锁语义一致。
 
-**`coordinateShift` 是 `lock` 性能的关键调节项**：`lock(center, radius)` 的 section 操作数 = `((2*radius)>>shift + 1)²`。`ChunkTaskScheduler` 的 `2*maxAccessRadius=22` 锁在 shift=0 下触达 45²=2025 个 section（每次 `putIfAbsent` 取一次桶锁，冲突时回滚最多 2025 次 `remove` + 退避重试），是 `ReentrantAreaLock::lock` 成为 Perfetto #1 热点（10.35s/357 次）的根因。shift=6 后同一锁只触达 1~4 个 section，开销降低约 500 倍。Moonrise 用 `getChunkSystemLockShift()=6`（`SECTION_SHIFT=6`，64×64 区块/section），Cubium 对齐之。
-
-## 测试
-
-`tests/common/util/concurrent/` 下：
-
-- `ReentrantAreaLockTest.cpp`：区域锁功能 + 并发回归（含大区域 unlock 不阻塞远处区域、N 线程严格互斥、park/unpark 不丢唤醒）。
-- `LockSupportTest.cpp`：park/unpark permit 语义、unpark-before-park 不丢唤醒、跨线程唤醒、permit 不累加。
-- `MultiThreadedQueueTest.cpp`：add/poll FIFO、preventAdds/allowAdds、pollOrBlockAdds 排空阻塞、forceAdd、并发不丢元素。
-- `ConcurrentLong2ObjectHashTableTest.cpp`：putIfAbsent/remove(key,expected)/get、并发 putIfAbsent 单胜者、ABA 安全。
+**`coordinateShift` 是 `lock` 性能的关键调节项**：`lock(center, radius)` 的 section 操作数 = `((2*radius)>>shift + 1)²`。`ChunkGenerationScheduler` 的 `2*maxAccessRadius=22` 锁在 shift=0 下触达 45²=2025 个 section（每次 `putIfAbsent` 取一次桶锁，冲突时回滚最多 2025 次 `remove` + 退避重试），是 `ReentrantAreaLock::lock` 成为 Perfetto #1 热点（10.35s/357 次）的根因。shift=6 后同一锁只触达 1~4 个 section，开销降低约 500 倍。Moonrise 用 `getChunkSystemLockShift()=6`（`SECTION_SHIFT=6`，64×64 区块/section），Cubium 对齐之。

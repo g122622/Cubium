@@ -42,7 +42,7 @@
 #include "common/world/chunk/data/IChunk.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/generation/base/DecorationStage.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/aquifer/FluidPickerFactory.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/carver/CarvingContext.hpp"

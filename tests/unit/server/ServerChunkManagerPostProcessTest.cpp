@@ -24,9 +24,10 @@
 #include "common/util/thread/UniversalWorkerPool.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/ChunkSystemTestAccess.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -129,17 +130,19 @@ protected:
     void enqueuePostProcessForTest(
         ChunkCoord x, ChunkCoord z, std::vector<SpawnedEntityData>&& entities, bool needsPostProcess)
     {
-        m_manager->_enqueuePostProcess(x, z, std::move(entities), needsPostProcess);
+        auto& lifecycle = ChunkSystemTestAccess::lifecycle(*m_manager);
+        (void)lifecycle.registry.getOrCreate(x, z);
+        lifecycle.integration.enqueue(x, z, std::move(entities), needsPostProcess);
     }
 
     void setTicketLevelForTest(ChunkCoord x, ChunkCoord z, i32 level)
     {
-        m_manager->_onTicketLevelChanged(x, z, 46, level);
+        ChunkSystemTestAccess::lifecycle(*m_manager).onTicketLevelChanged(x, z, 46, level);
     }
 
     void drainUnloadForTest()
     {
-        m_manager->_drainPendingUnloadFinishes();
+        ChunkSystemTestAccess::lifecycle(*m_manager).unloader.drain();
     }
 };
 
@@ -150,7 +153,6 @@ protected:
 TEST_F(ServerChunkManagerPostProcessTest, TicketUpdatesDoNotPublishPendingStorageResults)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
     ChunkData stored(0, 0);
     stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
     ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
@@ -169,7 +171,6 @@ TEST_F(ServerChunkManagerPostProcessTest, TicketUpdatesDoNotPublishPendingStorag
 TEST_F(ServerChunkManagerPostProcessTest, LoadCompletionOnlyConsumesEntrySnapshot)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
     for (ChunkCoord x = 0; x < 2; ++x) {
         ChunkData stored(x, 0);
         stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
@@ -195,15 +196,15 @@ TEST_F(ServerChunkManagerPostProcessTest, LoadCompletionOnlyConsumesEntrySnapsho
 TEST_F(ServerChunkManagerPostProcessTest, GenerationSchedulingDoesNotWaitForBusyArea)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
     auto future = m_manager->requestChunkAsync(0, 0, world::chunk::ChunkStatuses::EMPTY);
     std::promise<void> locked;
     auto acquired = locked.get_future();
     std::promise<void> release;
     auto released = release.get_future();
     std::thread blocker([&] {
-        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
-            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = ChunkSystemTestAccess::lifecycle(*m_manager)
+                        .scheduler.schedulingLockArea()
+                        .lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         locked.set_value();
         // 超时可保证旧的阻塞实现也会结束测试，不让测试进程永久挂起。
         released.wait_for(std::chrono::milliseconds(250));
@@ -222,7 +223,6 @@ TEST_F(ServerChunkManagerPostProcessTest, GenerationSchedulingDoesNotWaitForBusy
 TEST_F(ServerChunkManagerPostProcessTest, BusyUnloadFinishesRetryWithOriginalHolder)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
     ChunkData stored(0, 0);
     stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
     ASSERT_TRUE(m_storage.saveChunk(stored, 0).success());
@@ -230,14 +230,15 @@ TEST_F(ServerChunkManagerPostProcessTest, BusyUnloadFinishesRetryWithOriginalHol
     ASSERT_NE(loaded, nullptr);
     loaded->setDirty(false);
     m_workerPool->waitForCompletion();
-    m_manager->unloadChunkSync(0, 0);
+    m_manager->requestChunkUnload(0, 0);
     std::promise<void> locked;
     auto acquired = locked.get_future();
     std::promise<void> release;
     auto released = release.get_future();
     std::thread blocker([&] {
-        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
-            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = ChunkSystemTestAccess::lifecycle(*m_manager)
+                        .scheduler.schedulingLockArea()
+                        .lock(0, 0, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         locked.set_value();
         released.wait_for(std::chrono::milliseconds(250));
     });
@@ -257,22 +258,22 @@ TEST_F(ServerChunkManagerPostProcessTest, BusyUnloadFinishesRetryWithOriginalHol
 TEST_F(ServerChunkManagerPostProcessTest, BusyTicketLevelsKeepOnlyLatestDemand)
 {
     m_workerPool->start();
-    ASSERT_TRUE(m_manager->initialize().success());
-    auto& holder = m_manager->ensureTaskScheduler()->getOrCreateHolder(0, 0);
+    auto& holder = ChunkSystemTestAccess::lifecycle(*m_manager).scheduler.getOrCreateHolder(-2, 7);
     std::promise<void> locked;
     auto acquired = locked.get_future();
     std::promise<void> release;
     auto released = release.get_future();
     std::thread blocker([&] {
-        auto lock = m_manager->getTaskScheduler()->schedulingLockArea().lock(
-            0, 0, 2 * ChunkTaskScheduler::getMaxAccessRadius());
+        auto lock = ChunkSystemTestAccess::lifecycle(*m_manager)
+                        .scheduler.schedulingLockArea()
+                        .lock(-2, 7, 2 * ChunkGenerationScheduler::getMaxAccessRadius());
         locked.set_value();
         released.wait_for(std::chrono::milliseconds(250));
     });
     acquired.wait();
     const auto start = std::chrono::steady_clock::now();
-    setTicketLevelForTest(0, 0, 33);
-    setTicketLevelForTest(0, 0, 45);
+    setTicketLevelForTest(-2, 7, 33);
+    setTicketLevelForTest(-2, 7, 45);
     m_manager->processTicketUpdates();
     const auto elapsed = std::chrono::steady_clock::now() - start;
     release.set_value();
@@ -280,12 +281,11 @@ TEST_F(ServerChunkManagerPostProcessTest, BusyTicketLevelsKeepOnlyLatestDemand)
     EXPECT_LT(elapsed, std::chrono::milliseconds(100));
     m_manager->processTicketUpdates();
     EXPECT_EQ(holder.level(), 45);
-    EXPECT_EQ(holder.sourceState(), world::chunk::SingleChunkLifecycleManager::SourceState::Unknown);
+    EXPECT_EQ(holder.sourceState(), world::chunk::ChunkHolder::SourceState::Unknown);
 }
 
 TEST_F(ServerChunkManagerPostProcessTest, LoadBudgetPreservesOldResultsBeforeNewCompletions)
 {
-    ASSERT_TRUE(m_manager->initialize().success());
     for (ChunkCoord x = 0; x < 3; ++x) {
         ChunkData stored(x, 0);
         stored.createSection(world::toSectionIndex(64))->setBlockState(0, 0, 0, &VanillaBlocks::STONE->defaultState());
@@ -318,7 +318,6 @@ TEST_F(ServerChunkManagerPostProcessTest, LoadBudgetPreservesOldResultsBeforeNew
 
 TEST_F(ServerChunkManagerPostProcessTest, PostProcessBudgetEventuallyDeliversEveryCallbackOnce)
 {
-    ASSERT_TRUE(m_manager->initialize().success());
     std::vector<ChunkCoord> completed;
     m_manager->setChunkLoadedCallback([&](ChunkCoord x, ChunkCoord) {
         completed.push_back(x);
@@ -339,7 +338,19 @@ TEST_F(ServerChunkManagerPostProcessTest, PostProcessBudgetEventuallyDeliversEve
 TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
 {
     m_workerPool->start();
-    m_manager->initialize();
+    // 后处理要求真实的模拟资格；仅统计本用例中心区块的注册。
+    m_manager->setChunkLoadedCallback([this](ChunkCoord x, ChunkCoord z) {
+        if (x == 0 && z == 0) {
+            ++m_chunkLoadedCallCount;
+        }
+    });
+    m_manager->registerTicket(world::chunk::TicketTypes::FORCED,
+        0,
+        0,
+        static_cast<i32>(world::chunk::ChunkLoadLevel::BlockTicking),
+        ChunkPos(0, 0));
+    m_manager->processTicketUpdates();
+    ASSERT_TRUE(m_manager->isTickingChunk(0, 0, m_world->entityManager().simulationDistance()));
 
     // 同步生成区块（FULL 完成），worker 线程已入队一次 PendingPostProcess。
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
@@ -391,7 +402,6 @@ TEST_F(ServerChunkManagerPostProcessTest, DoubleEnqueue_Dedup)
 TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_NoUnboundedRecursion)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     constexpr i32 kRadius = 1;
     constexpr int kChunks = (2 * kRadius + 1) * (2 * kRadius + 1);
@@ -408,7 +418,7 @@ TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_
     // 因此"内存中已无该区块"即意味着存档已写入，后续重载必定命中存档。
     for (i32 dx = -kRadius; dx <= kRadius; ++dx) {
         for (i32 dz = -kRadius; dz <= kRadius; ++dz) {
-            m_manager->unloadChunkSync(dx, dz);
+            m_manager->requestChunkUnload(dx, dz);
         }
     }
     for (int i = 0; i < 400 && m_manager->loadedChunkCount() > 0; ++i) {
@@ -471,7 +481,6 @@ TEST_F(ServerChunkManagerPostProcessTest, StoredChunkLoadCompleteDefersCallback_
 TEST_F(ServerChunkManagerPostProcessTest, UnloadClearsDedup_AllowsReprocess)
 {
     m_workerPool->start();
-    m_manager->initialize();
 
     // 区块数据先发布，worker 随后才入队后处理；同步请求返回不保证下一次 tick 已取得该条目。
     // 有限等待加载回调，仍要求每个生命周期恰好执行一次。
@@ -489,10 +498,10 @@ TEST_F(ServerChunkManagerPostProcessTest, UnloadClearsDedup_AllowsReprocess)
     waitForLoadCallbacks(1);
     ASSERT_EQ(m_chunkLoadedCallCount, 1);
 
-    // 卸载：unloadChunkSync 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
+    // 卸载：requestChunkUnload 触发异步存档保存（stage1/2），stage3 收尾（清 m_chunks 与
     // m_postProcessedChunks key）由 _drainPendingUnloadFinishes 在后续 tick() 中完成。
     // 这里循环 tick() 直至区块真正移出内存，匹配生产 tick 驱动的异步卸载语义。
-    m_manager->unloadChunkSync(0, 0);
+    m_manager->requestChunkUnload(0, 0);
     for (int i = 0; i < 200 && m_manager->hasChunkInMem(0, 0); ++i) {
         m_manager->tick();
         std::this_thread::sleep_for(std::chrono::milliseconds(2));

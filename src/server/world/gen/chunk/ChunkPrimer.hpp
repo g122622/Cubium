@@ -33,7 +33,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/carver/CarvingMask.hpp"
 #include "server/world/gen/spawn/WorldGenSpawner.hpp"
 #include "server/world/gen/structure/Structure.hpp"

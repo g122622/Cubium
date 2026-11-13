@@ -23,7 +23,7 @@
 
 #include "common/entity/registry/VanillaEntities.hpp"
 #include "common/util/thread/UniversalWorkerPool.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
@@ -93,8 +93,6 @@ protected:
         // 创建区块管理器（不关联 ServerWorld）
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));
         m_manager->setWorkerPool(m_workerPool.get());
-        auto result = m_manager->initialize();
-        ASSERT_TRUE(result.success());
 
         // 启动工作线程池
         m_workerPool->start();
@@ -161,7 +159,7 @@ TEST_F(ServerChunkManagerCallbackTest, CallbackReceivesSpawnedEntities)
 
     // 持 shared_ptr 保活区块:fixture 未注册 ticket/玩家,(0,0) 默认 level=MaxLevel(46)>Border(34),
     // shouldLoad()=false。tick() 处理卸载候选队列（事件驱动入队 + 保底批量出队）,生成完成且 isSafeToUnload()=true
-    // 时会 unloadChunkSync→m_chunks.erase,使裸 chunk 悬垂。-j8 负载下 worker 回调慢,主线程 tick
+    // 时会 requestChunkUnload→m_chunks.erase,使裸 chunk 悬垂。-j8 负载下 worker 回调慢,主线程 tick
     // 循环跑满~1s 触发多次卸载判定,erase 后 chunk->x()/chunk->z() 解悬垂 → SEH 0xc0000005。
     // 生产契约要求调用方持票(ticket/forceChunk)保活裸指针;测试用 tryToGetChunkSharedInMem 拿
     // shared_ptr 等价保活,不依赖 ticket。内存引用计数保护与 mutex 互斥各自独立解决两类问题。
@@ -310,17 +308,17 @@ TEST_F(ServerChunkManagerCallbackTest, ChunkCount)
     EXPECT_EQ(m_manager->loadedChunkCount(), 3u);
 }
 
-TEST_F(ServerChunkManagerCallbackTest, singleChunkLifecycleManagerCount)
+TEST_F(ServerChunkManagerCallbackTest, lifecycleManagerCount)
 {
-    EXPECT_EQ(m_manager->singleChunkLifecycleManagerCount(), 0u);
+    EXPECT_EQ(m_manager->lifecycleManagerCount(), 0u);
 
     static_cast<void>(m_manager->requestFullChunkSync(0, 0));
     // FULL 区块请求会为依赖区域创建多个 SCLM:STRUCTURE_STARTS 累积半径 11 → 23×23=529 个
-    // 生命周期管理器(对齐 Moonrise,见 ChunkPyramid/ChunkTaskScheduler)。m_lifecycleManagers
+    // 生命周期管理器(对齐 Moonrise,见 ChunkPyramid/ChunkGenerationScheduler)。m_lifecycleManagers
     // 含 FULL 目标本块 + 中间状态的依赖邻居,而 m_chunks 仅 FULL 发布块。故
-    // singleChunkLifecycleManagerCount(=lifecycleManagerCount,数 m_lifecycleManagers) >> loadedChunkCount(数
+    // lifecycleManagerCount(=lifecycleManagerCount,数 m_lifecycleManagers) >> loadedChunkCount(数
     // m_chunks)。 此处仅断言"请求至少创建一个 SCLM"(非 fast-path 静默 no-op),并显式记录 SCLM 数 > loadedChunkCount
     // 的依赖区域语义。
-    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1u);
-    EXPECT_GT(m_manager->singleChunkLifecycleManagerCount(), m_manager->loadedChunkCount());
+    EXPECT_GE(m_manager->lifecycleManagerCount(), 1u);
+    EXPECT_GT(m_manager->lifecycleManagerCount(), m_manager->loadedChunkCount());
 }

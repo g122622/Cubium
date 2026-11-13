@@ -35,8 +35,8 @@
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEventListener.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 
 #include <algorithm>
 #include <cmath>

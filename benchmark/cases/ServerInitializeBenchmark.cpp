@@ -152,8 +152,8 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
     // 编码（并非 UTF-8），经窄字符串中转会让含非 ASCII 的临时目录路径失真，必须直接用
     // path::wstring()。
     // 被测服务端在 main 里从 GetCommandLineW 重取宽字符命令行并转成 UTF-8 argv
-// （见 common/util/PathEncoding），因此这里的宽字符命令行可以完整到达服务端，
-// 临时目录路径中的非 ASCII 字符不会因 ANSI 代码页而失真。
+    // （见 common/util/PathEncoding），因此这里的宽字符命令行可以完整到达服务端，
+    // 临时目录路径中的非 ASCII 字符不会因 ANSI 代码页而失真。
     const std::filesystem::path configPath = worldDir / "server_options.json";
     const std::wstring wideExecutable = serverExecutable.wstring();
     std::wstring wideCommandLine = L"\"" + wideExecutable + L"\" " + widenAscii(modeFlag) + L" --config \"" +
@@ -245,7 +245,9 @@ void echoServerConsoleLog(const std::filesystem::path& logPath, i32 exitCode)
             ::close(logFd);
         }
 
-        std::signal(SIGALRM, [](i32) { _exit(EXIT_CODE_TIMEOUT); });
+        std::signal(SIGALRM, [](i32) {
+            _exit(EXIT_CODE_TIMEOUT);
+        });
         alarm(static_cast<unsigned>(LAUNCH_TIMEOUT_MS / 1000));
 
         execl(executablePath.c_str(),

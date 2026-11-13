@@ -34,8 +34,8 @@
 // 对齐 Moonrise ChunkStepMixin.moonrise$getRequiredStatusAtRadius。
 // ============================================================================
 
-#include "server/world/chunk/pipeline/ChunkPyramid.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkPyramid.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 
 #include <gtest/gtest.h>
 

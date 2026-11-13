@@ -30,8 +30,7 @@
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 #include "common/world/chunk/data/BiomeContainer.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
-#include "server/world/SingleChunkLifecycleManager.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -391,102 +390,4 @@ TEST_F(ChunkPrimerTest, StorageConstructedPrimer_DelegatesBiomesToChunkData)
     // 存档路径的 persistedStatus 必须是 FULL：否则运行时方块写入只更新 WG 两张高度图
     EXPECT_EQ(primer.getPersistedStatus(), ChunkStatuses::FULL);
     EXPECT_EQ(primer.getChunkStatus(), ChunkStatuses::FULL);
-}
-
-// ============================================================================
-// SingleChunkLifecycleManager 测试
-// ============================================================================
-
-TEST(SingleChunkLifecycleManagerTest, Creation)
-{
-    SingleChunkLifecycleManager holder(5, 10);
-    EXPECT_EQ(holder.x(), 5);
-    EXPECT_EQ(holder.z(), 10);
-    EXPECT_EQ(holder.status(), ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.level(), static_cast<i32>(mc::world::chunk::ChunkLoadLevel::MaxLevel)); // 默认级别（未加载）
-}
-
-TEST(SingleChunkLifecycleManagerTest, SetStatus)
-{
-    SingleChunkLifecycleManager holder(0, 0);
-
-    holder.setStatus(ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
-
-    holder.setStatus(ChunkStatuses::NOISE);
-    EXPECT_EQ(holder.status(), ChunkStatuses::NOISE);
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
-    EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::FEATURES));
-}
-
-TEST(SingleChunkLifecycleManagerTest, AcquireStatusBump)
-{
-    SingleChunkLifecycleManager holder(0, 0);
-
-    // 初始状态为 EMPTY
-    EXPECT_EQ(holder.status(), ChunkStatuses::EMPTY);
-
-    // 成功推进：EMPTY → STRUCTURE_STARTS（parent = EMPTY）
-    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_STARTS));
-    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
-    EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_REFERENCES));
-
-    // 重复推进同一阶段失败
-    EXPECT_FALSE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_STARTS));
-
-    // 跳跃推进失败：STRUCTURE_STARTS → NOISE（parent = BIOMES，不是 STRUCTURE_STARTS）
-    EXPECT_FALSE(holder.acquireStatusBump(ChunkStatuses::NOISE));
-    EXPECT_EQ(holder.status(), ChunkStatuses::STRUCTURE_STARTS);
-
-    // 逐步推进成功
-    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::STRUCTURE_REFERENCES));
-    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::BIOMES));
-    EXPECT_TRUE(holder.acquireStatusBump(ChunkStatuses::NOISE));
-    EXPECT_EQ(holder.status(), ChunkStatuses::NOISE);
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::STRUCTURE_STARTS));
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::BIOMES));
-    EXPECT_FALSE(holder.hasCompletedStatus(ChunkStatuses::SURFACE));
-}
-
-TEST(SingleChunkLifecycleManagerTest, CompleteStatusTo)
-{
-    SingleChunkLifecycleManager holder(0, 0);
-
-    // 可以跳跃设置到任意阶段
-    holder.completeStatusTo(ChunkStatuses::FULL);
-    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::EMPTY));
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::NOISE));
-    EXPECT_TRUE(holder.hasCompletedStatus(ChunkStatuses::FULL));
-
-    // 不允许回退
-    holder.completeStatusTo(ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
-
-    // 存档恢复可以跳到中间阶段
-    SingleChunkLifecycleManager holder2(0, 0);
-    holder2.completeStatusTo(ChunkStatuses::CARVERS);
-    EXPECT_EQ(holder2.status(), ChunkStatuses::CARVERS);
-    EXPECT_TRUE(holder2.hasCompletedStatus(ChunkStatuses::BIOMES));
-    EXPECT_FALSE(holder2.hasCompletedStatus(ChunkStatuses::FEATURES));
-}
-
-TEST(SingleChunkLifecycleManagerTest, SetStatusOnlyAdvances)
-{
-    SingleChunkLifecycleManager holder(0, 0);
-
-    // setStatus 只向前推进
-    holder.setStatus(ChunkStatuses::SURFACE);
-    EXPECT_EQ(holder.status(), ChunkStatuses::SURFACE);
-
-    // 不允许回退
-    holder.setStatus(ChunkStatuses::EMPTY);
-    EXPECT_EQ(holder.status(), ChunkStatuses::SURFACE);
-
-    // 允许继续前进
-    holder.setStatus(ChunkStatuses::FULL);
-    EXPECT_EQ(holder.status(), ChunkStatuses::FULL);
 }

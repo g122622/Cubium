@@ -46,14 +46,14 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/tags/BlockTags.hpp"
-#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEventTag.hpp"
 #include "common/world/gameevent/GameEventTags.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/player/ServerPlayer.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
+#include "server/world/chunk/lifecycle/demand/base/ChunkLoadLevel.hpp"
 
 namespace mc::gameevent {
 namespace {
@@ -140,7 +140,7 @@ namespace {
             i32 cz = centerChunkZ + dz;
 
             // 条件1：区块加载级别 <= BlockTicking
-            i32 level = chunkManager->ticketManager().getChunkLevel(cx, cz);
+            i32 level = chunkManager->getChunkLevel(cx, cz);
             if (level > blockTickingLevel) {
                 return false;
             }

@@ -44,14 +44,14 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/light/SWMRNibbleArray.hpp"
 #include "common/world/lighting/LightType.hpp"
-#include "server/world/ChunkLoadLightTask.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "server/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/lighting/manager/WorldLightManager.hpp"
+#include "server/world/lighting/runtime/ChunkLoadLightTask.hpp"
 #include "server/world/storage/SingleLevelStorageManager.hpp"
 #include <atomic>
 #include <chrono>
@@ -122,7 +122,6 @@ protected:
         m_workerPool = std::make_unique<util::UniversalWorkerPool>(threadCount, "ChunkLoadLightTestWorker", 900);
         m_manager->setWorkerPool(m_workerPool.get());
         m_workerPool->start();
-        m_manager->initialize();
     }
 
     std::unique_ptr<util::UniversalWorkerPool> m_workerPool;
@@ -138,7 +137,6 @@ protected:
 TEST_F(ChunkLoadLightTaskTest, FallbackPathRelightsChunkOnMainThread)
 {
     // 无 worker 池：computeExecutor() 返回 nullptr → fallback 同步路径
-    m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -181,7 +179,6 @@ TEST_F(ChunkLoadLightTaskTest, FallbackPathRelightsChunkOnMainThread)
 // checkChunkEdges 廉价重载，不崩且保持 lightCorrect=true。
 TEST_F(ChunkLoadLightTaskTest, FallbackPathAlreadyCorrectChunkIsCheap)
 {
-    m_manager->initialize();
 
     ChunkData* chunk = m_manager->requestFullChunkSync(0, 0);
     ASSERT_NE(chunk, nullptr);
@@ -249,7 +246,6 @@ TEST_F(ChunkLoadLightTaskTest, WorkerAsyncPathCompletesAndFlushes)
 // worker 异步路径的 hasPendingLightWork 语义由 WorkerAsyncPathCompletesAndFlushes 覆盖。
 TEST_F(ChunkLoadLightTaskTest, FallbackPathLeavesNoPendingLightWork)
 {
-    m_manager->initialize();
 
     m_manager->requestFullChunkSync(0, 0);
     m_world->enqueueChunkLoadLight(0, 0);

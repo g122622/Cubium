@@ -28,7 +28,6 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -40,8 +39,9 @@ using namespace mc::trace;
 
 namespace mc::server::sync {
 
-BlockUpdateSyncManager::BlockUpdateSyncManager(world::chunk::ChunkLoadTicketManager& ticketManager)
-    : m_ticketManager(ticketManager)
+BlockUpdateSyncManager::BlockUpdateSyncManager(
+    std::function<std::vector<PlayerId>(ChunkCoord, ChunkCoord)> trackingPlayers)
+    : m_trackingPlayers(std::move(trackingPlayers))
 {}
 
 void BlockUpdateSyncManager::queueBlockUpdate(const BlockPos& pos, u32 blockStateId)
@@ -94,7 +94,7 @@ void BlockUpdateSyncManager::flushPendingUpdates()
             ++groupEnd;
         }
 
-        std::vector<PlayerId> players = m_ticketManager.getTrackingPlayers(chunkX, chunkZ);
+        std::vector<PlayerId> players = m_trackingPlayers(chunkX, chunkZ);
         if (players.empty()) {
             index = groupEnd;
             continue;

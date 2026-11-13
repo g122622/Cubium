@@ -49,7 +49,7 @@
 #include "common/world/block/state/BlockState.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/aquifer/Aquifer.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"

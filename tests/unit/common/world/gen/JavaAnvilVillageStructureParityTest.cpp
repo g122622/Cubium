@@ -86,7 +86,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/storage/JavaRealWorldFixture.hpp"
-#include "server/world/ServerChunkManager.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 #include "server/world/gen/RandomState.hpp"
 #include "server/world/gen/biome/source/MultiNoiseBiomeSource.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"

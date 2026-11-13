@@ -21,7 +21,7 @@
  *
  */
 
-#include "server/world/StaticChunkCache2D.hpp"
+#include "server/world/chunk/lifecycle/generation/base/StaticChunkCache2D.hpp"
 
 #include <string>
 #include <gtest/gtest.h>

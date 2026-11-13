@@ -34,7 +34,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
-#include "server/world/ServerLightQueue.hpp"
+#include "server/world/lighting/runtime/ServerLightQueue.hpp"
 
 namespace mc::server {
 

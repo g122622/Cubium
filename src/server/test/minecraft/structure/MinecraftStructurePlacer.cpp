@@ -8,9 +8,9 @@
 #include "common/world/WorldConstants.hpp"               // MAX_BUILD_HEIGHT
 #include "common/world/block/registry/BlockRegistry.hpp" // mc::BlockRegistry::airState
 #include "common/world/block/state/BlockState.hpp"
-#include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
-#include "server/world/ServerChunkManager.hpp" // ServerChunkManager（chunkManager()->ticketManager()）
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp" // 区块需求门面
+#include "server/world/chunk/lifecycle/demand/ChunkDemandController.hpp"
 #include "server/world/gen/feature/template/Template.hpp"        // Template + PlacementSettings
 #include "server/world/gen/feature/template/TemplateManager.hpp" // TemplateManager
 #include "server/world/gen/jigsaw/JigsawAssembler.hpp"           // JigsawAssembler::getTemplateManager
@@ -88,13 +88,13 @@ constexpr i32 LOAD_SPAWN_CHUNK_RADIUS = 3;
  */
 void _forceSpawnChunks(mc::server::ServerChunkManager& chunkManager, mc::ChunkCoord centerCx, mc::ChunkCoord centerCz)
 {
-    auto& ticketManager = chunkManager.ticketManager();
+    auto& ticketManager = chunkManager;
     for (i32 dx = -LOAD_SPAWN_CHUNK_RADIUS; dx <= LOAD_SPAWN_CHUNK_RADIUS; ++dx) {
         for (i32 dz = -LOAD_SPAWN_CHUNK_RADIUS; dz <= LOAD_SPAWN_CHUNK_RADIUS; ++dz) {
             ticketManager.forceChunk(centerCx + dx, centerCz + dz, true);
         }
     }
-    ticketManager.processUpdates();
+    ticketManager.processTicketUpdates();
     for (i32 dx = -LOAD_SPAWN_CHUNK_RADIUS; dx <= LOAD_SPAWN_CHUNK_RADIUS; ++dx) {
         for (i32 dz = -LOAD_SPAWN_CHUNK_RADIUS; dz <= LOAD_SPAWN_CHUNK_RADIUS; ++dz) {
             // requestFullChunkSync 阻塞等待生成完成；返回值仅用于触发加载，不持有。
@@ -159,7 +159,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
         const ChunkCoord forcedMaxCx = maxCx + CHUNK_RADIUS;
         const ChunkCoord forcedMinCz = minCz - CHUNK_RADIUS;
         const ChunkCoord forcedMaxCz = maxCz + CHUNK_RADIUS;
-        auto& ticketManager = chunkManager->ticketManager();
+        auto& ticketManager = *chunkManager;
         for (ChunkCoord cx = forcedMinCx; cx <= forcedMaxCx; ++cx) {
             for (ChunkCoord cz = forcedMinCz; cz <= forcedMaxCz; ++cz) {
                 // 使用 BlockTicking(32) 级别，确保振动门控通过且方块可 tick。
@@ -170,7 +170,7 @@ std::unique_ptr<StructureBounds> MinecraftStructurePlacer::place(
                     mc::ChunkPos(cx, cz));
             }
         }
-        ticketManager.processUpdates();
+        ticketManager.processTicketUpdates();
         for (ChunkCoord cx = forcedMinCx; cx <= forcedMaxCx; ++cx) {
             for (ChunkCoord cz = forcedMinCz; cz <= forcedMaxCz; ++cz) {
                 // requestFullChunkSync 阻塞等待生成完成；返回值仅用于触发加载，不持有。

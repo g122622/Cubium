@@ -33,11 +33,11 @@ benchmark/
 
 ### ChunkGeneration（区块生成吞吐）
 
-走**生产级区块生成系统**完整链路：`ServerChunkManager` 请求聚合 → `ChunkTaskScheduler` 邻居依赖调度（ReentrantAreaLock）→ `UniversalWorkerPool` 区域互斥执行 → `ChunkProgressionTask` 逐状态推进 → FULL 完成回收。
+走**生产级区块生成系统**完整链路：`ServerChunkManager` 请求聚合 → `ChunkGenerationScheduler` 邻居依赖调度（ReentrantAreaLock）→ `UniversalWorkerPool` 区域互斥执行 → `ChunkProgressionTask` 逐状态推进 → FULL 完成回收。
 
 - 参数：`threads`（生成系统内部线程池大小，1/2/4/8）× `batch`（每迭代生成的 n×n 区块批，8/16/32）
 - 口径：一次迭代 = 提交一批 FULL 请求 → 主线程 `tick()` 泵送驱动 → 全部完成。报告 `chunks_per_second`
-- 迭代间经 `unloadChunkSync` 卸载本批区块（PauseTiming 区间内），保证每轮都测真实生成而非缓存命中
+- 迭代间经 `requestChunkUnload` 卸载本批区块（PauseTiming 区间内），保证每轮都测真实生成而非缓存命中
 - 存储为临时目录 RocksDB（`$TMPDIR/mc_bench_chunkgen`），seed 固定 12345，中心区块 (0,0)
 
 **关键约束**：`ServerChunkManager` 的线程模型要求主线程 tick 驱动调度推进（存档解析完成回调等只在 `tick()` 出队）。异步批量提交后只等 future 不 tick 会**死锁**——基准内已复现生产主循环节拍（泵 `tick()`），新增类似用例务必遵守。

@@ -29,7 +29,7 @@
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
-#include "server/world/chunk/pipeline/ChunkStatus.hpp"
+#include "server/world/chunk/base/pipeline/ChunkStatus.hpp"
 #include "server/world/gen/chunk/ChunkPrimer.hpp"
 #include "server/world/gen/chunk/IChunkGenerator.hpp"
 #include "server/world/gen/placement/Placement.hpp"

@@ -62,7 +62,7 @@ nightly 的 benchmark 在独立 runner 上执行 `release-build` 的产物，未
 
 ### ChunkGeneration（区块生成系统吞吐）
 
-测生产级并行生成系统：`ServerChunkManager` → `ChunkTaskScheduler`（区域锁调度）→ 世界 `AreaTaskScheduler` → `UniversalWorkerPool` → 逐状态推进到 FULL。
+测生产级并行生成系统：`ServerChunkManager` → `ChunkGenerationScheduler`（区域锁调度）→ 世界 `AreaTaskScheduler` → `UniversalWorkerPool` → 逐状态推进到 FULL。
 
 - 参数矩阵：`threads`（内部线程池大小 1/2/4/8）× `batch`（每迭代 n×n 区块批，8/16/32）
 - 口径：提交一批 FULL 请求，主线程 `tick()` 泵送驱动至全部完成；报告 `chunks_per_second`
@@ -224,7 +224,7 @@ python benchmark/scripts/plot_paletted_container.py \
 | # | 限制 | 位置 |
 |---|---|---|
 | a | 区域写入存在必要串行化：FEATURES 半径 1、LIGHT 半径 2。区域依赖由每世界的 AreaTaskScheduler 管理，冲突任务留在等待队列，全部坐标就绪后才提交计算池；worker 不再因区域冲突停等 | `server/world/scheduling/AreaTaskScheduler.cpp` |
-| b | 调度锁仍按 64×64 区块分段：完成回调半径为 maxAccessRadius=11，解锁后的重调度半径为 22；原点附近 8×8、16×16 批次完成回调竞争相同分段，32×32 批次重新调度同样竞争相同分段。历史 #1 热点对应旧实现，需要按当前版本复测 | `ChunkTaskScheduler.cpp` |
+| b | 调度锁仍按 64×64 区块分段：完成回调半径为 maxAccessRadius=11，解锁后的重调度半径为 22；原点附近 8×8、16×16 批次完成回调竞争相同分段，32×32 批次重新调度同样竞争相同分段。历史 #1 热点对应旧实现，需要按当前版本复测 | `ChunkGenerationScheduler.cpp` |
 | c | 主线程串行工作与区块数成正比，并被基准的**忙轮询泵送**放大：`tick()` 每次都跑 `_incrementInhabitedTime()`（遍历**全部已加载区块**）+ `_drainPendingPostProcess()`（onChunkLoaded/实体生成/后处理）+ 周期性 `_checkChunkUnloading()` | `ServerChunkManager::tick()` |
 | d | 全局互斥点随任务数放大：单任务队列互斥 + 每个任务两次 `m_runningTaskMutex` + `m_runningTaskInfo` 哈希表增删（每任务两次堆分配） | `UniversalWorkerPool.cpp` 执行路径 |
 

@@ -31,8 +31,8 @@
 #include "server/application/IServer.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
-#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/chunk/ServerChunkManager.hpp"
 
 #include <fmt/format.h>
 
@@ -141,7 +141,7 @@ PanelStatsCollector::ScanResult PanelStatsCollector::_scanWorld(ServerWorld& wor
         ++result.scannedChunks;
 
         ++result.status.loadedChunks;
-        if (chunkManager->ticketManager().isTickingChunk(chunk.x(), chunk.z(), simulationDistance)) {
+        if (chunkManager->isTickingChunk(chunk.x(), chunk.z(), simulationDistance)) {
             ++result.status.tickingChunks;
         }
         if (chunk.isPostProcessingDone()) {

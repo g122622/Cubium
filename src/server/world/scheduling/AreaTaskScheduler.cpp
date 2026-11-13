@@ -306,6 +306,12 @@ AreaTaskScheduler::~AreaTaskScheduler()
     shutdown();
 }
 
+util::UniversalWorkerPool* AreaTaskScheduler::executor() const
+{
+    std::lock_guard lock(m_state->mutex);
+    return m_state->executor;
+}
+
 void AreaTaskScheduler::setExecutor(util::UniversalWorkerPool* executor)
 {
     std::lock_guard lock(m_state->mutex);
