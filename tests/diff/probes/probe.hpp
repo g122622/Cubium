@@ -31,6 +31,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "common/core/Result.hpp"
+#include "common/util/assert/AssertAll.hpp"
+
 /**
  * @file probe.hpp
  * @brief 差分探针（differential probe）的公共接口。
@@ -78,6 +81,20 @@ inline nlohmann::json encodeFloat(double value)
 }
 
 namespace mc::diff {
+
+/**
+ * @brief 从解析结果取值（差分探针的输入都是人工给定的合法样本）
+ *
+ * 解析器统一返回 `Result`；探针遇到失败说明「样本 / 探针」与解析器脱节（API 变更、
+ * 样本过期），属于探针自身的缺陷，直接断言暴露，不要静默退化成 nullptr 让差异报告
+ * 变成"两块地形的差别"。
+ */
+template <typename T, typename E>
+[[nodiscard]] T expectParsed(const mc::Result<T, E>& result)
+{
+    MC_ASSERT_RELEASE_MSG(result.success(), "diff probe input failed to parse");
+    return result.value();
+}
 
 /**
  * @brief 枚举模式：本能力可被枚举的全部单元 ID，按确定顺序写入 out。

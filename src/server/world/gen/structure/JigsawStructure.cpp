@@ -200,40 +200,49 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     // 无别名时传 nullptr，JigsawAssembler 使用空查找表（恒等映射）。
     const jigsaw::PoolAliasBindings* aliases = m_config.poolAliases.empty() ? nullptr : &m_config.poolAliases;
 
-    // 使用 JigsawAssembler 组装结构，获取 PlacedPiece 列表
-    // PlacedPiece 包含 JigsawJunction 信息用于地形适配
-    // maxDistanceFromCenter 用于初始化 freeShape 可放置空间（VoxelShape 空间追踪），
-    //   缺省时 JigsawAssembler 内部使用 MC 默认值 MaxDistance(80)。
+    // maxDistanceFromCenter：装配期初始化 freeShape 的可放置空间（缺省时 JigsawAssembler
+    // 内部使用 MC 默认值 MaxDistance(80)）。
     const structure::MaxDistance* maxDistance =
         m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
 
-    // 装配先于群系校验：候选生成点（起始块中心 + 投影后的地面线）只有抽出起始块之后才知道，
-    // JigsawAssembler 内部按"先起始旋转、后起始块"的顺序消耗随机数，外部无法重复这些抽取。
-    // 因此只能整体装配完再按候选点校验（对齐原版 Structure.findValidGenerationPoint），
-    // 校验不通过时丢弃已装配的构件——已消耗的随机数与装配结果都不再回滚，与原版一致。
-    auto assembled = jigsaw::JigsawAssembler::assemble(patternRegistry,
-        *startPool,
-        m_config.size,
+    // ===== 阶段一：选起始块 + 解析起始摆放（对应原版 Structure.findGenerationPoint 起始段）=====
+    // 只消耗「起始旋转 / 起始块 / 起始块连接点洗牌」的随机数，不做任何子构件装配。
+    auto resolved = jigsaw::JigsawAssembler::resolveStart(*startPool,
         BlockPos(chunkX * CHUNK_WIDTH, 0, chunkZ * CHUNK_WIDTH),
         startY,
         m_config.projectStartToHeightmap,
-        m_config.useExpansionHack,
         rng,
         generator,
         aliases,
         m_config.startJigsawName,
-        maxDistance,
         &m_config.dimensionPadding,
         static_cast<i64>(generator.seed()));
-    std::vector<jigsaw::PlacedPiece>& placedPieces = assembled.pieces;
-
-    // 生物群系校验：采样原版候选生成点。候选点由装配器按原版 `GenerationStub(new BlockPos(i, i1, j))`
-    // 给出——起始块包围盒的 X/Z 中心 + 起始高度（未投影时就是 start_height 本身，投影时叠加地形
-    // 高度），而不是装配后整个结构的中心：整体包围盒被向外延伸的构件撑大，中心会偏离起始块
-    // 几十格，在群系边界处给出与原版相反的结论（例如整座古代城市被误判淘汰）。
-    if (!placedPieces.empty() && !isValidBiomeAt(generator, assembled.candidatePoint)) {
+    if (!resolved.has_value()) {
         return start;
     }
+
+    // ===== 生物群系校验（必须在完整装配之前）=====
+    // 原版 `Structure.findValidGenerationPoint` = `findGenerationPoint(...).filter(stub -> isValidBiome(stub))`，
+    // 而 JigsawPlacement 返回的 GenerationStub 里，**完整递归装配被包在惰性 lambda 中**
+    // （`p_352014_ -> { addPieces(...); list.forEach(...); }`）：只有通过群系校验、调用
+    // `getPiecesBuilder()` 时才会执行。因此被拒绝的候选只付起始块代价，绝不做整族装配。
+    // 这里必须同序——若先装配再校验，多条目结构集（如 5 个村庄变体）会为每个被拒绝的变体
+    // 白做一次完整装配（数百次地形高度查询），并且装配消耗的随机数与后续重抽错位。
+    if (!isValidBiomeAt(generator, resolved->placement.candidatePoint)) {
+        return start;
+    }
+
+    // ===== 阶段二：完整装配（对应原版 GenerationStub.getPiecesBuilder()）=====
+    std::vector<jigsaw::PlacedPiece> placedPieces = jigsaw::JigsawAssembler::assembleFromStartPlacement(patternRegistry,
+        *resolved->startPiece,
+        resolved->placement,
+        m_config.size,
+        m_config.useExpansionHack,
+        rng,
+        generator,
+        resolved->aliasLookup,
+        maxDistance,
+        &m_config.dimensionPadding);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // MC 1.21.11: 结构起点只创建片段，不写入方块

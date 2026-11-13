@@ -42,8 +42,14 @@ import path from "node:path";
 import type { ProjectLayout } from "./layout.ts";
 import { REPO_ROOT } from "./layout.ts";
 
-/** Windows 预设名（与 configure.bat 使用的预设一致）。 */
-const WINDOWS_PRESET = "windows-clang-relwithdebinfo";
+/**
+ * Windows 预设名。
+ *
+ * 用 server 预设（`MC_BUILD_CLIENT=OFF`）：客户端已停止维护，`vcpkg.json` 不再保证提供
+ * glfw3 等客户端依赖，用含客户端的预设会在 configure 阶段直接失败；差异探针本身也不依赖
+ * `src/client`（`tests/diff/CMakeLists.txt` 未引用它）。与日常构建共用同一个 build 目录。
+ */
+const WINDOWS_PRESET = "windows-clang-relwithdebinfo-server";
 
 /**
  * 把命令包装成 `cmd /c` 的单行脚本。

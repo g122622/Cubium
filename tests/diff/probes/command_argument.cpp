@@ -57,6 +57,7 @@
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/command/errors/CommandErrors.hpp"
+#include "common/core/Result.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
 
@@ -300,64 +301,110 @@ void writeList(FILE* out)
     }
 }
 
-json parseValue(const std::string& type, command::StringReader& reader)
+using ParseResult = mc::Result<json, command::CommandError>;
+
+ParseResult parseValue(const std::string& type, command::StringReader& reader)
 {
     using namespace command;
     if (type == "time") {
         // 原版 TimeArgument 的默认最小值为 Integer.MIN_VALUE；minimum=0 的那几个
         // 变体（/weather 等）留给单测覆盖，这里对齐默认构造。
         TimeArgumentType argument(INT32_MIN);
-        return argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return json(parsed.value());
     }
     if (type == "gamemode") {
         GameModeArgumentType argument;
-        return static_cast<i32>(argument.parse(reader));
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return static_cast<i32>(parsed.value());
     }
     if (type == "item") {
         ItemArgumentType argument;
-        const ItemInput inputValue = argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        const ItemInput inputValue = parsed.value();
         const Item* parsedItem = inputValue.getItem();
-        return parsedItem != nullptr ? parsedItem->itemLocation().toString() : std::string("<unknown>");
+        return parsedItem != nullptr ? json(parsedItem->itemLocation().toString()) : json("<unknown>");
     }
     if (type == "slot") {
         ItemSlotArgumentType argument;
-        const auto slot = argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        const ItemSlot slot = parsed.value();
         return slot.slotIndex();
     }
     if (type == "int") {
         IntegerArgumentType argument;
-        return argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return parsed.value();
     }
     if (type == "double") {
         // 原版 DoubleArgumentType 与坐标读取共用同一套「数字 + 小数点 + 尾随字母」语法。
         FloatArgumentType argument;
-        return f64Bits(static_cast<f64>(argument.parse(reader)));
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return f64Bits(static_cast<f64>(parsed.value()));
     }
     if (type == "bool") {
         BoolArgumentType argument;
-        return argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return parsed.value();
     }
     if (type == "string" || type == "word" || type == "greedy") {
         const auto mode = (type == "word") ? StringArgumentType::StringType::SingleWord
             : (type == "greedy")           ? StringArgumentType::StringType::GreedyPhrase
                                            : StringArgumentType::StringType::QuotablePhrase;
         StringArgumentType argument(mode);
-        return argument.parse(reader);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return parsed.value();
     }
     if (type == "resource_location") {
         ResourceLocationArgumentType argument;
-        return argument.parse(reader).toString();
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return parsed.value().toString();
     }
     if (type == "nbt_path") {
         ensureBlocks();
         NbtPathArgumentType argument;
-        return argument.parse(reader).toString();
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        return parsed.value().toString();
     }
     if (type == "block_state") {
         ensureBlocks();
         BlockStateArgumentType argument;
-        const BlockStateInput parsed = argument.parse(reader);
-        return parsed.isValid() ? json(parsed.state()->stateId()) : json(nullptr);
+        auto parsed = argument.parse(reader);
+        if (!parsed.success()) {
+            return parsed.error();
+        }
+        const BlockStateInput parsedState = parsed.value();
+        return parsedState.isValid() ? json(parsedState.state()->stateId()) : json(nullptr);
     }
     return json{{"unsupported", type}};
 }
@@ -374,13 +421,11 @@ std::string runLine(std::string_view inputLine)
     const std::string text = unescape(unit.substr(tab + 1));
 
     command::StringReader reader(text);
-    try {
-        json value = parseValue(type, reader);
-        return json{{"unit", unit}, {"ok", true}, {"value", value}}.dump();
+    const ParseResult parsed = parseValue(type, reader);
+    if (!parsed.success()) {
+        return json{{"unit", unit}, {"ok", false}, {"cursor", parsed.error().cursor()}}.dump();
     }
-    catch (const command::CommandError& e) {
-        return json{{"unit", unit}, {"ok", false}, {"cursor", e.cursor()}}.dump();
-    }
+    return json{{"unit", unit}, {"ok", true}, {"value", parsed.value()}}.dump();
 }
 
 } // namespace

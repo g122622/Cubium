@@ -70,11 +70,6 @@ class TemplatePoolRegistry;
  * `minY() + groundLevelDelta` 等于目标地面高度（`stubPos.y + 地形高度` 或 `stubPos.y`）。
  * 对应 MC 1.21 JigsawPlacement.addPieces 中 `start.move(0, k - l, 0)` 之后的起点 piece。
  */
-struct AssemblyResult {
-    std::vector<PlacedPiece> pieces; ///< 已放置的构件（顺序即装配顺序，起始块在最前）
-    BlockPos candidatePoint;         ///< 候选生成点（原版 `GenerationStub` 位置，生物群系校验采样于此）
-};
-
 struct StartPlacement {
     BlockPos origin;
     Rotation rotation;
@@ -98,6 +93,21 @@ struct StartPlacement {
 };
 
 /**
+ * @brief 起始块的解析结果（阶段一产物）
+ *
+ * 只含「选起始块 + 解析摆放」所需的状态，不含任何子构件：原版 `GenerationStub` 的构件
+ * 构造器是惰性的，群系校验通过之前不会触发完整装配（`Structure::findValidGenerationPoint`
+ * 先按 stub 位置过滤，通过后才调 `getPiecesBuilder()`）。调用方据此把
+ * 「起始块 + 群系校验」与「完整装配」分成两次调用，避免为被拒绝的候选白做整族装配。
+ */
+struct ResolvedStart {
+    const JigsawPiece* startPiece; ///< 起始拼图块（指向模板池内的稳定元素）
+    Rotation rotation;             ///< 起始块旋转
+    StartPlacement placement;      ///< 起始块摆放（模板原点 + 包围盒 + 候选生成点）
+    PoolAliasLookup aliasLookup;   ///< 池别名查找表（按关卡种子派生，不消耗主随机流）
+};
+
+/**
  * @brief Jigsaw 结构组装器
  *
  * 实现递归式结构组装：从起始模板池开始，通过连接点逐步扩展结构。
@@ -110,7 +120,8 @@ struct StartPlacement {
  *
  * 职责：
  * - 持有静态 TemplateManager（s_templateManager），供 JigsawPiece::loadJointsFromTemplate 等访问
- * - assemble()：BFS 组装，返回 PlacedPiece 列表
+ * - resolveStart()：选起始旋转/起始块并解析摆放（阶段一，群系校验前）
+ * - assembleFromStartPlacement()：BFS 组装，返回 PlacedPiece 列表（阶段二，校验通过后）
  * - tryPlacingChildren()：处理一个构件的全部连接点，逐个匹配并放置子构件
  *
  * 对应 MC 1.21 net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement。
@@ -163,51 +174,38 @@ public:
         bool projectStartToHeightmap);
 
     /**
-     * @brief 组装结构
+     * @brief 阶段一：选起始旋转 / 起始块，并解析起始块摆放（不做任何子构件装配）
      *
-     * 从起始模板池开始，通过连接点 BFS 扩展结构，返回所有已放置的拼图块。
-     * 使用 VoxelShape 空间追踪限制结构不超出 MaxDistance 范围、不与已放置块重叠。
+     * 对应原版 `JigsawStructure.findGenerationPoint` 的起始段 + `JigsawPlacement.addPieces`
+     * 里构造 `GenerationStub` 之前的部分。这里只消耗「起始旋转、起始块、起始块连接点洗牌」
+     * 三笔随机数；完整递归装配被留到调用方做完群系校验之后（原版 `getPiecesBuilder()` 惰性触发）。
      *
-     * MaxDistance 包围盒的 Y 轴会按 DimensionPadding 与世界高度限制裁剪：
-     *   - minY = max(centerY - vertical, generator.getMinY() + padding.bottom)
-     *   - maxY = min(centerY + vertical + 1, generator.getMinY() + generator.getGenDepth() - padding.top)
-     * 这保证结构不会生成到世界顶/底边界之外。
-     *
-     * 起始块安全检查：当 dimensionPadding 非空（非 ZERO）且起始块包围盒超出
-     * [generator.getMinY() + padding.bottom, generator.getMinY() + getGenDepth() - 1 - padding.top]
-     * 时直接返回空列表，避免结构生成在世界边界外。
+     * 起始块贴世界顶/底边界检查也在这里完成：原版该检查不通过时直接 `Optional.empty()`，
+     * 连 stub 都不产生。
      *
      * 【随机数顺序】起始旋转先于起始块选择（对应原版 `Rotation.getRandom(random)` 在
      * `pool.getRandomTemplate(random)` 之前）。顺序颠倒会让起始块的旋转与类型同时错位。
      *
-     * @param poolRegistry 模板池注册表
      * @param startPool 起始模板池
-     * @param maxDepth 最大递归深度
      * @param chunkOrigin 候选生成点的区块最小角（X/Z；原版 `chunkPos.getMinBlockX()/getMinBlockZ()`）
      * @param startHeightY start_height 高度提供者给出的 Y（原版 `startHeight.sample(...)`）
      * @param projectStartToHeightmap 是否把起始点投影到地形高度图
-     * @param useExpansionHack 是否启用 use_expansion_hack（为矮构件预留竖直净空）
      * @param rng 随机数生成器
-     * @param generator 区块生成器（用于 TerrainMatching 投影查询世界表面高度，以及获取世界高度边界）
+     * @param generator 区块生成器（投影查询地形高度、取世界高度边界）
      * @param aliases 池别名绑定集合（可空，用于试炼密室等结构的池随机化）
      * @param startJigsawName 命名起始连接点（可空；对齐 `start_jigsaw_name`）
-     * @param maxDistance 距结构中心的最大距离约束（用于初始化 freeShape 可放置空间）
      * @param dimensionPadding 维度填充（可空，控制结构距世界顶/底边界的最小距离）
      * @param structureSeed 关卡种子，用于派生池别名解析的独立随机源（不消耗 rng）
-     * @return 装配结果（构件列表 + 候选生成点）；起始块为空池元素或命名连接点缺失时构件列表为空
+     * @return 起始块解析结果；起始块为空池元素、命名连接点缺失或起始块越界时为空
      */
-    static AssemblyResult assemble(TemplatePoolRegistry& poolRegistry,
-        const TemplatePool& startPool,
-        i32 maxDepth,
+    [[nodiscard]] static std::optional<ResolvedStart> resolveStart(const TemplatePool& startPool,
         const BlockPos& chunkOrigin,
         i32 startHeightY,
         bool projectStartToHeightmap,
-        bool useExpansionHack,
         math::IRandom& rng,
         IChunkGenerator& generator,
         const PoolAliasBindings* aliases,
         const std::optional<ResourceLocation>& startJigsawName,
-        const structure::MaxDistance* maxDistance,
         const structure::DimensionPadding* dimensionPadding,
         i64 structureSeed);
 

@@ -305,7 +305,7 @@ Direction directionOf(i32 index)
 const BlockState* parseState(const std::string& text)
 {
     command::StringReader reader(text);
-    return command::BlockStateArgumentType::blockState()->parse(reader).state();
+    return expectParsed(command::BlockStateArgumentType::blockState()->parse(reader)).state();
 }
 
 json positionJson(const BlockPos& pos)

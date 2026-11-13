@@ -705,6 +705,10 @@ target_link_libraries(diff_runner PRIVATE
     mc_common
     mc_bedrock_addon
     mc_offset_allocator
+    # 探针会实例化 mc_common 头文件里的 absl 容器（NoiseChunk.hpp 的 flat_hash_map 等）。
+    # mc_common 自身不链 absl（只有 mc_gen 以 PUBLIC 链 absl::flat_hash_map），diff_runner
+    # 又不链 mc_gen，故必须在这里显式补上，否则 lld 报 absl::container_internal 未定义。
+    absl::abseil_dll
     nlohmann_json::nlohmann_json
 )
 # command_tree 与 structure_starts 都要跑真实的服务端链路，storage 的 OBJECT 库绕不开。

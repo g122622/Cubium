@@ -60,6 +60,8 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
+#include "probe.hpp"
+
 namespace mc::diff {
 
 /**
@@ -83,7 +85,7 @@ public:
     void setBlock(i32 x, i32 y, i32 z, const std::string& block)
     {
         command::StringReader reader(block);
-        m_blocks[key(x, y, z)] = command::BlockStateArgumentType::blockState()->parse(reader).state();
+        m_blocks[key(x, y, z)] = expectParsed(command::BlockStateArgumentType::blockState()->parse(reader)).state();
     }
 
     /// 清空全部格子（把区域还原成纯空气）。

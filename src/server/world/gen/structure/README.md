@@ -374,3 +374,21 @@ WoodlandMansionPieces.java 上是 OOM 失败的空壳，映射关系是从基岩
 mVindicatorPositions / mEvokerPositions 得到的。这类「只有间接证据」的判断要写成
 mansionMarkerEntityTypeKey 这样的纯函数并配单元测试，而不是埋进 _handleDataMarker：
 实体生成需要世界实体注册表，WorldGenRegion 阶段拿不到，写在分支内部就无法被测试覆盖。
+
+### 17. 群系校验必须在完整装配之前（原版 GenerationStub 是惰性的）
+
+`Structure.findValidGenerationPoint` = `findGenerationPoint(...).filter(stub -> isValidBiome(stub))`，
+而 `JigsawPlacement.addPieces` 返回的 `GenerationStub` 把**整族递归装配包在惰性 lambda 里**：
+调用方只有通过群系校验、调 `getPiecesBuilder()` 时才触发装配。因此被拒绝的候选只付
+「起始旋转 + 起始块 + 起始块投影」的代价。
+
+`JigsawStructure::generate` 必须保持这个顺序（`JigsawAssembler::resolveStart` → 群系校验 →
+`assembleFromStartPlacement`）。曾经在这里先装配再校验，后果有两条：
+
+1. **性能**：多条目结构集（村庄 5 个变体）里每个被拒绝的变体都白做一次完整装配。
+   地形匹配的街道每挂一个接点就查一次地形高度，单区块实测 850+ 次 `getHeight`、
+   单个 `_selectStructureStart` 2.8s；改成两阶段后降到 ~35ms。
+2. **随机数**：装配会消耗共享的世界生成随机流，先装配再校验会让后续重抽的随机数与
+   原版错位——结构布局因此与原版不同。
+
+差分能力 `structure_starts` / `structure_start_single` / `structure_blocks_single` 覆盖这条路径。

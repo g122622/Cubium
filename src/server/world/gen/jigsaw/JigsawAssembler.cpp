@@ -178,18 +178,14 @@ std::optional<StartPlacement> JigsawAssembler::resolveStartPlacement(const Jigsa
     return StartPlacement(origin, rotation, boundingBox, candidatePoint);
 }
 
-AssemblyResult JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
-    const TemplatePool& startPool,
-    i32 maxDepth,
+std::optional<ResolvedStart> JigsawAssembler::resolveStart(const TemplatePool& startPool,
     const BlockPos& chunkOrigin,
     i32 startHeightY,
     bool projectStartToHeightmap,
-    bool useExpansionHack,
     math::IRandom& rng,
     IChunkGenerator& generator,
     const PoolAliasBindings* aliases,
     const std::optional<ResourceLocation>& startJigsawName,
-    const structure::MaxDistance* maxDistance,
     const structure::DimensionPadding* dimensionPadding,
     i64 structureSeed)
 {
@@ -222,7 +218,7 @@ AssemblyResult JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
     const Rotation rotation = JigsawTransform::getRandomRotation(rng);
     const JigsawPiece* startPiece = startPool.getRandomPiece(rng);
     if (!startPiece || startPiece->isEmpty()) {
-        return {};
+        return std::nullopt;
     }
 
     // 命名起始连接点找不到时原版放弃整个结构（返回 Optional.empty），此处同样返回空结果；
@@ -230,22 +226,22 @@ AssemblyResult JigsawAssembler::assemble(TemplatePoolRegistry& poolRegistry,
     const std::optional<StartPlacement> placement = resolveStartPlacement(
         *startPiece, chunkOrigin, startHeightY, rotation, rng, startJigsawName, generator, projectStartToHeightmap);
     if (!placement.has_value()) {
-        return {};
+        return std::nullopt;
     }
 
-    AssemblyResult result;
-    result.pieces = assembleFromStartPlacement(poolRegistry,
-        *startPiece,
-        *placement,
-        maxDepth,
-        useExpansionHack,
-        rng,
-        generator,
-        aliasLookup,
-        maxDistance,
-        dimensionPadding);
-    result.candidatePoint = placement->candidatePoint;
-    return result;
+    // 起始块贴世界顶/底边界检查：原版 `isStartTooCloseToWorldHeightLimits` 不通过时直接
+    // `Optional.empty()`，此时连 GenerationStub 都不产生，自然也不会触发完整装配。
+    if (dimensionPadding != nullptr && (dimensionPadding->top != 0 || dimensionPadding->bottom != 0)) {
+        const i32 worldMinY = generator.getMinY();
+        const i32 worldMaxYInclusive = worldMinY + generator.getGenDepth() - 1;
+        const i32 lowerLimit = worldMinY + dimensionPadding->bottom;
+        const i32 upperLimit = worldMaxYInclusive - dimensionPadding->top;
+        if (placement->boundingBox.minY() < lowerLimit || placement->boundingBox.maxY() > upperLimit) {
+            return std::nullopt;
+        }
+    }
+
+    return ResolvedStart{startPiece, rotation, *placement, std::move(aliasLookup)};
 }
 
 std::vector<Rotation> JigsawAssembler::shuffledRotations(math::IRandom& rng)
@@ -273,20 +269,9 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
     const Rotation rotation = placement.rotation;
     const structure::StructureBoundingBox& boundingBox = placement.boundingBox;
 
-    // 起始块世界高度边界检查（对应 MC 1.21 JigsawPlacement.isStartTooCloseToWorldHeightLimits）
-    // 当 DimensionPadding 非 ZERO（top/bottom 至少一个非零）时，若起始块包围盒超出
-    // [worldMinY + bottom, worldMinY + getGenDepth() - 1 - top] 则直接返回空列表，
-    // 防止结构生成在世界顶/底边界之外。
-    // DimensionPadding 为空指针或全零时跳过检查（对应 MC 的 DimensionPadding.ZERO 快速返回 false）。
-    if (dimensionPadding != nullptr && (dimensionPadding->top != 0 || dimensionPadding->bottom != 0)) {
-        const i32 worldMinY = generator.getMinY();
-        const i32 worldMaxYInclusive = worldMinY + generator.getGenDepth() - 1;
-        const i32 lowerLimit = worldMinY + dimensionPadding->bottom;
-        const i32 upperLimit = worldMaxYInclusive - dimensionPadding->top;
-        if (boundingBox.minY() < lowerLimit || boundingBox.maxY() > upperLimit) {
-            return {};
-        }
-    }
+    // 起始块贴世界顶/底边界检查已上移到阶段一（resolveStart）：原版该检查失败时连
+    // GenerationStub 都不产生，装配根本不会被触发，因此这里不会再收到越界的起始块。
+    // dimensionPadding 在本函数里只用于裁剪 freeShape 的 Y 范围（见下）。
 
     // 【地址稳定性】构件容器用 unique_ptr 持有：组装过程中父构件的 junction 仍会被追加，
     // 队列元素也持有构件指针，按值存放会在 vector 扩容时失效。

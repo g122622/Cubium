@@ -95,8 +95,8 @@ public:
         for (const auto& [offset, block] : scenario.at("blocks").items()) {
             const auto text = block.get<std::string>();
             command::StringReader reader(text);
-            m_blocks.emplace(
-                m_y + std::stoi(offset), command::BlockStateArgumentType::blockState()->parse(reader).state());
+            m_blocks.emplace(m_y + std::stoi(offset),
+                expectParsed(command::BlockStateArgumentType::blockState()->parse(reader)).state());
         }
     }
 

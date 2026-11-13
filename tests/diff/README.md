@@ -207,10 +207,18 @@ MC_DIFF_BUILD_DIR=build-noprof node tests/diff/harness/runner.ts --all
 本机实测（28 核，Windows）：全量 37 个能力 `-j 8` 约 3 分 20 秒；无改动重跑约 3 秒
 （`--all` 会全部重跑，约 3 分 20 秒）；改动一个 probe 源文件只跑该能力。
 
+> **多个 Java oracle 能力并发时偶发 `jar xf ... META-INF/libraries/` 失败**：多个 worker 会同时把
+> 同一个 bundler jar 的依赖解到同一目录，先解完的会把目录换掉，其余 worker 拿到 ENOENT。
+> 表现为该能力「错误」而不是「差异」。处理：重跑一次；仍然失败就 `-j 1` 串行跑这几个能力
+> （`structure_*`、`loot_table*` 等）。
+
 **前置**：
 
 1. `MC_BUILD_DIFF_PROBES` 默认为 `OFF`，`runner.ts build` 会自动打开它；Windows 上它通过
    `scripts/configure.bat` 注入 VS 环境后再调 `cmake --build`，与人工构建共用同一个构建目录。
+   Windows 用 `windows-clang-relwithdebinfo-server` 预设（`MC_BUILD_CLIENT=OFF`）：客户端已停止
+   维护、`vcpkg.json` 不再提供 glfw3 等客户端依赖，含客户端的预设会在 configure 阶段失败；
+   差异探针本身不依赖 `src/client`。
 2. **JDK 21+**（`javac`/`java` 在 PATH 上）。Java oracle 直接拿原版 jar 当参照实现，
    不需要 Gradle。
 3. 原版 jar 与依赖库。默认从 fabric-loom 缓存找：
@@ -1229,10 +1237,20 @@ jar 里的 `small_flowers` 不含 `cactus_flower` / `wildflowers`，磁盘副本
 `block_support` 有 61 处差异，根因是 Cubium 的 `VoxelShape` 坐标压缩方式与原版不同。
 详见 [`_investigations.md`](../../docs/test/diff/_investigations.md)。
 
-### 长期未收敛：`structure_starts`
+### 已收敛：`structure_starts`
 
-要塞生成仍未命中，已排除五种假设，详见
-[`_investigations.md`](../../docs/test/diff/_investigations.md)。
+曾经长期未命中的要塞生成已收敛：`structure_starts` 845/845、`structure_start_single` 73/73、
+`structure_blocks_single` 170/170 全部一致。两处关键修复：
+
+1. 同心环放置的搜索起点必须用**关卡种子**（`concentricRingsSeed == levelSeed`）而不是常量 0；
+   fork 必须在同一条随机流上取（见 `StructurePlacementState::ringPositions` 的注释）。
+2. 群系校验必须发生在完整装配**之前**（原版 `GenerationStub` 的构件构造器是惰性 lambda）。
+   此前先装配再校验，多条目结构集会为每个被拒绝的变体白做整族装配，并让后续重抽的随机数
+   与原版错位（详见 `src/server/world/gen/structure/README.md` 的「容易踩的坑」第 17 条）。
+
+注意 `structure_starts` 的**首次**运行会触发同心环的 128 次螺旋生物群系搜索（约 3.2M 次
+群系采样，本机实测 2.7s），这是原版同款的一次性开销，缓存进 `ConcentricRingsStructurePlacement`
+后不再重复；它不是差异，也不应据此判定能力不稳定。
 
 ---
 

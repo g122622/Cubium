@@ -21,7 +21,7 @@ jigsaw/
 ├── TemplatePoolRegistry.hpp/.cpp # 模板池注册表（原 JigsawPatternRegistry）
 ├── TemplatePoolLoader.hpp/.cpp  # 模板池 JSON 加载器（数据包）
 ├── AssemblyTypes.hpp            # PlacedPiece + PendingJoint 中间数据结构
-├── JigsawAssembler.hpp/.cpp     # 组装算法（assemble/tryPlacePiece/优先级队列/PoolAliasBinding/VoxelShape）
+├── JigsawAssembler.hpp/.cpp     # 组装算法（resolveStart 阶段一 / assembleFromStartPlacement 阶段二 / tryPlacingChildren / PoolAliasBinding / VoxelShape）
 ├── JigsawPlacer.hpp/.cpp        # 放置器（virtual place() 多态分发 + 回退方块）
 ├── JigsawTransform.hpp/.cpp     # 坐标/连接点变换、边界框计算
 ├── SequencedPriorityIterator.hpp # 按 placementPriority 降序的优先级迭代器
@@ -127,7 +127,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 
 ### 1. 模板池未注册导致崩溃
 
-调用 `assemble()` 前必须检查模板池是否存在且非空：
+调用 `resolveStart()` 前必须检查模板池是否存在且非空（起始池为空时原版直接 `Optional.empty`）：
 
 ```cpp
 const TemplatePool* startPool = registry.getPool(startPoolLocation);
