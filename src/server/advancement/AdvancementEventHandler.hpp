@@ -1304,10 +1304,15 @@ private:
             return;
         }
 
-        // 触发检测 - 使用基类模板方法
+        // 触发检测 - 使用基类模板方法。
+        // 数据包里的条件通常是「条件列表」形态（实体类型写在 entity_properties 的 predicate 里），
+        // 必须走上下文谓词；直接 test(entity) 只认裸 EntityPredicate 对象写法，会恒为真。
+        mc::advancement::CriterionContext context;
+        context.entity = e.entity;
+        context.world = e.entity->world();
         trigger->AbstractCriterionTrigger<mc::advancement::SummonedEntityTriggerInstance>::trigger(
-            *advancements, [&e](const mc::advancement::SummonedEntityTriggerInstance& instance) {
-                return instance.test(*e.entity);
+            *advancements, [&context](const mc::advancement::SummonedEntityTriggerInstance& instance) {
+                return instance.test(context);
             });
     }
 

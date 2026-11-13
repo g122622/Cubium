@@ -43,9 +43,13 @@
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include "server/command/support/ChatBroadcast.hpp"
 #include "server/function/FunctionManager.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
@@ -100,6 +104,9 @@ bool PlayerAdvancements::grantCriterion(mc::advancement::AdvancementPtr advancem
             if (rewards.has_value() && !rewards->isEmpty()) {
                 _grantRewards(*rewards);
             }
+
+            // 聊天公告（原版 PlayerAdvancements.award：显示标记 + gamerule 双开关）
+            _announceAdvancement(advancement);
 
             // 成就完成后注销所有监听器
             unregisterListeners(advancement);
@@ -673,6 +680,36 @@ void PlayerAdvancements::_grantRewards(const mc::advancement::AdvancementRewards
                 rewards.getFunction()->toString());
         }
     }
+}
+
+void PlayerAdvancements::_announceAdvancement(const mc::advancement::AdvancementPtr& advancement)
+{
+    if (m_player == nullptr || advancement == nullptr) {
+        return;
+    }
+
+    const auto& display = advancement->getDisplay();
+    if (!display.has_value() || !display->shouldAnnounceToChat()) {
+        return;
+    }
+
+    auto* server = m_player->getServer();
+    auto* world = m_player->getWorld();
+    if (server == nullptr || world == nullptr) {
+        return;
+    }
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::SHOW_ADVANCEMENT_MESSAGES)) {
+        return;
+    }
+
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(m_player->username()));
+    // 标题以方括号包裹（chat.square_brackets），与原版公告一致。
+    params.push_back(::mc::text::ComponentUtils::wrapInSquareBrackets(display->getTitleCopy()));
+
+    const std::string key = std::string("chat.type.advancement.") + mc::advancement::toString(display->getFrame());
+    auto message = ::mc::text::translatable(key, std::move(params));
+    command::support::broadcastSystemChat(*server, *message);
 }
 
 } // namespace mc::server

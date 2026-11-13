@@ -315,6 +315,17 @@ private:
      * @param rewards 奖励内容
      */
     void _grantRewards(const mc::advancement::AdvancementRewards& rewards);
+
+    /**
+     * @brief 在聊天中公告成就完成
+     *
+     * 与原版一致：仅当成就 display 标记了 announce_to_chat 且 gamerule
+     * `announce_advancements` 为真时，向所有在线玩家广播
+     * `chat.type.advancement.<task|goal|challenge>`。
+     *
+     * @param advancement 刚完成的成就
+     */
+    void _announceAdvancement(const mc::advancement::AdvancementPtr& advancement);
 };
 
 } // namespace mc::server

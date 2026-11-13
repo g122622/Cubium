@@ -26,6 +26,7 @@
 #include "server/advancement/PlayerAdvancements.hpp"
 
 #include "common/advancement/AdvancementLoader.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/damage/tag/DamageTypeTagLoader.hpp"
 #include "common/entity/damage/tag/DamageTypeTags.hpp"
@@ -411,6 +412,9 @@ void RegistryBootstrap::initializeAll(bool registerEntities)
     // 加载进度（从数据包加载）
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Initialization, "RegistryBootstrap::initializeAll::Advancements");
+        // 触发器必须先于成就注册：Criterion::fromJson 按触发器类型构造条件实例，注册表为空时
+        // 所有条件都会退化成通用实例，运行时类型转换失败、成就永远无法通过监听器完成。
+        mc::advancement::CriterionTriggers::instance().registerBuiltinTriggers();
         mc::advancement::AdvancementLoader advancementLoader;
         auto advancementLoadResult = advancementLoader.loadFromDataPackRepository(m_dataPackList);
         if (advancementLoadResult.failed()) {

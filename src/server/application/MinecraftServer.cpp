@@ -1313,9 +1313,9 @@ void MinecraftServer::initializeInteractionManagers()
     // 设置服务器接口到 BlockInteractionManager（用于告示牌命令执行等）
     m_blockInteractionManager->setServer(this);
 
-    // 初始化成就事件处理器
-    // 先注册所有内置触发器（必须在成就加载之前完成）
-    mc::advancement::CriterionTriggers::instance().registerBuiltinTriggers();
+    // 初始化成就事件处理器。
+    // 内置触发器已在 RegistryBootstrap 加载成就之前注册（见 RegistryBootstrap::initializeAll），
+    // 这里只负责订阅事件与注入服务器上下文。
 
     // 设置服务器接口以允许从 PlayerId 获取 ServerPlayer
     m_advancementEventHandler.setServer(this);

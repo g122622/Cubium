@@ -231,10 +231,13 @@ i32 PlayerInventory::add(ItemStack& stack)
             break;
         }
 
-        ItemStack& target = m_items[static_cast<size_t>(mergeSlot)];
+        const ItemStack& target = m_items[static_cast<size_t>(mergeSlot)];
         const i32 space = std::min(target.getMaxStackSize(), maxStackLimit) - target.getCount();
         const i32 toAdd = std::min(space, stack.getCount());
-        target.grow(toAdd);
+        // 走 setItem 而不是直接改成员：物品栏变更回调（成就触发器、脏标记）依赖它。
+        ItemStack merged = target;
+        merged.grow(toAdd);
+        setItem(mergeSlot, merged);
         stack.shrink(toAdd);
         mergedAny = toAdd > 0;
     }
@@ -255,7 +258,7 @@ i32 PlayerInventory::add(ItemStack& stack)
         const i32 capacity = std::min(stack.getMaxStackSize(), maxStackLimit);
         const i32 toPlace = std::min(capacity, stack.getCount());
         ItemStack placed = stack.split(toPlace);
-        m_items[static_cast<size_t>(emptySlot)] = placed;
+        setItem(emptySlot, placed);
     }
 
     return stack.getCount();
@@ -281,7 +284,10 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
             i32 maxStack = std::min(m_items[static_cast<size_t>(i)].getMaxStackSize(), getMaxStackSize());
             i32 space = maxStack - m_items[static_cast<size_t>(i)].getCount();
             i32 toAdd = std::min(space, stack.getCount());
-            m_items[static_cast<size_t>(i)].grow(toAdd);
+            // 与 add 一致：通过 setItem 写入，保证变更回调（成就触发器等）能收到通知。
+            ItemStack merged = m_items[static_cast<size_t>(i)];
+            merged.grow(toAdd);
+            setItem(i, merged);
             stack.shrink(toAdd);
             if (stack.isEmpty()) {
                 return 0;
@@ -292,7 +298,7 @@ i32 PlayerInventory::addInRange(ItemStack& stack, i32 start, i32 end)
     // 再找空槽位
     for (i32 i = start; i <= end; ++i) {
         if (m_items[static_cast<size_t>(i)].isEmpty()) {
-            m_items[static_cast<size_t>(i)] = stack;
+            setItem(i, stack);
             stack = ItemStack::EMPTY;
             return 0;
         }
