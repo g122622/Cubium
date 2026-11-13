@@ -37,6 +37,7 @@
 #include "common/scoreboard/criteria/TriggerCriteria.hpp"
 #include "common/util/json/JsonRead.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/numbers/NumberFormat.hpp"
@@ -80,6 +81,60 @@ std::unique_ptr<text::ITextComponent> _parseCommandComponent(const std::string& 
     }
     // 不是 JSON：按纯文本处理（/scoreboard ... fixed <contents> 允许直接写普通文字）
     return std::make_unique<text::StringTextComponent>(text);
+}
+
+/// 目标在反馈里的展示组件：`[名称]` 包裹并带悬浮提示（原版 Objective.getFormattedDisplayName）。
+std::unique_ptr<text::ITextComponent> _objectiveDisplay(const scoreboard::ScoreObjective& objective)
+{
+    return objective.getFormattedDisplayName().deepCopy();
+}
+
+/// Java 字符串哈希（UTF-16 code unit 语义；记分板名限 ASCII，按字节计算等价）。
+i32 _javaStringHash(std::string_view text)
+{
+    i32 hash = 0;
+    for (const char rawChar : text) {
+        hash = 31 * hash + static_cast<i32>(static_cast<unsigned char>(rawChar));
+    }
+    return hash;
+}
+
+/**
+ * 按 Java HashMap 的迭代顺序返回下标。
+ *
+ * 原版 `/scoreboard objectives list` 直接遍历 `Map<String, Objective>`（HashMap），
+ * 因此输出顺序是「桶号升序、桶内保持插入顺序」，而不是创建顺序。默认容量 16、负载
+ * 因子 0.75，超出即翻倍；扩容迁移保持桶内相对顺序，故用最终容量一次性计算等价。
+ *
+ * @param names 按插入顺序排列的键
+ * @return 迭代顺序的下标
+ */
+std::vector<size_t> _javaHashMapOrder(const std::vector<std::string>& names)
+{
+    size_t capacity = 16;
+    while (names.size() > capacity * 3 / 4) {
+        capacity *= 2;
+    }
+
+    std::vector<std::pair<size_t, size_t>> entries;
+    entries.reserve(names.size());
+    for (size_t index = 0; index < names.size(); ++index) {
+        const u32 hash = static_cast<u32>(_javaStringHash(names[index]));
+        const u32 spread = hash ^ (hash >> 16);
+        entries.emplace_back(static_cast<size_t>(spread) & (capacity - 1), index);
+    }
+    std::stable_sort(entries.begin(),
+        entries.end(),
+        [](const std::pair<size_t, size_t>& left, const std::pair<size_t, size_t>& right) {
+            return left.first < right.first;
+        });
+
+    std::vector<size_t> order;
+    order.reserve(entries.size());
+    for (const auto& entry : entries) {
+        order.push_back(entry.second);
+    }
+    return order;
 }
 
 /// 分数持有者名列表的展示文本（单目标写名字，多目标写数量），用于成功消息。
@@ -518,8 +573,8 @@ i32 ScoreboardCommand::_addObjective(CommandContext<ServerCommandSource>& contex
         return 0;
     }
 
-    std::ostringstream ss;
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.add.success", name), true);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.objectives.add.success", _objectiveDisplay(*objective)), true);
 
     return 1;
 }
@@ -543,11 +598,12 @@ i32 ScoreboardCommand::_removeObjective(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    // 移除目标
+    // 移除目标：反馈内容必须在释放前取好（移除后目标指针失效）。
+    auto display = _objectiveDisplay(*objective);
     scoreboard->removeObjective(*objective);
 
-    std::ostringstream ss;
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.remove.success", name), true);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.objectives.remove.success", std::move(display)), true);
 
     return 1;
 }
@@ -569,16 +625,23 @@ i32 ScoreboardCommand::_listObjectives(CommandContext<ServerCommandSource>& cont
         return 1;
     }
 
-    std::string namesText;
-    for (size_t i = 0; i < objectives.size(); ++i) {
-        if (i > 0) {
-            namesText += ", ";
-        }
-        namesText += objectives[i]->getName();
+    // 原版遍历的是 HashMap，输出顺序为哈希序；这里按同样规则重排，保证两侧列举一致。
+    std::vector<std::string> objectiveNames;
+    objectiveNames.reserve(objectives.size());
+    for (const auto* objective : objectives) {
+        objectiveNames.push_back(objective->getName());
     }
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.list.success",
-                           {std::to_string(objectives.size()), namesText}),
-        false);
+    const auto order = _javaHashMapOrder(objectiveNames);
+
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> names;
+    names.reserve(objectives.size());
+    for (const size_t index : order) {
+        names.push_back(_objectiveDisplay(*objectives[index]));
+    }
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(std::to_string(objectives.size())));
+    args.push_back(::mc::text::ComponentUtils::formatList(std::move(names)));
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.list.success", std::move(args)), false);
 
     return 1;
 }
@@ -620,10 +683,12 @@ i32 ScoreboardCommand::_setScore(CommandContext<ServerCommandSource>& context)
     }
     scoreObj->setScorePoints(score);
 
-    std::ostringstream ss;
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.set.success.single",
-                           {objectiveName, target, std::to_string(score)}),
-        true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(_objectiveDisplay(*objective));
+    args.push_back(::mc::text::literal(target));
+    args.push_back(::mc::text::literal(std::to_string(score)));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.players.set.success.single", std::move(args)), true);
 
     return 1;
 }
@@ -666,9 +731,13 @@ i32 ScoreboardCommand::_addScore(CommandContext<ServerCommandSource>& context)
     scoreObj->addScore(score);
 
     // commands.scoreboard.players.add.success.single = "Added %s to %s for %s (now %s)"
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.add.success.single",
-                           {std::to_string(score), objectiveName, target, std::to_string(scoreObj->getScorePoints())}),
-        true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(std::to_string(score)));
+    args.push_back(_objectiveDisplay(*objective));
+    args.push_back(::mc::text::literal(target));
+    args.push_back(::mc::text::literal(std::to_string(scoreObj->getScorePoints())));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.players.add.success.single", std::move(args)), true);
 
     return 1;
 }
@@ -711,9 +780,13 @@ i32 ScoreboardCommand::_removeScore(CommandContext<ServerCommandSource>& context
     scoreObj->subtractScore(score);
 
     // commands.scoreboard.players.remove.success.single = "Removed %s from %s for %s (now %s)"
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.remove.success.single",
-                           {std::to_string(score), objectiveName, target, std::to_string(scoreObj->getScorePoints())}),
-        true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(std::to_string(score)));
+    args.push_back(_objectiveDisplay(*objective));
+    args.push_back(::mc::text::literal(target));
+    args.push_back(::mc::text::literal(std::to_string(scoreObj->getScorePoints())));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.players.remove.success.single", std::move(args)), true);
 
     return 1;
 }
@@ -734,14 +807,21 @@ i32 ScoreboardCommand::_resetScore(CommandContext<ServerCommandSource>& context)
     if (context.hasArgument("objective")) {
         const std::string objectiveName = context.getArgument<std::string>("objective");
         auto* objective = scoreboard->getObjective(objectiveName);
-        if (objective != nullptr) {
-            scoreboard->removeScore(target, objective);
+        if (objective == nullptr) {
+            source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
+            return 0;
         }
-    } else {
-        scoreboard->removeScore(target);
+        scoreboard->removeScore(target, objective);
+
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+        args.push_back(_objectiveDisplay(*objective));
+        args.push_back(::mc::text::literal(target));
+        source.sendSuccess(
+            ::mc::text::translatable("commands.scoreboard.players.reset.specific.single", std::move(args)), true);
+        return 1;
     }
 
-    std::ostringstream ss;
+    scoreboard->removeScore(target);
     source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.reset.all.single", target), true);
 
     return 1;
@@ -780,11 +860,7 @@ i32 ScoreboardCommand::_getScore(CommandContext<ServerCommandSource>& context)
     std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
     args.push_back(::mc::text::literal(target));
     args.push_back(::mc::text::literal(std::to_string(scoreObj->getScorePoints())));
-    if (objective->getDisplayName() != nullptr) {
-        args.push_back(objective->getDisplayName()->deepCopy());
-    } else {
-        args.push_back(::mc::text::literal(objectiveName));
-    }
+    args.push_back(_objectiveDisplay(*objective));
     source.sendSuccess(::mc::text::translatable("commands.scoreboard.players.get.success", std::move(args)), false);
 
     return 1;
@@ -827,9 +903,11 @@ i32 ScoreboardCommand::_enableTrigger(CommandContext<ServerCommandSource>& conte
     // 解锁触发器
     score->setLocked(false);
 
-    std::ostringstream ss;
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(_objectiveDisplay(*objective));
+    args.push_back(::mc::text::literal(target));
     source.sendSuccess(
-        ::mc::text::translatable("commands.scoreboard.players.enable.success.single", {objectiveName, target}), true);
+        ::mc::text::translatable("commands.scoreboard.players.enable.success.single", std::move(args)), true);
 
     return 1;
 }
@@ -974,9 +1052,10 @@ i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& cont
         return 0;
     }
     scoreboard->setObjectiveInDisplaySlot(slot, objective);
-    source.sendSuccess(
-        ::mc::text::translatable("commands.scoreboard.objectives.display.set", {slotName, objective->getName()}),
-        false);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(::mc::text::literal(slotName));
+    args.push_back(_objectiveDisplay(*objective));
+    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.display.set", std::move(args)), false);
     return 1;
 }
 
@@ -1170,10 +1249,12 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
         source.sendFailure(::mc::text::translatable("arguments.objective.notFound", objectiveName));
         return 0;
     }
-    auto* targetScore = scoreboard->getScore(targets, *objective);
-    auto* sourceScore = scoreboard->getScore(sourceName, *sourceObjective);
+    // 原版两边都走 getOrCreatePlayerScore：缺失的分数按 0 处理并在运算后落盘，
+    // 而不是把「读不到」当成失败。
+    auto* targetScore = scoreboard->getOrCreateScore(targets, *objective);
+    auto* sourceScore = scoreboard->getOrCreateScore(sourceName, *sourceObjective);
     if (targetScore == nullptr || sourceScore == nullptr) {
-        source.sendFailure(::mc::text::literal("Could not get score"));
+        source.sendFailure(::mc::text::literal("Failed to create score"));
         return 0;
     }
 
@@ -1189,21 +1270,30 @@ i32 ScoreboardCommand::_operateScore(CommandContext<ServerCommandSource>& contex
         result *= rhs;
     } else if (operation == "/=" || operation == "%=") {
         if (rhs == 0) {
-            source.sendFailure(::mc::text::literal("Cannot divide by zero"));
+            // 原版对整数除零会抛出未捕获异常（玩家看到 command.failed）；这里保持失败语义。
+            source.sendFailure(::mc::text::translatable("command.failed"));
             return 0;
         }
         result = operation == "/=" ? result / rhs : result % rhs;
     } else if (operation == "<" || operation == ">") {
         result = operation == "<" ? std::min(result, rhs) : std::max(result, rhs);
     } else if (operation == "><") {
-        std::swap(targetScore, sourceScore);
-        source.sendSuccess(
-            ::mc::text::literal("Swapped " + targets + " and " + sourceName + " on " + objectiveName), false);
-        return 1;
+        // 交换的是两个分数值，不是它们的位置；同一分数上交换自身等于不变。
+        const i32 originalTarget = result;
+        if (targetScore != sourceScore) {
+            targetScore->setScorePoints(rhs);
+            sourceScore->setScorePoints(originalTarget);
+        }
+        result = targetScore == sourceScore ? originalTarget : rhs;
     }
     targetScore->setScorePoints(result);
+
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
+    args.push_back(_objectiveDisplay(*objective));
+    args.push_back(::mc::text::literal(targets));
+    args.push_back(::mc::text::literal(std::to_string(result)));
     source.sendSuccess(
-        ::mc::text::literal("Set " + targets + " on " + objectiveName + " to " + std::to_string(result)), false);
+        ::mc::text::translatable("commands.scoreboard.players.operation.success.single", std::move(args)), true);
     return result;
 }
 

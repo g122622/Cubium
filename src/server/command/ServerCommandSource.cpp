@@ -70,13 +70,14 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     , m_permissionLevel(permissionLevel)
     , m_feedbackDisabled(false)
 {
-    // 设置显示名称（优先级：player 名称 > playerName 参数 > entity 名称 > "Console"）
+    // 设置显示名称（优先级：player 名称 > playerName 参数 > 默认 "Server"）。
+    // 原版非玩家命令源（控制台、调度器）的显示名就是 "Server"。
     if (player) {
         m_name = player->username();
     } else if (!playerName.empty()) {
         m_name = std::move(playerName);
     } else {
-        m_name = "Console";
+        m_name = "Server";
     }
 }
 
@@ -305,7 +306,7 @@ ServerCommandSource ServerCommandSource::forConsole(server::IServer* server)
         Vector2f(0, 0),
         4,
         0,
-        "Console");
+        "Server");
 }
 
 } // namespace command

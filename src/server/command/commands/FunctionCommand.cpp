@@ -39,6 +39,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/application/IServer.hpp"
@@ -323,32 +324,36 @@ i32 FunctionCommand::_executeFunctions(
 
     auto& functionManager = server->functionManager();
 
+    // 函数体以「被抑制输出」的源执行：原版 modifySenderForExecution 会 withSuppressedOutput，
+    // 函数内命令的反馈不再直接进玩家聊天框，只有 /function 自己报「Running function ...」。
+    auto executionSource = source.withSuppressedOutput();
+
     if (result.isTag()) {
         // 标签引用: #namespace:path
         const auto& tagId = result.id();
 
         if (!functionManager.hasTag(tagId)) {
-            source.sendFailure(::mc::text::translatable("commands.function.scheduled.no_functions", tagId.toString()));
+            source.sendFailure(::mc::text::translatableEscape("arguments.function.tag.unknown", tagId.toString()));
             return 0;
         }
 
-        // 执行标签中的所有函数
         const auto& functionIds = functionManager.getTag(tagId);
-        i32 totalSuccess = 0;
-        Size executedCount = 0;
-
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> ids;
+        ids.reserve(functionIds.size());
         for (const auto& funcId : functionIds) {
-            auto execResult = functionManager.execute(funcId, source, arguments);
-            totalSuccess += execResult.successCount;
-            ++executedCount;
+            ids.push_back(::mc::text::literal(funcId.toString()));
         }
 
-        // commands.function.success.multiple = "Executed %s command(s) from %s functions"
-        source.sendSuccess(::mc::text::translatable("commands.function.success.multiple",
-                               {std::to_string(totalSuccess), std::to_string(executedCount)}),
+        source.sendSuccess(::mc::text::translatable("commands.function.scheduled.multiple",
+                               ::mc::text::ComponentUtils::formatList(std::move(ids))),
             true);
 
-        return totalSuccess;
+        for (const auto& funcId : functionIds) {
+            static_cast<void>(functionManager.execute(funcId, executionSource, arguments));
+        }
+
+        // 原版 /function 作为命令返回 0（执行数只用于内部统计）。
+        return 0;
     }
 
     // 普通函数引用
@@ -356,19 +361,16 @@ i32 FunctionCommand::_executeFunctions(
 
     // 检查函数是否存在
     if (!functionManager.hasFunction(functionId)) {
-        source.sendFailure(::mc::text::translatable("commands.function.scheduled.no_functions", functionId.toString()));
+        source.sendFailure(::mc::text::translatableEscape("arguments.function.unknown", functionId.toString()));
         return 0;
     }
 
-    // 执行函数
-    auto execResult = functionManager.execute(functionId, source, arguments);
-
-    // 反馈执行结果：commands.function.success.single = "Executed %s command(s) from function '%s'"
-    source.sendSuccess(::mc::text::translatable("commands.function.success.single",
-                           {std::to_string(execResult.successCount), functionId.toString()}),
+    source.sendSuccess(
+        ::mc::text::translatable("commands.function.scheduled.single", ::mc::text::literal(functionId.toString())),
         true);
 
-    return execResult.successCount;
+    static_cast<void>(functionManager.execute(functionId, executionSource, arguments));
+    return 0;
 }
 
 } // namespace command

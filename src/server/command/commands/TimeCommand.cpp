@@ -75,10 +75,12 @@ inline constexpr i32 MIDNIGHT_TIME = 18000; // 午夜
     MC_ASSERT_RELEASE(server != nullptr);
 
     server->timeManager().setDayTime(time);
-    const i32 updatedDayTime = normalizedDayTime(server->timeManager());
+    // 回显累积日光时间（不取模）：原版 `setDayTime` 直接存储传入值，
+    // `/time set 999999` 回显的就是 999999，而不是 15999。
+    const i64 updatedDayTime = server->timeManager().dayTime();
 
-    source.sendSuccess(::mc::text::translatable("commands.time.set", updatedDayTime), true);
-    return updatedDayTime;
+    source.sendSuccess(::mc::text::translatable("commands.time.set", std::to_string(updatedDayTime)), true);
+    return static_cast<i32>(updatedDayTime);
 }
 
 } // namespace
@@ -175,10 +177,10 @@ i32 TimeCommand::_addTime(CommandContext<ServerCommandSource>& context)
 
     const i32 value = context.getArgument<i32>("time");
     server->timeManager().addDayTime(value);
-    const i32 updatedDayTime = normalizedDayTime(server->timeManager());
+    const i64 updatedDayTime = server->timeManager().dayTime();
 
-    source.sendSuccess(::mc::text::translatable("commands.time.set", updatedDayTime), true);
-    return updatedDayTime;
+    source.sendSuccess(::mc::text::translatable("commands.time.set", std::to_string(updatedDayTime)), true);
+    return static_cast<i32>(updatedDayTime);
 }
 
 i32 TimeCommand::_queryTime(CommandContext<ServerCommandSource>& context)

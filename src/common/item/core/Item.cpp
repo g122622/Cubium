@@ -190,7 +190,13 @@ bool Item::canHarvestBlock(const BlockState& state) const
 
 std::string Item::getTranslationKey() const
 {
-    return "item." + m_itemLocation.toString();
+    // 语言键用点号分隔命名空间与路径（"item.minecraft.stone"），不是资源位置写法
+    // （"minecraft:stone"）——后者在语言表里查不到，客户端只会显示原始键。
+    std::string key = "item.";
+    for (const char ch : m_itemLocation.toString()) {
+        key += ch == ':' ? '.' : ch;
+    }
+    return key;
 }
 
 std::string Item::getTranslationKey(const ItemStack& stack) const

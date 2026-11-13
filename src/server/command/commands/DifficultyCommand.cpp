@@ -38,6 +38,16 @@
 
 namespace mc::command {
 
+namespace {
+
+/// 难度的翻译键（options.difficulty.*），客户端据此本地化成 "Hard" 这类显示名。
+std::string difficultyDisplayKey(Difficulty difficulty)
+{
+    return std::string("options.difficulty.") + support::getDifficultyCommandName(difficulty);
+}
+
+} // namespace
+
 void DifficultyCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto difficultyNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("difficulty");
@@ -91,9 +101,9 @@ i32 DifficultyCommand::_queryDifficulty(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "The difficulty is " << support::getDifficultyCommandName(server->difficulty());
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.difficulty.query",
+                           ::mc::text::translatable(difficultyDisplayKey(server->difficulty()))),
+        false);
     return static_cast<i32>(server->difficulty());
 }
 
@@ -108,15 +118,16 @@ i32 DifficultyCommand::_setDifficulty(CommandContext<ServerCommandSource>& conte
 
     const Difficulty difficulty = context.getArgument<Difficulty>("difficulty");
     if (server->difficulty() == difficulty) {
-        source.sendSuccess(::mc::text::literal("Difficulty is already set to " +
-                               std::string(support::getDifficultyCommandName(difficulty))),
-            false);
+        // 原版这里传的是难度 **键**（小写），与成功分支的显示名（"Hard"）不同。
+        source.sendFailure(
+            ::mc::text::translatable("commands.difficulty.failure", support::getDifficultyCommandName(difficulty)));
         return 0;
     }
 
     server->setDifficulty(difficulty);
-    source.sendSuccess(
-        ::mc::text::literal("Set difficulty to " + std::string(support::getDifficultyCommandName(difficulty))), false);
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.difficulty.success", ::mc::text::translatable(difficultyDisplayKey(difficulty))),
+        false);
     return 1;
 }
 

@@ -101,11 +101,16 @@ i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir
         world->destroyBlock(pos, true);
     }
 
-    // 放置方块
-    bool success = world->setBlockState(position.x, position.y, position.z, state);
+    // 放置方块。setBlockState 返回 false 只表示「状态没有变化」，不是失败：
+    // destroy 模式已把方块清成空气时再放空气、或目标本来就是请求的方块，原版都算成功。
+    const bool success = world->setBlockState(position.x, position.y, position.z, state);
     if (!success) {
-        source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
-        return 0;
+        const BlockState* current = world->getBlockState(position.x, position.y, position.z);
+        const bool alreadyAtTarget = current != nullptr && current->stateId() == state->stateId();
+        if (!alreadyAtTarget) {
+            source.sendFailure(::mc::text::translatable("commands.setblock.failed"));
+            return 0;
+        }
     }
 
     // 发送反馈：commands.setblock.success 接受 x/y/z 三个参数，并广播给其他管理员。

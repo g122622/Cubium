@@ -205,8 +205,9 @@ public:
      * @brief 从原始字符串和节点列表构造路径
      * @param rawText 原始路径字符串
      * @param nodes 路径节点
+     * @param nodeEnds 每个节点在 rawText 中的结束偏移（用于报错时还原失败位置）
      */
-    NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes);
+    NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes, std::vector<size_t> nodeEnds);
 
     /**
      * @brief 拷贝构造
@@ -349,6 +350,17 @@ public:
         return m_nodes.size();
     }
 
+    /**
+     * @brief 最近一次求值失败时的路径前缀
+     *
+     * 原版的「Found no elements matching %s」参数是**失败节点之前**的原始文本
+     * （如 `e2e.missing.path` 在第一段失败时是 `e2e`）。`get`/`set`/`remove` 在结果为空时
+     * 记录失败节点下标，此方法据此切出前缀；没有失败时返回整段原文。
+     *
+     * @return 原始路径的失败前缀
+     */
+    [[nodiscard]] std::string failurePrefix() const;
+
 private:
     /**
      * @brief 清空所有节点中裸值列表元素的物化缓存
@@ -360,6 +372,10 @@ private:
 
     std::string m_rawText;
     std::vector<std::unique_ptr<NbtPathNode>> m_nodes;
+    /// 每个节点在 m_rawText 中的结束偏移。
+    std::vector<size_t> m_nodeEnds;
+    /// 最近一次求值中结果变空的节点下标；无失败时等于 m_nodes.size()。
+    mutable size_t m_failedNodeIndex = 0;
 };
 
 // ========== 路径节点实现 ==========

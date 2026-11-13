@@ -24,9 +24,12 @@
 #include "SummonCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/arguments/ResourceOrTagArgumentType.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
@@ -45,6 +48,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -58,6 +62,53 @@
 namespace mc {
 namespace command {
 
+namespace {
+
+/**
+ * @brief `/summon` 的实体类型参数。
+ *
+ * 原版 ResourceArgument 在**解析期**就查注册表，未知类型属于语法错误（消息带重试上下文与
+ * `<--[HERE]` 定位）；本项目此前只在执行期查，未知类型会渲染成一句原文泄漏的失败消息。
+ */
+class EntitySummonArgumentType final : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
+    {
+        auto parsed = readResourceLocationId(reader);
+        if (parsed.failed()) {
+            return parsed;
+        }
+
+        const ResourceLocation id = parsed.value();
+        if (entity::EntityRegistry::instance().getType(id.toString()) == nullptr) {
+            auto message = std::make_shared<::mc::text::TranslationTextComponent>("argument.resource.not_found");
+            message->addParam(::mc::text::literal(id.toString()));
+            message->addParam(::mc::text::literal("minecraft:entity_type"));
+            return CommandError(CommandErrorType::EntityNotFound,
+                std::shared_ptr<const ::mc::text::ITextComponent>(std::move(message)),
+                reader.getCursor());
+        }
+        return id;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:entity_type"}};
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:zombie", "zombie", "minecraft:pig"};
+    }
+};
+
+} // namespace
+
 void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto summonNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("summon");
@@ -69,7 +120,7 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /summon <entity> - 在执行者位置生成
     auto entityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "entity", std::make_shared<ResourceArgumentType>("minecraft:entity_type", "resource"));
+        "entity", std::make_shared<EntitySummonArgumentType>());
     entityArg->setCustomSuggestions(
         std::make_shared<RegisteredSuggestionProvider<ServerCommandSource>>("minecraft:summonable_entities"));
     entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -231,9 +282,8 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     auto& registry = entity::EntityRegistry::instance();
     const entity::EntityType* entityType = registry.getType(entityId.toString());
     if (entityType == nullptr) {
-        std::ostringstream ss;
-        ss << "commands.summon.failed.invalidEntity: " << entityId.toString();
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        // 解析期已按注册表校验过，正常不会走到这里；保留失败分支是为了防御运行期注册表变化。
+        source.sendFailure(::mc::text::translatable("commands.summon.failed"));
         return 0;
     }
 

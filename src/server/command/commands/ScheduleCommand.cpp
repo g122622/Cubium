@@ -44,12 +44,6 @@
 namespace mc {
 namespace command {
 
-/// 错误消息：尝试在同 tick 调度函数（time == 0）
-constexpr const char* ERROR_SAME_TICK = "Cannot schedule a function to run in the same tick";
-
-/// 错误消息：尝试清除不存在的调度
-constexpr const char* ERROR_CANT_REMOVE = "No scheduled function found";
-
 void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
     auto scheduleNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("schedule");
@@ -118,7 +112,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
 
     // 不允许在同 tick 调度
     if (time == 0) {
-        source.sendFailure(::mc::text::literal(ERROR_SAME_TICK));
+        source.sendFailure(::mc::text::translatable("commands.schedule.same_tick"));
         return 0;
     }
 
@@ -141,9 +135,7 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
 
     // 检查函数是否存在
     if (!functionManager.hasFunction(functionId)) {
-        std::ostringstream ss;
-        ss << "Unknown function '" << functionId.toString() << "'";
-        source.sendFailure(::mc::text::literal(ss.str()));
+        source.sendFailure(::mc::text::translatableEscape("arguments.function.unknown", functionId.toString()));
         return 0;
     }
 
@@ -160,15 +152,10 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     // 添加调度事件
     timerQueue.scheduleFunction(eventId, functionId, targetTick);
 
-    // 反馈
-    std::ostringstream ss;
-    ss << "Scheduled function '" << functionId.toString() << "' to run in " << time << " ticks";
-    if (append) {
-        ss << " (append mode)";
-    } else {
-        ss << " (replace mode)";
-    }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 原版：commands.schedule.created.function = "Scheduled function '%s' in %s tick(s) at gametime %s"。
+    source.sendSuccess(::mc::text::translatable("commands.schedule.created.function",
+                           {functionId.toString(), std::to_string(time), std::to_string(targetTick)}),
+        true);
 
     return static_cast<i32>(targetTick % static_cast<u64>(std::numeric_limits<i32>::max()));
 }
@@ -191,13 +178,12 @@ i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context
     i32 removedCount = timerQueue.remove(eventId);
 
     if (removedCount == 0) {
-        source.sendFailure(::mc::text::literal(ERROR_CANT_REMOVE));
+        source.sendFailure(::mc::text::translatableEscape("commands.schedule.cleared.failure", eventId));
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << "Cleared " << removedCount << " scheduled function(s) for '" << eventId << "'";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(
+        ::mc::text::translatable("commands.schedule.cleared.success", {std::to_string(removedCount), eventId}), true);
 
     return removedCount;
 }

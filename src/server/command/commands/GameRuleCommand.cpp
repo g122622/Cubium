@@ -133,7 +133,7 @@ i32 GameRuleCommand::_executeQueryRule(CommandContext<ServerCommandSource>& cont
         message += fmt::format(" (default: {})", defaultStr);
     }
 
-    source.sendSuccess(::mc::text::literal("Game rule " + ruleName + " is currently set to: " + message), false);
+    source.sendSuccess(::mc::text::translatable("commands.gamerule.query", {ruleName, message}), false);
     return 1;
 }
 
@@ -167,7 +167,7 @@ i32 GameRuleCommand::_executeSetRule(CommandContext<ServerCommandSource>& contex
     }
 
     const std::string displayValue = gameRules.getValueAsString(ruleName);
-    source.sendSuccess(::mc::text::literal("Game rule " + ruleName + " has been updated to " + displayValue), false);
+    source.sendSuccess(::mc::text::translatable("commands.gamerule.set", {ruleName, displayValue}), false);
     spdlog::info("Game rule '{}' changed to '{}' by {}", ruleName, displayValue, source.name());
     return 1;
 }

@@ -229,6 +229,12 @@ i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, con
         }
     }
 
+    // 一块都没改动时原版走失败分支（commands.fill.failed），而不是成功并计数 0。
+    if (blocksModified == 0) {
+        source.sendFailure(::mc::text::translatable("commands.fill.failed"));
+        return 0;
+    }
+
     // 发送反馈：commands.fill.success = "Successfully filled %s block(s)"。
     source.sendSuccess(::mc::text::translatable("commands.fill.success", std::to_string(blocksModified)), true);
 

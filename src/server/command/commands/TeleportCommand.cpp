@@ -72,6 +72,25 @@ namespace {
 }
 
 /**
+ * @brief 玩家在反馈里的显示名。
+ *
+ * @param source 命令源（取玩家管理器）。
+ * @param playerId 玩家 ID。
+ * @return 在线玩家名；查不到时返回占位文本。
+ */
+[[nodiscard]] std::string playerDisplayName(ServerCommandSource& source, PlayerId playerId)
+{
+    auto* server = source.server();
+    if (server != nullptr) {
+        const auto* data = server->playerManager().getPlayer(playerId);
+        if (data != nullptr) {
+            return data->username;
+        }
+    }
+    return "<unknown>";
+}
+
+/**
  * @brief 目的地玩家解析结果（位置 + 朝向 + 名字）。
  *
  * 真实玩家从 ServerPlayerData 取，SimulatedPlayer（不在 PlayerManager）从 Player 实体回退取。
@@ -268,7 +287,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto targetsArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "targets", EntityArgumentType::entities());
     auto locationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "location", Vec3ArgumentType::vec3NoCenter());
+        "location", Vec3ArgumentType::vec3());
     // /teleport <targets> <location> <rotation> / facing <entity> [<anchor>] / facing <pos>
     auto rotationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "rotation", RotationArgumentType::rotation());
@@ -315,7 +334,7 @@ void TeleportCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /teleport <location>（把执行者送到坐标）
     auto selfLocationArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "location", Vec3ArgumentType::vec3NoCenter());
+        "location", Vec3ArgumentType::vec3());
     selfLocationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _teleportToPosition(ctx);
     });
@@ -400,9 +419,9 @@ i32 TeleportCommand::_teleportToPosition(CommandContext<ServerCommandSource>& co
     // commands.teleport.success.location.single = "Teleported %s to %s, %s, %s"
     source.sendSuccess(::mc::text::translatable("commands.teleport.success.location.single",
                            {source.name(),
-                               fmt::format("{}", position.x),
-                               fmt::format("{}", position.y),
-                               fmt::format("{}", position.z)}),
+                               fmt::format("{:.6f}", position.x),
+                               fmt::format("{:.6f}", position.y),
+                               fmt::format("{:.6f}", position.z)}),
         false);
     return 1;
 }
@@ -516,12 +535,24 @@ i32 TeleportCommand::_teleportTargetToPosition(CommandContext<ServerCommandSourc
         return 0;
     }
 
+    // 原版按目标数量选择文案：单个目标是 "Teleported <名称> to ..."，多个才是 "N entities"。
+    const bool singleTarget = teleportedCount == 1 && targetPlayerIds.size() == 1;
+    if (singleTarget) {
+        source.sendSuccess(::mc::text::translatable("commands.teleport.success.location.single",
+                               {playerDisplayName(source, targetPlayerIds.front()),
+                                   fmt::format("{:.6f}", position.x),
+                                   fmt::format("{:.6f}", position.y),
+                                   fmt::format("{:.6f}", position.z)}),
+            false);
+        return teleportedCount;
+    }
+
     // commands.teleport.success.location.multiple = "Teleported %s entities to %s, %s, %s"
     source.sendSuccess(::mc::text::translatable("commands.teleport.success.location.multiple",
                            {std::to_string(teleportedCount),
-                               fmt::format("{}", position.x),
-                               fmt::format("{}", position.y),
-                               fmt::format("{}", position.z)}),
+                               fmt::format("{:.6f}", position.x),
+                               fmt::format("{:.6f}", position.y),
+                               fmt::format("{:.6f}", position.z)}),
         false);
     return teleportedCount;
 }

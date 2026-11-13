@@ -44,11 +44,14 @@ Result<NbtPath, CommandError> NbtPathArgumentType::parse(StringReader& reader)
 {
     i32 start = reader.getCursor();
     std::vector<std::unique_ptr<NbtPathNode>> nodes;
+    std::vector<size_t> nodeEnds;
     bool isFirst = true;
 
     while (reader.canRead() && reader.peek() != ' ') {
         MC_TRY_DECLARE(node, _parseNode(reader, isFirst));
         nodes.push_back(std::move(node));
+        // 节点结束偏移（相对 rawText）：原版报错参数是「失败节点（含）之前的原文」。
+        nodeEnds.push_back(static_cast<size_t>(reader.getCursor() - start));
         isFirst = false;
 
         // 检查是否需要 '.' 分隔
@@ -69,7 +72,7 @@ Result<NbtPath, CommandError> NbtPathArgumentType::parse(StringReader& reader)
 
     // 原版对空输入（含只有空白的输入）不报错，返回一个没有节点的路径。
     std::string rawText(reader.getString().substr(start, reader.getCursor() - start));
-    return NbtPath(std::move(rawText), std::move(nodes));
+    return NbtPath(std::move(rawText), std::move(nodes), std::move(nodeEnds));
 }
 
 Result<std::unique_ptr<NbtPathNode>, CommandError> NbtPathArgumentType::_parseNode(StringReader& reader, bool isFirst)

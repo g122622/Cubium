@@ -47,9 +47,9 @@ TEST(GameRuleKeyTest, Construction)
 
 TEST(GameRuleKeyTest, Equality)
 {
-    BooleanGameRuleKey key1("testRule", GameRuleCategory::Misc);
-    BooleanGameRuleKey key2("testRule", GameRuleCategory::Player);
-    BooleanGameRuleKey key3("otherRule", GameRuleCategory::Misc);
+    BooleanGameRuleKey key1("test_rule", GameRuleCategory::Misc);
+    BooleanGameRuleKey key2("test_rule", GameRuleCategory::Player);
+    BooleanGameRuleKey key3("other_rule", GameRuleCategory::Misc);
 
     EXPECT_TRUE(key1 == key2);  // Same name = equal
     EXPECT_FALSE(key1 == key3); // Different name = not equal
@@ -57,8 +57,8 @@ TEST(GameRuleKeyTest, Equality)
 
 TEST(GameRuleKeyTest, Hash)
 {
-    BooleanGameRuleKey key1("testRule", GameRuleCategory::Misc);
-    BooleanGameRuleKey key2("testRule", GameRuleCategory::Player);
+    BooleanGameRuleKey key1("test_rule", GameRuleCategory::Misc);
+    BooleanGameRuleKey key2("test_rule", GameRuleCategory::Player);
 
     EXPECT_EQ(key1.hashCode(), key2.hashCode()); // Same name = same hash
 }
@@ -216,7 +216,7 @@ TEST(GameRulesTest, HasKnownRule)
 
 TEST(GameRulesTest, HasUnknownRule)
 {
-    EXPECT_FALSE(GameRules::hasRule("nonExistentRule"));
+    EXPECT_FALSE(GameRules::hasRule("non_existent_rule"));
     EXPECT_FALSE(GameRules::hasRule(""));
 }
 
@@ -341,7 +341,7 @@ TEST(GameRulesTest, SetTypedFromString)
         "random_tick_speed", std::string(GameRuleClassNames::INTEGER), "not_a_number", nullptr));
 
     // Unknown rule
-    EXPECT_FALSE(rules.setTypedFromString("unknownRule", std::string(GameRuleClassNames::INTEGER), "value", nullptr));
+    EXPECT_FALSE(rules.setTypedFromString("unknown_rule", std::string(GameRuleClassNames::INTEGER), "value", nullptr));
 }
 
 TEST(GameRulesTest, WriteAndReadNBT)

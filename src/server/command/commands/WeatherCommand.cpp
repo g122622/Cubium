@@ -38,7 +38,6 @@
 #include "server/world/weather/WeatherManager.hpp"
 
 #include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -46,9 +45,6 @@ namespace mc {
 namespace command {
 
 namespace {
-
-/// 一秒对应的 tick 数
-constexpr i32 TICKS_PER_SECOND = 20;
 
 [[nodiscard]] server::WeatherManager* getWeatherManager(ServerCommandSource& source)
 {
@@ -63,14 +59,6 @@ constexpr i32 TICKS_PER_SECOND = 20;
     }
     auto* world = overworld->world();
     return world != nullptr ? world->weatherManager() : nullptr;
-}
-
-/// 构建天气变化反馈消息（duration 为命令实际应用的 tick 数）
-[[nodiscard]] std::string buildWeatherMessage(std::string_view weatherType, i32 duration)
-{
-    std::ostringstream ss;
-    ss << "Changing weather to " << weatherType << " for " << duration / TICKS_PER_SECOND << " seconds";
-    return ss.str();
 }
 
 } // namespace
@@ -137,9 +125,9 @@ i32 WeatherCommand::_setClear(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    i32 duration = context.getArgument<i32>("duration");
-    const i32 appliedDuration = weatherManager->setClear(duration);
-    source.sendSuccess(::mc::text::literal(buildWeatherMessage("clear", appliedDuration)), false);
+    const i32 duration = context.getArgument<i32>("duration");
+    static_cast<void>(weatherManager->setClear(duration));
+    source.sendSuccess(::mc::text::translatable("commands.weather.set.clear"), false);
     return 1;
 }
 
@@ -152,9 +140,9 @@ i32 WeatherCommand::_setRain(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    i32 duration = context.getArgument<i32>("duration");
-    const i32 appliedDuration = weatherManager->setRain(duration);
-    source.sendSuccess(::mc::text::literal(buildWeatherMessage("rain", appliedDuration)), false);
+    const i32 duration = context.getArgument<i32>("duration");
+    static_cast<void>(weatherManager->setRain(duration));
+    source.sendSuccess(::mc::text::translatable("commands.weather.set.rain"), false);
     return 1;
 }
 
@@ -167,9 +155,9 @@ i32 WeatherCommand::_setThunder(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    i32 duration = context.getArgument<i32>("duration");
-    const i32 appliedDuration = weatherManager->setThunder(duration);
-    source.sendSuccess(::mc::text::literal(buildWeatherMessage("thunder", appliedDuration)), false);
+    const i32 duration = context.getArgument<i32>("duration");
+    static_cast<void>(weatherManager->setThunder(duration));
+    source.sendSuccess(::mc::text::translatable("commands.weather.set.thunder"), false);
     return 1;
 }
 

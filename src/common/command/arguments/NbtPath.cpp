@@ -343,30 +343,45 @@ Result<void, CommandError> checkNotTooDeep(const nbt::tags::tag& value, i32 path
 
 // ========== NbtPath 实现 ==========
 
-NbtPath::NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes)
+NbtPath::NbtPath(std::string rawText, std::vector<std::unique_ptr<NbtPathNode>> nodes, std::vector<size_t> nodeEnds)
     : m_rawText(std::move(rawText))
     , m_nodes(std::move(nodes))
-{}
+    , m_nodeEnds(std::move(nodeEnds))
+{
+    m_failedNodeIndex = m_nodes.size();
+}
 
 NbtPath::NbtPath(const NbtPath& other)
     : m_rawText(other.m_rawText)
+    , m_nodeEnds(other.m_nodeEnds)
 {
     // 深拷贝节点
     for (const auto& node : other.m_nodes) {
         m_nodes.push_back(node->clone());
     }
+    m_failedNodeIndex = m_nodes.size();
 }
 
 NbtPath& NbtPath::operator=(const NbtPath& other)
 {
     if (this != &other) {
         m_rawText = other.m_rawText;
+        m_nodeEnds = other.m_nodeEnds;
         m_nodes.clear();
         for (const auto& node : other.m_nodes) {
             m_nodes.push_back(node->clone());
         }
+        m_failedNodeIndex = m_nodes.size();
     }
     return *this;
+}
+
+std::string NbtPath::failurePrefix() const
+{
+    if (m_failedNodeIndex >= m_nodeEnds.size()) {
+        return m_rawText;
+    }
+    return m_rawText.substr(0, m_nodeEnds[m_failedNodeIndex]);
 }
 
 void NbtPath::_resetElementCaches() const
@@ -374,6 +389,7 @@ void NbtPath::_resetElementCaches() const
     for (const auto& node : m_nodes) {
         node->resetElementCache();
     }
+    m_failedNodeIndex = m_nodes.size();
 }
 
 std::vector<const nbt::tags::tag*> NbtPath::get(const nbt::tags::compound_tag& tag) const
@@ -383,14 +399,15 @@ std::vector<const nbt::tags::tag*> NbtPath::get(const nbt::tags::compound_tag& t
     std::vector<const nbt::tags::tag*> result;
     result.push_back(&tag);
 
-    for (const auto& node : m_nodes) {
+    for (size_t index = 0; index < m_nodes.size(); ++index) {
         std::vector<const nbt::tags::tag*> next;
         for (const nbt::tags::tag* t : result) {
-            auto nodeResults = node->get(t);
+            auto nodeResults = m_nodes[index]->get(t);
             next.insert(next.end(), nodeResults.begin(), nodeResults.end());
         }
         result = std::move(next);
         if (result.empty()) {
+            m_failedNodeIndex = index;
             break;
         }
     }
@@ -471,6 +488,7 @@ Result<i32, CommandError> NbtPath::set(
             }
             parents = std::move(next);
             if (parents.empty()) {
+                m_failedNodeIndex = i;
                 return false;
             }
         }
@@ -515,6 +533,9 @@ Result<i32, CommandError> NbtPath::set(
     i32 count = 0;
     for (nbt::tags::tag* parent : parents) {
         count += lastNode->set(parent, valueSupplier, false);
+    }
+    if (count == 0) {
+        m_failedNodeIndex = m_nodes.size() - 1;
     }
 
     return count;
@@ -563,6 +584,7 @@ Result<i32, CommandError> NbtPath::remove(nbt::tags::compound_tag& tag) const
         }
         parents = std::move(next);
         if (parents.empty()) {
+            m_failedNodeIndex = i;
             return 0;
         }
     }
@@ -572,6 +594,9 @@ Result<i32, CommandError> NbtPath::remove(nbt::tags::compound_tag& tag) const
     i32 count = 0;
     for (nbt::tags::tag* parent : parents) {
         count += lastNode->remove(parent);
+    }
+    if (count == 0) {
+        m_failedNodeIndex = m_nodes.size() - 1;
     }
 
     return count;

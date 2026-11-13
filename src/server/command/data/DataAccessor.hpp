@@ -72,6 +72,17 @@ public:
     [[nodiscard]] virtual Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) = 0;
 
     /**
+     * @brief 用给定数据**完整替换**目标
+     *
+     * `/data set`、`/data modify`、`/data remove` 走这条路径：三者都是在完整数据上
+     * 增删改后写回，用合并写回会让被删除的键复活。
+     *
+     * @param data 新的完整数据
+     * @throws CommandError 如果无法写入
+     */
+    [[nodiscard]] virtual Result<void, CommandError> setData(const nbt::tags::compound_tag& data) = 0;
+
+    /**
      * @brief 获取目标的显示名称
      * @return 显示名称（用于命令反馈）
      */
@@ -117,6 +128,9 @@ public:
 
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
+
+    /// 完整替换目标数据（/data set、/data modify、/data remove 的写回路径）。
+    [[nodiscard]] Result<void, CommandError> setData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;
@@ -161,6 +175,9 @@ public:
 
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
+
+    /// 完整替换目标数据（/data set、/data modify、/data remove 的写回路径）。
+    [[nodiscard]] Result<void, CommandError> setData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;
@@ -202,6 +219,9 @@ public:
 
     [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> getData() const override;
     [[nodiscard]] Result<void, CommandError> mergeData(const nbt::tags::compound_tag& data) override;
+
+    /// 完整替换目标数据（/data set、/data modify、/data remove 的写回路径）。
+    [[nodiscard]] Result<void, CommandError> setData(const nbt::tags::compound_tag& data) override;
     [[nodiscard]] std::string getDisplayName() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getModifiedMessage() const override;
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getQueryMessage(const nbt::tags::tag& nbt) const override;

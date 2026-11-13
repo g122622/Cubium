@@ -171,6 +171,9 @@ void ChatHandler::_executePlayerCommand(PlayerId playerId, const std::string& co
     // CommandDispatcher::parse 自动剥离前导 '/'，commandInput 含或不含 '/' 均可。
     auto cmdResult = m_server.commandRegistry().execute(commandInput, source);
     if (cmdResult.failed()) {
+        // 解析失败必须回给玩家：静默只记日志会让「命令没反应」无从排查。
+        // 错误文本已含 Brigadier 风格的两行（消息 + 出错位置）。
+        source.sendFailure(*::mc::text::literal(cmdResult.error().message()));
         spdlog::warn("Command '{}' failed for {}: {}", commandInput, player->username, cmdResult.error().toString());
     } else {
         spdlog::info("Command '{}' executed for {} with result {}", commandInput, player->username, cmdResult.value());

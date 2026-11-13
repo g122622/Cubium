@@ -76,6 +76,14 @@ public:
     // ========== Item 接口实现 ==========
 
     /**
+     * @brief 获取翻译键
+     *
+     * 方块物品沿用方块自己的名字键（`block.minecraft.stone`）；物品键
+     * （`item.minecraft.stone`）在语言表里并不存在。
+     */
+    [[nodiscard]] std::string getTranslationKey() const override;
+
+    /**
      * @brief 在方块上使用物品
      *
      * 当玩家右键点击方块时调用。

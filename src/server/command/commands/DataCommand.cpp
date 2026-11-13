@@ -520,7 +520,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+            source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
             return 0;
         }
 
@@ -587,7 +587,7 @@ i32 DataCommand::_getEntity(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+            source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
             return 0;
         }
 
@@ -644,7 +644,7 @@ i32 DataCommand::_getStorage(CommandContext<ServerCommandSource>& context)
         auto results = path.get(*data);
 
         if (results.empty()) {
-            source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+            source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
             return 0;
         }
 
@@ -927,7 +927,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         return 0;
     }
 
-    auto mergeResult = targetAccessor->mergeData(*data);
+    auto mergeResult = targetAccessor->setData(*data);
     if (mergeResult.failed()) {
         _sendCommandError(source, mergeResult.error());
         return 0;
@@ -975,12 +975,12 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatable("commands.data.merge.failed"));
         return 0;
     }
 
     // 写回数据
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
     if (mergeResult.failed()) {
         _sendCommandError(source, mergeResult.error());
         return 0;
@@ -1036,11 +1036,11 @@ i32 DataCommand::_setEntity(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatable("commands.data.merge.failed"));
         return 0;
     }
 
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
 
     if (mergeResult.failed()) {
 
@@ -1087,11 +1087,11 @@ i32 DataCommand::_setStorage(CommandContext<ServerCommandSource>& context)
     const i32 count = setResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatable("commands.data.merge.failed"));
         return 0;
     }
 
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
 
     if (mergeResult.failed()) {
 
@@ -1234,11 +1234,11 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
         return 0;
     }
 
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
 
     if (mergeResult.failed()) {
 
@@ -1293,11 +1293,11 @@ i32 DataCommand::_removeEntity(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
         return 0;
     }
 
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
 
     if (mergeResult.failed()) {
 
@@ -1340,11 +1340,11 @@ i32 DataCommand::_removeStorage(CommandContext<ServerCommandSource>& context)
     const i32 count = removeResult.value();
 
     if (count == 0) {
-        source.sendFailure(::mc::text::translatable("commands.data.get.unknown", path.toString()));
+        source.sendFailure(::mc::text::translatableEscape("arguments.nbtpath.nothing_found", path.failurePrefix()));
         return 0;
     }
 
-    auto mergeResult = accessor.mergeData(*data);
+    auto mergeResult = accessor.setData(*data);
 
     if (mergeResult.failed()) {
 

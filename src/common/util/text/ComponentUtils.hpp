@@ -23,10 +23,12 @@
 
 #pragma once
 
+#include "StringTextComponent.hpp"
 #include "TranslationTextComponent.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace mc::text {
 
@@ -52,6 +54,27 @@ inline std::unique_ptr<ITextComponent> wrapInSquareBrackets(std::unique_ptr<ITex
 {
     auto result = std::make_unique<TranslationTextComponent>("chat.square_brackets");
     result->addParam(std::move(component));
+    return result;
+}
+
+/**
+ * @brief 把一组组件用 ", " 连接成一个组件
+ *
+ * 与 `ComponentUtils.formatList` 一致：空列表返回空组件，非空时逐项追加，
+ * 项与项之间插入纯文本分隔符。
+ *
+ * @param components 已按目标顺序排列的组件
+ * @return 连接后的新文本组件
+ */
+inline std::unique_ptr<ITextComponent> formatList(std::vector<std::unique_ptr<ITextComponent>> components)
+{
+    auto result = std::make_unique<StringTextComponent>("");
+    for (size_t index = 0; index < components.size(); ++index) {
+        if (index > 0) {
+            result->appendText(", ");
+        }
+        result->append(std::move(components[index]));
+    }
     return result;
 }
 

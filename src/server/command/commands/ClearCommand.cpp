@@ -165,30 +165,29 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId)
     return removedTotal;
 }
 
-void sendClearMessage(ServerCommandSource& source,
-    const std::vector<PlayerId>& targetPlayerIds,
-    const ItemPredicateInput& predicate,
-    std::optional<i32> maxCount,
-    i32 removedCount)
+void sendClearMessage(ServerCommandSource& source, const std::vector<PlayerId>& targetPlayerIds, i32 removedCount)
 {
     if (removedCount <= 0) {
-        source.sendFailure(::mc::text::literal("No matching items were found"));
+        if (targetPlayerIds.size() == 1) {
+            source.sendFailure(
+                ::mc::text::translatable("clear.failed.single", describeTargets(source, targetPlayerIds)));
+        } else {
+            source.sendFailure(
+                ::mc::text::translatable("clear.failed.multiple", std::to_string(targetPlayerIds.size())));
+        }
         return;
     }
 
-    std::ostringstream ss;
-    if (predicate.isAny()) {
-        ss << "Cleared the inventory of ";
-    } else {
-        ss << "Cleared " << predicate.displayName();
-        if (maxCount.has_value()) {
-            ss << " (max " << *maxCount << ")";
-        }
-        ss << " from ";
+    if (targetPlayerIds.size() == 1) {
+        source.sendSuccess(::mc::text::translatable("commands.clear.success.single",
+                               {std::to_string(removedCount), describeTargets(source, targetPlayerIds)}),
+            false);
+        return;
     }
 
-    ss << describeTargets(source, targetPlayerIds) << ", removing " << removedCount << " items";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    source.sendSuccess(::mc::text::translatable("commands.clear.success.multiple",
+                           {std::to_string(removedCount), std::to_string(targetPlayerIds.size())}),
+        false);
 }
 
 } // namespace
@@ -247,7 +246,7 @@ i32 ClearCommand::_clearSelf(CommandContext<ServerCommandSource>& context)
     // /clear 不带参数时，清除所有物品（通配符谓词）
     const ItemPredicateInput anyPredicate;
     const i32 removedCount = clearTargets(source, targetPlayerIds, anyPredicate, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, anyPredicate, std::nullopt, removedCount);
+    sendClearMessage(source, targetPlayerIds, removedCount);
     return removedCount;
 }
 
@@ -265,7 +264,7 @@ i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
     // /clear <player> 不带物品参数时，清除所有物品（通配符谓词）
     const ItemPredicateInput anyPredicate;
     const i32 removedCount = clearTargets(source, targetPlayerIds, anyPredicate, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, anyPredicate, std::nullopt, removedCount);
+    sendClearMessage(source, targetPlayerIds, removedCount);
     return removedCount;
 }
 
@@ -284,7 +283,7 @@ i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
     ItemPredicateInput predicate = context.getArgument<ItemPredicateInput>("item");
 
     const i32 removedCount = clearTargets(source, targetPlayerIds, predicate, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, predicate, std::nullopt, removedCount);
+    sendClearMessage(source, targetPlayerIds, removedCount);
     return removedCount;
 }
 
@@ -304,7 +303,7 @@ i32 ClearCommand::_clearPlayerItemCount(CommandContext<ServerCommandSource>& con
     i32 maxCount = context.getArgument<i32>("maxCount");
 
     const i32 removedCount = clearTargets(source, targetPlayerIds, predicate, maxCount);
-    sendClearMessage(source, targetPlayerIds, predicate, maxCount, removedCount);
+    sendClearMessage(source, targetPlayerIds, removedCount);
     return removedCount;
 }
 

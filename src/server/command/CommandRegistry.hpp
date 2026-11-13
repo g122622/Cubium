@@ -145,6 +145,17 @@ public:
     [[nodiscard]] static CommandRegistry& getGlobal();
 
 private:
+    /**
+     * @brief 把解析错误渲染成「消息 + 出错位置」两行文本
+     *
+     * 与客户端展示一致：第一行是 Brigadier 风格错误消息，第二行是输入前缀加
+     * `<--[HERE]`。发送方按一个组件下发即可（换行在聊天框中照常显示）。
+     *
+     * @param parseError 解析错误
+     * @return 面向玩家的文本
+     */
+    [[nodiscard]] static std::string _describeParseError(const command::CommandError& parseError);
+
     Dispatcher m_dispatcher;
     bool m_defaultsRegistered = false;
     bool m_registerCompatCommands = false;

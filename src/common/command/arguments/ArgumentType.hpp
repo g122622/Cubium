@@ -33,6 +33,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -333,11 +334,15 @@ public:
         const i32 end = reader.getCursor();
         if (number < m_min) {
             reader.setCursor(start);
-            return CommandError(CommandErrorType::IntegerTooLow, "Integer too low", end);
+            return CommandError(CommandErrorType::IntegerTooLow,
+                "Integer must not be less than " + std::to_string(m_min) + ": found " + std::to_string(number),
+                end);
         }
         if (number > m_max) {
             reader.setCursor(start);
-            return CommandError(CommandErrorType::IntegerTooHigh, "Integer too high", end);
+            return CommandError(CommandErrorType::IntegerTooHigh,
+                "Integer must not be more than " + std::to_string(m_max) + ": found " + std::to_string(number),
+                end);
         }
         return static_cast<i32>(number);
     }
@@ -461,11 +466,15 @@ public:
         const i32 end = reader.getCursor();
         if (value < m_min) {
             reader.setCursor(start);
-            return CommandError(CommandErrorType::FloatTooLow, "Float too low", start);
+            return CommandError(CommandErrorType::FloatTooLow,
+                "Float must not be less than " + fmt::format("{}", m_min) + ": found " + fmt::format("{}", value),
+                start);
         }
         if (value > m_max) {
             reader.setCursor(start);
-            return CommandError(CommandErrorType::FloatTooHigh, "Float too high", start);
+            return CommandError(CommandErrorType::FloatTooHigh,
+                "Float must not be more than " + fmt::format("{}", m_max) + ": found " + fmt::format("{}", value),
+                start);
         }
         return static_cast<f32>(value);
     }

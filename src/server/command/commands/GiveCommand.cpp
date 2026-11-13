@@ -46,6 +46,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/application/MinecraftServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -309,7 +310,9 @@ i32 GiveCommand::_giveItem(CommandContext<ServerCommandSource>& context)
     // 数量、物品显示名、目标玩家显示名（或目标玩家数）。
     std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
     args.push_back(::mc::text::literal(std::to_string(count)));
-    args.push_back(::mc::text::translatable(item->getTranslationKey()));
+    // 原版传的是 ItemStack.getDisplayName()：物品名包裹在方括号里。
+    args.push_back(
+        ::mc::text::ComponentUtils::wrapInSquareBrackets(::mc::text::translatable(item->getTranslationKey())));
     if (targetPlayerIds.size() == 1) {
         args.push_back(::mc::text::literal(describeTargets(source, targetPlayerIds)));
         source.sendSuccess(::mc::text::translatable("commands.give.success.single", std::move(args)), true);

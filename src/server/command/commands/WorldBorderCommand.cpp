@@ -169,14 +169,13 @@ i32 WorldBorderCommand::_setBorder(CommandContext<ServerCommandSource>& context)
         border.setSizeLerp(border.getSize(), static_cast<f64>(size), timeMs);
 
         source.sendSuccess(::mc::text::translatable("commands.worldborder.set.grow",
-                               {std::to_string(static_cast<i64>(size)), std::to_string(timeSeconds)}),
+                               {fmt::format("{:.1f}", size), fmt::format("{:.2f}", static_cast<f64>(timeSeconds))}),
             true);
     } else {
         border.setSize(static_cast<f64>(size));
 
         source.sendSuccess(
-            ::mc::text::translatable("commands.worldborder.set.immediate", std::to_string(static_cast<i64>(size))),
-            true);
+            ::mc::text::translatable("commands.worldborder.set.immediate", fmt::format("{:.1f}", size)), true);
     }
 
     return 1;
@@ -196,8 +195,7 @@ i32 WorldBorderCommand::_getBorder(CommandContext<ServerCommandSource>& context)
     f64 currentSize = border.getSize();
 
     std::ostringstream ss;
-    source.sendSuccess(
-        ::mc::text::translatable("commands.worldborder.get", std::to_string(static_cast<i64>(currentSize))), false);
+    source.sendSuccess(::mc::text::translatable("commands.worldborder.get", fmt::format("{:.0f}", currentSize)), false);
 
     return 1;
 }
@@ -220,8 +218,8 @@ i32 WorldBorderCommand::_setCenter(CommandContext<ServerCommandSource>& context)
     border.setCenter(x, z);
 
     std::ostringstream ss;
-    source.sendSuccess(
-        ::mc::text::translatable("commands.worldborder.center.success", {fmt::format("{}", x), fmt::format("{}", z)}),
+    source.sendSuccess(::mc::text::translatable(
+                           "commands.worldborder.center.success", {fmt::format("{:.2f}", x), fmt::format("{:.2f}", z)}),
         true);
 
     return 1;
@@ -244,7 +242,7 @@ i32 WorldBorderCommand::_setDamageAmount(CommandContext<ServerCommandSource>& co
 
     std::ostringstream ss;
     source.sendSuccess(
-        ::mc::text::translatable("commands.worldborder.damage.amount.success", fmt::format("{}", damage)), true);
+        ::mc::text::translatable("commands.worldborder.damage.amount.success", fmt::format("{:.2f}", damage)), true);
 
     return 1;
 }
@@ -266,7 +264,7 @@ i32 WorldBorderCommand::_setDamageBuffer(CommandContext<ServerCommandSource>& co
 
     std::ostringstream ss;
     source.sendSuccess(
-        ::mc::text::translatable("commands.worldborder.damage.buffer.success", fmt::format("{}", distance)), true);
+        ::mc::text::translatable("commands.worldborder.damage.buffer.success", fmt::format("{:.2f}", distance)), true);
 
     return 1;
 }
@@ -287,8 +285,9 @@ i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& con
     border.setWarningTime(seconds);
 
     std::ostringstream ss;
-    source.sendSuccess(
-        ::mc::text::translatable("commands.worldborder.warning.time.success", fmt::format("{}", seconds)), true);
+    source.sendSuccess(::mc::text::translatable("commands.worldborder.warning.time.success",
+                           fmt::format("{:.2f}", static_cast<f64>(seconds))),
+        true);
 
     return 1;
 }
@@ -340,14 +339,13 @@ i32 WorldBorderCommand::_addBorder(CommandContext<ServerCommandSource>& context)
         border.setSizeLerp(border.getSize(), newSize, timeMs);
 
         source.sendSuccess(::mc::text::translatable("commands.worldborder.set.grow",
-                               {std::to_string(static_cast<i64>(newSize)), std::to_string(timeSeconds)}),
+                               {fmt::format("{:.1f}", newSize), fmt::format("{:.2f}", static_cast<f64>(timeSeconds))}),
             true);
     } else {
         border.setSize(newSize);
 
         source.sendSuccess(
-            ::mc::text::translatable("commands.worldborder.set.immediate", std::to_string(static_cast<i64>(newSize))),
-            true);
+            ::mc::text::translatable("commands.worldborder.set.immediate", fmt::format("{:.1f}", newSize)), true);
     }
 
     return 1;

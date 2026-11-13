@@ -72,6 +72,12 @@ Result<std::unique_ptr<nbt::tags::compound_tag>, CommandError> BlockDataAccessor
     // 使用 BlockEntity 原生 NBT 序列化，获取完整数据
     auto compound = std::make_unique<nbt::tags::compound_tag>();
     m_blockEntity->saveToNBT(*compound);
+
+    // 原版 BlockEntity.saveWithoutMetadata 总会写出 components（方块实体的数据组件补丁），
+    // 空表也写出。`/data get block` 的完整输出因此包含该字段。
+    if (compound->value.find("components") == compound->value.end()) {
+        compound->value["components"] = std::make_unique<nbt::tags::compound_tag>();
+    }
     return compound;
 }
 
@@ -98,6 +104,25 @@ Result<void, CommandError> BlockDataAccessor::mergeData(const nbt::tags::compoun
     m_blockEntity->setChanged();
 
     // 通知客户端方块更新
+    if (m_world != nullptr) {
+        m_world->notifyBlockUpdate(m_pos);
+    }
+
+    return Result<void, CommandError>::ok();
+}
+
+Result<void, CommandError> BlockDataAccessor::setData(const nbt::tags::compound_tag& data)
+{
+    if (m_blockEntity == nullptr) {
+        return CommandError(CommandErrorType::NbtPathNotFound,
+            "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
+                std::to_string(m_pos.z),
+            0);
+    }
+
+    m_blockEntity->loadFromNBT(data);
+    m_blockEntity->setChanged();
+
     if (m_world != nullptr) {
         m_world->notifyBlockUpdate(m_pos);
     }
@@ -196,6 +221,26 @@ Result<void, CommandError> EntityDataAccessor::mergeData(const nbt::tags::compou
     return Result<void, CommandError>::ok();
 }
 
+Result<void, CommandError> EntityDataAccessor::setData(const nbt::tags::compound_tag& data)
+{
+    if (m_entity == nullptr) {
+        return CommandError(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
+    }
+    if (isPlayer()) {
+        return CommandError(CommandErrorType::NbtPathInvalidType, "Cannot modify player data directly", 0);
+    }
+
+    // 加载 NBT 会覆盖 UUID，先备份再恢复（UUID 不允许被 /data 命令修改）。
+    const auto savedUuid = m_entity->uuid();
+    auto result = m_entity->readFromNBT(data);
+    if (!result.success()) {
+        return CommandError(
+            CommandErrorType::NbtPathInvalidType, "Failed to load entity data: " + result.error().message(), 0);
+    }
+    m_entity->setUuid(savedUuid);
+    return Result<void, CommandError>::ok();
+}
+
 std::string EntityDataAccessor::getDisplayName() const
 {
     if (m_entity == nullptr) {
@@ -262,6 +307,16 @@ Result<void, CommandError> StorageDataAccessor::mergeData(const nbt::tags::compo
     }
 
     m_storage->set(m_id, *existing);
+    return Result<void, CommandError>::ok();
+}
+
+Result<void, CommandError> StorageDataAccessor::setData(const nbt::tags::compound_tag& data)
+{
+    if (m_storage == nullptr) {
+        return CommandError(CommandErrorType::NbtPathNotFound, "Command storage not available", 0);
+    }
+
+    m_storage->set(m_id, data);
     return Result<void, CommandError>::ok();
 }
 

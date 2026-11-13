@@ -27,6 +27,7 @@
 #include "common/command/arguments/NbtPathArgumentType.hpp"
 #include "common/command/errors/CommandErrors.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -304,6 +305,16 @@ Result<void, CommandError> EntityArgumentTypeBase::_applySelectorArgument(
         StringReader valueReader(value);
         bool negated = _shouldInvertValue(valueReader);
         std::string typeStr = valueReader.getRemaining();
+
+        // 实体类型必须是已注册的类型（`#tag` 形式除外）：未知类型在原版是解析错误，
+        // 而不是「空选择器」——后者会静默匹配不到任何实体或退化成命令源自身。
+        // 注册表为空（单元测试等尚未初始化实体的环境）时跳过校验。
+        if (!typeStr.empty() && typeStr.front() != '#') {
+            auto& registry = entity::EntityRegistry::instance();
+            if (registry.size() > 0 && registry.getType(ResourceLocation::parse(typeStr).toString()) == nullptr) {
+                return CommandError(CommandErrorType::DispatcherUnknownArgument, "command.unknown.argument", cursor);
+            }
+        }
 
         // 如果是 minecraft:player 且未取反，则限制为仅玩家
         if (!negated && (typeStr == "minecraft:player" || typeStr == "player")) {

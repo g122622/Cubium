@@ -58,6 +58,16 @@ BlockItem::BlockItem(const Block& block, ItemProperties properties)
     , m_block(&block)
 {}
 
+std::string BlockItem::getTranslationKey() const
+{
+    // 方块物品的名字键是 block.<ns>.<path>（语言表里没有 item.minecraft.stone）。
+    std::string key = "block.";
+    for (const char ch : m_block->blockLocation().toString()) {
+        key += ch == ':' ? '.' : ch;
+    }
+    return key;
+}
+
 ActionResultType BlockItem::onItemUse(ItemUseContext& context)
 {
     // 创建 BlockItemUseContext 并尝试放置

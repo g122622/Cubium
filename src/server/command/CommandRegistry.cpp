@@ -129,11 +129,40 @@ Result<i32> CommandRegistry::execute(const std::string& input, ServerCommandSour
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.Server.Network, "CommandRegistry::execute", "input", input);
 
-    auto result = m_dispatcher.execute(input, source);
+    // 先剥离前导 '/' 再解析：错误对象里的 cursor 以剥离后的文本为基准，调用方据此
+    // 拼出与客户端一致的高亮上下文（见 _describeParseError）。
+    std::string_view commandInput = input;
+    while (!commandInput.empty() && commandInput.front() == '/') {
+        commandInput.remove_prefix(1);
+    }
+
+    auto parseResult = m_dispatcher.parse(commandInput, source);
+    if (const auto parseError = parseResult.getException(); parseError.has_value()) {
+        return Error(ErrorCode::InvalidArgument, _describeParseError(*parseError));
+    }
+
+    auto result = m_dispatcher.execute(parseResult);
     if (result.success()) {
         return result.value().result();
     }
     return result.error();
+}
+
+std::string CommandRegistry::_describeParseError(const command::CommandError& parseError)
+{
+    std::string text = parseError.translatedMessage();
+
+    // 与客户端一致：错误消息之后再跟一行「输入前缀 + <--[HERE]」，标明出错位置。
+    const i32 cursor = parseError.cursor();
+    if (cursor < 0) {
+        return text;
+    }
+    const std::string& errorInput = parseError.input();
+    const size_t prefixLength = std::min(static_cast<size_t>(cursor), errorInput.size());
+    text += '\n';
+    text += errorInput.substr(0, prefixLength);
+    text += "<--[HERE]";
+    return text;
 }
 
 std::future<Suggestions> CommandRegistry::getSuggestions(const std::string& input, ServerCommandSource& source)

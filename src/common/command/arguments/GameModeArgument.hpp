@@ -1118,11 +1118,12 @@ private:
      */
     [[nodiscard]] Result<Coordinates::Ptr, CommandError> _parseWorldCoordinatesDouble(StringReader& reader, i32 start)
     {
-        MC_TRY_DECLARE(x, _parseCoordinateDouble(reader, start));
+        // 原版只对水平分量做方块中心对齐（+0.5），Y 保持原值。
+        MC_TRY_DECLARE(x, _parseCoordinateDouble(reader, start, m_centerCorrect));
         reader.skipWhitespace();
-        MC_TRY_DECLARE(y, _parseCoordinateDouble(reader, start));
+        MC_TRY_DECLARE(y, _parseCoordinateDouble(reader, start, false));
         reader.skipWhitespace();
-        MC_TRY_DECLARE(z, _parseCoordinateDouble(reader, start));
+        MC_TRY_DECLARE(z, _parseCoordinateDouble(reader, start, m_centerCorrect));
         return std::make_shared<WorldCoordinates>(x, y, z);
     }
 
@@ -1132,7 +1133,7 @@ private:
      * 支持 ~ 前缀（相对坐标）和 centerCorrect 逻辑。
      * 遇到 ^ 前缀会抛出混合类型错误。
      */
-    Result<WorldCoordinate, CommandError> _parseCoordinateDouble(StringReader& reader, i32 start)
+    Result<WorldCoordinate, CommandError> _parseCoordinateDouble(StringReader& reader, i32 start, bool centerCorrect)
     {
         bool relative = false;
         i32 cursorBeforeNumber = reader.getCursor();
@@ -1156,7 +1157,7 @@ private:
 
         // centerCorrect: 绝对整数坐标加 0.5（方块中心偏移）
         // 条件：centerCorrect=true 且 非相对坐标 且 原始输入不含小数点
-        if (m_centerCorrect && !relative) {
+        if (centerCorrect && !relative) {
             // 检查原始输入是否不含小数点
             std::string_view input = reader.getString();
             bool hasDot = false;

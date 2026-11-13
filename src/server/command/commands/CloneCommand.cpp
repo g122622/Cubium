@@ -404,7 +404,12 @@ i32 executeClone(CommandContext<ServerCommandSource>& context,
         // 写入前先取旧状态（strict 补发邻居更新时需要）。
         const BlockState* oldState = strict ? targetWorld.getBlockState(info.pos.x, info.pos.y, info.pos.z) : nullptr;
 
-        if (targetWorld.setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state, writeFlags)) {
+        // setBlockState 返回 false 只代表「状态没变化」：目标已经等于要复制的方块时，
+        // 原版仍把它计入成功数（Level.setBlock 恒返回 true），force 覆盖同值不能算失败。
+        const bool changed = targetWorld.setBlockState(info.pos.x, info.pos.y, info.pos.z, info.state, writeFlags);
+        const BlockState* current = changed ? nullptr : targetWorld.getBlockState(info.pos.x, info.pos.y, info.pos.z);
+        const bool alreadyAtTarget = current != nullptr && current->stateId() == info.state->stateId();
+        if (changed || alreadyAtTarget) {
             blocksCloned++;
             if (strict) {
                 deferredNeighborUpdates.push_back({info.pos, oldState});

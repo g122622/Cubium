@@ -424,7 +424,8 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 return ParseResults<S>(std::move(currentContext), currentReader.getRemaining());
             }
             return ParseResults<S>(
-                CommandError(CommandErrorType::DispatcherUnknownArgument, "Unknown argument", currentReader.getCursor())
+                CommandError(
+                    CommandErrorType::DispatcherUnknownArgument, "command.unknown.argument", currentReader.getCursor())
                     .withInput(currentContext->getInput()),
                 currentReader.getCursor());
         }
@@ -456,6 +457,14 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
                 if (!bestSuccess || candidate.getRemaining().size() < bestSuccess->results.getRemaining().size()) {
                     bestSuccess = Candidate{std::move(candidate), std::move(leaf)};
                 }
+                return;
+            }
+
+            // 「字面量不匹配」不作为给玩家的错误：原版对 `setblock ... nonsense` 报的是
+            // 「Incorrect argument for command」（由下面无候选时的兜底产生），而不是
+            // 「Expected literal 'destroy'」。跳过它，让更贴切的失败或兜底胜出。
+            if (candidate.getError().has_value() &&
+                candidate.getError()->type() == CommandErrorType::DispatcherExpectedLiteral) {
                 return;
             }
 
@@ -605,13 +614,16 @@ ParseResults<S> CommandDispatcher<S>::parseNodes(
             return std::move(bestFailure->results);
         }
 
-        return ParseResults<S>(
-            CommandError(currentNode->getType() == NodeType::Root ? CommandErrorType::DispatcherUnknownCommand
-                                                                  : CommandErrorType::DispatcherUnknownArgument,
-                currentNode->getType() == NodeType::Root ? "Unknown command" : "Unknown argument",
-                currentReader.getCursor())
-                .withInput(currentContext->getInput()),
-            currentReader.getCursor());
+        // 兜底错误用翻译键（原版消息分别是「Unknown or incomplete command. See below for error」
+        // 与「Incorrect argument for command」）；游标取输入末尾，保证上下文行覆盖整条命令。
+        const bool atRoot = currentNode->getType() == NodeType::Root;
+        const i32 endCursor = static_cast<i32>(currentReader.getString().size());
+        return ParseResults<S>(CommandError(atRoot ? CommandErrorType::DispatcherUnknownCommand
+                                                   : CommandErrorType::DispatcherUnknownArgument,
+                                   atRoot ? "command.unknown.command" : "command.unknown.argument",
+                                   endCursor)
+                                   .withInput(currentContext->getInput()),
+            endCursor);
     };
 
     return parseRecursive(reader, node, std::move(context));
