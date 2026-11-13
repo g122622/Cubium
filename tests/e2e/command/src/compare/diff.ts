@@ -12,7 +12,7 @@
 import type { KnownDiffSpec } from "../case.ts";
 
 /** 差异分类。 */
-export type DiffCategory = "feedback" | "probe" | "timeout";
+export type DiffCategory = "feedback" | "probe" | "clientView" | "timeout";
 
 /** 一条实际差异。 */
 export interface DiffEntry {
@@ -36,7 +36,7 @@ export interface CaseComparison {
     readonly staleKnownDiffs: readonly KnownDiffSpec[];
 }
 
-/** 参与比对的一侧结果（步骤与探针的归一化文本）。 */
+/** 参与比对的一侧结果（步骤、探针与客户端观测的归一化文本）。 */
 export interface ComparableSide {
     /** 步骤归一化文本，下标与用例 steps 对齐。 */
     readonly stepTexts: readonly string[];
@@ -44,6 +44,8 @@ export interface ComparableSide {
     readonly stepTimeouts: readonly boolean[];
     /** 探针归一化文本。 */
     readonly probeTexts: ReadonlyMap<string, string>;
+    /** 客户端视角观测文本。 */
+    readonly viewTexts: ReadonlyMap<string, string>;
 }
 
 /** 一次比对需要的用例元数据。 */
@@ -51,6 +53,8 @@ export interface CaseMeta {
     readonly caseId: string;
     readonly stepCommands: readonly string[];
     readonly probeCommands: ReadonlyMap<string, string>;
+    /** 客户端观测键 → 观测类型（报告里作为 command 列的替代）。 */
+    readonly viewKinds: ReadonlyMap<string, string>;
     readonly knownDiffs: readonly KnownDiffSpec[];
 }
 
@@ -125,6 +129,45 @@ export function compareCase(meta: CaseMeta, cubium: ComparableSide, vanilla: Com
             command: meta.probeCommands.get(key) ?? "<未知探针>",
             cubium: left,
             vanilla: "<无此探针>",
+            known,
+        });
+    }
+
+    for (const [key, right] of vanilla.viewTexts) {
+        const left = cubium.viewTexts.get(key);
+        if (left === undefined || left === right) {
+            continue;
+        }
+        const path = `clientView.${key}`;
+        const known = knownByPath.get(path);
+        if (known !== undefined) {
+            hitPaths.add(path);
+        }
+        diffs.push({
+            path,
+            category: "clientView",
+            command: `<clientView:${meta.viewKinds.get(key) ?? "未知"}>`,
+            cubium: left,
+            vanilla: right,
+            known,
+        });
+    }
+    // Cubium 侧独有的观测（vanilla 没读到）同样是差异。
+    for (const [key, left] of cubium.viewTexts) {
+        if (vanilla.viewTexts.has(key)) {
+            continue;
+        }
+        const path = `clientView.${key}`;
+        const known = knownByPath.get(path);
+        if (known !== undefined) {
+            hitPaths.add(path);
+        }
+        diffs.push({
+            path,
+            category: "clientView",
+            command: `<clientView:${meta.viewKinds.get(key) ?? "未知"}>`,
+            cubium: left,
+            vanilla: "<无此观测>",
             known,
         });
     }

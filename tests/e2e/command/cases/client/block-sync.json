@@ -1,0 +1,18 @@
+{
+  "id": "client/block_sync",
+  "title": "setblock 后客户端看到的方块与状态",
+  "category": "client",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:stone"
+  ],
+  "steps": [
+    { "command": "/setblock {x} {y} {z} minecraft:dirt" },
+    { "command": "/setblock {x+1} {y} {z} minecraft:oak_stairs[facing=east,half=top]" }
+  ],
+  "probes": [],
+  "clientView": [
+    { "key": "plain", "kind": "block", "position": "{x} {y} {z}" },
+    { "key": "with_state", "kind": "block", "position": "{x+1} {y} {z}" }
+  ],
+  "knownDiffs": []
+}

@@ -1,0 +1,28 @@
+{
+  "id": "client/inventory_sync",
+  "title": "give 与 clear 后客户端物品栏的内容",
+  "category": "client",
+  "setup": [
+    "/clear @s"
+  ],
+  "steps": [
+    { "command": "/give @s minecraft:stone 5" },
+    { "command": "/give @s minecraft:diamond 2" }
+  ],
+  "probes": [],
+  "clientView": [
+    { "key": "after_give", "kind": "inventory" }
+  ],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "物品用注册 id 而非显示名渲染",
+      "evidence": "src/server/command/commands/GiveCommand.cpp"
+    },
+    {
+      "path": "steps[1].feedback",
+      "reason": "vanilla 会额外广播成就「Diamonds!」，Cubium 首次获得钻石没有触发成就通知",
+      "evidence": "src/server/command/commands/GiveCommand.cpp"
+    }
+  ]
+}

@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "mcVersion": "1.21.11",
+  "generatedAt": "2026-11-13T05:53:42.955Z",
+  "cases": {
+    "smoke/basic_feedback": {
+      "stepTexts": [
+        "Changed the block at 0, 100, 1040",
+        "[e2e_cmd] e2e-ok",
+        "Changed the block at 0, 100, 1040"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "block/clone": {
+      "stepTexts": [
+        "Successfully cloned 1 block(s)",
+        "Successfully cloned 1 block(s)"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {
+        "copied": "[e2e_cmd] yes"
+      },
+      "viewTexts": {}
+    },
+    "block/fill": {
+      "stepTexts": [
+        "Successfully filled 25 block(s)",
+        "Successfully filled 25 block(s)",
+        "No blocks were filled",
+        "Successfully filled 25 block(s)"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {
+        "cleared": "[e2e_cmd] yes"
+      },
+      "viewTexts": {}
+    },
+    "block/setblock_modes": {
+      "stepTexts": [
+        "Changed the block at 0, 100, 80",
+        "Changed the block at 0, 100, 80",
+        "Could not set the block",
+        "Changed the block at 0, 100, 80",
+        "Changed the block at 0, 100, 80",
+        "Changed the block at 0, 100, 80",
+        "Changed the block at 0, 100, 80"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "client/block_sync": {
+      "stepTexts": [
+        "Changed the block at 0, 100, 120",
+        "Changed the block at 1, 100, 120"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {
+        "plain": "dirt",
+        "with_state": "oak_stairs[facing=east,half=top,shape=straight,waterlogged=false]"
+      }
+    },
+    "client/entity_sync": {
+      "stepTexts": [
+        "Summoned new Armor Stand"
+      ],
+      "stepTimeouts": [
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {
+        "spawned": "armor_stand x1"
+      }
+    },
+    "client/inventory_sync": {
+      "stepTexts": [
+        "Gave 5 [Stone] to e2e_cmd",
+        "e2e_cmd has made the advancement [Diamonds!]\nGave 2 [Diamond] to e2e_cmd"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {
+        "after_give": "diamond x2, stone x5"
+      }
+    },
+    "client/weather_sync": {
+      "stepTexts": [
+        "Set the weather to rain"
+      ],
+      "stepTimeouts": [
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {
+        "weather": "raining,no_thunder,day=0"
+      }
+    },
+    "command/argument_range": {
+      "stepTexts": [
+        "Integer must not be less than 1: found 0\n...aft:stone 0<--[HERE]",
+        "Gave 1000 [Stone] to e2e_cmd",
+        "Incorrect argument for command\n...aft:stone nonsense<--[HERE]",
+        "Set the time to 999999"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/gamerule_naming": {
+      "stepTexts": [
+        "Incorrect argument for command\ngamerule keepInventory true<--[HERE]",
+        "Gamerule keep_inventory is now set to: true"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/parse_error": {
+      "stepTexts": [
+        "Unknown or incomplete command. See below for error\ne2e_no_such_command<--[HERE]"
+      ],
+      "stepTimeouts": [
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/selector_errors": {
+      "stepTexts": [
+        "Incorrect argument for command\ntp @e[type=minecraft:e2e_no_such_entity] ~ ~ ~<--[HERE]",
+        "Limit must be at least 1\n... @e[limit=0] minecraft:stone<--[HERE]",
+        "No entity was found"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/teleport_feedback": {
+      "stepTexts": [
+        "Teleported e2e_cmd to 0.500000, 100.000000, 440.500000"
+      ],
+      "stepTimeouts": [
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "data/block_get": {
+      "stepTexts": [
+        "0, 100, 480 has the following block data: {Items:[],components:{},id:\"minecraft:chest\",x:0,y:100,z:480}",
+        "0, 100, 480 has the following block data: []",
+        "Found no elements matching e2e",
+        "The target block is not a block entity"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "data/entity_get_merge": {
+      "stepTexts": [
+        "No entity was found",
+        "No entity was found",
+        "No entity was found",
+        "No entity was found",
+        "No entity was found"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "data/storage": {
+      "stepTexts": [
+        "Modified storage e2e:cmd",
+        "Storage e2e:cmd has the following contents: {a:1,b:\"x\"}",
+        "Storage e2e:cmd has the following contents: 1",
+        "Storage e2e:cmd has the following contents: \"x\"",
+        "Modified storage e2e:cmd",
+        "Storage e2e:cmd has the following contents: {b:\"x\"}"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "entity/summon": {
+      "stepTexts": [
+        "Summoned new Armor Stand",
+        "Can't find element 'minecraft:e2e_no_such_entity' of type 'minecraft:entity_type'\n...uch_entity 0 100 600<--[HERE]",
+        "No entity was found"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {
+        "no_entity": ""
+      },
+      "viewTexts": {}
+    },
+    "entity/tag": {
+      "stepTexts": [
+        "No entity was found",
+        "No entity was found",
+        "No entity was found",
+        "No entity was found",
+        "No entity was found",
+        "No entity was found"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "execute/conditions": {
+      "stepTexts": [
+        "[e2e_cmd] block-yes",
+        "",
+        "[e2e_cmd] unless-yes",
+        "[e2e_cmd] score-yes",
+        "",
+        "[e2e_cmd] entity-yes",
+        ""
+      ],
+      "stepTimeouts": [
+        false,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "execute/positioned": {
+      "stepTexts": [
+        "Changed the block at 0, 100, 720",
+        "Changed the block at 1, 100, 721",
+        "[e2e_cmd] positioned-ok"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {
+        "block_center": "[e2e_cmd] yes",
+        "block_offset": "[e2e_cmd] yes",
+        "under_player": "[e2e_cmd] yes"
+      },
+      "viewTexts": {}
+    },
+    "execute/store": {
+      "stepTexts": [
+        "[e2e_cmd] store-ok",
+        "Alice has 1 [e2e_store]",
+        "[e2e_cmd] store-ok",
+        "Bob has 1 [e2e_store]",
+        "[e2e_cmd] store-ok",
+        "Carol has 1 [e2e_store]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "function/call": {
+      "stepTexts": [
+        "Running function e2e:hello\n[e2e_cmd] function-hello",
+        "Running function e2e:nested\n[e2e_cmd] nested-outer\n[e2e_cmd] function-hello",
+        "Running function e2e:hello\n[e2e_cmd] function-hello",
+        "Counter has 0 [e2e_fn]",
+        "Unknown function e2e:nonexistent",
+        "Running function e2e:count",
+        "Counter has 2 [e2e_fn]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "function/schedule": {
+      "stepTexts": [
+        "Scheduled function 'e2e:hello' in 1 tick(s) at gametime\n[Server] function-hello",
+        "No schedules with id e2e:hello",
+        "Unknown function e2e:nonexistent"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "item/give_clear": {
+      "stepTexts": [
+        "Gave 5 [Stone] to e2e_cmd",
+        "Removed 5 item(s) from player e2e_cmd",
+        "No items were found on player e2e_cmd",
+        "Gave 1 [Diamond Sword] to e2e_cmd",
+        "No items were found on player e2e_cmd",
+        "Removed 1 item(s) from player e2e_cmd"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "scoreboard/missing_score": {
+      "stepTexts": [
+        "Can't get value of e2e_missing for Nobody; none is set",
+        "Removed 1 from [e2e_missing] for Nobody (now -1)"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "scoreboard/objective_lifecycle": {
+      "stepTexts": [
+        "Created new objective [e2e_obj]",
+        "An objective already exists by that name",
+        "There are 5 objective(s): [e2e_fn], [e2e_exec], [e2e_missing], [e2e_store], [e2e_obj]",
+        "Removed objective [e2e_obj]",
+        "Unknown scoreboard objective 'e2e_obj'",
+        "There are 4 objective(s): [e2e_fn], [e2e_exec], [e2e_missing], [e2e_store]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "scoreboard/player_ops": {
+      "stepTexts": [
+        "Set [e2e_sb] for Alice to 5",
+        "Alice has 5 [e2e_sb]",
+        "Added 3 to [e2e_sb] for Alice (now 8)",
+        "Removed 10 from [e2e_sb] for Alice (now -2)",
+        "Alice has -2 [e2e_sb]",
+        "Reset [e2e_sb] for Alice",
+        "Can't get value of e2e_sb for Alice; none is set",
+        "Set [e2e_sb] for Alice to 0",
+        "Alice has 0 [e2e_sb]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/difficulty": {
+      "stepTexts": [
+        "The difficulty has been set to Hard",
+        "The difficulty did not change; it is already set to hard",
+        "The difficulty has been set to Peaceful"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/forceload": {
+      "stepTexts": [
+        "Marked chunk [0, 70] in minecraft:overworld to be force loaded",
+        "A force loaded chunk was found in minecraft:overworld at: [0,70]",
+        "Unmarked chunk [0, 70] in minecraft:overworld for force loading",
+        "No force loaded chunks were found in minecraft:overworld"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/time": {
+      "stepTexts": [
+        "Set the time to 18000",
+        "Set the time to 1000"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/weather": {
+      "stepTexts": [
+        "Set the weather to rain",
+        "Set the weather to rain",
+        "Set the weather to clear",
+        "Set the weather to rain & thunder",
+        "Set the weather to clear"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/worldborder": {
+      "stepTexts": [
+        "The world border is currently 100 block(s) wide",
+        "Set the world border to 110.0 block(s) wide",
+        "The world border is currently 110 block(s) wide",
+        "Set the world border to 29999984.0 block(s) wide"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    }
+  }
+}

@@ -11,11 +11,13 @@ function side(
     stepTexts: readonly string[],
     probeTexts: Record<string, string>,
     stepTimeouts: readonly boolean[] = [],
+    viewTexts: Record<string, string> = {},
 ): ComparableSide {
     return {
         stepTexts,
         stepTimeouts,
         probeTexts: new Map(Object.entries(probeTexts)),
+        viewTexts: new Map(Object.entries(viewTexts)),
     };
 }
 
@@ -28,6 +30,7 @@ function meta(knownDiffs: readonly KnownDiffSpec[] = []): CaseMeta {
             ["p1", "/probe1"],
             ["p2", "/probe2"],
         ]),
+        viewKinds: new Map([["v1", "block"]]),
         knownDiffs,
     };
 }
@@ -86,4 +89,21 @@ test("不再出现的登记项被标记为过期", () => {
 test("任一侧无反馈超时归入 timeout 分类", () => {
     const comparison = compareCase(meta(), side([""], {}, [true]), side(["msg"], {}));
     assert.equal(comparison.diffs[0]?.category, "timeout");
+});
+
+test("客户端视角差异按 clientView.<key> 定位", () => {
+    const comparison = compareCase(
+        meta(),
+        side([], {}, [], { v1: "stone" }),
+        side([], {}, [], { v1: "air" }),
+    );
+    assert.equal(comparison.diffs.length, 1);
+    assert.equal(comparison.diffs[0]?.path, "clientView.v1");
+    assert.equal(comparison.diffs[0]?.category, "clientView");
+});
+
+test("一侧缺失的客户端观测算差异", () => {
+    const comparison = compareCase(meta(), side([], {}, [], { v1: "stone" }), side([], {}, [], {}));
+    assert.equal(comparison.diffs.length, 1);
+    assert.equal(comparison.diffs[0]?.vanilla, "<无此观测>");
 });

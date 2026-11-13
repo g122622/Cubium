@@ -8,7 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node run.ts",
+    "test": "node run.ts --mode=diff",
+    "test:record": "node run.ts --mode=record",
+    "test:regress": "node run.ts --mode=regress --strict",
     "test:unit": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {

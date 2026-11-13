@@ -32,9 +32,23 @@ export interface ProbeSpec {
     readonly command: string;
 }
 
+/** 客户端视角的观测类型。 */
+export type ClientViewKind = "block" | "entity" | "inventory" | "time";
+
+/** 一项客户端视角观测：bot 从自己收到的包看到的世界状态。 */
+export interface ClientViewSpec {
+    /** 观测键，参与差异路径（`clientView.<key>`）。 */
+    readonly key: string;
+    readonly kind: ClientViewKind;
+    /** block / entity 类观测的中心点，可含坐标占位符。 */
+    readonly position?: string;
+    /** entity 类观测的半径（格）。 */
+    readonly radius?: number;
+}
+
 /** 已登记差异。 */
 export interface KnownDiffSpec {
-    /** 差异路径：`steps[<i>].feedback` 或 `probes.<key>`；禁止整条用例豁免。 */
+    /** 差异路径：`steps[<i>].feedback`、`probes.<key>` 或 `clientView.<key>`；禁止整条用例豁免。 */
     readonly path: string;
     /** 为什么这条差异是已知的、暂不修。 */
     readonly reason: string;
@@ -54,6 +68,8 @@ export interface CommandCase {
     readonly steps: readonly StepSpec[];
     /** 结构化状态查询。 */
     readonly probes: readonly ProbeSpec[];
+    /** 客户端视角观测（捕捉「服务端改了但没同步」）。 */
+    readonly clientView: readonly ClientViewSpec[];
     /** 断言级已知差异。 */
     readonly knownDiffs: readonly KnownDiffSpec[];
 }
@@ -166,6 +182,8 @@ export function parseCaseValue(value: unknown, file: string): CommandCase {
         };
     });
 
+    const clientView = parseClientViews(source["clientView"], file);
+
     const rawDiffs = source["knownDiffs"] ?? [];
     if (!Array.isArray(rawDiffs)) {
         throw new Error(`${file}: knownDiffs 必须是数组`);
@@ -190,15 +208,59 @@ export function parseCaseValue(value: unknown, file: string): CommandCase {
         return spec;
     });
 
-    return { id, title, category, setup, steps, probes, knownDiffs };
+    return { id, title, category, setup, steps, probes, clientView, knownDiffs };
 }
 
-/** knownDiff 路径必须精确到步骤或探针，不允许整条用例豁免。 */
+/** 解析客户端视角观测列表；缺省视为空。 */
+function parseClientViews(value: unknown, file: string): readonly ClientViewSpec[] {
+    if (value === undefined) {
+        return [];
+    }
+    if (!Array.isArray(value)) {
+        throw new Error(`${file}: clientView 必须是数组`);
+    }
+    return value.map((item, index): ClientViewSpec => {
+        if (item === null || typeof item !== "object") {
+            throw new Error(`${file}: clientView[${index}] 必须是对象`);
+        }
+        const source = item as Record<string, unknown>;
+        const key = requireString(source, "key", `${file} clientView[${index}]`);
+        const kind = requireString(source, "kind", `${file} clientView[${index}]`);
+        if (kind !== "block" && kind !== "entity" && kind !== "inventory" && kind !== "time") {
+            throw new Error(`${file}: clientView[${index}].kind 必须是 block/entity/inventory/time，实际为 "${kind}"`);
+        }
+        const position = source["position"];
+        if (position !== undefined && typeof position !== "string") {
+            throw new Error(`${file}: clientView[${index}].position 必须是字符串`);
+        }
+        const radius = source["radius"];
+        if (radius !== undefined && typeof radius !== "number") {
+            throw new Error(`${file}: clientView[${index}].radius 必须是数字`);
+        }
+        if ((kind === "block" || kind === "entity") && position === undefined) {
+            throw new Error(`${file}: clientView[${index}] 的 ${kind} 观测必须给出 position`);
+        }
+        return {
+            key,
+            kind,
+            ...(position === undefined ? {} : { position }),
+            ...(radius === undefined ? {} : { radius }),
+        };
+    });
+}
+
+/** knownDiff 路径必须精确到步骤、探针或客户端观测，不允许整条用例豁免。 */
 function validateKnownDiffPath(diffPath: string, file: string): void {
-    if (/^steps\[\d+\]\.feedback$/.test(diffPath) || /^probes\.[^.]+$/.test(diffPath)) {
+    if (
+        /^steps\[\d+\]\.feedback$/.test(diffPath) ||
+        /^probes\.[^.]+$/.test(diffPath) ||
+        /^clientView\.[^.]+$/.test(diffPath)
+    ) {
         return;
     }
-    throw new Error(`${file}: knownDiffs.path 必须是 "steps[<i>].feedback" 或 "probes.<key>"，实际为 "${diffPath}"`);
+    throw new Error(
+        `${file}: knownDiffs.path 必须是 "steps[<i>].feedback"、"probes.<key>" 或 "clientView.<key>"，实际为 "${diffPath}"`,
+    );
 }
 
 /** 取必填字符串字段。 */

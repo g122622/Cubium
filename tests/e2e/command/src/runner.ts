@@ -37,7 +37,16 @@ import {
 import { normalizeFeedback } from "./compare/normalize.ts";
 import { compareCase, partitionDiffs, type CaseComparison, type ComparableSide } from "./compare/diff.ts";
 import { runProbes, type ProbeOutcome } from "./observe/probes.ts";
+import { captureClientViews, type ClientViewOutcome } from "./observe/bot-view.ts";
 import { installDatapack } from "./world/datapack.ts";
+import {
+    freezeCase,
+    readBaseline,
+    readBaselineCasesForMerge,
+    thawCase,
+    writeBaseline,
+    type FrozenCase,
+} from "./baseline/store.ts";
 import { createBot, type BotHandle } from "../../shared/bot/factory.ts";
 import { waitForEvent } from "../../shared/bot/wait.ts";
 import { writeOpsFile } from "../../shared/servers/ops.ts";
@@ -62,6 +71,7 @@ export interface CaseRunResult {
     readonly caseId: string;
     readonly steps: readonly StepResult[];
     readonly probes: readonly ProbeOutcome[];
+    readonly clientViews: readonly ClientViewOutcome[];
 }
 
 /** 单侧的执行结果。 */
@@ -71,11 +81,19 @@ export interface SideResult {
     readonly error?: string;
 }
 
+/** 运行模式。 */
+export type RunMode = "diff" | "record" | "regress";
+
 /** 一次运行的报告。 */
 export interface CommandReport {
     readonly runId: string;
     readonly generatedAt: string;
-    readonly sides: Readonly<Record<ServerKind, SideResult>>;
+    readonly mode: RunMode;
+    /** 本次实际启动的一侧；regress 模式下没有 vanilla。 */
+    readonly sides: {
+        readonly cubium: SideResult;
+        readonly vanilla?: SideResult;
+    };
     readonly comparisons: readonly CaseComparison[];
 }
 
@@ -83,10 +101,12 @@ export interface CommandReport {
 export interface RunnerOptions {
     /** 只跑 id 含该子串的用例；null 表示全部。 */
     readonly caseFilter: string | null;
+    /** 运行模式。 */
+    readonly mode: RunMode;
 }
 
 /**
- * 执行一次两侧对比。
+ * 执行一次对比。
  *
  * @param options 运行参数。
  * @returns 运行报告（同时已落盘）。
@@ -101,18 +121,44 @@ export async function runCommandHarness(options: RunnerOptions): Promise<Command
     const runDir = path.join(COMMAND_WORK_ROOT, "runs", runId);
     fs.mkdirSync(runDir, { recursive: true });
 
-    const sides: Partial<Record<ServerKind, SideResult>> = {};
-    for (const kind of ["cubium", "vanilla"] as const) {
-        sides[kind] = await runOneSide(kind, cases, runId, runDir);
+    const cubium = await runOneSide("cubium", cases, runId, runDir);
+    let vanilla: SideResult | undefined;
+    let vanillaComparables: Map<string, ComparableSide>;
+
+    if (options.mode === "regress") {
+        const baseline = readBaseline();
+        if (baseline === null) {
+            throw new Error("regress 模式需要先用 --mode=record 生成 baselines/vanilla.json");
+        }
+        vanillaComparables = new Map();
+        for (const testCase of cases) {
+            const frozen = baseline.cases[testCase.id];
+            if (frozen === undefined) {
+                throw new Error(`基线缺少用例 ${testCase.id}，请重新 record`);
+            }
+            vanillaComparables.set(testCase.id, thawCase(frozen));
+        }
+    } else {
+        vanilla = await runOneSide("vanilla", cases, runId, runDir);
+        vanillaComparables = new Map(
+            vanilla.cases.map((item) => [item.caseId, toComparable(item)] satisfies [string, ComparableSide]),
+        );
+        if (options.mode === "record") {
+            // 合并而非覆盖：`--case=` 只重录选中的用例，其余条目保持上次记录。
+            const merged: Record<string, FrozenCase> = readBaselineCasesForMerge();
+            for (const [caseId, side] of vanillaComparables) {
+                merged[caseId] = freezeCase(side);
+            }
+            writeBaseline(merged);
+        }
     }
-    const cubium = sides["cubium"]!;
-    const vanilla = sides["vanilla"]!;
 
     const report: CommandReport = {
         runId,
         generatedAt: new Date().toISOString(),
-        sides: { cubium, vanilla },
-        comparisons: compareAll(cases, cubium, vanilla),
+        mode: options.mode,
+        sides: vanilla === undefined ? { cubium } : { cubium, vanilla },
+        comparisons: compareAll(cases, cubium, vanillaComparables),
     };
     writeReport(runId, report, runDir);
     return report;
@@ -274,7 +320,8 @@ async function runOneCase(bot: BotLike, testCase: CommandCase, origin: BoardOrig
         COMMAND_FEEDBACK_TIMEOUT_MS,
         COMMAND_FEEDBACK_QUIET_MS,
     );
-    return { caseId: testCase.id, steps, probes };
+    const clientViews = await captureClientViews(bot, testCase.clientView, origin);
+    return { caseId: testCase.id, steps, probes, clientViews };
 }
 
 /** bot 的最小形态（避免 runner 依赖 mineflayer 的具体类型）。 */
@@ -295,21 +342,21 @@ function playerAnchorFor(origin: BoardOrigin): BoardOrigin {
  *
  * @param cases 用例（顺序与执行结果一致）。
  * @param cubium Cubium 侧结果。
- * @param vanilla vanilla 侧结果。
- * @returns 比对结果；任一侧整体失败时为空。
+ * @param vanillaComparables vanilla 侧（或冻结基线）的可比形态，按用例 id 索引。
+ * @returns 比对结果；Cubium 整体失败时为空。
  */
 function compareAll(
     cases: readonly CommandCase[],
     cubium: SideResult,
-    vanilla: SideResult,
+    vanillaComparables: ReadonlyMap<string, ComparableSide>,
 ): readonly CaseComparison[] {
-    if (cubium.error !== undefined || vanilla.error !== undefined) {
+    if (cubium.error !== undefined) {
         return [];
     }
     const comparisons: CaseComparison[] = [];
     for (const [index, testCase] of cases.entries()) {
         const left = cubium.cases[index];
-        const right = vanilla.cases[index];
+        const right = vanillaComparables.get(testCase.id);
         if (left === undefined || right === undefined) {
             continue;
         }
@@ -319,10 +366,11 @@ function compareAll(
                     caseId: testCase.id,
                     stepCommands: left.steps.map((step) => step.command),
                     probeCommands: new Map(left.probes.map((probe) => [probe.key, probe.command])),
+                    viewKinds: new Map(left.clientViews.map((view) => [view.key, view.kind])),
                     knownDiffs: testCase.knownDiffs,
                 },
                 toComparable(left),
-                toComparable(right),
+                right,
             ),
         );
     }
@@ -335,6 +383,7 @@ function toComparable(side: CaseRunResult): ComparableSide {
         stepTexts: side.steps.map((step) => normalizeFeedback(step.feedback)),
         stepTimeouts: side.steps.map((step) => step.timedOut),
         probeTexts: new Map(side.probes.map((probe) => [probe.key, probe.text])),
+        viewTexts: new Map(side.clientViews.map((view) => [view.key, view.text])),
     };
 }
 
@@ -379,15 +428,23 @@ export function countUnknownDiffs(report: CommandReport): number {
  * @param report 运行报告。
  */
 export function printReport(report: CommandReport): void {
-    console.log(`\nrunId: ${report.runId}`);
+    console.log(`\nrunId: ${report.runId}（mode=${report.mode}）`);
 
-    for (const kind of ["cubium", "vanilla"] as const) {
-        const side = report.sides[kind];
-        if (side.error !== undefined) {
-            console.log(`\n[${kind}] ERROR: ${side.error}`);
-            continue;
-        }
-        console.log(`\n[${kind}] ${side.cases.length} 条用例`);
+    const cubiumSide = report.sides.cubium;
+    console.log(
+        cubiumSide.error === undefined
+            ? `\n[cubium] ${cubiumSide.cases.length} 条用例`
+            : `\n[cubium] ERROR: ${cubiumSide.error}`,
+    );
+    const vanillaSide = report.sides.vanilla;
+    if (vanillaSide === undefined) {
+        console.log("[vanilla] 使用冻结基线（未启动服务端）");
+    } else {
+        console.log(
+            vanillaSide.error === undefined
+                ? `[vanilla] ${vanillaSide.cases.length} 条用例`
+                : `[vanilla] ERROR: ${vanillaSide.error}`,
+        );
     }
 
     let unknownTotal = 0;

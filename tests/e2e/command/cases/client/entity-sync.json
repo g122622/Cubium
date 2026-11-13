@@ -1,0 +1,17 @@
+{
+  "id": "client/entity_sync",
+  "title": "summon 与 kill 后客户端看到的实体",
+  "category": "client",
+  "setup": [
+    "/setblock {x} {y-1} {z} minecraft:stone",
+    "/kill @e[type=armor_stand,distance=..5]"
+  ],
+  "steps": [
+    { "command": "/summon minecraft:armor_stand {x} {y} {z}" }
+  ],
+  "probes": [],
+  "clientView": [
+    { "key": "spawned", "kind": "entity", "position": "{x} {y} {z}", "radius": 3 }
+  ],
+  "knownDiffs": []
+}

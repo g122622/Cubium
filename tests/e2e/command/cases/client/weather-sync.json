@@ -1,0 +1,22 @@
+{
+  "id": "client/weather_sync",
+  "title": "天气切换后客户端看到的天气标记",
+  "category": "client",
+  "setup": [
+    "/weather clear"
+  ],
+  "steps": [
+    { "command": "/weather rain" }
+  ],
+  "probes": [],
+  "clientView": [
+    { "key": "weather", "kind": "time" }
+  ],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "文案未对齐 commands.weather.set.rain，且 Cubium 把随机抽取的持续秒数写进了反馈",
+      "evidence": "src/server/command/commands/WeatherCommand.cpp"
+    }
+  ]
+}
