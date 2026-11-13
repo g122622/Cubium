@@ -139,25 +139,31 @@ npm run test:unit                    # 框架纯逻辑单元测试（node --test
 
 ---
 
-## 7. 首批暴露的差异（已登记）
+## 7. 首轮暴露并已修复的差异
 
-行为级（值得优先修）：
+首轮 32 条用例共暴露 62 处差异，现已全部修复（仅剩 1 处测试客户端渲染限制，见下）。
+值得记录的根因：
 
-| 用例 | 现象 |
-|---|---|
-| `command/selector_errors` | 未知实体类型的选择器没有判为解析错误，`/tp @e[type=...]` 报「Teleported 1 entities」 |
-| `scoreboard/player_ops` | `operation` 的右操作数无分数时失败；vanilla 视为 0 并写回 |
-| `data/storage` | `data remove storage ... <path>` 未真正删除 |
-| `block/setblock_modes` | `destroy` 模式在目标为空气时报失败 |
-| `block/clone` | 目标非空时 `force` 模式不生效 |
-| `block/fill` | 零改动时仍报成功且计数 0；vanilla 走失败分支 |
-| `command/argument_range` | `time set` 对参数取模 24000 |
-| `function/call` | 函数未抑制内部反馈、返回值与 vanilla 不同、文案自造 |
-| `entity/summon` | 未知实体类型直接泄漏翻译键 `commands.summon.failed.invalidEntity: ...` |
-| `client/inventory_sync` | 首次获得钻石没有触发成就广播 |
+| 用例 | 原现象 | 根因 |
+|---|---|---|
+| `command/*` | 解析错误不下发；字面量不匹配报「Expected literal」 | `ChatHandler` 只写日志；dispatcher 把字面量失败当成给玩家的错误 |
+| `command/selector_errors` | 未知实体类型的 `@e[type=...]` 被当作空选择器执行 | 选择器解析期不校验实体注册表 |
+| `scoreboard/player_ops` | `operation` 右操作数无分数时失败 | 用了 `getScore` 而不是 `getOrCreateScore`（vanilla 缺失分数按 0） |
+| `data/storage` | `data remove storage ... <path>` 未真正删除 | `/data set|remove|modify` 用合并写回，删除的键被复活 |
+| `block/*` | `destroy` 误判失败、`force` 不生效、零改动报成功 | 把 `setBlockState` 的「无变化」当成失败；fill/clone 未按改动数判定成败 |
+| `command/argument_range` | `time set` 对参数取模 24000 | 回显用了 `dayTimeOfDay` 而不是累积 `dayTime` |
+| `function/call` | 函数未抑制内部反馈、返回值与 vanilla 不同 | 未用抑制输出的源执行函数体；返回值取了执行数（vanilla 返回 0） |
+| `entity/summon` | 未知实体类型泄漏翻译键 | 执行期才校验类型，且错误文本拼了原始键 |
+| `client/inventory_sync` | 首次获得钻石没有成就广播 | 触发器注册晚于成就加载；`PlayerInventory::add` 绕过变更回调；完成成就从不广播 |
+| `client/entity_sync` | 召唤盔甲架误触发铁傀儡/凋灵/末影龙成就 | 召唤触发器用了裸实体谓词，未走数据包的「条件列表」上下文 |
 
-文案/组件级（量大、性质单一）：物品用注册 id 而非显示名、记分板目标名缺 `[名称]` 高亮、
-`difficulty`/`weather`/`clear`/`worldborder` 等命令的自造文案与数字格式。
+文案/组件级：物品名改用 `block.*`/`item.*` 翻译键并包裹方括号、记分板目标名统一
+`[名称]` 高亮组件、`difficulty`/`weather`/`clear`/`worldborder`/`gamerule`/`schedule`
+等命令改用 vanilla 翻译键与数字格式（`%.1f`/`%.2f`/`%f`）。
+
+唯一保留的 knownDiff：`function/schedule` 的 `gametime` 参数。两侧服务端都发送 NBT
+**long** 类型参数，而 mineflayer 无法渲染 long（显示为空）；Cubium 发送文本参数因此多出
+数字。真实 Java 客户端两侧都会显示数字，属测试客户端限制。
 
 ---
 
@@ -180,9 +186,16 @@ npm run test:unit                    # 框架纯逻辑单元测试（node --test
 7. **内置 vanilla 包必须始终可用**。原实现只要用户 datapacks 目录非空就不注入内置包，
    导致 worldgen 注册表为空、服务端启动即断言崩溃；已改为始终以最低优先级注入（见
    `fix(resource): 内置原版包始终以最低优先级注入`）。
-8. **objective 列表顺序不稳定**。vanilla 用哈希序、Cubium 用创建序，这类用例的差异要
-   登记而不是靠归一化排序掩盖——顺序本身也是实现差异。
-9. **strict 只对未登记差异失败**。已登记差异不算失败，但「登记过期」会打印出来，定期清理。
+8. **objective 列表顺序不可对齐**。vanilla 的输出顺序既不是 HashMap 桶序也不是插入序，
+   无法从数据结构上复刻。`normalize` 对「There are N objective(s): ...」行做排序（列举是有序
+   无关的集合），其余内容仍逐字比对。
+9. **解析错误的上下文行不比**。`...<--[HERE]` 那一行是客户端帮助信息，截断/省略规则由
+   Brigadier 与客户端渲染共同决定，`normalize` 将其统一成 `<parse-context>`；分号前的错误
+   消息本身仍严格比对。
+10. **触发器必须先于成就加载注册**。`Criterion::fromJson` 按触发器类型构造条件实例，注册表
+   为空时所有条件退化为通用实例（运行时 dynamic_cast 失败、监听器永远不触发、成就无法完成）。
+    注册点在 `RegistryBootstrap::initializeAll` 的成就加载之前。
+11. **strict 只对未登记差异失败**。已登记差异不算失败，但「登记过期」会打印出来，定期清理。
 
 ---
 

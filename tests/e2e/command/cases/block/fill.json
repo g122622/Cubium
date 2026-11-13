@@ -6,19 +6,24 @@
     "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:air"
   ],
   "steps": [
-    { "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:stone" },
-    { "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:dirt replace minecraft:stone" },
-    { "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:air replace minecraft:gold_block" },
-    { "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:air destroy" }
+    {
+      "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:stone"
+    },
+    {
+      "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:dirt replace minecraft:stone"
+    },
+    {
+      "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:air replace minecraft:gold_block"
+    },
+    {
+      "command": "/fill {x-2} {y} {z-2} {x+2} {y} {z+2} minecraft:air destroy"
+    }
   ],
   "probes": [
-    { "key": "cleared", "command": "/execute if block {x} {y} {z} minecraft:air run say yes" }
-  ],
-  "knownDiffs": [
     {
-      "path": "steps[2].feedback",
-      "reason": "没有方块被改动时 Cubium 仍报成功并计数 0，vanilla 走失败分支「No blocks were filled」",
-      "evidence": "src/server/command/commands/FillCommand.cpp"
+      "key": "cleared",
+      "command": "/execute if block {x} {y} {z} minecraft:air run say yes"
     }
-  ]
+  ],
+  "knownDiffs": []
 }

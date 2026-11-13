@@ -6,26 +6,16 @@
     "/difficulty peaceful"
   ],
   "steps": [
-    { "command": "/difficulty hard" },
-    { "command": "/difficulty hard" },
-    { "command": "/difficulty peaceful" }
+    {
+      "command": "/difficulty hard"
+    },
+    {
+      "command": "/difficulty hard"
+    },
+    {
+      "command": "/difficulty peaceful"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "成功文案未对齐 commands.difficulty.success，且难度名未显示为「Hard」",
-      "evidence": "src/server/command/commands/DifficultyCommand.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "同值提示未对齐 commands.difficulty.unchanged",
-      "evidence": "src/server/command/commands/DifficultyCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "成功文案未对齐 commands.difficulty.success",
-      "evidence": "src/server/command/commands/DifficultyCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

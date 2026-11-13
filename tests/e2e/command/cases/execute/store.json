@@ -9,29 +9,25 @@
     "/scoreboard players reset Bob e2e_store"
   ],
   "steps": [
-    { "command": "/execute store result score Alice e2e_store run say store-ok" },
-    { "command": "/scoreboard players get Alice e2e_store" },
-    { "command": "/execute store success score Bob e2e_store run say store-ok" },
-    { "command": "/scoreboard players get Bob e2e_store" },
-    { "command": "/execute store result score Carol e2e_store run say store-ok" },
-    { "command": "/scoreboard players get Carol e2e_store" }
+    {
+      "command": "/execute store result score Alice e2e_store run say store-ok"
+    },
+    {
+      "command": "/scoreboard players get Alice e2e_store"
+    },
+    {
+      "command": "/execute store success score Bob e2e_store run say store-ok"
+    },
+    {
+      "command": "/scoreboard players get Bob e2e_store"
+    },
+    {
+      "command": "/execute store result score Carol e2e_store run say store-ok"
+    },
+    {
+      "command": "/scoreboard players get Carol e2e_store"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[1].feedback",
-      "reason": "分数目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "分数目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[5].feedback",
-      "reason": "分数目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

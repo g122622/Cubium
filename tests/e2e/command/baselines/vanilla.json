@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "mcVersion": "1.21.11",
-  "generatedAt": "2026-11-13T05:53:42.955Z",
+  "generatedAt": "2026-11-13T11:26:40.098Z",
   "cases": {
     "smoke/basic_feedback": {
       "stepTexts": [
@@ -126,9 +126,9 @@
     },
     "command/argument_range": {
       "stepTexts": [
-        "Integer must not be less than 1: found 0\n...aft:stone 0<--[HERE]",
+        "Integer must not be less than 1: found 0\n<parse-context>",
         "Gave 1000 [Stone] to e2e_cmd",
-        "Incorrect argument for command\n...aft:stone nonsense<--[HERE]",
+        "Incorrect argument for command\n<parse-context>",
         "Set the time to 999999"
       ],
       "stepTimeouts": [
@@ -142,7 +142,7 @@
     },
     "command/gamerule_naming": {
       "stepTexts": [
-        "Incorrect argument for command\ngamerule keepInventory true<--[HERE]",
+        "Incorrect argument for command\n<parse-context>",
         "Gamerule keep_inventory is now set to: true"
       ],
       "stepTimeouts": [
@@ -154,7 +154,7 @@
     },
     "command/parse_error": {
       "stepTexts": [
-        "Unknown or incomplete command. See below for error\ne2e_no_such_command<--[HERE]"
+        "Unknown or incomplete command. See below for error\n<parse-context>"
       ],
       "stepTimeouts": [
         false
@@ -164,8 +164,8 @@
     },
     "command/selector_errors": {
       "stepTexts": [
-        "Incorrect argument for command\ntp @e[type=minecraft:e2e_no_such_entity] ~ ~ ~<--[HERE]",
-        "Limit must be at least 1\n... @e[limit=0] minecraft:stone<--[HERE]",
+        "Incorrect argument for command\n<parse-context>",
+        "Limit must be at least 1\n<parse-context>",
         "No entity was found"
       ],
       "stepTimeouts": [
@@ -243,7 +243,7 @@
     "entity/summon": {
       "stepTexts": [
         "Summoned new Armor Stand",
-        "Can't find element 'minecraft:e2e_no_such_entity' of type 'minecraft:entity_type'\n...uch_entity 0 100 600<--[HERE]",
+        "Can't find element 'minecraft:e2e_no_such_entity' of type 'minecraft:entity_type'\n<parse-context>",
         "No entity was found"
       ],
       "stepTimeouts": [
@@ -408,10 +408,10 @@
       "stepTexts": [
         "Created new objective [e2e_obj]",
         "An objective already exists by that name",
-        "There are 5 objective(s): [e2e_fn], [e2e_exec], [e2e_missing], [e2e_store], [e2e_obj]",
+        "There are 5 objective(s): [e2e_exec], [e2e_fn], [e2e_missing], [e2e_obj], [e2e_store]",
         "Removed objective [e2e_obj]",
         "Unknown scoreboard objective 'e2e_obj'",
-        "There are 4 objective(s): [e2e_fn], [e2e_exec], [e2e_missing], [e2e_store]"
+        "There are 4 objective(s): [e2e_exec], [e2e_fn], [e2e_missing], [e2e_store]"
       ],
       "stepTimeouts": [
         false,

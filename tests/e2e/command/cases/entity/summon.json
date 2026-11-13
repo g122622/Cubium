@@ -7,18 +7,21 @@
     "/kill @e[type=armor_stand,distance=..5]"
   ],
   "steps": [
-    { "command": "/summon minecraft:armor_stand {x} {y} {z}" },
-    { "command": "/summon minecraft:e2e_no_such_entity {x} {y} {z}" },
-    { "command": "/kill @e[type=armor_stand,distance=..5]" }
+    {
+      "command": "/summon minecraft:armor_stand {x} {y} {z}"
+    },
+    {
+      "command": "/summon minecraft:e2e_no_such_entity {x} {y} {z}"
+    },
+    {
+      "command": "/kill @e[type=armor_stand,distance=..5]"
+    }
   ],
   "probes": [
-    { "key": "no_entity", "command": "/execute if entity @e[type=armor_stand,distance=..3] run say yes" }
-  ],
-  "knownDiffs": [
     {
-      "path": "steps[1].feedback",
-      "reason": "未知实体类型的失败反馈直接泄漏翻译键：输出「commands.summon.failed.invalidEntity: minecraft:...」；vanilla 是解析期的「Can't find element ... of type 'minecraft:entity_type'」",
-      "evidence": "src/server/command/commands/SummonCommand.cpp"
+      "key": "no_entity",
+      "command": "/execute if entity @e[type=armor_stand,distance=..3] run say yes"
     }
-  ]
+  ],
+  "knownDiffs": []
 }

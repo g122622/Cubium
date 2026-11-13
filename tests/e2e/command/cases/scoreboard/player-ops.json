@@ -7,57 +7,34 @@
     "/scoreboard objectives add e2e_sb dummy"
   ],
   "steps": [
-    { "command": "/scoreboard players set Alice e2e_sb 5" },
-    { "command": "/scoreboard players get Alice e2e_sb" },
-    { "command": "/scoreboard players add Alice e2e_sb 3" },
-    { "command": "/scoreboard players remove Alice e2e_sb 10" },
-    { "command": "/scoreboard players get Alice e2e_sb" },
-    { "command": "/scoreboard players reset Alice e2e_sb" },
-    { "command": "/scoreboard players get Alice e2e_sb" },
-    { "command": "/scoreboard players operation Alice e2e_sb += Bob e2e_sb" },
-    { "command": "/scoreboard players get Alice e2e_sb" }
+    {
+      "command": "/scoreboard players set Alice e2e_sb 5"
+    },
+    {
+      "command": "/scoreboard players get Alice e2e_sb"
+    },
+    {
+      "command": "/scoreboard players add Alice e2e_sb 3"
+    },
+    {
+      "command": "/scoreboard players remove Alice e2e_sb 10"
+    },
+    {
+      "command": "/scoreboard players get Alice e2e_sb"
+    },
+    {
+      "command": "/scoreboard players reset Alice e2e_sb"
+    },
+    {
+      "command": "/scoreboard players get Alice e2e_sb"
+    },
+    {
+      "command": "/scoreboard players operation Alice e2e_sb += Bob e2e_sb"
+    },
+    {
+      "command": "/scoreboard players get Alice e2e_sb"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[4].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[5].feedback",
-      "reason": "reset 的单个目标分支返回了「Reset all scores for Alice」；vanilla 是「Reset [e2e_sb] for Alice」",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[7].feedback",
-      "reason": "+= 运算在右操作数没有分数时失败：vanilla 把缺失分数当 0 并写回 Alice；Cubium 报「Could not get score」",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    },
-    {
-      "path": "steps[8].feedback",
-      "reason": "承接上一条：Alice 仍没有分数，于是 get 走失败分支；vanilla 已有 0 分",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

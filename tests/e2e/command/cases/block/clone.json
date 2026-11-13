@@ -7,17 +7,18 @@
     "/setblock {x} {y} {z} minecraft:stone"
   ],
   "steps": [
-    { "command": "/clone {x} {y} {z} {x} {y} {z} {x+2} {y} {z}" },
-    { "command": "/clone {x} {y} {z} {x} {y} {z} {x+2} {y} {z} replace force" }
+    {
+      "command": "/clone {x} {y} {z} {x} {y} {z} {x+2} {y} {z}"
+    },
+    {
+      "command": "/clone {x} {y} {z} {x} {y} {z} {x+2} {y} {z} replace force"
+    }
   ],
   "probes": [
-    { "key": "copied", "command": "/execute if block {x+2} {y} {z} minecraft:stone run say yes" }
-  ],
-  "knownDiffs": [
     {
-      "path": "steps[1].feedback",
-      "reason": "目标区域非空时，force 模式没有生效：Cubium 报「No blocks were cloned」并保持目标不变，vanilla 会覆盖",
-      "evidence": "src/server/command/commands/CloneCommand.cpp"
+      "key": "copied",
+      "command": "/execute if block {x+2} {y} {z} minecraft:stone run say yes"
     }
-  ]
+  ],
+  "knownDiffs": []
 }

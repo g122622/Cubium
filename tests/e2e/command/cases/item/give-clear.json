@@ -6,44 +6,25 @@
     "/clear @s"
   ],
   "steps": [
-    { "command": "/give @s minecraft:stone 5" },
-    { "command": "/clear @s minecraft:stone" },
-    { "command": "/clear @s minecraft:stone" },
-    { "command": "/give @s minecraft:diamond_sword 1" },
-    { "command": "/clear @s minecraft:dirt 3" },
-    { "command": "/clear @s" }
+    {
+      "command": "/give @s minecraft:stone 5"
+    },
+    {
+      "command": "/clear @s minecraft:stone"
+    },
+    {
+      "command": "/clear @s minecraft:stone"
+    },
+    {
+      "command": "/give @s minecraft:diamond_sword 1"
+    },
+    {
+      "command": "/clear @s minecraft:dirt 3"
+    },
+    {
+      "command": "/clear @s"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "物品用注册 id 而非显示名渲染：Cubium 输出「item.minecraft:stone」，vanilla 是「[Stone]」物品组件",
-      "evidence": "src/server/command/commands/GiveCommand.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "clear 成功文案未对齐 commands.clear.success",
-      "evidence": "src/server/command/commands/ClearCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "clear 未命中物品的失败文案未对齐 commands.clear.failure",
-      "evidence": "src/server/command/commands/ClearCommand.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "物品用注册 id 而非显示名渲染",
-      "evidence": "src/server/command/commands/GiveCommand.cpp"
-    },
-    {
-      "path": "steps[4].feedback",
-      "reason": "clear 未命中物品的失败文案未对齐 commands.clear.failure",
-      "evidence": "src/server/command/commands/ClearCommand.cpp"
-    },
-    {
-      "path": "steps[5].feedback",
-      "reason": "clear 成功文案未对齐 commands.clear.success",
-      "evidence": "src/server/command/commands/ClearCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

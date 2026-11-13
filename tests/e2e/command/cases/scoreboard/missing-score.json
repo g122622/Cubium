@@ -8,15 +8,13 @@
     "/scoreboard players reset Nobody e2e_missing"
   ],
   "steps": [
-    { "command": "/scoreboard players get Nobody e2e_missing" },
-    { "command": "/scoreboard players remove Nobody e2e_missing 1" }
+    {
+      "command": "/scoreboard players get Nobody e2e_missing"
+    },
+    {
+      "command": "/scoreboard players remove Nobody e2e_missing 1"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[1].feedback",
-      "reason": "目标名未用 [名称] 的高亮组件包裹",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

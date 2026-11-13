@@ -4,20 +4,13 @@
   "category": "command",
   "setup": [],
   "steps": [
-    { "command": "/gamerule keepInventory true" },
-    { "command": "/gamerule keep_inventory true" }
-  ],
-  "probes": [],
-  "knownDiffs": [
     {
-      "path": "steps[0].feedback",
-      "reason": "Cubium 注册的是 snake_case 规则名，camelCase 被视为未知参数；解析失败又不下发反馈，故表现为无反馈",
-      "evidence": "src/server/command/commands/GameRuleCommand.cpp"
+      "command": "/gamerule keepInventory true"
     },
     {
-      "path": "steps[1].feedback",
-      "reason": "成功反馈用的是自造文案，vanilla 为 commands.gamerule.set 的翻译键文案",
-      "evidence": "src/server/command/commands/GameRuleCommand.cpp"
+      "command": "/gamerule keep_inventory true"
     }
-  ]
+  ],
+  "probes": [],
+  "knownDiffs": []
 }

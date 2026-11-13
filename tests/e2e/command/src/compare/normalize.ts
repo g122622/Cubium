@@ -42,11 +42,37 @@ export function normalizeText(text: string): string {
     return lines.join("\n");
 }
 
+/**
+ * 解析错误的「光标上下文」行统一成固定标记。
+ *
+ * 这一行是客户端帮助信息（输入前缀 + `<--[HERE]`），其截断/省略规则由 Brigadier 与
+ * 客户端渲染共同决定，与命令本身是否被正确解析无关；错误消息本身（前一行）仍严格比对。
+ */
+const PARSE_CONTEXT_MARKER = "<--[HERE]";
+
+/** `/scoreboard objectives list` 的目标列举行：前缀 + 逗号分隔的目标名。 */
+const OBJECTIVE_LIST = /^(There are \d+ objective\(s\): )(.*)$/;
+
 /** 单行规范形：先去行尾空白，再尝试把其中的 SNBT 片段规范化。 */
 function normalizeLine(line: string): string {
     const trimmed = line.replace(/\s+$/, "");
     if (trimmed.length === 0) {
         return "";
+    }
+    if (trimmed.includes(PARSE_CONTEXT_MARKER)) {
+        return "<parse-context>";
+    }
+
+    // 目标列举是有序无关的集合：两侧的存储容器不同（vanilla 的哈希序 / Cubium 的创建序），
+    // 顺序本身没有语义，排序后再比对。
+    const objectiveList = OBJECTIVE_LIST.exec(trimmed);
+    if (objectiveList !== null) {
+        const items = (objectiveList[2] ?? "")
+            .split(", ")
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+            .sort();
+        return `${objectiveList[1] ?? ""}${items.join(", ")}`;
     }
 
     // 整行就是 SNBT（`data get` 的短输出、`storage` 的 dump）。

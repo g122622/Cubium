@@ -7,19 +7,25 @@
     "/data remove storage e2e:cmd b"
   ],
   "steps": [
-    { "command": "/data merge storage e2e:cmd {a:1,b:\"x\"}" },
-    { "command": "/data get storage e2e:cmd" },
-    { "command": "/data get storage e2e:cmd a" },
-    { "command": "/data get storage e2e:cmd b" },
-    { "command": "/data remove storage e2e:cmd a" },
-    { "command": "/data get storage e2e:cmd" }
+    {
+      "command": "/data merge storage e2e:cmd {a:1,b:\"x\"}"
+    },
+    {
+      "command": "/data get storage e2e:cmd"
+    },
+    {
+      "command": "/data get storage e2e:cmd a"
+    },
+    {
+      "command": "/data get storage e2e:cmd b"
+    },
+    {
+      "command": "/data remove storage e2e:cmd a"
+    },
+    {
+      "command": "/data get storage e2e:cmd"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[5].feedback",
-      "reason": "按路径删除没有真正生效：vanilla 删除后只剩 {b:\"x\"}，Cubium 仍返回 {a:1,b:\"x\"}",
-      "evidence": "src/server/command/commands/DataCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

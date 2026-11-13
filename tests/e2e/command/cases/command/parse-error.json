@@ -4,14 +4,10 @@
   "category": "command",
   "setup": [],
   "steps": [
-    { "command": "/e2e_no_such_command" }
+    {
+      "command": "/e2e_no_such_command"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "玩家输入的指令解析失败时只写服务端日志，没有把失败组件下发给玩家",
-      "evidence": "src/server/network/play/ChatHandler.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

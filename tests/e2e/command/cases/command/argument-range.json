@@ -4,32 +4,19 @@
   "category": "command",
   "setup": [],
   "steps": [
-    { "command": "/give @s minecraft:stone 0" },
-    { "command": "/give @s minecraft:stone 1000" },
-    { "command": "/setblock {x} {y} {z} minecraft:stone nonsense" },
-    { "command": "/time set 999999" }
+    {
+      "command": "/give @s minecraft:stone 0"
+    },
+    {
+      "command": "/give @s minecraft:stone 1000"
+    },
+    {
+      "command": "/setblock {x} {y} {z} minecraft:stone nonsense"
+    },
+    {
+      "command": "/time set 999999"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "参数越界的解析错误不下发给玩家（同 command/parse_error）",
-      "evidence": "src/server/network/play/ChatHandler.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "物品用注册 id 而非显示名渲染：Cubium 输出「item.minecraft:stone」，vanilla 是带 hover 的物品组件「[Stone]」",
-      "evidence": "src/server/command/commands/GiveCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "未知枚举参数属于解析错误，Cubium 未下发反馈",
-      "evidence": "src/server/network/play/CommandHandler.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "time set 对参数做了 24000 取模，vanilla 原样设置并回显",
-      "evidence": "src/server/command/commands/TimeCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

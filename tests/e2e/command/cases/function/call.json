@@ -8,50 +8,28 @@
     "/scoreboard players set Counter e2e_fn 0"
   ],
   "steps": [
-    { "command": "/function e2e:hello" },
-    { "command": "/function e2e:nested" },
-    { "command": "/execute store result score Counter e2e_fn run function e2e:hello" },
-    { "command": "/scoreboard players get Counter e2e_fn" },
-    { "command": "/function e2e:nonexistent" },
-    { "command": "/function e2e:count" },
-    { "command": "/scoreboard players get Counter e2e_fn" }
+    {
+      "command": "/function e2e:hello"
+    },
+    {
+      "command": "/function e2e:nested"
+    },
+    {
+      "command": "/execute store result score Counter e2e_fn run function e2e:hello"
+    },
+    {
+      "command": "/scoreboard players get Counter e2e_fn"
+    },
+    {
+      "command": "/function e2e:nonexistent"
+    },
+    {
+      "command": "/function e2e:count"
+    },
+    {
+      "command": "/scoreboard players get Counter e2e_fn"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "反馈文案与顺序不同：vanilla 先报「Running function <id>」，Cubium 在函数执行完后报自造的「Executed N command(s) from function」，且未抑制函数内 say 之外命令的输出",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "嵌套函数：Cubium 把每个被调用函数的「Executed N command(s)」都发出来，vanilla 只报一次「Running function <外层>」",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "同上；另外函数没有 withSuppressedOutput，内部反馈直接进入玩家聊天框",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "承接 step2：execute store result 存入的是 Cubium 的函数返回值 1，vanilla 的函数返回 0",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[4].feedback",
-      "reason": "函数不存在的失败文案未对齐 commands.function.unknown",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[5].feedback",
-      "reason": "未抑制函数内命令的反馈：Cubium 把两次 scoreboard add 的输出发给玩家，vanilla 只报「Running function」",
-      "evidence": "src/server/command/commands/FunctionCommand.cpp"
-    },
-    {
-      "path": "steps[6].feedback",
-      "reason": "承接 step2/step5：分数值与目标名高亮组件都不同",
-      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }

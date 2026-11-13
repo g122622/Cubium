@@ -6,38 +6,22 @@
     "/weather clear"
   ],
   "steps": [
-    { "command": "/weather rain" },
-    { "command": "/weather rain" },
-    { "command": "/weather clear" },
-    { "command": "/weather thunder" },
-    { "command": "/weather clear" }
+    {
+      "command": "/weather rain"
+    },
+    {
+      "command": "/weather rain"
+    },
+    {
+      "command": "/weather clear"
+    },
+    {
+      "command": "/weather thunder"
+    },
+    {
+      "command": "/weather clear"
+    }
   ],
   "probes": [],
-  "knownDiffs": [
-    {
-      "path": "steps[0].feedback",
-      "reason": "文案未对齐 commands.weather.set.rain，且 Cubium 把随机抽取的持续秒数写进了反馈（每次运行都不同）",
-      "evidence": "src/server/command/commands/WeatherCommand.cpp"
-    },
-    {
-      "path": "steps[1].feedback",
-      "reason": "同值切换 Cubium 仍输出带随机秒数的文案，vanilla 只报「Set the weather to rain」",
-      "evidence": "src/server/command/commands/WeatherCommand.cpp"
-    },
-    {
-      "path": "steps[2].feedback",
-      "reason": "文案未对齐 commands.weather.set.clear，且带随机秒数",
-      "evidence": "src/server/command/commands/WeatherCommand.cpp"
-    },
-    {
-      "path": "steps[3].feedback",
-      "reason": "vanilla 的雷雨文案是「rain & thunder」，Cubium 是「thunder」，且带随机秒数",
-      "evidence": "src/server/command/commands/WeatherCommand.cpp"
-    },
-    {
-      "path": "steps[4].feedback",
-      "reason": "文案未对齐 commands.weather.set.clear，且带随机秒数",
-      "evidence": "src/server/command/commands/WeatherCommand.cpp"
-    }
-  ]
+  "knownDiffs": []
 }
