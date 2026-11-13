@@ -188,10 +188,8 @@ Result<void> IntegratedServer::initialize(const IntegratedServerParams& params)
         spdlog::info("Scanned {} data packs from '{}'", scanResult.value(), dataPackDir.string());
     }
 
-    // 世界生成 100% 数据驱动，注册表无硬编码兜底；数据包列表为空时各 worldgen loader 会
-    // clear() 后加载 0 条目，致 RandomState::create 断言失败。原版 Minecraft 始终内置 vanilla
-    // 数据包，此处镜像该语义：扫描到 0 包时从默认游戏目录注入原版数据包，保证 worldgen 注册表
-    // 至少有原版条目可用。用户目录已放置自定义数据包时不干预（见 ensureVanillaBuiltinPack 守卫）。
+    // 世界生成 100% 数据驱动，注册表无硬编码兜底，因此原版数据包必须始终可用：它作为
+    // 最低优先级的底层包注入，用户数据包叠加其上（同名资源以用户包为准，其余仍由原版提供）。
     const auto vanillaDataPackDir = GameDirectory::defaultDirectory().dataPacksDir() / "Vanilla";
     if (m_dataPackList.ensureVanillaBuiltinPack(vanillaDataPackDir) > 0) {
         spdlog::info("Injected builtin vanilla data pack from '{}'", vanillaDataPackDir.string());

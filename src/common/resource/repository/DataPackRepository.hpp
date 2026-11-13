@@ -103,34 +103,32 @@ public:
     }
 
     /**
-     * @brief 当前列表中没有任何已初始化的数据包时，从默认游戏目录注入原版数据包。
+     * @brief 把原版数据包作为最低优先级的底层包注入列表。
      *
      * 世界生成已 100% 数据驱动（noise_settings / density_function / world_preset 等均从数据包
-     * 加载，注册表无硬编码兜底）。若服务端扫描到的数据包目录为空（测试用临时游戏根目录、
-     * 或真实游戏目录尚未放入任何数据包），各 worldgen loader 会无条件 clear() 注册表后加载
-     * 0 条目，使 RandomState::create 因找不到 "minecraft:overworld" 等条目而断言失败。
+     * 加载，注册表无硬编码兜底），而原版 Minecraft 始终把 vanilla 数据包当作内置底层包，
+     * 用户数据包叠加在它之上。本方法镜像该语义：
      *
-     * 原版 Minecraft 始终将 vanilla 数据包作为内置包加载，不依赖用户目录是否放置。本方法
-     * 镜像该语义：列表为空时从 GameDirectory::defaultDirectory().dataPacksDir() 下的 "Vanilla"
-     * 子目录注入原版数据包。列表非空（用户已放置自定义数据包）时不干预，保留用户覆盖权。
+     *   - 无论用户目录下有没有数据包，都注入原版包；
+     *   - 原版包的优先级固定低于所有扫描到的用户包（扫描从 0 开始编号），
+     *     保证用户包能覆盖同名资源，而未被覆盖的资源仍由原版提供。
+     *
+     * 只注入不叠加会导致用户一放自定义数据包，worldgen 注册表就整体为空
+     * （`RandomState::create` 找不到 "minecraft:overworld" 而断言失败）。
      *
      * @param vanillaDataPackDir 原版数据包目录（由调用方从默认游戏目录推导）
-     * @return 注入的包数量（0 或 1）；目录缺失或列表已有包则返回 0
+     * @return 注入成功的包数量（0 或 1）；目录缺失或初始化失败返回 0
      */
     inline size_t ensureVanillaBuiltinPack(const std::filesystem::path& vanillaDataPackDir)
     {
-        // 列表非空 = 用户已放置自定义数据包，保留用户覆盖权，不强制注入原版包。
-        if (!getEnabledPackInfos().empty()) {
-            return 0;
-        }
-
         std::error_code ec;
         if (!std::filesystem::exists(vanillaDataPackDir, ec)) {
             return 0;
         }
 
-        const i32 priority = static_cast<i32>(packCount());
-        auto result = addPack(vanillaDataPackDir, /*enabled=*/true, priority);
+        // 内置包在所有用户包之下：scanDirectory 从 0 开始给用户包编号，故取 -1。
+        constexpr i32 kBuiltinVanillaPriority = -1;
+        auto result = addPack(vanillaDataPackDir, /*enabled=*/true, kBuiltinVanillaPriority);
         return result.success() && result.value().initialized ? 1u : 0u;
     }
 };

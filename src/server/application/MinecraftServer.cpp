@@ -953,8 +953,8 @@ Result<void> MinecraftServer::initializeLanguageResources()
         spdlog::info("Scanned {} resource packs from '{}'", scanResult.value(), util::pathToUtf8(resourcePackDir));
     }
 
-    // 与原版数据包同样的守卫：用户目录一个资源包都没有时才注入默认目录下的 Vanilla，
-    // 保证服务端至少有 en_us 语言表可用（控制台/日志的字符串化出口）。
+    // 原版资源包始终作为最低优先级的底层包注入，保证服务端至少有 en_us 语言表可用
+    // （控制台/日志的字符串化出口），用户资源包可以覆盖其中的同名资源。
     const auto vanillaResourcePackDir = GameDirectory::defaultDirectory().resourcePacksDir() / "Vanilla";
     if (m_resourcePackList.ensureVanillaBuiltinPack(vanillaResourcePackDir) > 0) {
         spdlog::info("Injected builtin vanilla resource pack from '{}'", util::pathToUtf8(vanillaResourcePackDir));
