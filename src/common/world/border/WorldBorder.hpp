@@ -82,7 +82,7 @@ public:
 
     /**
      * @brief 警告时间变化时调用
-     * @param warningTime 新警告时间（秒）
+     * @param warningTime 新警告时间（tick）
      */
     virtual void onWarningTimeChanged(i32 warningTime) = 0;
 
@@ -321,9 +321,9 @@ public:
     // ========================================================================
 
     /**
-     * @brief 获取警告时间（秒）
+     * @brief 获取警告时间（tick）
      *
-     * 默认值: 15 秒
+     * 默认值: 15 tick。
      */
     [[nodiscard]] i32 getWarningTime() const
     {

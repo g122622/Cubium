@@ -27,14 +27,8 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "server/command/ServerCommandSource.hpp"
-#include <optional>
-#include <string>
 
 namespace mc {
-namespace particle {
-enum class ParticleTypeId : u16;
-}
-
 namespace command {
 
 /**
@@ -48,8 +42,12 @@ public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
 private:
-    static i32 _spawnParticle(CommandContext<ServerCommandSource>& context);
-    static std::optional<particle::ParticleTypeId> _parseParticleType(const std::string& name) noexcept;
+    /**
+     * @brief 派发粒子。
+     *
+     * @param force 是否走 force 分支（忽略客户端 32 格渲染距离限制，按 512 格发送）。
+     */
+    static i32 _spawnParticleImpl(CommandContext<ServerCommandSource>& context, bool force);
 };
 
 } // namespace command

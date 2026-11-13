@@ -1011,13 +1011,16 @@ void ArmorStandEntity::tick()
 {
     Entity::tick();
 
-    // 如果不是标记模式，应用重力
+    // 如果不是标记模式，应用重力。必须用带碰撞的位移：`Entity::move` 不做方块碰撞，
+    // 盔甲架会直接穿过支撑方块一直下落到虚空。
     if (!m_marker && m_hasGravity) {
         Vector3 vel = velocity();
         vel.y -= 0.04f; // 重力
-        move(vel.x, vel.y, vel.z);
+        setVelocity(vel);
+        moveWithCollision(vel.x, vel.y, vel.z);
 
-        // 减速
+        // 碰撞可能已把分量清零（如落地清 Y），按碰撞后的速度减速。
+        vel = velocity();
         vel.x *= 0.98f;
         vel.y *= 0.98f;
         vel.z *= 0.98f;

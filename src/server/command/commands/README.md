@@ -21,6 +21,7 @@
 ├── GameModeCommand.hpp / GameModeCommand.cpp #切换玩家游戏模式
 ├── GiveCommand.hpp / GiveCommand.cpp #发放物品
 ├── HelpCommand.hpp / HelpCommand.cpp #展示命令帮助
+├── ItemCommand.hpp / ItemCommand.cpp #/item replace（with/from 分支；modify 待战利品函数子系统）
 ├── KickCommand.hpp / KickCommand.cpp #踢出在线玩家
 ├── KillCommand.hpp / KillCommand.cpp #杀死实体或自己（使用 EntityResolver 支持所有实体类型）
 ├── ListCommand.hpp / ListCommand.cpp #列出在线玩家

@@ -35,8 +35,9 @@ namespace defaults {
 // ============================================================================
 
 namespace player {
-/// 玩家移动速度
-constexpr f32 MOVEMENT_SPEED = 0.1f;
+/// 玩家移动速度（用 double 常量：0.1f 转 f64 会变成 0.10000000149…，
+/// 与属性系统与命令反馈里的 double 语义不符）
+constexpr f64 MOVEMENT_SPEED = 0.1;
 
 /// 玩家飞行速度
 constexpr f32 FLYING_SPEED = 0.05f;

@@ -1039,23 +1039,34 @@ i32 ScoreboardCommand::_setDisplaySlot(CommandContext<ServerCommandSource>& cont
         source.sendSuccess(::mc::text::literal("Scoreboard is not available"), false);
         return 0;
     }
+    scoreboard::ScoreObjective* current = scoreboard->getObjectiveInDisplaySlot(slot);
     if (!context.hasArgument("objective")) {
-        // /scoreboard objectives setdisplay <slot>：清空该槽位。
+        // /scoreboard objectives setdisplay <slot>：清空该槽位；本来就是空的则报 unchanged。
+        if (current == nullptr) {
+            source.sendFailure(::mc::text::translatable("commands.scoreboard.objectives.display.alreadyEmpty"));
+            return 0;
+        }
         scoreboard->setObjectiveInDisplaySlot(slot, nullptr);
         source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.display.cleared", slotName), true);
         return 1;
     }
+
     auto* objective = scoreboard->getObjective(context.getArgument<std::string>("objective"));
     if (objective == nullptr) {
         source.sendFailure(
             ::mc::text::translatable("arguments.objective.notFound", context.getArgument<std::string>("objective")));
         return 0;
     }
+    if (current == objective) {
+        source.sendFailure(::mc::text::translatable("commands.scoreboard.objectives.display.alreadySet"));
+        return 0;
+    }
+
     scoreboard->setObjectiveInDisplaySlot(slot, objective);
-    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
-    args.push_back(::mc::text::literal(slotName));
-    args.push_back(_objectiveDisplay(*objective));
-    source.sendSuccess(::mc::text::translatable("commands.scoreboard.objectives.display.set", std::move(args)), false);
+    // 反馈里的目标名是注册名，不是显示名（显示名只在侧边栏渲染时使用）。
+    source.sendSuccess(
+        ::mc::text::translatable("commands.scoreboard.objectives.display.set", {slotName, objective->getName()}),
+        false);
     return 1;
 }
 

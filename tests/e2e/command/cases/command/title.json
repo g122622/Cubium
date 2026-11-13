@@ -1,0 +1,28 @@
+{
+  "id": "command/title",
+  "title": "title 各子命令的反馈",
+  "category": "command",
+  "steps": [
+    {
+      "command": "/title @s title {\"text\":\"Hi\"}"
+    },
+    {
+      "command": "/title @s subtitle {\"text\":\"Sub\"}"
+    },
+    {
+      "command": "/title @s actionbar {\"text\":\"Act\"}"
+    },
+    {
+      "command": "/title @s times 10 70 20"
+    },
+    {
+      "command": "/title @s clear"
+    },
+    {
+      "command": "/title @s reset"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

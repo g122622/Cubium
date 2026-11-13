@@ -1,0 +1,28 @@
+{
+  "id": "scoreboard/display",
+  "title": "objectives setdisplay 的设置、重复设置与清除",
+  "category": "scoreboard",
+  "setup": [
+    "/scoreboard objectives remove e2e_disp",
+    "/scoreboard objectives add e2e_disp dummy"
+  ],
+  "steps": [
+    {
+      "command": "/scoreboard objectives setdisplay sidebar e2e_disp"
+    },
+    {
+      "command": "/scoreboard objectives setdisplay sidebar e2e_disp"
+    },
+    {
+      "command": "/scoreboard objectives setdisplay sidebar"
+    },
+    {
+      "command": "/scoreboard objectives setdisplay list e2e_disp"
+    },
+    {
+      "command": "/scoreboard objectives setdisplay list"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

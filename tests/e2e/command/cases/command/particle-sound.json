@@ -1,0 +1,16 @@
+{
+  "id": "command/particle_sound",
+  "title": "particle 与 playsound 的静默成功",
+  "category": "command",
+  "steps": [
+    {
+      "command": "/particle minecraft:flame 0 100 0 0 0 0 0 1"
+    },
+    {
+      "command": "/playsound minecraft:block.stone.break master @s 0 100 0 1 1"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

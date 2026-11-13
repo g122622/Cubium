@@ -2646,6 +2646,14 @@ public:
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayName() const;
 
     /**
+     * @brief 没有自定义名称时使用的名称组件。
+     *
+     * 默认是实体类型的可翻译名（如 entity.minecraft.zombie）；玩家覆盖为登录名。
+     * 需要「实体名」的地方应调用 {@link getDisplayName}，它会优先返回自定义名称。
+     */
+    [[nodiscard]] virtual std::unique_ptr<text::ITextComponent> getNameComponent() const;
+
+    /**
      * @brief 设置自定义名称组件
      * @param name 名称组件（所有权转移）
      *

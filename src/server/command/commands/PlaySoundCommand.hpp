@@ -66,29 +66,12 @@ public:
 
 private:
     /**
-     * @brief 在玩家位置播放声音（默认参数）
+     * @brief 播放声音。
+     *
+     * 所有命令末端共用这一实现：未给出的可选参数取原版默认值（位置=命令源位置、
+     * 音量=1、音调=1、最小音量=0）；未给出 targets 时目标是执行该命令的玩家。
      */
-    static i32 _playSoundDefault(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
-
-    /**
-     * @brief 在指定位置播放声音
-     */
-    static i32 _playSoundAtPosition(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
-
-    /**
-     * @brief 在指定位置播放声音（带音量）
-     */
-    static i32 _playSoundWithVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
-
-    /**
-     * @brief 在指定位置播放声音（带音量和音调）
-     */
-    static i32 _playSoundWithPitch(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
-
-    /**
-     * @brief 在指定位置播放声音（带所有参数，包括最小音量）
-     */
-    static i32 _playSoundWithMinVolume(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
+    static i32 _playSoundImpl(CommandContext<ServerCommandSource>& context, sound::SoundCategory category);
 };
 
 } // namespace command

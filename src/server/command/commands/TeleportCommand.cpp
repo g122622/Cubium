@@ -121,34 +121,45 @@ struct DestinationInfo {
     const ServerCommandSource& source, const EntitySelector& selector, DestinationInfo& info)
 {
     info = DestinationInfo{};
+
     const PlayerId destinationPlayerId = support::resolveSinglePlayerId(source, selector);
-    if (destinationPlayerId == 0 || source.server() == nullptr) {
-        return false;
+    if (destinationPlayerId != 0 && source.server() != nullptr) {
+        // 真实玩家路径：PlayerManager 持有 ServerPlayerData（含位置/朝向/名字）。
+        const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(destinationPlayerId);
+        if (data != nullptr) {
+            info.position = Vector3d(static_cast<f64>(data->x), static_cast<f64>(data->y), static_cast<f64>(data->z));
+            info.rotation = Vector2f(data->yaw, data->pitch);
+            info.username = data->username;
+            info.valid = true;
+            return true;
+        }
+
+        // SimulatedPlayer 回退：经 ServerPlayerEntityManager 取 Player 实体的位置/朝向/名字。
+        auto* world = source.world();
+        if (world != nullptr) {
+            mc::Player* entity = source.server()->playerEntityManager().getPlayerEntity(destinationPlayerId, *world);
+            if (entity != nullptr) {
+                const auto pos = entity->position();
+                info.position = Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
+                info.rotation = Vector2f(entity->yaw(), entity->pitch());
+                info.username = entity->username();
+                info.valid = true;
+                return true;
+            }
+        }
     }
 
-    // 真实玩家路径：PlayerManager 持有 ServerPlayerData（含位置/朝向/名字）。
-    const server::ServerPlayerData* data = source.server()->playerManager().getPlayer(destinationPlayerId);
-    if (data != nullptr) {
-        info.position = Vector3d(static_cast<f64>(data->x), static_cast<f64>(data->y), static_cast<f64>(data->z));
-        info.rotation = Vector2f(data->yaw, data->pitch);
-        info.username = data->username;
-        info.valid = true;
-        return true;
-    }
-
-    // SimulatedPlayer 回退：经 ServerPlayerEntityManager 取 Player 实体的位置/朝向/名字。
-    auto* world = source.world();
-    if (world == nullptr) {
+    // 目的地参数的类型是 EntityArgument.entity()：除玩家外还可以是任意实体
+    // （例如 /tp @s @e[type=armor_stand]）。玩家解析失败时回退到通用实体解析。
+    Entity* destinationEntity = support::EntityResolver::resolveSingle(source, selector);
+    if (destinationEntity == nullptr) {
         return false;
     }
-    mc::Player* entity = source.server()->playerEntityManager().getPlayerEntity(destinationPlayerId, *world);
-    if (entity == nullptr) {
-        return false;
-    }
-    const auto pos = entity->position();
-    info.position = Vector3d(static_cast<f64>(pos.x), static_cast<f64>(pos.y), static_cast<f64>(pos.z));
-    info.rotation = Vector2f(entity->yaw(), entity->pitch());
-    info.username = entity->username();
+    const auto entityPos = destinationEntity->position();
+    info.position =
+        Vector3d(static_cast<f64>(entityPos.x), static_cast<f64>(entityPos.y), static_cast<f64>(entityPos.z));
+    info.rotation = Vector2f(destinationEntity->yaw(), destinationEntity->pitch());
+    info.username = destinationEntity->getDisplayName()->getUnformattedText();
     info.valid = true;
     return true;
 }

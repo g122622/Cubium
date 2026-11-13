@@ -31,48 +31,54 @@
 #include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/arguments/TimeArgument.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp" // LivingEntity::addEffect/hasEffect/removeEffect（实体层效果）
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
-#include "common/entity/entities/player/Player.hpp" // Player（实体旁路解析目标类型）
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/text/ComponentFactory.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EffectResolver.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp" // getPlayerEntity（实体旁路解析）
+#include "server/command/support/EntityResolver.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <memory>
-#include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mc {
 namespace command {
 namespace {
 
 /**
- * @brief 经实体管理器解析 PlayerId 到 Player 实体（含 SimulatedPlayer 旁路）。
+ * @brief 效果显示名（翻译组件）。
  *
- * EffectCommand 此前经 PlayerManager.getPlayer 拿 ServerPlayerData 写其 effects 向量（网络数据层），
- * 对不进 PlayerManager 的 SimulatedPlayer 返 nullptr 跳过失效；且即便真实玩家，ServerPlayerData.effects
- * 与脚本侧 Entity.getEffect 读的 LivingEntity::effectManager（实体层）不互通，致 /effect 成功但脚本读不到。
- * 统一改走实体层 LivingEntity 的 effect 方法：经 ServerPlayerEntityManager 解析实体（SimulatedPlayer 已
- * 注册映射，真实玩家亦在 EntityManager），调 LivingEntity::addEffect 等写实体 m_effectManager，与脚本对齐。
- *
- * @return Player* 实体指针；解析失败（PlayerId 无映射或世界为空）返回 nullptr。
+ * 原版用 `MobEffect.getDisplayName()`，即 `effect.<ns>.<path>` 翻译键；客户端按自己的语言
+ * 渲染成 "Speed" 之类的名称，不能在这里查表硬编码英文。
  */
-[[nodiscard]] Player* resolvePlayerEntity(ServerCommandSource& source, PlayerId playerId)
+[[nodiscard]] std::unique_ptr<text::ITextComponent> _effectDisplayName(const ResourceLocation& effectId)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        return nullptr;
+    return ::mc::text::translatable("effect." + effectId.namespace_() + "." + effectId.path());
+}
+
+/**
+ * @brief 把实体集合中的有效目标（活体实体）挑出来。
+ *
+ * `/effect` 的目标参数是 `entities()`，只有 LivingEntity 才能承受效果；非活体目标
+ * （掉落物、盔甲架等）在循环里被静默跳过，这与原版一致。
+ */
+[[nodiscard]] std::vector<LivingEntity*> _livingTargets(const std::vector<Entity*>& entities)
+{
+    std::vector<LivingEntity*> livingTargets;
+    for (Entity* entity : entities) {
+        if (auto* living = dynamic_cast<LivingEntity*>(entity); living != nullptr) {
+            livingTargets.push_back(living);
+        }
     }
-    auto* world = source.world();
-    if (world == nullptr) {
-        return nullptr;
-    }
-    return server->playerEntityManager().getPlayerEntity(playerId, *world);
+    return livingTargets;
 }
 
 } // namespace
@@ -101,7 +107,7 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
         "effect", std::make_shared<ResourceArgumentType>("minecraft:mob_effect", "resource"));
 
     // 可选参数。原版 /effect give 的顺序是 seconds|infinite → amplifier → hideParticles，
-    // 秒数参数叫 seconds、类型是 integer（单位 tick）。
+    // 秒数参数叫 seconds、类型是 integer（单位秒，非瞬发效果执行时换算成 20 倍 tick）。
     auto secondsNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>(
         "seconds", IntegerArgumentType::integer(1, 1000000));
     secondsNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -176,36 +182,36 @@ void EffectCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
 i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
 {
-
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("targets");
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
-    const std::string effectName = context.getArgument<ResourceLocation>("effect").toString();
-
-    auto effectTypeOpt = support::tryParseEffectType(effectName);
+    const ResourceLocation effectId = context.getArgument<ResourceLocation>("effect");
+    auto effectTypeOpt = support::tryParseEffectType(effectId.toString());
     if (!effectTypeOpt.has_value()) {
-        source.sendFailure(::mc::text::literal("Unknown effect: " + effectName));
+        source.sendFailure(::mc::text::translatable("commands.effect.give.failed"));
         return 0;
     }
-    entity::effect::EffectType effectType = effectTypeOpt.value();
+    const entity::effect::EffectType effectType = effectTypeOpt.value();
 
-    // 获取可选参数
-    // 时间是 tick（原版 TimeArgument 的单位是 s/d/t）；默认 30 秒。
-    i32 durationTicks = 600;
-    i32 amplifier = 0; // 默认等级0
-    bool hideParticles = false;
-
+    // 时长换算：瞬发效果把 seconds 直接当 tick 用；infinite 传 -1；其余按秒 ×20。
+    // 未给出 seconds 时瞬发效果 1 tick、普通效果 600 tick。
+    const bool instant = entity::effect::isInstantEffect(effectType);
+    i32 durationTicks = instant ? 1 : 600;
     if (context.hasArgument("infinite")) {
         durationTicks = -1;
     } else if (context.hasArgument("seconds")) {
-        durationTicks = context.getArgument<i32>("seconds");
+        const i32 seconds = context.getArgument<i32>("seconds");
+        durationTicks = instant ? seconds : seconds * 20;
     }
+
+    i32 amplifier = 0;
+    bool hideParticles = false;
     if (context.hasArgument("amplifier")) {
         amplifier = context.getArgument<i32>("amplifier");
     }
@@ -214,29 +220,31 @@ i32 EffectCommand::_giveEffect(CommandContext<ServerCommandSource>& context)
     }
 
     i32 successCount = 0;
-
-    for (PlayerId playerId : playerIds) {
-        // 统一经实体管理器解析实体（含 SimulatedPlayer 旁路），写实体层 LivingEntity::m_effectManager。
-        // 此前经 PlayerManager.getPlayer 写 ServerPlayerData.effects（网络数据层），对 SimulatedPlayer 失效，
-        // 且对真实玩家与脚本 Entity.getEffect（读实体 effectManager）层错配。改走实体层后两端对齐。
-        Player* player = resolvePlayerEntity(source, playerId);
-        if (player == nullptr) {
-            continue;
+    for (LivingEntity* target : _livingTargets(entities)) {
+        // addEffect 在目标免疫或已有更强效果时返回 false，此时该目标不计入成功数。
+        entity::effect::EffectInstance effect(effectType, durationTicks, amplifier, false, !hideParticles, true);
+        if (target->addEffect(std::move(effect))) {
+            successCount++;
         }
-
-        // 添加效果：LivingEntity::addEffect 内部走 m_effectManager.addEffect（合并/覆盖同类型）。
-        entity::effect::EffectInstance effect(effectType, durationTicks, amplifier, false, !hideParticles);
-        player->addEffect(std::move(effect));
-        successCount++;
     }
 
-    std::ostringstream ss;
-    ss << "Gave " << support::getEffectCommandName(effectType);
-    if (amplifier > 0) {
-        ss << " " << (amplifier + 1);
+    if (successCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.effect.give.failed"));
+        return 0;
     }
-    ss << " to " << successCount << " player(s)";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+
+    auto effectName = _effectDisplayName(effectId);
+    if (entities.size() == 1) {
+        std::vector<std::unique_ptr<text::ITextComponent>> params;
+        params.push_back(std::move(effectName));
+        params.push_back(entities.front()->getDisplayName());
+        source.sendSuccess(::mc::text::translatable("commands.effect.give.success.single", std::move(params)), true);
+    } else {
+        std::vector<std::unique_ptr<text::ITextComponent>> params;
+        params.push_back(std::move(effectName));
+        params.push_back(::mc::text::literal(std::to_string(entities.size())));
+        source.sendSuccess(::mc::text::translatable("commands.effect.give.success.multiple", std::move(params)), true);
+    }
 
     return successCount;
 }
@@ -245,34 +253,42 @@ i32 EffectCommand::_clearAllEffects(CommandContext<ServerCommandSource>& context
 {
     auto& source = context.getSource();
 
-    // 不带 targets 时对命令源自身生效（原版 clear 的隐式目标是 @s）。
-    std::vector<PlayerId> playerIds;
+    // 不带 targets 时对命令源自身生效（原版 clear 的隐式目标是执行实体）。
+    std::vector<Entity*> entities;
     if (context.hasArgument("targets")) {
-        playerIds = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("targets"));
-    } else if (source.isPlayer()) {
-        playerIds.push_back(source.playerId());
+        entities = support::EntityResolver::resolve(source, context.getArgument<EntitySelector>("targets"));
+    } else if (source.entity() != nullptr) {
+        entities.push_back(source.entity());
     }
 
-    if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+    if (entities.empty()) {
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
     i32 successCount = 0;
-
-    for (PlayerId playerId : playerIds) {
-        // 经实体管理器解析实体（含 SimulatedPlayer 旁路），操作实体层 LivingEntity::m_effectManager。
-        Player* player = resolvePlayerEntity(source, playerId);
-        if (player == nullptr) {
-            continue;
+    for (LivingEntity* target : _livingTargets(entities)) {
+        if (!target->effectManager().getAllEffects().empty()) {
+            target->removeAllEffects();
+            successCount++;
         }
-
-        size_t effectCount = player->effectManager().getAllEffects().size();
-        player->removeAllEffects();
-        successCount += static_cast<i32>(effectCount);
     }
 
-    source.sendSuccess(::mc::text::literal("Cleared all effects"), false);
+    if (successCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.effect.clear.everything.failed"));
+        return 0;
+    }
+
+    if (entities.size() == 1) {
+        source.sendSuccess(::mc::text::translatable(
+                               "commands.effect.clear.everything.success.single", entities.front()->getDisplayName()),
+            true);
+    } else {
+        source.sendSuccess(::mc::text::translatable(
+                               "commands.effect.clear.everything.success.multiple", static_cast<i32>(entities.size())),
+            true);
+    }
+
     return successCount;
 }
 
@@ -281,40 +297,46 @@ i32 EffectCommand::_clearSpecificEffect(CommandContext<ServerCommandSource>& con
     auto& source = context.getSource();
 
     const auto& selector = context.getArgument<EntitySelector>("targets");
-    auto playerIds = support::resolvePlayerIds(source, selector);
-
-    if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
-    const std::string effectName = context.getArgument<ResourceLocation>("effect").toString();
-
-    auto effectTypeOpt = support::tryParseEffectType(effectName);
+    const ResourceLocation effectId = context.getArgument<ResourceLocation>("effect");
+    auto effectTypeOpt = support::tryParseEffectType(effectId.toString());
     if (!effectTypeOpt.has_value()) {
-        source.sendFailure(::mc::text::literal("Unknown effect: " + effectName));
+        source.sendFailure(::mc::text::translatable("commands.effect.clear.specific.failed"));
         return 0;
     }
-    entity::effect::EffectType effectType = effectTypeOpt.value();
+    const entity::effect::EffectType effectType = effectTypeOpt.value();
 
     i32 successCount = 0;
-
-    for (PlayerId playerId : playerIds) {
-        // 经实体管理器解析实体（含 SimulatedPlayer 旁路），操作实体层 LivingEntity::m_effectManager。
-        Player* player = resolvePlayerEntity(source, playerId);
-        if (player == nullptr) {
-            continue;
-        }
-
-        if (player->hasEffect(effectType)) {
-            player->removeEffect(effectType);
+    for (LivingEntity* target : _livingTargets(entities)) {
+        if (target->hasEffect(effectType)) {
+            target->removeEffect(effectType);
             successCount++;
         }
     }
 
-    std::ostringstream ss;
-    ss << "Cleared " << support::getEffectCommandName(effectType) << " from " << successCount << " player(s)";
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    if (successCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.effect.clear.specific.failed"));
+        return 0;
+    }
+
+    if (entities.size() == 1) {
+        std::vector<std::unique_ptr<text::ITextComponent>> params;
+        params.push_back(_effectDisplayName(effectId));
+        params.push_back(entities.front()->getDisplayName());
+        source.sendSuccess(
+            ::mc::text::translatable("commands.effect.clear.specific.success.single", std::move(params)), true);
+    } else {
+        std::vector<std::unique_ptr<text::ITextComponent>> params;
+        params.push_back(_effectDisplayName(effectId));
+        params.push_back(::mc::text::literal(std::to_string(entities.size())));
+        source.sendSuccess(
+            ::mc::text::translatable("commands.effect.clear.specific.success.multiple", std::move(params)), true);
+    }
 
     return successCount;
 }

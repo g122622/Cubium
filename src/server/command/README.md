@@ -89,9 +89,11 @@ src/server/command/
     ├── PublishCommand.cpp
     ├── RecipeCommand.hpp         # /recipe - 管理配方解锁
     ├── RecipeCommand.cpp
+    ├── ItemCommand.hpp           # /item - 1.21.11 的 replace with/from
+    ├── ItemCommand.cpp
     ├── ReloadCommand.hpp         # /reload - 重新加载数据包
     ├── ReloadCommand.cpp
-    ├── ReplaceItemCommand.hpp    # /replaceitem - 替换实体或容器物品
+    ├── ReplaceItemCommand.hpp    # /replaceitem - 兼容命令（默认不注册）
     ├── ReplaceItemCommand.cpp
     ├── ScheduleCommand.hpp       # /schedule - 延迟执行函数
     ├── ScheduleCommand.cpp
@@ -162,7 +164,7 @@ src/server/command/
   - 对齐 MC Java `CommandSourceStack`，包含 `entity()` 和 `withEntity()` 方法支持非玩家实体执行者。
   - `player()` 返回 `ServerPlayer*`（可为 nullptr），`entity()` 返回 `Entity*`（可为 nullptr）。
   - 玩家执行命令时 `entity()` 与 `player()` 一致；`/execute as @e` 后 `entity()` 可为非玩家实体。
-- `support/` - 解析器工具，PlayerResolver 处理玩家选择器（@a/@p/@r），EntityResolver 处理实体选择器（@e/@s），EffectResolver 处理效果参数
+- `support/` - 解析器与槽位工具：PlayerResolver 处理玩家选择器（@a/@p/@r），EntityResolver 处理实体选择器（@e/@s），EffectResolver 处理效果参数，ItemSlotAccess 统一物品槽位读写（玩家背包/装备/末影箱/光标、方块容器、马匹与村民库存，供 /item 与 /replaceitem 共用）
 - `commands/` - 各具体命令实现，每个命令类提供 `registerTo()` 方法注册到分发器
 
 ## 上下游依赖关系

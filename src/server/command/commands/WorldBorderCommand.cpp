@@ -280,13 +280,17 @@ i32 WorldBorderCommand::_setWarningTime(CommandContext<ServerCommandSource>& con
     }
 
     auto& border = world->worldBorder();
-    const i32 seconds = context.getArgument<i32>("time");
+    // 参数是 tick 数；原版回显时换算成秒（ticks / 20，两位小数）。
+    const i32 ticks = context.getArgument<i32>("time");
 
-    border.setWarningTime(seconds);
+    if (border.getWarningTime() == ticks) {
+        source.sendFailure(::mc::text::translatable("commands.worldborder.warning.time.failed"));
+        return 0;
+    }
 
-    std::ostringstream ss;
+    border.setWarningTime(ticks);
     source.sendSuccess(::mc::text::translatable("commands.worldborder.warning.time.success",
-                           fmt::format("{:.2f}", static_cast<f64>(seconds))),
+                           fmt::format("{:.2f}", static_cast<f64>(ticks) / 20.0)),
         true);
 
     return 1;
@@ -305,9 +309,12 @@ i32 WorldBorderCommand::_setWarningDistance(CommandContext<ServerCommandSource>&
     auto& border = world->worldBorder();
     const i32 blocks = context.getArgument<i32>("distance");
 
-    border.setWarningDistance(blocks);
+    if (border.getWarningDistance() == blocks) {
+        source.sendFailure(::mc::text::translatable("commands.worldborder.warning.distance.failed"));
+        return 0;
+    }
 
-    std::ostringstream ss;
+    border.setWarningDistance(blocks);
     source.sendSuccess(
         ::mc::text::translatable("commands.worldborder.warning.distance.success", fmt::format("{}", blocks)), true);
 

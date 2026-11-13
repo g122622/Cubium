@@ -43,7 +43,6 @@
 #include "server/world/player/ServerPlayerEntityManager.hpp"
 #include <cstddef>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -149,14 +148,23 @@ i32 RecipeCommand::_giveRecipe(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    if (recipeStr == "*") {
-        std::ostringstream ss;
-        ss << "Gave all recipes to " << successCount << " player(s)";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+    // 原版按「是否有任何玩家新学会配方」判定成败：创造模式玩家默认已知全部配方，
+    // 此时 /recipe give 必须报失败（No new recipes were learned），而不是成功。
+    if (successCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.recipe.give.failed"));
+        return 0;
+    }
+
+    if (playerIds.size() == 1) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(recipesToGive.size())));
+        params.push_back(::mc::text::literal(support::resolvePlayerName(source, playerIds.front())));
+        source.sendSuccess(::mc::text::translatable("commands.recipe.give.success.single", std::move(params)), true);
     } else {
-        std::ostringstream ss;
-        ss << "Gave recipe '" << recipeStr << "' to " << successCount << " player(s)";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(recipesToGive.size())));
+        params.push_back(::mc::text::literal(std::to_string(playerIds.size())));
+        source.sendSuccess(::mc::text::translatable("commands.recipe.give.success.multiple", std::move(params)), true);
     }
 
     return successCount;
@@ -220,14 +228,21 @@ i32 RecipeCommand::_takeRecipe(CommandContext<ServerCommandSource>& context)
         }
     }
 
-    if (recipeStr == "*") {
-        std::ostringstream ss;
-        ss << "Took all recipes from " << successCount << " player(s)";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+    if (successCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.recipe.take.failed"));
+        return 0;
+    }
+
+    if (playerIds.size() == 1) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(recipesToTake.size())));
+        params.push_back(::mc::text::literal(support::resolvePlayerName(source, playerIds.front())));
+        source.sendSuccess(::mc::text::translatable("commands.recipe.take.success.single", std::move(params)), true);
     } else {
-        std::ostringstream ss;
-        ss << "Took recipe '" << recipeStr << "' from " << successCount << " player(s)";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(recipesToTake.size())));
+        params.push_back(::mc::text::literal(std::to_string(playerIds.size())));
+        source.sendSuccess(::mc::text::translatable("commands.recipe.take.success.multiple", std::move(params)), true);
     }
 
     return successCount;

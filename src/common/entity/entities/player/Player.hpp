@@ -154,6 +154,14 @@ public:
         return m_username;
     }
 
+    /**
+     * @brief 没有自定义名称时玩家的名称组件。
+     *
+     * 玩家默认名是登录名（原版 Player.getName 返回游戏档案名），而不是实体类型名
+     * "Player"；有自定义名称时 {@link getDisplayName} 仍返回自定义名称。
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getNameComponent() const override;
+
     [[nodiscard]] PlayerId playerId() const
     {
         return m_playerId;

@@ -27,6 +27,7 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/CommandSource.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
@@ -34,21 +35,78 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/PlayerResolver.hpp"
 #include "server/network/outbound/PacketBuilders.hpp"
 #include "server/network/outbound/PacketSender.hpp"
+#include "server/player/lifecycle/PlayerManager.hpp"
+#include "server/player/runtime/ServerPlayerData.hpp"
+#include <cmath>
 #include <memory>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace mc {
 namespace command {
+
+namespace {
+
+/** @brief 按粒子注册名解析粒子类型；未知名称返回空值。定义在文件末尾。 */
+[[nodiscard]] std::optional<particle::ParticleTypeId> parseParticleTypeId(const std::string& name) noexcept;
+
+/**
+ * @brief `/particle` 的粒子名参数。
+ *
+ * 原版 ParticleArgument 在解析期查 `minecraft:particle_type` 注册表，未知名称属于语法
+ * 错误（`argument.resource.not_found`）；本项目此前只在执行期报 Unknown particle type。
+ */
+class ParticleNameArgumentType final : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
+    {
+        auto parsed = readResourceLocationId(reader);
+        if (parsed.failed()) {
+            return parsed;
+        }
+
+        const ResourceLocation id = parsed.value();
+        if (!parseParticleTypeId(id.toString()).has_value()) {
+            auto message = std::make_shared<::mc::text::TranslationTextComponent>("argument.resource.not_found");
+            message->addParam(::mc::text::literal(id.toString()));
+            message->addParam(::mc::text::literal("minecraft:particle_type"));
+            return CommandError(CommandErrorType::EntityNotFound,
+                std::shared_ptr<const ::mc::text::ITextComponent>(std::move(message)),
+                reader.getCursor());
+        }
+        return id;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "particle";
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:particle_type"}};
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:flame", "flame", "minecraft:heart"};
+    }
+};
+
+} // namespace
 
 void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -59,22 +117,23 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     support::applyMetadata(particleNode,
         support::makeMetadata("Creates particles at a position.", "/particle <name> [<pos>]", 2, {}, true));
 
-    // 原版是 ResourceArgument.particle()（注册表资源，类型名 resource）。
+    // 原版是 ParticleArgument（在 `minecraft:particle_type` 注册表中解析）。
     auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "name", ParticleResourceArgumentType::particle());
+        "name", std::make_shared<ParticleNameArgumentType>());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, false);
     });
 
     auto posArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, false);
     });
 
     // /particle <name> <pos> <delta> <speed> <count> [force|normal] [<viewers>]
-    auto deltaArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("delta", Vec3ArgumentType::vec3());
+    // delta 不做方块中心偏移（原版 Vec3Argument.vec3(false)）。
+    auto deltaArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "delta", Vec3ArgumentType::vec3NoCenter());
     auto speedArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>("speed", FloatArgumentType::floatArg(0.0f));
     auto countArg =
@@ -88,20 +147,20 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     auto normalViewers = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "viewers", EntityArgumentType::players());
     normalViewers->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, false);
     });
     normalNode->addChild(normalViewers);
     forceNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, true);
     });
     normalNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, false);
     });
     viewersArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, true);
     });
     countArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
-        return _spawnParticle(ctx);
+        return _spawnParticleImpl(ctx, false);
     });
     countArg->addChild(forceNode);
     countArg->addChild(normalNode);
@@ -114,14 +173,18 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     dispatcher.registerCommand(particleNode);
 }
 
-i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context)
+i32 ParticleCommand::_spawnParticleImpl(CommandContext<ServerCommandSource>& context, bool force)
 {
     auto& source = context.getSource();
+    auto* server = source.server();
+    MC_ASSERT_RELEASE(server != nullptr);
 
-    const std::string name = context.getArgument<ResourceLocation>("name").toString();
+    const ResourceLocation nameId = context.getArgument<ResourceLocation>("name");
+    const auto particleType = parseParticleTypeId(nameId.toString());
+    // 解析期已按注册表校验，正常不会缺失；缺失说明解析器与注册表不一致。
+    MC_ASSERT_RELEASE(particleType.has_value());
+
     Vector3d pos = source.position();
-
-    // 如果提供了位置参数，使用它
     if (context.hasArgument("pos")) {
         auto coords = context.getArgument<Coordinates::Ptr>("pos");
         Vector3d anchorPos = (source.anchor() == EntityAnchorType::Eyes && source.entity() != nullptr)
@@ -132,35 +195,79 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
         pos = coords->getPosition(anchorPos, source.rotation());
     }
 
-    // 解析粒子类型
-    auto particleType = _parseParticleType(name);
-    if (!particleType.has_value()) {
-        source.sendFailure(::mc::text::literal("Unknown particle type: " + name));
+    Vector3d delta{0.0, 0.0, 0.0};
+    if (context.hasArgument("delta")) {
+        delta = Vec3ArgumentType::getVec3(context, "delta", source);
+    }
+
+    f32 speed = 0.0f;
+    if (context.hasArgument("speed")) {
+        speed = context.getArgument<f32>("speed");
+    }
+
+    i32 count = 0;
+    if (context.hasArgument("count")) {
+        count = context.getArgument<i32>("count");
+    }
+
+    const Vector3 position(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
+    const Vector3 offset(static_cast<f32>(delta.x), static_cast<f32>(delta.y), static_cast<f32>(delta.z));
+
+    mc::network::ir::play::ParticleOptions options;
+    options.type = particleType.value();
+    const auto packet =
+        mc::server::net::buildLevelParticlesIr(options, position, offset, static_cast<u32>(count), speed, force, false);
+
+    // 查看者集合：默认全部在线玩家，也可由 viewers 参数限定。
+    std::vector<PlayerId> viewerIds;
+    if (context.hasArgument("viewers")) {
+        viewerIds = support::resolvePlayerIds(source, context.getArgument<EntitySelector>("viewers"));
+    } else {
+        server->playerManager().forEachPlayer([&viewerIds](const server::ServerPlayerData& data) {
+            if (data.loggedIn) {
+                viewerIds.push_back(data.playerId);
+            }
+        });
+    }
+
+    // 原版只把粒子发给同维度、且在半径内的玩家：普通 32 格，force 512 格。
+    const f64 range = force ? 512.0 : 32.0;
+    const f64 rangeSq = range * range;
+    i32 sentCount = 0;
+    for (PlayerId viewerId : viewerIds) {
+        const server::ServerPlayerData* data = server->playerManager().getPlayer(viewerId);
+        if (data == nullptr || !data->loggedIn) {
+            continue;
+        }
+        if (server->getPlayerWorld(viewerId) != source.world()) {
+            continue;
+        }
+
+        // 以玩家所在方块的中心点到粒子位置的距离判定（原版 BlockPos.closerToCenterThan）。
+        const f64 dx = std::floor(static_cast<f64>(data->x)) + 0.5 - pos.x;
+        const f64 dy = std::floor(static_cast<f64>(data->y)) + 0.5 - pos.y;
+        const f64 dz = std::floor(static_cast<f64>(data->z)) + 0.5 - pos.z;
+        if (dx * dx + dy * dy + dz * dz > rangeSq) {
+            continue;
+        }
+
+        if (server->packetSender().sendToPlayer(viewerId, packet)) {
+            ++sentCount;
+        }
+    }
+
+    if (sentCount == 0) {
+        source.sendFailure(::mc::text::translatable("commands.particle.failed"));
         return 0;
     }
 
-    // 获取服务器实例
-    auto* server = source.server();
-    if (!server) {
-        source.sendFailure(::mc::text::literal("Server not available"));
-        return 0;
-    }
-
-    // 广播粒子效果（批5b：经 buildLevelParticlesIr + packetSender.broadcast 投递，
-    // 原 IServer 弱类型 broadcastParticleInRange 纯虚已删。/particle 为管理员命令，
-    // 全在线玩家广播（原 range=256 距离过滤由 packetSender.broadcast 替代）。
-    // 默认速度为 0，数量为 1，偏移为 0。
-    server->packetSender().broadcast(mc::server::net::buildLevelParticlesIr(
-        particleType.value(), Vector3(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z)), 1));
-
-    std::ostringstream ss;
-    ss << "Displayed particle '" << name << "' at " << pos.x << ", " << pos.y << ", " << pos.z;
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
-
-    return 1;
+    source.sendSuccess(::mc::text::translatable("commands.particle.success", {nameId.toString()}), true);
+    return sentCount;
 }
 
-std::optional<particle::ParticleTypeId> ParticleCommand::_parseParticleType(const std::string& name) noexcept
+namespace {
+
+std::optional<particle::ParticleTypeId> parseParticleTypeId(const std::string& name) noexcept
 {
     using namespace particle;
 
@@ -327,6 +434,8 @@ std::optional<particle::ParticleTypeId> ParticleCommand::_parseParticleType(cons
     }
     return std::nullopt;
 }
+
+} // namespace
 
 } // namespace command
 } // namespace mc

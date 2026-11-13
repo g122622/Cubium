@@ -118,21 +118,26 @@ namespace mc::server::net {
  * 所有粒子下发路径（ParticleCommand 与 PlayerBroadcaster 的各
  * broadcastXxxParticleInRange）都汇聚到这里，避免同一包体出现多份构造实现。
  *
- * maxSpeed 固定 0：客户端按 offset 扇出，不消费该字段。
- *
  * @param options 粒子选项（调用方按粒子类型构造）
  * @param pos 粒子中心世界坐标
  * @param offset 扇出偏移（单点粒子传零向量）
  * @param count 粒子数量
+ * @param maxSpeed 粒子初速度
+ * @param overrideLimiter 是否忽略客户端粒子渲染距离限制（/particle 的 force）
+ * @param alwaysShow 是否强制显示
  */
-[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(
-    const mc::network::ir::play::ParticleOptions& options, const Vector3& pos, const Vector3& offset, u32 count);
+[[nodiscard]] mc::network::ir::IrPacket buildLevelParticlesIr(const mc::network::ir::play::ParticleOptions& options,
+    const Vector3& pos,
+    const Vector3& offset,
+    u32 count,
+    f32 maxSpeed,
+    bool overrideLimiter,
+    bool alwaysShow);
 
 /**
  * @brief 构造简单粒子（SimpleParticleType）的 LevelParticles IR
  *
- * 便捷重载：只指定粒子类型，偏移归零。等价于先构造仅含 type 的 ParticleOptions
- * 再调用上面的通用原语。
+ * 便捷重载：只指定粒子类型，偏移归零、速度为 0、不忽略渲染距离限制。
  *
  * @param type 粒子类型
  * @param pos 粒子世界坐标

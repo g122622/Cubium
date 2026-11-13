@@ -713,6 +713,13 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
     // 原版：来源参数在解析时就被求值，后续对目标数据源的操作都以来源值为输入。
     std::vector<std::unique_ptr<nbt::tags::tag>> sourceValues;
 
+    // `value <nbt_tag>`：直接给出的单个值。
+    if (context.hasArgument("value")) {
+        auto value = context.getArgument<std::shared_ptr<nbt::tags::tag>>("value");
+        MC_ASSERT_RELEASE_MSG(value != nullptr, "DataCommand: modify value argument is null");
+        sourceValues.push_back(value->copy());
+    }
+
     const bool stringify = context.hasParsed("stringValueArg");
     if (context.hasArgument("source")) {
         const std::any raw = context.getArgumentAny("source");
@@ -892,20 +899,26 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             break;
         }
         case 3: // merge
-            if (sourceValues.empty() || sourceValues.front()->id() != nbt::TagId::Compound) {
-                source.sendFailure(::mc::text::literal("Expected a compound value"));
-                return 0;
-            }
-            {
-                auto mergeResult =
-                    targetPath.merge(*data, *static_cast<const nbt::tags::compound_tag*>(sourceValues.front().get()));
-                if (mergeResult.failed()) {
-                    _sendCommandError(source, mergeResult.error());
+        {
+            // 原版把所有来源值逐个并入一个空复合标签（非复合值报 expected_object），再写进目标。
+            nbt::tags::compound_tag merged;
+            for (const auto& value : sourceValues) {
+                if (value->id() != nbt::TagId::Compound) {
+                    source.sendFailure(::mc::text::translatableEscape(
+                        "commands.data.modify.expected_object", stringifyNbtValue(*value)));
                     return 0;
                 }
-                count = mergeResult.value();
-                break;
+                merged.merge(*static_cast<const nbt::tags::compound_tag*>(value.get()));
             }
+
+            auto mergeResult = targetPath.merge(*data, merged);
+            if (mergeResult.failed()) {
+                _sendCommandError(source, mergeResult.error());
+                return 0;
+            }
+            count = mergeResult.value();
+            break;
+        }
         case 4: // insert
         {
             const i32 index = context.getArgument<i32>("index");
@@ -922,8 +935,9 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
             return 0;
     }
 
+    // 一次都没改到（例如值已相同）时原版报 merge.failed。
     if (count == 0) {
-        source.sendFailure(::mc::text::literal("Invalid NBT path"));
+        source.sendFailure(::mc::text::translatable("commands.data.merge.failed"));
         return 0;
     }
 
@@ -932,7 +946,7 @@ i32 DataCommand::_modify(CommandContext<ServerCommandSource>& context, i32 opera
         _sendCommandError(source, mergeResult.error());
         return 0;
     }
-    source.sendSuccess(targetAccessor->getModifiedMessage(), false);
+    source.sendSuccess(targetAccessor->getModifiedMessage(), true);
     return count;
 }
 

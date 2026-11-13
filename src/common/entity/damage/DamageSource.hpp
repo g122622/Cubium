@@ -506,9 +506,29 @@ public:
         }
     }
 
+    /**
+     * @brief 带来源位置的环境伤害。
+     *
+     * `/damage <target> <amount> <type> at <location>` 这类没有实体来源、但需要记录
+     * 伤害发生位置（决定受击方向）的场景使用。
+     */
+    EnvironmentalDamage(DamageType type, math::Vector3f sourcePosition)
+        : EnvironmentalDamage(type)
+    {
+        m_sourcePosition = sourcePosition;
+    }
+
     [[nodiscard]] std::unique_ptr<DamageSource> clone() const override
     {
+        if (m_sourcePosition.has_value()) {
+            return std::make_unique<EnvironmentalDamage>(m_type, *m_sourcePosition);
+        }
         return std::make_unique<EnvironmentalDamage>(m_type);
+    }
+
+    [[nodiscard]] std::optional<math::Vector3f> sourcePosition() const override
+    {
+        return m_sourcePosition;
     }
 
     [[nodiscard]] DamageType type() const override
@@ -675,6 +695,7 @@ private:
     DamageType m_type;
     f32 m_hungerDamage;
     bool m_isDamageAbsolute;
+    std::optional<math::Vector3f> m_sourcePosition;
 };
 
 /**

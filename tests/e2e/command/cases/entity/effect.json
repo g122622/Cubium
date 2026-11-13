@@ -1,0 +1,24 @@
+{
+  "id": "entity/effect",
+  "title": "效果给予、重复给予与清除",
+  "category": "entity",
+  "setup": [
+    "/effect clear @s"
+  ],
+  "steps": [
+    {
+      "command": "/effect give @s minecraft:speed 10 1"
+    },
+    {
+      "command": "/effect give @s minecraft:speed 10 1"
+    },
+    {
+      "command": "/effect clear @s minecraft:speed"
+    },
+    {
+      "command": "/effect clear @s minecraft:speed"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

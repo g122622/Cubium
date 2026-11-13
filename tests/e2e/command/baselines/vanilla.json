@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "mcVersion": "1.21.11",
-  "generatedAt": "2026-11-13T11:26:40.098Z",
+  "generatedAt": "2026-11-13T13:54:28.011Z",
   "cases": {
     "smoke/basic_feedback": {
       "stepTexts": [
-        "Changed the block at 0, 100, 1040",
+        "Changed the block at 0, 100, 1800",
         "[e2e_cmd] e2e-ok",
-        "Changed the block at 0, 100, 1040"
+        "Changed the block at 0, 100, 1800"
       ],
       "stepTimeouts": [
         false,
@@ -51,13 +51,13 @@
     },
     "block/setblock_modes": {
       "stepTexts": [
-        "Changed the block at 0, 100, 80",
-        "Changed the block at 0, 100, 80",
+        "Changed the block at 0, 100, 160",
+        "Changed the block at 0, 100, 160",
         "Could not set the block",
-        "Changed the block at 0, 100, 80",
-        "Changed the block at 0, 100, 80",
-        "Changed the block at 0, 100, 80",
-        "Changed the block at 0, 100, 80"
+        "Changed the block at 0, 100, 160",
+        "Changed the block at 0, 100, 160",
+        "Changed the block at 0, 100, 160",
+        "Changed the block at 0, 100, 160"
       ],
       "stepTimeouts": [
         false,
@@ -73,8 +73,8 @@
     },
     "client/block_sync": {
       "stepTexts": [
-        "Changed the block at 0, 100, 120",
-        "Changed the block at 1, 100, 120"
+        "Changed the block at 0, 100, 200",
+        "Changed the block at 1, 100, 200"
       ],
       "stepTimeouts": [
         false,
@@ -178,7 +178,7 @@
     },
     "command/teleport_feedback": {
       "stepTexts": [
-        "Teleported e2e_cmd to 0.500000, 100.000000, 440.500000"
+        "Teleported e2e_cmd to 0.500000, 100.000000, 840.500000"
       ],
       "stepTimeouts": [
         false
@@ -188,8 +188,8 @@
     },
     "data/block_get": {
       "stepTexts": [
-        "0, 100, 480 has the following block data: {Items:[],components:{},id:\"minecraft:chest\",x:0,y:100,z:480}",
-        "0, 100, 480 has the following block data: []",
+        "0, 100, 960 has the following block data: {Items:[],components:{},id:\"minecraft:chest\",x:0,y:100,z:960}",
+        "0, 100, 960 has the following block data: []",
         "Found no elements matching e2e",
         "The target block is not a block entity"
       ],
@@ -300,8 +300,8 @@
     },
     "execute/positioned": {
       "stepTexts": [
-        "Changed the block at 0, 100, 720",
-        "Changed the block at 1, 100, 721",
+        "Changed the block at 0, 100, 1320",
+        "Changed the block at 1, 100, 1321",
         "[e2e_cmd] positioned-ok"
       ],
       "stepTimeouts": [
@@ -408,10 +408,10 @@
       "stepTexts": [
         "Created new objective [e2e_obj]",
         "An objective already exists by that name",
-        "There are 5 objective(s): [e2e_exec], [e2e_fn], [e2e_missing], [e2e_obj], [e2e_store]",
+        "There are 7 objective(s): [e2e_disp], [e2e_exec], [e2e_fn], [e2e_missing], [e2e_obj], [e2e_ret], [e2e_store]",
         "Removed objective [e2e_obj]",
         "Unknown scoreboard objective 'e2e_obj'",
-        "There are 4 objective(s): [e2e_exec], [e2e_fn], [e2e_missing], [e2e_store]"
+        "There are 6 objective(s): [e2e_disp], [e2e_exec], [e2e_fn], [e2e_missing], [e2e_ret], [e2e_store]"
       ],
       "stepTimeouts": [
         false,
@@ -466,9 +466,9 @@
     },
     "world/forceload": {
       "stepTexts": [
-        "Marked chunk [0, 70] in minecraft:overworld to be force loaded",
-        "A force loaded chunk was found in minecraft:overworld at: [0,70]",
-        "Unmarked chunk [0, 70] in minecraft:overworld for force loading",
+        "Marked chunk [0, 117] in minecraft:overworld to be force loaded",
+        "A force loaded chunk was found in minecraft:overworld at: [0,117]",
+        "Unmarked chunk [0, 117] in minecraft:overworld for force loading",
         "No force loaded chunks were found in minecraft:overworld"
       ],
       "stepTimeouts": [
@@ -516,6 +516,350 @@
         "Set the world border to 110.0 block(s) wide",
         "The world border is currently 110 block(s) wide",
         "Set the world border to 29999984.0 block(s) wide"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "block/clone_modes": {
+      "stepTexts": [
+        "Successfully cloned 2 block(s)",
+        "Successfully cloned 1 block(s)",
+        "Incorrect argument for command\n<parse-context>"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "block/fill_modes": {
+      "stepTexts": [
+        "Successfully filled 98 block(s)",
+        "Successfully filled 98 block(s)",
+        "Successfully filled 98 block(s)"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/advancement": {
+      "stepTexts": [
+        "Couldn't grant advancement [Diamonds!] to e2e_cmd as they already have it",
+        "Revoked the advancement [Diamonds!] from e2e_cmd",
+        "e2e_cmd has made the advancement [Diamonds!]\nGranted the advancement [Diamonds!] to e2e_cmd"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/bossbar": {
+      "stepTexts": [
+        "Created custom bossbar [Bar]",
+        "Nothing changed. That's already the max of this bossbar",
+        "Custom bossbar [Bar] has changed value to 30",
+        "Custom bossbar [Bar] has a value of 30",
+        "Custom bossbar [Bar] has a maximum of 100",
+        "Custom bossbar [Bar] has changed color",
+        "Custom bossbar [Bar] has changed style",
+        "Removed custom bossbar [Bar]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/damage": {
+      "stepTexts": [
+        "Target is invulnerable to the given damage type",
+        "Target is invulnerable to the given damage type",
+        "Can't find element 'minecraft:e2e_no_such_damage' of type 'minecraft:damage_type'\n<parse-context>"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/gamerule_query": {
+      "stepTexts": [
+        "Gamerule keep_inventory is currently set to: false",
+        "Gamerule keep_inventory is now set to: true",
+        "Gamerule keep_inventory is currently set to: true",
+        "Incorrect argument for command\n<parse-context>"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/particle_sound": {
+      "stepTexts": [
+        "The particle was not visible for anybody",
+        "The sound is too far away to be heard"
+      ],
+      "stepTimeouts": [
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/recipe": {
+      "stepTexts": [
+        "No new recipes were learned",
+        "Took 1 recipe(s) from e2e_cmd",
+        "Unknown recipe: minecraft:e2e_no_such_recipe"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/return": {
+      "stepTexts": [
+        "",
+        "Counter has 5 [e2e_ret]",
+        "[e2e_cmd] ret-ok",
+        "Counter has 1 [e2e_ret]"
+      ],
+      "stepTimeouts": [
+        true,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/ride": {
+      "stepTexts": [
+        "e2e_cmd started riding Armor Stand",
+        "e2e_cmd stopped riding Armor Stand",
+        "Killed Armor Stand"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/tellraw": {
+      "stepTexts": [
+        "plain string",
+        "hi",
+        "ab"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "command/title": {
+      "stepTexts": [
+        "Showing new title for e2e_cmd",
+        "Showing new subtitle for e2e_cmd",
+        "Showing new actionbar title for e2e_cmd",
+        "Changed title display times for e2e_cmd",
+        "Cleared titles for e2e_cmd",
+        "Reset title options for e2e_cmd"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "data/modify": {
+      "stepTexts": [
+        "Modified storage e2e:mod",
+        "Storage e2e:mod has the following contents: [1,2,3]",
+        "Modified storage e2e:mod",
+        "Storage e2e:mod has the following contents: [1,2,3,4]",
+        "Modified storage e2e:mod",
+        "Storage e2e:mod has the following contents: [0,1,2,3,4]",
+        "Modified storage e2e:mod",
+        "Storage e2e:mod has the following contents: [0,1,9,2,3,4]",
+        "Modified storage e2e:mod",
+        "Modified storage e2e:mod",
+        "Storage e2e:mod has the following contents: {a:1,b:2}"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "entity/attribute": {
+      "stepTexts": [
+        "The value of attribute Speed for entity e2e_cmd is 0.1",
+        "The base value for attribute Speed for entity e2e_cmd set to 0.2",
+        "The base value of attribute Speed for entity e2e_cmd is 0.2",
+        "The value of attribute Speed for entity e2e_cmd is 0.2"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "entity/effect": {
+      "stepTexts": [
+        "Applied effect Speed to e2e_cmd",
+        "Applied effect Speed to e2e_cmd",
+        "Removed effect Speed from e2e_cmd",
+        "Target doesn't have the requested effect"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "execute/store_targets": {
+      "stepTexts": [
+        "[e2e_cmd] store-ok",
+        "Storage e2e:st has the following contents: 1",
+        "[e2e_cmd] store-ok",
+        "Found no elements matching Foo",
+        "[e2e_cmd] store-ok",
+        "Custom bossbar [Bar] has a value of 1",
+        "[e2e_cmd] store-ok",
+        "Custom bossbar [Bar] has a maximum of 1",
+        "[e2e_cmd] store-ok",
+        "Armor Stand has the following entity data: 1b"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "item/replace": {
+      "stepTexts": [
+        "Replaced a slot on e2e_cmd with [Stone]",
+        "Replaced a slot at 0, 100, 1560 with [Diamond]",
+        "0, 100, 1560 has the following block data: [{Slot:0b,count:1,id:\"minecraft:diamond\"}]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "scoreboard/display": {
+      "stepTexts": [
+        "Set display slot sidebar to show objective e2e_disp",
+        "Nothing changed. That display slot is already showing that objective",
+        "Cleared any objectives in display slot sidebar",
+        "Set display slot list to show objective e2e_disp",
+        "Cleared any objectives in display slot list"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "scoreboard/teams": {
+      "stepTexts": [
+        "Created team [e2e_team]",
+        "Updated the color for team [e2e_team] to red",
+        "Added e2e_cmd to team [e2e_team]",
+        "Team [e2e_team] has 1 member(s): e2e_cmd",
+        "Removed e2e_cmd from any team",
+        "Removed team [e2e_team]"
+      ],
+      "stepTimeouts": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "probeTexts": {},
+      "viewTexts": {}
+    },
+    "world/worldborder_damage": {
+      "stepTexts": [
+        "Set the world border damage to 0.50 per block each second",
+        "Set the world border damage buffer to 2.00 block(s)",
+        "Set the world border warning time to 0.25 second(s)",
+        "Set the world border warning distance to 10 block(s)"
       ],
       "stepTimeouts": [
         false,

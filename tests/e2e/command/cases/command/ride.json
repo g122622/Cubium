@@ -1,0 +1,23 @@
+{
+  "id": "command/ride",
+  "title": "ride 的骑乘与下骑",
+  "category": "command",
+  "setup": [
+    "/setblock {x} {y-1} {z} minecraft:stone",
+    "/kill @e[type=armor_stand,distance=..20]",
+    "/summon minecraft:armor_stand {x} {y} {z}"
+  ],
+  "steps": [
+    {
+      "command": "/ride @s mount @e[type=armor_stand,distance=..12,limit=1]"
+    },
+    {
+      "command": "/ride @s dismount"
+    },
+    {
+      "command": "/kill @e[type=armor_stand,distance=..12]"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

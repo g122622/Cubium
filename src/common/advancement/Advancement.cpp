@@ -28,6 +28,7 @@
 #include "common/advancement/trigger/CriterionTrigger.hpp"
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include <functional>
@@ -66,6 +67,14 @@ std::unique_ptr<text::ITextComponent> Advancement::getDisplayText() const
         return std::make_unique<text::StringTextComponent>(m_id.toString());
     }
     return m_display->getTitle().deepCopy();
+}
+
+std::unique_ptr<text::ITextComponent> Advancement::getDisplayName() const
+{
+    if (!m_display.has_value()) {
+        return std::make_unique<text::StringTextComponent>(m_id.toString());
+    }
+    return text::ComponentUtils::wrapInSquareBrackets(m_display->getTitleCopy());
 }
 
 Result<Advancement> Advancement::fromJson(const ResourceLocation& id, const nlohmann::json& json)

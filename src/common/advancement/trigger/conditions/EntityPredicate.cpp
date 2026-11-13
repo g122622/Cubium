@@ -38,6 +38,7 @@
 #include "common/entity/entities/passive/basic/SheepEntity.hpp"
 #include "common/entity/entities/passive/frog/FrogEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/color/DyeColor.hpp"
@@ -52,9 +53,21 @@ namespace mc::advancement {
 
 void EntityPredicate::_updateIsAny()
 {
-    m_isAny = !m_type.has_value() && m_distance.isAny() && m_location.isAny() && m_effects.isAny() && m_nbt.isAny() &&
-        m_flags.isAny() && m_equipment.isAny() && m_components.empty() && !m_typeSpecific.has_value() &&
-        m_vehicle == nullptr;
+    m_isAny = !m_type.has_value() && !m_typeTag.has_value() && m_distance.isAny() && m_location.isAny() &&
+        m_effects.isAny() && m_nbt.isAny() && m_flags.isAny() && m_equipment.isAny() && m_components.empty() &&
+        !m_typeSpecific.has_value() && m_vehicle == nullptr && m_passenger == nullptr;
+}
+
+bool EntityPredicate::_matchesType(const Entity& entity) const
+{
+    if (m_typeTag.has_value()) {
+        EntityTypeTag* tag = EntityTypeTags::getTag(*m_typeTag);
+        return tag != nullptr && tag->contains(entity.getTypeId());
+    }
+    if (m_type.has_value()) {
+        return entity.getTypeId() == m_type->toString();
+    }
+    return true;
 }
 
 bool EntityPredicate::test(const Entity& entity) const
@@ -71,12 +84,9 @@ bool EntityPredicate::test(const Entity& entity,
         return true;
     }
 
-    // 1. 检查实体类型
-    if (m_type.has_value()) {
-        std::string entityTypeId = entity.getTypeId();
-        if (entityTypeId != m_type.value().toString()) {
-            return false;
-        }
+    // 1. 检查实体类型（含 `#tag` 写法）
+    if (!_matchesType(entity)) {
+        return false;
     }
 
     // 2. 检查效果
@@ -111,6 +121,29 @@ bool EntityPredicate::test(const Entity& entity,
         }
     }
 
+    // 载具 / 乘客：通过实体自身的世界解析乘客与载具，因此无参考位置的重载也必须判定
+    // （原版 started_riding 等触发器走的就是这条入口）。
+    const IWorld* entityWorld = entity.world();
+    if (m_vehicle != nullptr) {
+        const Entity* vehicle = entityWorld != nullptr ? entityWorld->getEntity(entity.getVehicle()) : nullptr;
+        if (vehicle == nullptr || !m_vehicle->test(*vehicle)) {
+            return false;
+        }
+    }
+    if (m_passenger != nullptr) {
+        bool anyMatches = false;
+        for (EntityInstanceId passengerId : entity.getPassengers()) {
+            const Entity* passenger = entityWorld != nullptr ? entityWorld->getEntity(passengerId) : nullptr;
+            if (passenger != nullptr && m_passenger->test(*passenger)) {
+                anyMatches = true;
+                break;
+            }
+        }
+        if (!anyMatches) {
+            return false;
+        }
+    }
+
     // 注意：距离和位置检查需要参考位置，在无参考位置版本中跳过。
     // 需要距离和位置检查的调用者应使用 test(world, x, y, z, entity) 重载。
 
@@ -119,6 +152,7 @@ bool EntityPredicate::test(const Entity& entity,
 
 EntityPredicate::EntityPredicate(const EntityPredicate& other)
     : m_type(other.m_type)
+    , m_typeTag(other.m_typeTag)
     , m_distance(other.m_distance)
     , m_location(other.m_location)
     , m_effects(other.m_effects)
@@ -127,6 +161,7 @@ EntityPredicate::EntityPredicate(const EntityPredicate& other)
     , m_equipment(other.m_equipment)
     , m_components(other.m_components)
     , m_vehicle(other.m_vehicle != nullptr ? std::make_unique<EntityPredicate>(*other.m_vehicle) : nullptr)
+    , m_passenger(other.m_passenger != nullptr ? std::make_unique<EntityPredicate>(*other.m_passenger) : nullptr)
     , m_typeSpecific(other.m_typeSpecific)
     , m_isAny(other.m_isAny)
 {}
@@ -137,6 +172,7 @@ EntityPredicate& EntityPredicate::operator=(const EntityPredicate& other)
         return *this;
     }
     m_type = other.m_type;
+    m_typeTag = other.m_typeTag;
     m_distance = other.m_distance;
     m_location = other.m_location;
     m_effects = other.m_effects;
@@ -145,6 +181,7 @@ EntityPredicate& EntityPredicate::operator=(const EntityPredicate& other)
     m_equipment = other.m_equipment;
     m_components = other.m_components;
     m_vehicle = other.m_vehicle != nullptr ? std::make_unique<EntityPredicate>(*other.m_vehicle) : nullptr;
+    m_passenger = other.m_passenger != nullptr ? std::make_unique<EntityPredicate>(*other.m_passenger) : nullptr;
     m_typeSpecific = other.m_typeSpecific;
     m_isAny = other.m_isAny;
     return *this;
@@ -247,12 +284,9 @@ bool EntityPredicate::test(const IWorld& world,
         return true;
     }
 
-    // 1. 检查实体类型
-    if (m_type.has_value()) {
-        std::string entityTypeId = entity.getTypeId();
-        if (entityTypeId != m_type.value().toString()) {
-            return false;
-        }
+    // 1. 检查实体类型（含 `#tag` 写法）
+    if (!_matchesType(entity)) {
+        return false;
     }
 
     // 2. 检查距离（参考点到实体的距离）
@@ -303,10 +337,24 @@ bool EntityPredicate::test(const IWorld& world,
         }
     }
 
-    // 10. 检查载具（vanilla vehicle：劫掠兽骑兵、骆驼尸壳骑兵等掉落判定依赖）
+    // 10. 检查载具与乘客（vanilla vehicle / passenger）
     if (m_vehicle != nullptr) {
         const Entity* vehicle = world.getEntity(entity.getVehicle());
-        if (vehicle == nullptr || !m_vehicle->test(*vehicle)) {
+        if (vehicle == nullptr || !m_vehicle->test(world, vehicle->x(), vehicle->y(), vehicle->z(), *vehicle)) {
+            return false;
+        }
+    }
+    if (m_passenger != nullptr) {
+        bool anyMatches = false;
+        for (EntityInstanceId passengerId : entity.getPassengers()) {
+            const Entity* passenger = world.getEntity(passengerId);
+            if (passenger != nullptr &&
+                m_passenger->test(world, passenger->x(), passenger->y(), passenger->z(), *passenger)) {
+                anyMatches = true;
+                break;
+            }
+        }
+        if (!anyMatches) {
             return false;
         }
     }
@@ -332,9 +380,14 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
 
     EntityPredicate predicate;
 
-    // 解析实体类型
+    // 解析实体类型：`#minecraft:boat` 是类型标签，其余是具体类型
     if (json.contains("type")) {
-        predicate.m_type = ResourceLocation(json["type"].get<std::string>());
+        const std::string typeText = json["type"].get<std::string>();
+        if (!typeText.empty() && typeText.front() == '#') {
+            predicate.m_typeTag = ResourceLocation(typeText.substr(1));
+        } else {
+            predicate.m_type = ResourceLocation(typeText);
+        }
     }
 
     // 解析距离条件
@@ -405,6 +458,13 @@ Result<EntityPredicate> EntityPredicate::fromJson(const nlohmann::json& json)
         }
         predicate.m_vehicle = std::make_unique<EntityPredicate>(vehicle.value());
     }
+    if (json.contains("passenger") && json["passenger"].is_object()) {
+        const Result<EntityPredicate> passenger = EntityPredicate::fromJson(json["passenger"]);
+        if (!passenger.success()) {
+            return passenger.error();
+        }
+        predicate.m_passenger = std::make_unique<EntityPredicate>(passenger.value());
+    }
     if (json.contains("type_specific") && json["type_specific"].is_object()) {
         const auto& specific = json["type_specific"];
         EntityTypeSpecificPredicate parsed;
@@ -457,6 +517,8 @@ nlohmann::json EntityPredicate::toJson() const
 
     if (m_type.has_value()) {
         json["type"] = m_type.value().toString();
+    } else if (m_typeTag.has_value()) {
+        json["type"] = "#" + m_typeTag->toString();
     }
     if (!m_distance.isAny()) {
         json["distance"] = m_distance.toJson();
@@ -480,6 +542,12 @@ nlohmann::json EntityPredicate::toJson() const
     // 读回去的语义与原对象不同（`size`/`is_captain` 等条件凭空消失）。
     if (m_typeSpecific.has_value()) {
         json["type_specific"] = _typeSpecificToJson(*m_typeSpecific);
+    }
+    if (m_vehicle != nullptr) {
+        json["vehicle"] = m_vehicle->toJson();
+    }
+    if (m_passenger != nullptr) {
+        json["passenger"] = m_passenger->toJson();
     }
 
     return json;

@@ -1,0 +1,21 @@
+{
+  "id": "block/fill_modes",
+  "title": "fill 的 hollow 与 outline 模式",
+  "category": "block",
+  "setup": [
+    "/fill {x-2} {y-2} {z-2} {x+2} {y+2} {z+2} minecraft:air"
+  ],
+  "steps": [
+    {
+      "command": "/fill {x-2} {y-2} {z-2} {x+2} {y+2} {z+2} minecraft:stone hollow"
+    },
+    {
+      "command": "/fill {x-2} {y-2} {z-2} {x+2} {y+2} {z+2} minecraft:dirt outline"
+    },
+    {
+      "command": "/fill {x-2} {y-2} {z-2} {x+2} {y+2} {z+2} minecraft:air replace minecraft:dirt"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

@@ -1,0 +1,30 @@
+{
+  "id": "scoreboard/teams",
+  "title": "队伍的创建、修改、加入与移除",
+  "category": "scoreboard",
+  "setup": [
+    "/team remove e2e_team"
+  ],
+  "steps": [
+    {
+      "command": "/team add e2e_team"
+    },
+    {
+      "command": "/team modify e2e_team color red"
+    },
+    {
+      "command": "/team join e2e_team @s"
+    },
+    {
+      "command": "/team list e2e_team"
+    },
+    {
+      "command": "/team leave @s"
+    },
+    {
+      "command": "/team remove e2e_team"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

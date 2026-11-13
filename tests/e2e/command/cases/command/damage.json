@@ -1,0 +1,22 @@
+{
+  "id": "command/damage",
+  "title": "damage 命令的伤害类型与反馈",
+  "category": "command",
+  "setup": [
+    "/kill @e[type=armor_stand,distance=..20]",
+    "/summon minecraft:armor_stand {x} {y} {z}"
+  ],
+  "steps": [
+    {
+      "command": "/damage @s 1 minecraft:magic"
+    },
+    {
+      "command": "/damage @e[type=armor_stand,distance=..12,limit=1] 1 minecraft:generic_kill"
+    },
+    {
+      "command": "/damage @s 1 minecraft:e2e_no_such_damage"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

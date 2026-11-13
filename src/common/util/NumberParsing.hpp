@@ -25,8 +25,14 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
+#include <array>
+#include <charconv>
+#include <cmath>
+#include <string>
 #include <string_view>
+#include <system_error>
 
 namespace mc::util {
 
@@ -101,5 +107,58 @@ namespace mc::util {
  * @brief 解析双精度浮点数
  */
 [[nodiscard]] Result<f64> parseFloat64(std::string_view text);
+
+/**
+ * @brief 把双精度浮点数渲染成 Java `Double.toString` 风格的文本。
+ *
+ * 命令反馈里原版用 `String.valueOf(double)` 渲染参数（如 `3` 显示成 `3.0`、
+ * `0.1` 显示成 `0.1`）。这里取最短往返表示，并在没有小数点/指数时补 `.0`；
+ * 特殊值按 Java 的拼写输出 `NaN` / `Infinity` / `-Infinity`。
+ *
+ * 注：Java 在 1e-3 以下/1e7 以上改用科学计数法，本函数只在指数很大时才是科学计数法；
+ * 命令反馈中的数值远小于该量级，差异可忽略（项目允许浮点格式上的细微差异）。
+ */
+[[nodiscard]] inline std::string javaDoubleToString(f64 value)
+{
+    if (std::isnan(value)) {
+        return "NaN";
+    }
+    if (std::isinf(value)) {
+        return value < 0 ? "-Infinity" : "Infinity";
+    }
+
+    std::array<char, 64> buffer{};
+    const auto result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    MC_ASSERT_RELEASE_MSG(result.ec == std::errc{}, "to_chars failed for double value");
+    std::string text(buffer.data(), result.ptr);
+    if (text.find_first_of(".eE") == std::string::npos) {
+        text += ".0";
+    }
+    return text;
+}
+
+/**
+ * @brief 把单精度浮点数渲染成 Java `Float.toString` 风格的文本。
+ *
+ * 语义与 {@link javaDoubleToString} 相同，只是以 float 精度生成最短往返表示。
+ */
+[[nodiscard]] inline std::string javaFloatToString(f32 value)
+{
+    if (std::isnan(value)) {
+        return "NaN";
+    }
+    if (std::isinf(value)) {
+        return value < 0 ? "-Infinity" : "Infinity";
+    }
+
+    std::array<char, 64> buffer{};
+    const auto result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    MC_ASSERT_RELEASE_MSG(result.ec == std::errc{}, "to_chars failed for float value");
+    std::string text(buffer.data(), result.ptr);
+    if (text.find_first_of(".eE") == std::string::npos) {
+        text += ".0";
+    }
+    return text;
+}
 
 } // namespace mc::util

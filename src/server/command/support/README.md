@@ -14,6 +14,7 @@ support/
 ├── EffectResolver.cpp               # 效果类型解析实现（命令名称与EffectType的映射）
 ├── FunctionSuggestionProvider.hpp   # 函数参数 Tab 补全建议（查询 FunctionManager 提供函数名和标签名）
 ├── FunctionSuggestionProvider.cpp   # 函数建议实现
+├── ItemSlotAccess.hpp/cpp           # 物品槽位统一读写（玩家背包/装备/末影箱/光标、方块容器、马匹与村民库存；供 /item 与 /replaceitem 共用）
 ├── SpreadAlgorithm.hpp              # /spreadplayers 分散算法核心（SpreadPosition 结构、迭代分散函数，使用 IWorld 动态高度）
 └── SpreadAlgorithm.cpp              # 分散算法实现（位置计算、安全检查、迭代推开逻辑，高度边界通过 IWorld::getMinBuildHeight() 获取）
 ```

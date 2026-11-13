@@ -1,0 +1,19 @@
+{
+  "id": "command/advancement",
+  "title": "进度的授予、撤销与再次授予",
+  "category": "command",
+  "steps": [
+    {
+      "command": "/advancement grant @s only minecraft:story/mine_diamond"
+    },
+    {
+      "command": "/advancement revoke @s only minecraft:story/mine_diamond"
+    },
+    {
+      "command": "/advancement grant @s only minecraft:story/mine_diamond"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

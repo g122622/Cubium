@@ -1,0 +1,36 @@
+{
+  "id": "command/bossbar",
+  "title": "bossbar 的创建、设置、查询与移除",
+  "category": "command",
+  "setup": [
+    "/bossbar remove e2e:bar"
+  ],
+  "steps": [
+    {
+      "command": "/bossbar add e2e:bar \"Bar\""
+    },
+    {
+      "command": "/bossbar set e2e:bar max 100"
+    },
+    {
+      "command": "/bossbar set e2e:bar value 30"
+    },
+    {
+      "command": "/bossbar get e2e:bar value"
+    },
+    {
+      "command": "/bossbar get e2e:bar max"
+    },
+    {
+      "command": "/bossbar set e2e:bar color red"
+    },
+    {
+      "command": "/bossbar set e2e:bar style notched_10"
+    },
+    {
+      "command": "/bossbar remove e2e:bar"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

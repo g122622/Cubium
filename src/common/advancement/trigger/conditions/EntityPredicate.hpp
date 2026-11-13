@@ -279,17 +279,24 @@ private:
     /// 检查单个数据组件过滤项（对齐 vanilla EntityPredicate.components）
     [[nodiscard]] bool _testComponent(const Entity& entity, const EntityComponentFilter& component) const;
 
+    /// 实体类型是否匹配（支持 `type: "minecraft:zombie"` 与 `type: "#minecraft:boat"` 两种写法）
+    [[nodiscard]] bool _matchesType(const Entity& entity) const;
+
     std::optional<ResourceLocation> m_type; ///< 实体类型（如 "minecraft:zombie"）
-    DistancePredicate m_distance;           ///< 距离谓词（与参考点的距离）
-    LocationPredicate m_location;           ///< 位置谓词（生物群系、维度等）
-    MobEffectsPredicate m_effects;          ///< 效果谓词
-    NBTPredicate m_nbt;                     ///< NBT谓词
-    EntityFlagsPredicate m_flags;           ///< 标志谓词（燃烧、潜行等）
-    EntityEquipmentPredicate m_equipment;   ///< 装备谓词
+    /// 实体类型标签（`#minecraft:boat` 写法，与 vanilla EntityTypePredicate 的 HolderSet 对应）
+    std::optional<ResourceLocation> m_typeTag;
+    DistancePredicate m_distance;         ///< 距离谓词（与参考点的距离）
+    LocationPredicate m_location;         ///< 位置谓词（生物群系、维度等）
+    MobEffectsPredicate m_effects;        ///< 效果谓词
+    NBTPredicate m_nbt;                   ///< NBT谓词
+    EntityFlagsPredicate m_flags;         ///< 标志谓词（燃烧、潜行等）
+    EntityEquipmentPredicate m_equipment; ///< 装备谓词
     /// 组件过滤（vanilla EntityPredicate.components，如 {"minecraft:frog/variant": "minecraft:warm"}）
     std::vector<EntityComponentFilter> m_components;
     /// 载具谓词（vanilla vehicle：骑乘中的实体须匹配该谓词；用 unique_ptr 规避不完整类型）
     std::unique_ptr<EntityPredicate> m_vehicle;
+    /// 乘客谓词（vanilla passenger：任一乘客匹配即通过）
+    std::unique_ptr<EntityPredicate> m_passenger;
     /// 类型专属谓词（vanilla type_specific）
     std::optional<EntityTypeSpecificPredicate> m_typeSpecific;
     bool m_isAny = true;

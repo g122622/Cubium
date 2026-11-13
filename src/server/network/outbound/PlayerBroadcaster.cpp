@@ -129,7 +129,7 @@ void PlayerBroadcaster::broadcastParticleInRange(particle::ParticleTypeId type,
 {
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
-    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     u32 playersNotified = 0;
@@ -161,7 +161,7 @@ void PlayerBroadcaster::sendParticleToPlayer(PlayerId playerId,
 {
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
-    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count, 0.0f, false, false);
     m_server.sendPacketToPlayer(playerId, irPacket);
 }
 
@@ -187,7 +187,7 @@ void PlayerBroadcaster::broadcastVibrationParticleInRange(
         options.vibrationBlockPosPacked = blockSource.pos().asLong();
     }
 
-    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
@@ -219,7 +219,7 @@ void PlayerBroadcaster::broadcastTrailParticleInRange(
     options.trailTargetZ = targetPosition.z;
     options.color = color;
     options.trailDuration = durationInTicks;
-    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
@@ -247,7 +247,7 @@ void PlayerBroadcaster::broadcastEntityEffectParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = particle::ParticleTypeId::EntityEffect;
     options.color = color;
-    auto irPacket = buildLevelParticlesIr(options, pos, offset, count);
+    auto irPacket = buildLevelParticlesIr(options, pos, offset, count, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
@@ -275,7 +275,7 @@ void PlayerBroadcaster::broadcastBlockParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
     options.blockStateId = blockStateId;
-    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));
@@ -303,7 +303,7 @@ void PlayerBroadcaster::broadcastItemParticleInRange(
     mc::network::ir::play::ParticleOptions options;
     options.type = type;
     options.item = mc::network::ir::toItemStackView(itemStack);
-    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1);
+    auto irPacket = buildLevelParticlesIr(options, pos, Vector3(0.0f, 0.0f, 0.0f), 1, 0.0f, false, false);
 
     // 只发送给范围内的玩家
     auto shared = std::make_shared<const mc::network::pipeline::OutboundPacket>(std::move(irPacket));

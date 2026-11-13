@@ -1,0 +1,24 @@
+{
+  "id": "command/gamerule_query",
+  "title": "游戏规则的查询与非法规则名",
+  "category": "command",
+  "setup": [
+    "/gamerule keep_inventory false"
+  ],
+  "steps": [
+    {
+      "command": "/gamerule keep_inventory"
+    },
+    {
+      "command": "/gamerule keep_inventory true"
+    },
+    {
+      "command": "/gamerule keep_inventory"
+    },
+    {
+      "command": "/gamerule e2e_no_such_rule"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

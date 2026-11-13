@@ -204,6 +204,14 @@ public:
      */
     [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayText() const;
 
+    /**
+     * @brief 命令反馈与公告中的成就名。
+     *
+     * 有显示信息时是方括号包裹的标题，没有显示信息时退回成就 id；命令反馈
+     * （/advancement grant|revoke）与聊天公告都使用这一形态。
+     */
+    [[nodiscard]] std::unique_ptr<text::ITextComponent> getDisplayName() const;
+
     // ========== 序列化 ==========
 
     /**

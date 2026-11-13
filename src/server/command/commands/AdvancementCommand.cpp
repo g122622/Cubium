@@ -48,8 +48,8 @@
 #include <memory>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <spdlog/spdlog.h>
 
@@ -179,6 +179,58 @@ server::PlayerAdvancements* getPlayerAdvancements(server::IServer* server, Playe
         return nullptr;
     }
     return serverPlayer->getAdvancements();
+}
+
+/**
+ * @brief 发送 /advancement 的反馈。
+ *
+ * 原版按「成就数量 × 玩家数量」四选一：one/many 成就 × one/many 玩家；一次操作都没
+ * 生效（例如玩家已拥有该成就）时走 failure 文案并作为命令失败下发。
+ *
+ * @param source 命令源
+ * @param actionKey `commands.advancement.grant` 或 `commands.advancement.revoke`
+ * @param advancements 本次操作涉及的成就集合
+ * @param playerIds 目标玩家
+ * @param affectedPlayerCount 至少有一个成就发生变化的玩家数
+ */
+void sendAdvancementFeedback(ServerCommandSource& source,
+    std::string_view actionKey,
+    const std::vector<advancement::AdvancementPtr>& advancements,
+    const std::vector<PlayerId>& playerIds,
+    i32 affectedPlayerCount)
+{
+    const bool singleAdvancement = advancements.size() == 1;
+    const bool singlePlayer = playerIds.size() == 1;
+
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    if (singleAdvancement) {
+        params.push_back(advancements.front()->getDisplayName());
+    } else {
+        params.push_back(::mc::text::literal(std::to_string(advancements.size())));
+    }
+    if (singlePlayer) {
+        params.push_back(::mc::text::literal(support::resolvePlayerName(source, playerIds.front())));
+    } else {
+        params.push_back(::mc::text::literal(std::to_string(playerIds.size())));
+    }
+
+    const std::string suffix = affectedPlayerCount == 0 ? ".failure" : ".success";
+    std::string key(actionKey);
+    if (singleAdvancement && singlePlayer) {
+        key += ".one.to.one" + suffix;
+    } else if (singleAdvancement) {
+        key += ".one.to.many" + suffix;
+    } else if (singlePlayer) {
+        key += ".many.to.one" + suffix;
+    } else {
+        key += ".many.to.many" + suffix;
+    }
+
+    if (affectedPlayerCount == 0) {
+        source.sendFailure(::mc::text::translatable(key, std::move(params)));
+    } else {
+        source.sendSuccess(::mc::text::translatable(key, std::move(params)), true);
+    }
 }
 
 } // namespace
@@ -380,14 +432,7 @@ i32 AdvancementCommand::_grantAdvancement(CommandContext<ServerCommandSource>& c
         }
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    if (mode == GrantMode::Everything) {
-        ss << "Granted all advancements to " << successCount << " player(s)";
-    } else {
-        ss << "Granted " << advancements.size() << " advancement(s) to " << successCount << " player(s)";
-    }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    sendAdvancementFeedback(source, "commands.advancement.grant", advancements, playerIds, successCount);
 
     return successCount;
 }
@@ -446,14 +491,7 @@ i32 AdvancementCommand::_revokeAdvancement(CommandContext<ServerCommandSource>& 
         }
     }
 
-    // 发送反馈
-    std::ostringstream ss;
-    if (mode == GrantMode::Everything) {
-        ss << "Revoked all advancements from " << successCount << " player(s)";
-    } else {
-        ss << "Revoked " << advancements.size() << " advancement(s) from " << successCount << " player(s)";
-    }
-    source.sendSuccess(::mc::text::literal(ss.str()), false);
+    sendAdvancementFeedback(source, "commands.advancement.revoke", advancements, playerIds, successCount);
 
     return successCount;
 }

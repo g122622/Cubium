@@ -27,9 +27,10 @@
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/command/ServerCommandSource.hpp"
+#include <memory>
 #include <string>
-#include <utility>
 
 namespace mc {
 namespace entity {
@@ -38,6 +39,10 @@ class AttributeMap;
 class AttributeInstance;
 } // namespace attribute
 } // namespace entity
+
+namespace text {
+class ITextComponent;
+} // namespace text
 
 class Entity;
 class LivingEntity;
@@ -88,22 +93,20 @@ private:
     // 实体获取辅助方法
     static bool _tryGetLivingEntityWithAttribute(CommandContext<ServerCommandSource>& context,
         ServerCommandSource& source,
-        const std::string& attrName,
+        const ResourceLocation& attributeId,
         LivingEntity*& outLivingEntity,
         entity::attribute::AttributeMap*& outAttrMap);
 
     static bool _tryGetAttributeInstance(CommandContext<ServerCommandSource>& context,
         ServerCommandSource& source,
-        const std::string& attrName,
+        const ResourceLocation& attributeId,
         LivingEntity*& outLivingEntity,
         entity::attribute::AttributeInstance*& outInstance);
 
     // 辅助方法
-    static std::string _getEntityDisplayName(Entity* entity);
-    static std::string _getEntityDisplayName(LivingEntity* livingEntity);
+    static std::unique_ptr<text::ITextComponent> _attributeDisplayName(const ResourceLocation& attributeId);
     static std::string _normalizeAttributeName(const std::string& name);
     static bool _isKnownAttribute(const std::string& name) noexcept;
-    static std::pair<f64, f64> _getAttributeRange(const std::string& name) noexcept;
 };
 
 } // namespace command

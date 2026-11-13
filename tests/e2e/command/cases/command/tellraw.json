@@ -1,0 +1,19 @@
+{
+  "id": "command/tellraw",
+  "title": "tellraw 的纯文本、对象与数组组件",
+  "category": "command",
+  "steps": [
+    {
+      "command": "/tellraw @s \"plain string\""
+    },
+    {
+      "command": "/tellraw @s {\"text\":\"hi\",\"color\":\"red\"}"
+    },
+    {
+      "command": "/tellraw @s [{\"text\":\"a\"},{\"text\":\"b\"}]"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

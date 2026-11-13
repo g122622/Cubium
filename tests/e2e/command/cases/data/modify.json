@@ -1,0 +1,46 @@
+{
+  "id": "data/modify",
+  "title": "data modify 的 set/append/prepend/insert/merge",
+  "category": "data",
+  "setup": [
+    "/data remove storage e2e:mod list",
+    "/data remove storage e2e:mod comp"
+  ],
+  "steps": [
+    {
+      "command": "/data modify storage e2e:mod list set value [1,2,3]"
+    },
+    {
+      "command": "/data get storage e2e:mod list"
+    },
+    {
+      "command": "/data modify storage e2e:mod list append value 4"
+    },
+    {
+      "command": "/data get storage e2e:mod list"
+    },
+    {
+      "command": "/data modify storage e2e:mod list prepend value 0"
+    },
+    {
+      "command": "/data get storage e2e:mod list"
+    },
+    {
+      "command": "/data modify storage e2e:mod list insert 2 value 9"
+    },
+    {
+      "command": "/data get storage e2e:mod list"
+    },
+    {
+      "command": "/data modify storage e2e:mod comp set value {a:1}"
+    },
+    {
+      "command": "/data modify storage e2e:mod comp merge value {b:2}"
+    },
+    {
+      "command": "/data get storage e2e:mod comp"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

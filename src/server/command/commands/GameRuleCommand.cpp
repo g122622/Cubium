@@ -44,7 +44,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <fmt/format.h>
 
 namespace mc::command {
 
@@ -124,16 +123,10 @@ i32 GameRuleCommand::_executeQueryRule(CommandContext<ServerCommandSource>& cont
     }
 
     const auto& gameRules = world->getGameRules();
+    // 原版 query 只回显当前值，不附带默认值。
     const std::string valueStr = gameRules.getValueAsString(ruleName);
 
-    // vanilla getValueMessage 仅在值非默认时追加 "(default: ...)"
-    const std::string defaultStr = gameRules.getDefaultValueAsString(ruleName);
-    std::string message = valueStr;
-    if (valueStr != defaultStr) {
-        message += fmt::format(" (default: {})", defaultStr);
-    }
-
-    source.sendSuccess(::mc::text::translatable("commands.gamerule.query", {ruleName, message}), false);
+    source.sendSuccess(::mc::text::translatable("commands.gamerule.query", {ruleName, valueStr}), false);
     return 1;
 }
 

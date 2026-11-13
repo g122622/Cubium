@@ -246,11 +246,13 @@ std::string EntityDataAccessor::getDisplayName() const
     if (m_entity == nullptr) {
         return "Unknown entity";
     }
-    std::string name = m_entity->customNameText();
-    if (name.empty()) {
-        name = m_entity->getTypeId();
+    // 原版这里用 entity.getDisplayName()：玩家是登录名、有自定义名的实体是自定义名、
+    // 其余是实体类型的可翻译名（"Armor Stand"），而不是注册名 "minecraft:armor_stand"。
+    const auto displayName = m_entity->getDisplayName();
+    if (displayName == nullptr) {
+        return m_entity->getTypeId();
     }
-    return name;
+    return displayName->getUnformattedText();
 }
 
 std::unique_ptr<text::ITextComponent> EntityDataAccessor::getModifiedMessage() const

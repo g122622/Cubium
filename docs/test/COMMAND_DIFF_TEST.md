@@ -165,6 +165,41 @@ npm run test:unit                    # 框架纯逻辑单元测试（node --test
 **long** 类型参数，而 mineflayer 无法渲染 long（显示为空）；Cubium 发送文本参数因此多出
 数字。真实 Java 客户端两侧都会显示数字，属测试客户端限制。
 
+### 7.1 第二轮：更复杂的组合用例
+
+在首轮基础上又加了 20 条更复杂的用例（`/execute store` 的四种目标、`data modify` 的
+`value` 修饰符、`/item`、`/bossbar`、`/title`、`/effect`、`/attribute`、`/damage`、
+`/ride`、`/particle` 与 `/playsound`、`/advancement`、`/recipe` 等），共暴露 56 处差异，
+已全部修复。根因分布：
+
+| 用例 | 原现象 | 根因 |
+|---|---|---|
+| `command/bossbar` | 名称显示成 `[[Bar]]` | `formattedName()` 已含方括号，命令层又包了一层 |
+| `scoreboard/display` | 目标名带方括号；重复 setdisplay 仍报成功 | 反馈应使用注册名；缺少「槽位已是该目标」的 unchanged 分支 |
+| `command/gamerule_query` | 多出 `(default: ...)` | 附加了 vanilla 没有的默认值后缀 |
+| `world/worldborder_damage` | `warning time 5` 显示成 `5.00` 秒 | 参数单位是 tick，回显需 `ticks / 20` 并按 `%.2f` 格式化 |
+| `command/title` | 完全没有反馈 | 只发了标题包，没有下发 `commands.title.*` |
+| `entity/effect` | 自造文案、无失败分支；秒数少乘 20 | 未使用 `commands.effect.*`；时长单位换算错误（普通效果秒×20、瞬发效果按 tick） |
+| `command/recipe` | 没有新配方也报成功；文案自造 | 缺少「一个都没学会」的失败判断与 `success.single/multiple` |
+| `command/advancement` | 未生效仍报成功；文案自造 | 未按「成就数 × 玩家数」四选一 key；零变化必须走 failure |
+| `entity/attribute` | 值被截断成整数；属性名显示注册名；基础值精度偏差 | 消息参数误用返回值（int）与注册名；游戏模式切换把 f32 移动速度写回 double 属性 |
+| `command/damage` | 创造模式玩家仍受伤；未知伤害类型执行期才报错 | 未经过 Player 的创造无敌；解析期不校验 `minecraft:damage_type` |
+| `command/particle_sound` | 粒子报「已显示」、音效静默 | 未按 32/512 格筛选查看者；未实现「太远听不到」的失败反馈 |
+| `command/ride` | 无反馈；缺少前置校验 | 未下发 `commands.ride.*`，也未检查已骑乘/载具是玩家/维度不同 |
+| `data/modify` | `value` 修饰符完全不可用 | 执行链读取的是 `source` 参数，而 `value <nbt>` 分支的参数名就叫 `value` |
+| `item/replace` | `/item replace` 不存在 | 1.21.11 的 `ItemCommands` 未实现（旧 `/replaceitem` 只是兼容命令） |
+| `execute/store_targets` | 实体/玩家名显示成类型名 | 实体名用了注册名，未走 `getDisplayName()` |
+
+连带发现并修复的引擎问题：
+
+- `/summon <entity> <pos>` 的位置参数未做方块中心对齐（整数坐标应 +0.5），窄碰撞箱实体
+  （盔甲架）会从支撑方块边缘滑落；
+- 盔甲架的下落用了无碰撞的 `Entity::move`，会直接穿过方块；
+- 登录时只更新了 `PlayerData.gameMode` 与客户端能力包，服务端实体仍是生存模式
+  （创造无敌、交互距离、移动速度都不生效）；
+- 结构化谓词的 `type: "#tag"` 与 `vehicle`/`passenger` 子谓词未解析，且无参考位置的
+  判定入口会跳过载具检查——`started_riding` 因此在骑任何东西时都误判「船上载着山羊」。
+
 ---
 
 ## 8. 容易踩的坑
@@ -196,11 +231,29 @@ npm run test:unit                    # 框架纯逻辑单元测试（node --test
    为空时所有条件退化为通用实例（运行时 dynamic_cast 失败、监听器永远不触发、成就无法完成）。
     注册点在 `RegistryBootstrap::initializeAll` 的成就加载之前。
 11. **strict 只对未登记差异失败**。已登记差异不算失败，但「登记过期」会打印出来，定期清理。
+12. **`/summon` 的位置必须中心对齐**。原版 `Vec3Argument.vec3()` 会把绝对整数坐标补成
+    方块中心（`0 → 0.5`）。不补中心时实体恰好压在两格交界，盔甲架这类窄碰撞箱实体会滑落。
+13. **实体名用 `Entity::getDisplayName()`**，不要用 `getTypeId()`；玩家的默认名是登录名
+    （`Player::getNameComponent` 覆盖），不是实体类型名 "Player"。
+14. **`Entity::move` 不做方块碰撞**（当前实现只是平移）。需要落地/贴墙的实体必须走
+    `moveWithCollision`，否则会穿过方块。
+15. **登录时必须同步实体的游戏模式**。只写 `PlayerData.gameMode` 并下发能力包，服务端
+    实体仍是生存模式：创造无敌、交互距离、移动速度全部不生效，与客户端显示分叉。
+16. **结构化谓词的标签与载具/乘客**。`type: "#minecraft:boat"` 是标签而不是注册名；
+    `vehicle`/`passenger` 子谓词必须解析并且在**无参考位置**的判定入口也生效
+    （`started_riding` 走的就是那个入口），否则条件恒真、成就被误放大。
+17. **命令反馈里的 double 用 Java 字符串语义**。`Double.toString` 至少保留一位小数
+    （`3 → "3.0"`）；命令返回值才是整数（`(int)(value * scale)`），两者不能混用。
+    工具：`util::javaDoubleToString` / `util::javaFloatToString`。
+18. **实体数据源查询的名字同样是显示名**。`data get entity` 的 "Armor Stand has the
+    following entity data" 用的是 `getDisplayName()`，不是注册名。
 
 ---
 
 ## 9. 尚未实现（TODO）
 
+- **`/item modify` 与 `from ... <modifier>`**：都需要战利品函数（LootItemFunction）注册表，
+  该子系统尚未落地，`ItemCommand` 只注册了 `replace ... with|from` 分支。
 - **旁观者 / 非 OP 视角**：需要一个常驻的第二 bot 验证广播可见性（`sendCommandSuccess`
   只发 OP）与权限分级。当前只有单个 OP bot，涉及多 bot 的用例需要扩展 runner。
 - **崩溃续跑**：批次中断后从进度文件继续，而不是整轮重跑。

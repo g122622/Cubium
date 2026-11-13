@@ -49,6 +49,7 @@
 #include "commands/GameRuleCommand.hpp"
 #include "commands/GiveCommand.hpp"
 #include "commands/HelpCommand.hpp"
+#include "commands/ItemCommand.hpp"
 #include "commands/JfrCommand.hpp"
 #include "commands/KickCommand.hpp"
 #include "commands/KillCommand.hpp"
@@ -261,6 +262,7 @@ void CommandRegistry::registerDefaults()
         PublishCommand::registerTo(m_dispatcher);
     }
     RecipeCommand::registerTo(m_dispatcher);
+    ItemCommand::registerTo(m_dispatcher);
     ReloadCommand::registerTo(m_dispatcher);
     if (registerCompatCommands) {
         ReplaceItemCommand::registerTo(m_dispatcher);

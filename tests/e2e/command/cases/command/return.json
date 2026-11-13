@@ -1,0 +1,26 @@
+{
+  "id": "command/return",
+  "title": "return 的返回值与 return run",
+  "category": "command",
+  "setup": [
+    "/scoreboard objectives remove e2e_ret",
+    "/scoreboard objectives add e2e_ret dummy",
+    "/scoreboard players set Counter e2e_ret 0"
+  ],
+  "steps": [
+    {
+      "command": "/execute store result score Counter e2e_ret run return 5"
+    },
+    {
+      "command": "/scoreboard players get Counter e2e_ret"
+    },
+    {
+      "command": "/execute store result score Counter e2e_ret run return run say ret-ok"
+    },
+    {
+      "command": "/scoreboard players get Counter e2e_ret"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

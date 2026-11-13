@@ -130,6 +130,21 @@ i32 broadcastIrPacket(
     }
     return successCount;
 }
+
+/**
+ * @brief 下发 `/title` 的成功反馈（原版按目标数选 single/multiple 文案）。
+ */
+void sendTitleFeedback(
+    ServerCommandSource& source, const std::vector<PlayerId>& playerIds, const char* singleKey, const char* multipleKey)
+{
+    if (playerIds.size() == 1) {
+        source.sendSuccess(
+            ::mc::text::translatable(singleKey, support::resolvePlayerName(source, playerIds.front())), true);
+    } else {
+        source.sendSuccess(::mc::text::translatable(multipleKey, static_cast<i32>(playerIds.size())), true);
+    }
+}
+
 } // namespace
 
 void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
@@ -224,13 +239,15 @@ i32 TitleCommand::_clearTitle(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
     // 创建并广播清除标题包
     auto packet = makeClearTitlesPacket(false);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(source, playerIds, "commands.title.cleared.single", "commands.title.cleared.multiple");
+    return delivered;
 }
 
 i32 TitleCommand::_resetTitle(CommandContext<ServerCommandSource>& context)
@@ -240,13 +257,15 @@ i32 TitleCommand::_resetTitle(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
     // 创建并广播重置标题包
     auto packet = makeClearTitlesPacket(true);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(source, playerIds, "commands.title.reset.single", "commands.title.reset.multiple");
+    return delivered;
 }
 
 i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
@@ -256,7 +275,7 @@ i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -265,7 +284,9 @@ i32 TitleCommand::_setTitle(CommandContext<ServerCommandSource>& context)
 
     // 创建并广播主标题包
     auto packet = makeTitleTextPacket(jsonText);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(source, playerIds, "commands.title.show.title.single", "commands.title.show.title.multiple");
+    return delivered;
 }
 
 i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
@@ -275,7 +296,7 @@ i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -284,7 +305,10 @@ i32 TitleCommand::_setSubtitle(CommandContext<ServerCommandSource>& context)
 
     // 创建并广播副标题包
     auto packet = makeSubtitleTextPacket(jsonText);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(
+        source, playerIds, "commands.title.show.subtitle.single", "commands.title.show.subtitle.multiple");
+    return delivered;
 }
 
 i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
@@ -294,7 +318,7 @@ i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -303,7 +327,10 @@ i32 TitleCommand::_setActionbar(CommandContext<ServerCommandSource>& context)
 
     // 创建并广播动作栏包
     auto packet = makeActionBarTextPacket(jsonText);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(
+        source, playerIds, "commands.title.show.actionbar.single", "commands.title.show.actionbar.multiple");
+    return delivered;
 }
 
 i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
@@ -313,7 +340,7 @@ i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
-        source.sendFailure(::mc::text::literal("No matching players were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
@@ -324,7 +351,9 @@ i32 TitleCommand::_setTimes(CommandContext<ServerCommandSource>& context)
 
     // 创建并广播时间设置包
     auto packet = makeTitlesAnimationPacket(fadeIn, stay, fadeOut);
-    return broadcastIrPacket(source, playerIds, packet);
+    const i32 delivered = broadcastIrPacket(source, playerIds, packet);
+    sendTitleFeedback(source, playerIds, "commands.title.times.single", "commands.title.times.multiple");
+    return delivered;
 }
 
 } // namespace command

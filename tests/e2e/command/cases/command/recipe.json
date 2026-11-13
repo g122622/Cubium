@@ -1,0 +1,19 @@
+{
+  "id": "command/recipe",
+  "title": "配方的解锁、移除与未知配方",
+  "category": "command",
+  "steps": [
+    {
+      "command": "/recipe give @s minecraft:stone_button"
+    },
+    {
+      "command": "/recipe take @s minecraft:stone_button"
+    },
+    {
+      "command": "/recipe give @s minecraft:e2e_no_such_recipe"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

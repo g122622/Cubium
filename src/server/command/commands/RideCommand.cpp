@@ -26,6 +26,8 @@
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ComponentFactory.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
@@ -67,23 +69,54 @@ void RideCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
     dispatcher.registerCommand(rideNode);
 }
 
+namespace {
+
+/** @brief 用两个实体名组件构造翻译消息。 */
+[[nodiscard]] std::unique_ptr<::mc::text::ITextComponent> _twoNamesMessage(
+    const char* key, const Entity& first, const Entity& second)
+{
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(first.getDisplayName());
+    params.push_back(second.getDisplayName());
+    return ::mc::text::translatable(key, std::move(params));
+}
+
+} // namespace
+
 i32 RideCommand::_mount(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     Entity* passenger = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("target"));
     Entity* vehicle = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("vehicle"));
     if (passenger == nullptr || vehicle == nullptr) {
-        source.sendFailure(::mc::text::literal("No entity was found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
-    if (passenger == vehicle) {
-        source.sendFailure(::mc::text::literal("An entity cannot ride itself"));
+
+    if (passenger->isRiding()) {
+        Entity* currentVehicle = passenger->world()->getEntity(passenger->getVehicle());
+        MC_ASSERT_RELEASE(currentVehicle != nullptr);
+        source.sendFailure(_twoNamesMessage("commands.ride.already_riding", *passenger, *currentVehicle));
+        return 0;
+    }
+    if (dynamic_cast<Player*>(vehicle) != nullptr) {
+        source.sendFailure(::mc::text::translatable("commands.ride.mount.failure.cant_ride_players"));
+        return 0;
+    }
+    if (passenger == vehicle || passenger->isRidingOrBeingRiddenBy(*vehicle)) {
+        source.sendFailure(::mc::text::translatable("commands.ride.mount.failure.loop"));
+        return 0;
+    }
+    if (passenger->world() != vehicle->world()) {
+        source.sendFailure(::mc::text::translatable("commands.ride.mount.failure.wrong_dimension"));
         return 0;
     }
     if (!passenger->startRiding(*vehicle)) {
-        source.sendFailure(::mc::text::literal("That entity can't ride this one"));
+        source.sendFailure(_twoNamesMessage("commands.ride.mount.failure.generic", *passenger, *vehicle));
         return 0;
     }
+
+    source.sendSuccess(_twoNamesMessage("commands.ride.mount.success", *passenger, *vehicle), true);
     return 1;
 }
 
@@ -92,14 +125,20 @@ i32 RideCommand::_dismount(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     Entity* passenger = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("target"));
     if (passenger == nullptr) {
-        source.sendFailure(::mc::text::literal("No entity was found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
+
     if (!passenger->isRiding()) {
-        source.sendFailure(::mc::text::literal("That entity is not riding anything"));
+        source.sendFailure(::mc::text::translatable("commands.ride.not_riding", passenger->getDisplayName()));
         return 0;
     }
+
+    Entity* vehicle = passenger->world()->getEntity(passenger->getVehicle());
+    MC_ASSERT_RELEASE(vehicle != nullptr);
     passenger->stopRiding();
+
+    source.sendSuccess(_twoNamesMessage("commands.ride.dismount.success", *passenger, *vehicle), true);
     return 1;
 }
 

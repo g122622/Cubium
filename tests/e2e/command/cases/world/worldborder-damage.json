@@ -1,0 +1,25 @@
+{
+  "id": "world/worldborder_damage",
+  "title": "世界边界的伤害与警告参数",
+  "category": "world",
+  "setup": [
+    "/worldborder center {x} {z}",
+    "/worldborder set 100"
+  ],
+  "steps": [
+    {
+      "command": "/worldborder damage amount 0.5"
+    },
+    {
+      "command": "/worldborder damage buffer 2"
+    },
+    {
+      "command": "/worldborder warning time 5"
+    },
+    {
+      "command": "/worldborder warning distance 10"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

@@ -1,0 +1,23 @@
+{
+  "id": "block/clone_modes",
+  "title": "clone 的 masked / filtered / move 模式",
+  "category": "block",
+  "setup": [
+    "/fill {x-8} {y-1} {z-8} {x+8} {y+1} {z+10} minecraft:air",
+    "/setblock {x} {y} {z} minecraft:stone",
+    "/setblock {x+1} {y} {z} minecraft:dirt"
+  ],
+  "steps": [
+    {
+      "command": "/clone {x} {y} {z} {x+1} {y} {z} {x} {y} {z+2} masked"
+    },
+    {
+      "command": "/clone {x} {y} {z} {x+1} {y} {z} {x} {y} {z+4} filtered minecraft:stone"
+    },
+    {
+      "command": "/clone {x} {y} {z} {x+1} {y} {z} {x} {y} {z+6} move"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

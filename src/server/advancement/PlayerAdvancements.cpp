@@ -704,8 +704,7 @@ void PlayerAdvancements::_announceAdvancement(const mc::advancement::Advancement
 
     std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
     params.push_back(::mc::text::literal(m_player->username()));
-    // 标题以方括号包裹（chat.square_brackets），与原版公告一致。
-    params.push_back(::mc::text::ComponentUtils::wrapInSquareBrackets(display->getTitleCopy()));
+    params.push_back(advancement->getDisplayName());
 
     const std::string key = std::string("chat.type.advancement.") + mc::advancement::toString(display->getFrame());
     auto message = ::mc::text::translatable(key, std::move(params));

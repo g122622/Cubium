@@ -1667,6 +1667,21 @@ struct compound_tag final : public tag {
     void make_heavy();
 
     /**
+     * @brief 合并另一个复合标签（同名键被覆盖，值深拷贝）。
+     *
+     * 对应原版 `CompoundTag.merge`：只覆盖实际出现的键，其余键保持不变。
+     */
+    void merge(const compound_tag& other)
+    {
+        for (const auto& [name, item] : other.value) {
+            if (item == nullptr) {
+                continue;
+            }
+            value.insert_or_assign(name, item->copy());
+        }
+    }
+
+    /**
      * @brief 插入值（自动推断标签类型）
      */
     template <typename T>

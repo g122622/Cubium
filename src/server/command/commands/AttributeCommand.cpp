@@ -36,7 +36,7 @@
 #include "common/entity/attribute/AttributeRegistry.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/player/Player.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ComponentFactory.hpp"
 #include "server/command/ServerCommandSource.hpp"
@@ -45,9 +45,9 @@
 #include "server/command/support/EntityResolver.hpp"
 
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 #include <fmt/format.h>
 
 namespace mc {
@@ -59,46 +59,37 @@ namespace command {
 
 bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCommandSource>& context,
     ServerCommandSource& source,
-    const std::string& attrName,
+    const ResourceLocation& attributeId,
     LivingEntity*& outLivingEntity,
     entity::attribute::AttributeMap*& outAttrMap)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendSuccess(::mc::text::literal("Server not available"), false);
-        return false;
-    }
-
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendFailure(::mc::text::literal("No matching entities were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return false;
     }
 
     const EntitySelector& selector = context.getArgument<EntitySelector>("target");
     Entity* entity = support::EntityResolver::resolveSingle(source, selector);
     if (entity == nullptr) {
-        source.sendFailure(::mc::text::literal("No matching entities were found"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return false;
     }
 
     // 检查实体是否为 LivingEntity（MC 原版：非活体实体不支持属性命令）
     auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
     if (livingEntity == nullptr) {
-        source.sendFailure(::mc::text::literal(_getEntityDisplayName(entity) + " is not a living entity"));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.entity", entity->getDisplayName()));
         return false;
     }
 
-    // 检查属性是否存在
-    if (!_isKnownAttribute(attrName)) {
-        source.sendFailure(::mc::text::literal("Unknown attribute: " + attrName));
-        return false;
-    }
-
+    const std::string attrName = _normalizeAttributeName(attributeId.toString());
     auto& attrMap = livingEntity->attributes();
-    if (!attrMap.hasAttribute(attrName)) {
-        source.sendFailure(
-            ::mc::text::literal(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName));
+    if (!_isKnownAttribute(attrName) || !attrMap.hasAttribute(attrName)) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(entity->getDisplayName());
+        params.push_back(_attributeDisplayName(attributeId));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.no_attribute", std::move(params)));
         return false;
     }
 
@@ -109,41 +100,25 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 
 bool AttributeCommand::_tryGetAttributeInstance(CommandContext<ServerCommandSource>& context,
     ServerCommandSource& source,
-    const std::string& attrName,
+    const ResourceLocation& attributeId,
     LivingEntity*& outLivingEntity,
     entity::attribute::AttributeInstance*& outInstance)
 {
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, outLivingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, outLivingEntity, attrMap)) {
         return false;
     }
 
-    auto* instance = attrMap->getInstance(attrName);
-    if (instance == nullptr) {
-        source.sendFailure(::mc::text::literal(
-            _getEntityDisplayName(outLivingEntity) + " doesn't have attribute instance for " + attrName));
-        return false;
-    }
-
+    auto* instance = attrMap->getInstance(_normalizeAttributeName(attributeId.toString()));
+    MC_ASSERT_RELEASE(instance != nullptr);
     outInstance = instance;
     return true;
 }
 
-std::string AttributeCommand::_getEntityDisplayName(Entity* entity)
+std::unique_ptr<::mc::text::ITextComponent> AttributeCommand::_attributeDisplayName(const ResourceLocation& attributeId)
 {
-    auto* player = dynamic_cast<Player*>(entity);
-    if (player != nullptr) {
-        return player->username();
-    }
-    if (entity->hasCustomName()) {
-        return entity->customNameText();
-    }
-    return entity->getTypeId();
-}
-
-std::string AttributeCommand::_getEntityDisplayName(LivingEntity* livingEntity)
-{
-    return _getEntityDisplayName(static_cast<Entity*>(livingEntity));
+    // 原版 Attribute.getDescriptionId() = "attribute.name." + path（不使用命名空间前缀）。
+    return ::mc::text::translatable("attribute.name." + attributeId.path());
 }
 
 // ============================================================================
@@ -315,46 +290,47 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
-    f64 value = attrMap->getValue(attrName);
-    i32 result = static_cast<i32>(value);
+    const f64 value = attrMap->getValue(_normalizeAttributeName(attributeId.toString()));
 
-    // commands.attribute.value.get.success = "The value of attribute %s for entity %s is %s"
-    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success",
-                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
+    // 消息里是完整 double（如 0.1），命令返回值才是整数——两者不能混用。
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", value)));
+    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success", std::move(params)), false);
 
-    return result;
+    return static_cast<i32>(value);
 }
 
 i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const f64 scale = context.getArgument<f64>("scale");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
-    f64 value = attrMap->getValue(attrName);
-    i32 result = javaToInt(value * scale);
+    const f64 value = attrMap->getValue(_normalizeAttributeName(attributeId.toString()));
 
-    // commands.attribute.value.get.success = "The value of attribute %s for entity %s is %s"
-    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success",
-                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", value)));
+    source.sendSuccess(::mc::text::translatable("commands.attribute.value.get.success", std::move(params)), false);
 
-    return result;
+    return javaToInt(value * scale);
 }
 
 // ============================================================================
@@ -364,46 +340,46 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
 i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
-    f64 baseValue = attrMap->getBaseValue(attrName);
-    i32 result = static_cast<i32>(baseValue);
+    const f64 baseValue = attrMap->getBaseValue(_normalizeAttributeName(attributeId.toString()));
 
-    // commands.attribute.base_value.get.success
-    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success",
-                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", baseValue)));
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success", std::move(params)), false);
 
-    return result;
+    return static_cast<i32>(baseValue);
 }
 
 i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const f64 scale = context.getArgument<f64>("scale");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
-    f64 baseValue = attrMap->getBaseValue(attrName);
-    i32 result = javaToInt(baseValue * scale);
+    const f64 baseValue = attrMap->getBaseValue(_normalizeAttributeName(attributeId.toString()));
 
-    // commands.attribute.base_value.get.success
-    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success",
-                           {attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", baseValue)));
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.get.success", std::move(params)), false);
 
-    return result;
+    return javaToInt(baseValue * scale);
 }
 
 // ============================================================================
@@ -413,29 +389,23 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
 i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const f64 value = context.getArgument<f64>("value");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attributeId, livingEntity, instance)) {
         return 0;
     }
 
-    // 检查值是否在有效范围内
-    auto [minVal, maxVal] = _getAttributeRange(attrName);
-    if (value < minVal || value > maxVal) {
-        std::ostringstream ss;
-        ss << "Value " << value << " is out of range [" << minVal << ", " << maxVal << "]";
-        source.sendSuccess(::mc::text::literal(ss.str()), false);
-        return 0;
-    }
-
+    // AttributeInstance::setBaseValue 已按属性取值范围钳制，命令层不再重复判断。
     instance->setBaseValue(value);
 
-    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.set.success",
-                           {attrName, _getEntityDisplayName(livingEntity), fmt::format("{}", value)}),
-        false);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", value)));
+    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.set.success", std::move(params)), false);
 
     return 1;
 }
@@ -447,24 +417,30 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
 i32 AttributeCommand::_resetBaseValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
+    const std::string attrName = _normalizeAttributeName(attributeId.toString());
     if (!attrMap->resetBaseValue(attrName)) {
-        source.sendFailure(
-            ::mc::text::literal(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName));
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(livingEntity->getDisplayName());
+        params.push_back(_attributeDisplayName(attributeId));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.no_attribute", std::move(params)));
         return 0;
     }
 
-    f64 resetValue = attrMap->getBaseValue(attrName);
-    source.sendSuccess(::mc::text::translatable("commands.attribute.base_value.reset.success",
-                           {attrName, _getEntityDisplayName(livingEntity), fmt::format("{}", resetValue)}),
-        false);
+    const f64 resetValue = attrMap->getBaseValue(attrName);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", resetValue)));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.attribute.base_value.reset.success", std::move(params)), false);
 
     return 1;
 }
@@ -492,20 +468,24 @@ i32 AttributeCommand::_addModifierImpl(
     CommandContext<ServerCommandSource>& context, entity::attribute::Operation operation)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
     const f64 value = context.getArgument<f64>("value");
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attributeId, livingEntity, instance)) {
         return 0;
     }
 
     // 检查修饰符是否已存在
     if (instance->hasModifier(modifierId)) {
-        source.sendFailure(::mc::text::translatable("commands.attribute.failed.modifier_already_present",
-            {modifierId, attrName, _getEntityDisplayName(livingEntity)}));
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(livingEntity->getDisplayName());
+        params.push_back(_attributeDisplayName(attributeId));
+        params.push_back(::mc::text::literal(modifierId));
+        source.sendFailure(
+            ::mc::text::translatable("commands.attribute.failed.modifier_already_present", std::move(params)));
         return 0;
     }
 
@@ -513,9 +493,11 @@ i32 AttributeCommand::_addModifierImpl(
     entity::attribute::AttributeModifier modifier(modifierId, modifierId, value, operation);
     instance->addModifier(modifier);
 
-    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.add.success",
-                           {modifierId, attrName, _getEntityDisplayName(livingEntity)}),
-        true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(modifierId));
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.add.success", std::move(params)), true);
 
     return 1;
 }
@@ -527,24 +509,29 @@ i32 AttributeCommand::_addModifierImpl(
 i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attributeId, livingEntity, instance)) {
         return 0;
     }
 
     if (!instance->removeModifier(modifierId)) {
-        source.sendFailure(::mc::text::translatable(
-            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(_attributeDisplayName(attributeId));
+        params.push_back(livingEntity->getDisplayName());
+        params.push_back(::mc::text::literal(modifierId));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.no_modifier", std::move(params)));
         return 0;
     }
 
-    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.remove.success",
-                           {modifierId, attrName, _getEntityDisplayName(livingEntity)}),
-        true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(modifierId));
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.remove.success", std::move(params)), true);
 
     return 1;
 }
@@ -556,58 +543,70 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
 i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
+    const std::string attrName = _normalizeAttributeName(attributeId.toString());
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendFailure(::mc::text::translatable(
-            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(_attributeDisplayName(attributeId));
+        params.push_back(livingEntity->getDisplayName());
+        params.push_back(::mc::text::literal(modifierId));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.no_modifier", std::move(params)));
         return 0;
     }
 
-    f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
-    i32 result = static_cast<i32>(modifierValue);
+    const f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(modifierId));
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", modifierValue)));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.attribute.modifier.value.get.success", std::move(params)), false);
 
-    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.value.get.success",
-                           {modifierId, attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
-
-    return result;
+    return static_cast<i32>(modifierValue);
 }
 
 i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string attrName = _normalizeAttributeName(context.getArgument<ResourceLocation>("attribute").toString());
+    const ResourceLocation attributeId = context.getArgument<ResourceLocation>("attribute");
     const std::string modifierId = context.getArgument<ResourceLocation>("id").toString();
     const f64 scale = context.getArgument<f64>("scale");
+    const std::string attrName = _normalizeAttributeName(attributeId.toString());
 
     LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attributeId, livingEntity, attrMap)) {
         return 0;
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendFailure(::mc::text::translatable(
-            "commands.attribute.failed.no_modifier", {attrName, _getEntityDisplayName(livingEntity), modifierId}));
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(_attributeDisplayName(attributeId));
+        params.push_back(livingEntity->getDisplayName());
+        params.push_back(::mc::text::literal(modifierId));
+        source.sendFailure(::mc::text::translatable("commands.attribute.failed.no_modifier", std::move(params)));
         return 0;
     }
 
-    f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
-    i32 result = javaToInt(modifierValue * scale);
+    const f64 modifierValue = attrMap->getModifierValue(attrName, modifierId);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(modifierId));
+    params.push_back(_attributeDisplayName(attributeId));
+    params.push_back(livingEntity->getDisplayName());
+    params.push_back(::mc::text::literal(fmt::format("{}", modifierValue)));
+    source.sendSuccess(
+        ::mc::text::translatable("commands.attribute.modifier.value.get.success", std::move(params)), false);
 
-    source.sendSuccess(::mc::text::translatable("commands.attribute.modifier.value.get.success",
-                           {modifierId, attrName, _getEntityDisplayName(livingEntity), std::to_string(result)}),
-        false);
-
-    return result;
+    return javaToInt(modifierValue * scale);
 }
 
 // ============================================================================
@@ -623,11 +622,6 @@ std::string AttributeCommand::_normalizeAttributeName(const std::string& name)
 bool AttributeCommand::_isKnownAttribute(const std::string& name) noexcept
 {
     return entity::attribute::AttributeRegistry::instance().isKnown(name);
-}
-
-std::pair<f64, f64> AttributeCommand::_getAttributeRange(const std::string& name) noexcept
-{
-    return entity::attribute::AttributeRegistry::instance().getRange(name);
 }
 
 } // namespace command

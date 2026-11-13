@@ -341,6 +341,7 @@ add_library(mc_server_shared OBJECT
     command/support/EffectResolver.cpp
     command/support/EntityResolver.cpp
     command/support/FunctionSuggestionProvider.cpp
+    command/support/ItemSlotAccess.cpp
     command/support/PlayerResolver.cpp
     command/support/SpreadAlgorithm.cpp
     dimension/ServerDimension.cpp

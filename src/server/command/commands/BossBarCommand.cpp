@@ -71,11 +71,13 @@ server::CustomServerBossInfo* _findBossBar(ServerCommandSource& source, const st
 }
 
 /**
- * @brief Boss 栏的显示名（带方括号格式，与原版 CustomBossEvent.getDisplayName 一致）
+ * @brief Boss 栏的显示名（原版 CustomBossEvent.getDisplayName）。
+ *
+ * 方括号由 formattedName() 自己添加（chat.square_brackets），这里不能再包一层。
  */
 std::string _displayName(const server::CustomServerBossInfo& bossInfo)
 {
-    return "[" + bossInfo.formattedName()->getFormattedText() + "]";
+    return bossInfo.formattedName()->getFormattedText();
 }
 
 /**

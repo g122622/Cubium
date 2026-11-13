@@ -1,0 +1,46 @@
+{
+  "id": "execute/store_targets",
+  "title": "execute store 写入 storage / block / bossbar / entity",
+  "category": "execute",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:chest",
+    "/summon minecraft:armor_stand {x} {y+1} {z}",
+    "/bossbar remove e2e:bar",
+    "/bossbar add e2e:bar \"Bar\"",
+    "/tag @e[type=armor_stand,sort=nearest,limit=1] add e2e_store"
+  ],
+  "steps": [
+    {
+      "command": "/execute store result storage e2e:st v int 1 run say store-ok"
+    },
+    {
+      "command": "/data get storage e2e:st v"
+    },
+    {
+      "command": "/execute store result block {x} {y} {z} Foo int 1 run say store-ok"
+    },
+    {
+      "command": "/data get block {x} {y} {z} Foo"
+    },
+    {
+      "command": "/execute store result bossbar e2e:bar value run say store-ok"
+    },
+    {
+      "command": "/bossbar get e2e:bar value"
+    },
+    {
+      "command": "/execute store result bossbar e2e:bar max run say store-ok"
+    },
+    {
+      "command": "/bossbar get e2e:bar max"
+    },
+    {
+      "command": "/execute store result entity @e[tag=e2e_store,limit=1] Invisible byte 1 run say store-ok"
+    },
+    {
+      "command": "/data get entity @e[tag=e2e_store,limit=1] Invisible"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

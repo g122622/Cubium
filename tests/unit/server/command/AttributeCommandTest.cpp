@@ -685,18 +685,24 @@ TEST_F(AttributeCommandTest, EntityLacksSpecificAttributeReturnsZero)
 // 10. 属性值范围检查测试
 // ============================================================================
 
-TEST_F(AttributeCommandTest, SetBaseValueOutOfRangeFails)
+TEST_F(AttributeCommandTest, SetBaseValueOutOfRangeClamps)
 {
     auto zombie = createEntityByType(EntityTypeKeys::ZOMBIE);
     ASSERT_NE(zombie, nullptr);
     zombie->setPosition(0.0f, 64.0f, 0.0f);
     m_server.spawnEntity(std::move(zombie));
 
-    // max_health 范围为 [1.0, 1024.0]，设置 0 应该失败
+    // max_health 范围为 [1.0, 1024.0]；原版 AttributeInstance.setBaseValue 直接钳制到范围内，
+    // 命令本身成功（不在命令层报错）。
     const auto result =
         m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base set 0", m_console);
     EXPECT_TRUE(result.success());
-    EXPECT_EQ(result.value(), 0);
+    EXPECT_EQ(result.value(), 1);
+
+    const auto getResult =
+        m_server.commandRegistry().execute("attribute @e[limit=1] minecraft:max_health base get", m_console);
+    EXPECT_TRUE(getResult.success());
+    EXPECT_EQ(getResult.value(), 1);
 }
 
 TEST_F(AttributeCommandTest, SetBaseValueAtMinBoundarySucceeds)

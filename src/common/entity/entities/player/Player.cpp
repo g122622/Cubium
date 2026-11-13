@@ -91,6 +91,7 @@
 #include "common/util/math/ray/Ray.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/text/StringTextComponent.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/core/Block.hpp"
@@ -321,9 +322,9 @@ void Player::setGameMode(GameMode mode)
         setCameraEntityId(std::nullopt);
     }
 
-    // 同步移动速度到属性系统
-    // PlayerAbilities 是配置层，属性系统是计算层
-    attributes().setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
+    // 移动速度不随游戏模式重设：原版属性基础值始终是注册默认值 0.1（double），
+    // PlayerAbilities.walkingSpeed 只用于实体自身的移动速度字段，写回属性会把 f32 的
+    // 0.1 转成 0.10000000149…，/attribute get 的文本也随之失真。
 
     // 根据游戏模式刷新创造模式交互距离修饰符
     // 对应 MC 1.21.11 ServerPlayer.updatePlayerAttributes()：创造模式 +0.5/+2.0，其他模式移除
@@ -2343,6 +2344,12 @@ void Player::doWaterSplashEffect()
     }
     // 调用父类方法
     Entity::doWaterSplashEffect();
+}
+
+std::unique_ptr<text::ITextComponent> Player::getNameComponent() const
+{
+    // 玩家默认名是登录名，而不是实体类型名 "Player"。
+    return std::make_unique<text::StringTextComponent>(m_username);
 }
 
 // ============================================================================

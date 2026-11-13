@@ -1,0 +1,22 @@
+{
+  "id": "item/replace",
+  "title": "item replace 写入玩家与容器槽位",
+  "category": "item",
+  "setup": [
+    "/clear @s",
+    "/setblock {x} {y} {z} minecraft:chest"
+  ],
+  "steps": [
+    {
+      "command": "/item replace entity @s hotbar.0 with minecraft:stone 5"
+    },
+    {
+      "command": "/item replace block {x} {y} {z} container.0 with minecraft:diamond 1"
+    },
+    {
+      "command": "/data get block {x} {y} {z} Items"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

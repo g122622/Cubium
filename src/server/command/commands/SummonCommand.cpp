@@ -128,9 +128,10 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     });
 
     // /summon <entity> <pos> - 在指定位置生成
-    // 原版位置参数是 Vec3Argument（不做方块中心偏移）：整数坐标就放在整数位置。
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
-        "pos", Vec3ArgumentType::vec3NoCenter());
+    // 原版位置参数是 Vec3Argument.vec3()：绝对整数坐标会补到方块中心（0 → 0.5）。
+    // 不补中心时实体恰好压在两格交界，盔甲架这类窄碰撞箱实体会从支撑方块上滑落。
+    auto posArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _summonEntityAtPosition(ctx);
     });

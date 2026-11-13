@@ -20,6 +20,7 @@ set(MC_SERVER_COMMAND_SOURCES
     command/commands/KillCommand.cpp
     command/commands/ListCommand.cpp
     command/commands/HelpCommand.cpp
+    command/commands/ItemCommand.cpp
     command/commands/SeedCommand.cpp
     command/commands/TeleportCommand.cpp
     command/commands/GiveCommand.cpp

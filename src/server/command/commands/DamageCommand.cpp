@@ -23,16 +23,24 @@
 
 #include "DamageCommand.hpp"
 
+#include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
+#include "common/command/StringReader.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ResourceArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
+#include "common/command/errors/CommandErrors.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTag.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/NumberParsing.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/ComponentFactory.hpp"
+#include "common/util/text/TranslationTextComponent.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
 
@@ -40,6 +48,54 @@
 #include <vector>
 
 namespace mc::command {
+
+namespace {
+
+/**
+ * @brief `/damage` 的伤害类型参数。
+ *
+ * 原版 ResourceArgument 在解析期就查 `minecraft:damage_type` 注册表，未知类型是语法
+ * 错误（`argument.resource.not_found`）；本项目此前只在执行期忽略类型，未知 id 会被
+ * 当成通用伤害静默执行。
+ */
+class DamageTypeArgumentType final : public ArgumentType<ResourceLocation> {
+public:
+    [[nodiscard]] Result<ResourceLocation, CommandError> parse(StringReader& reader) override
+    {
+        auto parsed = readResourceLocationId(reader);
+        if (parsed.failed()) {
+            return parsed;
+        }
+
+        const ResourceLocation id = parsed.value();
+        if (!DamageTypeNames::fromResourceLocation(id).has_value()) {
+            auto message = std::make_shared<::mc::text::TranslationTextComponent>("argument.resource.not_found");
+            message->addParam(::mc::text::literal(id.toString()));
+            message->addParam(::mc::text::literal("minecraft:damage_type"));
+            return CommandError(CommandErrorType::EntityNotFound,
+                std::shared_ptr<const ::mc::text::ITextComponent>(std::move(message)),
+                reader.getCursor());
+        }
+        return id;
+    }
+
+    [[nodiscard]] std::string getTypeName() const override
+    {
+        return "resource";
+    }
+
+    [[nodiscard]] nlohmann::json serializeMetadata() const override
+    {
+        return nlohmann::json{{"registry", "minecraft:damage_type"}};
+    }
+
+    [[nodiscard]] std::vector<std::string> getExamples() const override
+    {
+        return {"minecraft:generic", "minecraft:magic", "minecraft:generic_kill"};
+    }
+};
+
+} // namespace
 
 void DamageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -61,7 +117,7 @@ void DamageCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
 
     // /damage <target> <amount> <damageType> [at <location>|by <entity> [from <cause>]]
     auto damageTypeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ResourceLocation>>(
-        "damageType", std::make_shared<ResourceArgumentType>("minecraft:damage_type", "resource"));
+        "damageType", std::make_shared<DamageTypeArgumentType>());
     damageTypeArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         return _damage(ctx);
     });
@@ -104,39 +160,54 @@ i32 DamageCommand::_damage(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     const f32 amount = context.getArgument<f32>("amount");
-    if (amount <= 0.0f) {
-        source.sendFailure(::mc::text::literal("Damage amount must be positive"));
+
+    Entity* target = support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("target"));
+    if (target == nullptr) {
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
-    auto targets = support::EntityResolver::resolve(source, context.getArgument<EntitySelector>("target"));
-    i32 damaged = 0;
-    for (Entity* entity : targets) {
-        auto* living = dynamic_cast<LivingEntity*>(entity);
-        if (living == nullptr) {
-            continue;
-        }
-        // 原版以命令源实体为伤害来源；无实体（控制台/命令方块）时退化为通用伤害。
-        Entity* attacker = source.entity();
-        if (attacker != nullptr && attacker != entity) {
-            EntityDamageSource damageSource(DamageType::MobAttack, attacker);
-            if (living->hurt(damageSource, amount)) {
-                ++damaged;
+    // 构造伤害来源：原版默认是 generic；给出类型后按 at/by[/from] 依次补齐位置与实体。
+    std::unique_ptr<DamageSource> damageSource = std::make_unique<EnvironmentalDamage>(DamageType::Generic);
+    if (context.hasArgument("damageType")) {
+        const ResourceLocation typeId = context.getArgument<ResourceLocation>("damageType");
+        const auto damageType = DamageTypeNames::fromResourceLocation(typeId);
+        // 解析期已按注册表校验，正常不会缺失；缺失说明注册表与解析器不一致。
+        MC_ASSERT_RELEASE(damageType.has_value());
+
+        if (context.hasArgument("entity")) {
+            Entity* attacker =
+                support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("entity"));
+            MC_ASSERT_RELEASE(attacker != nullptr);
+            if (context.hasArgument("cause")) {
+                Entity* cause =
+                    support::EntityResolver::resolveSingle(source, context.getArgument<EntitySelector>("cause"));
+                MC_ASSERT_RELEASE(cause != nullptr);
+                damageSource = std::make_unique<IndirectEntityDamageSource>(*damageType, attacker, cause, false);
+            } else {
+                damageSource = std::make_unique<EntityDamageSource>(*damageType, attacker);
             }
+        } else if (context.hasArgument("location")) {
+            const Vector3d position = Vec3ArgumentType::getVec3(context, "location", source);
+            damageSource = std::make_unique<EnvironmentalDamage>(*damageType,
+                math::Vector3f(
+                    static_cast<f32>(position.x), static_cast<f32>(position.y), static_cast<f32>(position.z)));
         } else {
-            auto damageSource = DamageSources::generic();
-            if (living->hurt(damageSource, amount)) {
-                ++damaged;
-            }
+            damageSource = std::make_unique<EnvironmentalDamage>(*damageType);
         }
     }
 
-    if (damaged == 0) {
-        source.sendFailure(::mc::text::literal("No entity was damaged"));
+    if (!target->hurt(*damageSource, amount)) {
+        // 创造模式玩家、盔甲架等目标会拒绝该类伤害，原版同样报「invulnerable」。
+        source.sendFailure(::mc::text::translatable("commands.damage.invulnerable"));
         return 0;
     }
-    source.sendSuccess(::mc::text::literal("Applied damage to " + std::to_string(damaged) + " entities"), false);
-    return damaged;
+
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(util::javaFloatToString(amount)));
+    params.push_back(target->getDisplayName());
+    source.sendSuccess(::mc::text::translatable("commands.damage.success", std::move(params)), true);
+    return 1;
 }
 
 } // namespace mc::command

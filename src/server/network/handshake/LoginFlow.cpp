@@ -215,6 +215,11 @@ LoginFlow::PlayerCreationResult LoginFlow::createPlayerForConnection(
     // 不涉及 uuid（仅恢复位置/维度/游戏模式等），故此处回填安全不会被覆盖。
     playerEntity->setUuid(uuidStr);
 
+    // 玩家实体的初始游戏模式必须与 PlayerData 对齐：实体构造时是生存模式，若只更新
+    // PlayerData.gameMode（以及下发给客户端的能力包），服务端实体仍是生存——创造模式的
+    // 无敌、交互距离与移动速度都不会生效，与客户端的显示分叉。存档数据随后会覆盖这里。
+    playerEntity->setGameMode(playerData->gameMode);
+
     // 登录阶段必须先建立玩家维度映射，否则 TeleportConfirm 回来后无法解析玩家所在世界。
     m_server.dimensionManager().playerJoinDimension(playerId, overworld->id());
     result.entityId = playerEntity->id();

@@ -539,7 +539,11 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
     if (c->m_customName) {
         return c->m_customName->deepCopy();
     }
+    return getNameComponent();
+}
 
+std::unique_ptr<text::ITextComponent> Entity::getNameComponent() const
+{
     // 无自定义名时返回实体类型的可翻译默认名（如 entity.minecraft.zombie）。
     // 用翻译组件而不是预先查表的纯文本：语言在渲染/序列化时才决定，且客户端与服务端的
     // 语言可能不同，查表必须留到渲染/序列化时进行。

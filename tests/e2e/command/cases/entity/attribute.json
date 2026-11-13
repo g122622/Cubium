@@ -1,0 +1,22 @@
+{
+  "id": "entity/attribute",
+  "title": "属性的查询与基础值设置",
+  "category": "entity",
+  "steps": [
+    {
+      "command": "/attribute @s minecraft:movement_speed get"
+    },
+    {
+      "command": "/attribute @s minecraft:movement_speed base set 0.2"
+    },
+    {
+      "command": "/attribute @s minecraft:movement_speed base get"
+    },
+    {
+      "command": "/attribute @s minecraft:movement_speed get"
+    }
+  ],
+  "probes": [],
+  "knownDiffs": [],
+  "setup": []
+}

@@ -12,7 +12,9 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY CLAIM, DAMAGES OR OTHER
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -21,8 +23,6 @@
 
 #include "ReplaceItemCommand.hpp"
 
-#include "common/command/CommandContext.hpp"
-#include "common/command/CommandDispatcher.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
@@ -31,41 +31,22 @@
 #include "common/command/arguments/ItemSlotArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
-#include "common/entity/entities/passive/horse/AbstractHorseEntity.hpp"
-#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
-#include "common/entity/inventory/AbstractContainerMenu.hpp"
-#include "common/entity/inventory/InventorySlotMapping.hpp"
-#include "common/entity/inventory/PlayerEnderChestInventory.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
-#include "common/entity/inventory/Slot.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include "common/network/ir/IrPacket.hpp"
-#include "common/network/ir/ItemStackBridge.hpp"
-#include "common/network/ir/packets/play/ItemStackView.hpp"
-#include "common/network/ir/packets/play/PlayPackets.hpp"
-#include "common/network/protocol/ConnectionProtocol.hpp"
-#include "common/util/math/Vector3.hpp"
 #include "common/util/text/ComponentFactory.hpp"
-#include "common/world/IWorld.hpp"
+#include "common/util/text/ComponentUtils.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
-#include "server/application/IServer.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/interaction/InventoryManager.hpp"
-#include "server/network/outbound/PacketSender.hpp"
-#include "server/player/ServerPlayer.hpp"
-#include "server/player/lifecycle/PlayerManager.hpp"
-#include "server/player/runtime/ServerPlayerData.hpp"
+#include "server/command/support/ItemSlotAccess.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
 
-#include <cstddef>
+#include <algorithm>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -75,280 +56,29 @@ namespace command {
 
 namespace {
 
-/**
- * @brief 同步玩家背包到客户端
- */
-void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId)
+/// 物品堆的显示名（原版 ItemStack.getDisplayName：方括号包裹的名称）。
+std::unique_ptr<::mc::text::ITextComponent> _itemDisplayName(const ItemStack& stack)
 {
-    // 统一走 InventoryManager 的下发出口。它按玩家背包菜单构造全量内容（含 2x2 合成格、
-    // 合成结果槽与副手槽——这些槽位在 PlayerInventory 里没有对应项），并带上服务端权威光标。
-    // 命令里各自手搓一份只会退化成「只发 PlayerInventory」，把合成格整片抹掉。
-    auto* server = source.server();
-    if (server == nullptr) {
-        return;
-    }
-    server->inventoryManager().syncToClient(playerId);
+    auto name = stack.isEmpty() ? ::mc::text::translatable("block.minecraft.air")
+                                : ::mc::text::translatable(stack.getItem()->getTranslationKey());
+    return ::mc::text::ComponentUtils::wrapInSquareBrackets(std::move(name));
 }
 
-/**
- * @brief 在实体物品栏中设置指定槽位的物品
- *
- * 处理玩家背包槽位、装备槽位、末影箱槽位和马匹槽位的映射，以及槽位有效性验证。
- *
- * @return 是否设置成功
- */
-bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const ItemSlot& slot, const ItemStack& stack)
+/// 按命令参数构造物品堆；air 表示空堆（清空槽位）。
+ItemStack _createStack(const ItemInput& input, i32 count)
 {
-    auto* server = source.server();
-    if (server == nullptr) {
-        return false;
+    if (input.isAir()) {
+        return ItemStack();
     }
-
-    // 经 support::resolvePlayerInventory 取背包：优先 InventoryManager（真实玩家网络层权威背包），回退实体层
-    // Player::m_inventory（SimulatedPlayer 权威背包，不在 InventoryManager 注册）。此前直接用
-    // server->playerInventory（仅 InventoryManager）对 SimulatedPlayer 返 nullptr 致 /replaceitem 失效。
-    PlayerInventory* inventory = support::resolvePlayerInventory(source, playerId);
-    if (inventory == nullptr) {
-        return false;
-    }
-
-    // 装备槽位 (98-106)：需要映射到玩家背包的装备区
-    if (slot.isEquipmentSlot()) {
-        // weapon.mainhand (98) 需要获取当前选中的快捷栏槽位
-        i32 selectedSlot = inventory->getSelectedSlot();
-        i32 invSlot = slot.toPlayerInventorySlot(selectedSlot);
-        if (invSlot < 0 || invSlot >= InventorySlots::TOTAL_SIZE) {
-            return false;
-        }
-        inventory->setItem(invSlot, stack);
-        return true;
-    }
-
-    // 玩家背包槽位 (0-40)：直接设置
-    if (slot.isPlayerInventorySlot()) {
-        i32 invSlot = slot.slotIndex();
-        if (invSlot < 0 || invSlot >= InventorySlots::TOTAL_SIZE) {
-            return false;
-        }
-        inventory->setItem(invSlot, stack);
-        return true;
-    }
-
-    // 末影箱槽位 (200-226)：通过 Player 实体访问末影箱物品栏
-    if (slot.isEnderChestSlot()) {
-        auto* world = source.world();
-        if (world == nullptr) {
-            source.sendFailure(::mc::text::literal("No world available for ender chest access"));
-            return false;
-        }
-        auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (playerEntity == nullptr) {
-            source.sendFailure(::mc::text::literal("Player entity not found for ender chest access"));
-            return false;
-        }
-        auto& enderChest = playerEntity->enderChestInventory();
-        i32 enderSlot = slot.toEnderChestSlot();
-        if (enderSlot < 0 || enderSlot >= enderChest.getContainerSize()) {
-            source.sendFailure(::mc::text::literal("Ender chest slot index out of range"));
-            return false;
-        }
-        enderChest.setItem(enderSlot, stack);
-        return true;
-    }
-
-    // 马匹槽位 (500-514) 与合成槽位 (500-503) 编号重叠：玩家无法承载马匹槽位，
-    // 500-503 落到下方合成槽位分支报"未支持"，504 以上落入"未知槽位"返回 false。
-
-    // 玩家光标槽位 (499)：访问当前打开的容器菜单的 carried item，
-    // 若无打开的容器菜单则使用 PlayerInventory 的 carried item。
-    // 注意：player.cursor (499) 与 horse.chest (499) 编号重叠。玩家目标的 499 是光标槽位；
-    // 马匹目标的 499 在 AbstractHorse.getSlot 中不存在（马匹库存从 500 起），由实体槽位判定返回未命中。
-    if (slot.isCursorSlot()) {
-        auto* world = source.world();
-        if (world == nullptr) {
-            source.sendFailure(::mc::text::literal("No world available for cursor slot access"));
-            return false;
-        }
-        auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
-        if (playerEntity == nullptr) {
-            source.sendFailure(::mc::text::literal("Player entity not found for cursor slot access"));
-            return false;
-        }
-
-        // 优先使用当前打开的容器菜单的 carried item（与 MC 原版 containerMenu.getCarried() 一致）
-        auto* openMenu = playerEntity->openContainerMenu();
-        if (openMenu != nullptr) {
-            openMenu->setCarriedItem(stack);
-        } else {
-            // 无打开的容器菜单时，使用 PlayerInventory 的 carried item
-            playerEntity->inventory().setCarriedItem(stack);
-        }
-        return true;
-    }
-
-    // 合成槽位 (500-503)：需要访问玩家的合成容器
-    // TODO: 当永久合成菜单（InventoryCraftingMenu）集成到 Player 后实现
-    if (slot.isCraftingSlot()) {
-        source.sendFailure(::mc::text::literal("Crafting slots are not yet supported"));
-        return false;
-    }
-
-    // 村民槽位 (300-307) 不存在于玩家自身：落入下方"未知槽位"返回 false，
-    // 由各实体自身的槽位判定（setNonPlayerEntitySlotItem）决定是否写入。
-
-    // 未知槽位
-    return false;
+    const Item* item = input.getItem();
+    MC_ASSERT_RELEASE(item != nullptr);
+    return ItemStack(item, std::min(count, item->maxStackSize()));
 }
 
-/**
- * @brief 描述槽位名称（用于反馈消息）
- */
-[[nodiscard]] std::string describeSlot(const ItemSlot& slot)
+/// 读取数量参数；缺省 1。
+i32 _requestedCount(CommandContext<ServerCommandSource>& context)
 {
-    i32 idx = slot.slotIndex();
-    // 常用槽位提供友好名称
-    switch (idx) {
-        case 98:
-            return "weapon.mainhand";
-        case 99:
-            return "weapon.offhand";
-        case 100:
-            return "armor.head";
-        case 101:
-            return "armor.chest";
-        case 102:
-            return "armor.legs";
-        case 103:
-            return "armor.feet";
-        case 105:
-            return "armor.body";
-        case 106:
-            return "saddle";
-        default:
-            break;
-    }
-    // 末影箱槽位
-    if (slot.isEnderChestSlot()) {
-        return "enderchest." + std::to_string(idx - 200);
-    }
-    // 马匹槽位
-    if (slot.isHorseSlot()) {
-        return "horse." + std::to_string(idx - 500);
-    }
-    // 马匹箱子槽位
-    if (slot.isHorseChestSlot()) {
-        return "horse.chest";
-    }
-    // 合成槽位
-    if (slot.isCraftingSlot()) {
-        return "player.crafting." + std::to_string(idx - 500);
-    }
-    // 村民槽位
-    if (slot.isVillagerSlot()) {
-        return "villager." + std::to_string(idx - 300);
-    }
-    return std::to_string(idx);
-}
-
-/**
- * @brief 在方块容器中设置指定槽位的物品
- *
- * @return 是否设置成功
- */
-bool setBlockSlotItem(
-    server::ServerWorld* world, const BlockPos& pos, i32 slotIndex, const ItemStack& stack, ServerCommandSource& source)
-{
-    if (world == nullptr) {
-        return false;
-    }
-
-    BlockEntity* blockEntity = world->getBlockEntity(pos);
-    if (blockEntity == nullptr) {
-        source.sendFailure(::mc::text::literal("No block entity at the specified position"));
-        return false;
-    }
-
-    auto* container = dynamic_cast<ContainerBlockEntity*>(blockEntity);
-    if (container == nullptr) {
-        source.sendFailure(::mc::text::literal("The block at the specified position is not a container"));
-        return false;
-    }
-
-    IInventory* inventory = container->getInventory();
-    if (inventory == nullptr) {
-        source.sendFailure(::mc::text::literal("The container has no inventory"));
-        return false;
-    }
-
-    // 验证槽位范围
-    if (slotIndex < 0 || slotIndex >= inventory->getContainerSize()) {
-        std::ostringstream ss;
-        ss << "Slot " << slotIndex << " is out of range (0-" << (inventory->getContainerSize() - 1) << ")";
-        source.sendFailure(::mc::text::literal(ss.str()));
-        return false;
-    }
-
-    inventory->setItem(slotIndex, stack);
-    inventory->setChanged();
-    return true;
-}
-
-/**
- * @brief 按槽位编号把物品写入实体自身槽位（对齐 vanilla /item replace entity → Entity.getSlot）
- *
- * 非玩家实体的槽位编号与玩家相同：
- * - 98-106 装备槽（LivingEntity.getSlot → createEquipmentSlotAccess）
- * - 500-514 马匹库存（AbstractHorse.getSlot → inventory.getSlot(i)，i = 槽位 - 500，含箱马箱子）
- * - 300-307 村民交易库存（AbstractVillager.getSlot → inventory.getSlot(i)，i = 槽位 - 300）
- * 优先顺序与 getSlot 覆写链一致：装备先于动物库存，马匹先于村民；槽位在实体上不存在时返回 false。
- *
- * @return 是否写入成功（槽位不存在或物品不符合该槽位规则时为 false）
- */
-bool setNonPlayerEntitySlotItem(Entity& entity, const ItemSlot& slot, const ItemStack& stack)
-{
-    const i32 slotIndex = slot.slotIndex();
-
-    if (slot.isEquipmentSlot()) {
-        auto* living = dynamic_cast<LivingEntity*>(&entity);
-        if (living == nullptr) {
-            return false;
-        }
-        const i32 enumIndex = slot.toEquipmentSlotIndex();
-        if (enumIndex < 0 || enumIndex >= static_cast<i32>(EquipmentSlot::Count)) {
-            // 100/101/102/103/105 之外的装备槽（如 104 不存在）在 vanilla 无对应槽位。
-            return false;
-        }
-        living->setEquipment(static_cast<EquipmentSlot>(enumIndex), stack);
-        return true;
-    }
-
-    if (auto* horse = dynamic_cast<AbstractHorseEntity*>(&entity)) {
-        const i32 horseSlot = slot.isHorseSlot() ? slot.toHorseSlot() : -1;
-        if (horseSlot >= 0 && horseSlot < horse->getInventorySize()) {
-            // 空物品表示清空槽位；非空时按鞍/马铠规则校验（对齐 AbstractHorse.replaceItemInInventory）。
-            if (!stack.isEmpty() && !horse->canEquip(stack, horseSlot)) {
-                return false;
-            }
-            horse->setEquipment(horseSlot, stack);
-            return true;
-        }
-    }
-
-    if (slot.isVillagerSlot()) {
-        auto* villager = dynamic_cast<entity::AbstractVillagerEntity*>(&entity);
-        if (villager == nullptr) {
-            return false;
-        }
-        const i32 villagerSlot = slot.toVillagerSlot();
-        if (villagerSlot < 0 || villagerSlot >= villager->inventory().getContainerSize()) {
-            return false;
-        }
-        villager->inventory().setItem(villagerSlot, stack);
-        return true;
-    }
-
-    // 槽位在实体上不存在：对齐 vanilla getSlot 返回 null（若该实体不是玩家则无其它兜底槽位）。
-    return false;
+    return context.hasArgument("count") ? context.getArgument<i32>("count") : 1;
 }
 
 } // namespace
@@ -417,193 +147,96 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
 {
     auto& source = context.getSource();
 
-    // 解析参数
     const EntitySelector& selector = context.getArgument<EntitySelector>("targets");
     const ItemSlot slot = context.getArgument<ItemSlot>("slot");
-    const ItemInput itemInput = context.getArgument<ItemInput>("item");
+    const ItemStack stack = _createStack(context.getArgument<ItemInput>("item"), _requestedCount(context));
 
-    // 验证物品
-    if (!itemInput.isValid()) {
-        source.sendFailure(::mc::text::literal("Invalid item"));
-        return 0;
-    }
-
-    // air 物品特判：vanilla /replaceitem ... air 用空堆清空槽位。Cubium 的 air 是普通物品，
-    // 若直接构造 ItemStack(air, count) 会塞入非空 air 堆而非清空。故 air 时用空堆。
-    const bool isAirClear = itemInput.isAir();
-    const Item* item = itemInput.getItem();
-    if (!isAirClear && item == nullptr) {
-        source.sendFailure(::mc::text::literal("Unknown item"));
-        return 0;
-    }
-
-    // 获取数量（默认为 1）
-    i32 count = 1;
-    if (context.hasArgument("count")) {
-        count = context.getArgument<i32>("count");
-    }
-
-    // 限制数量不超过物品最大堆叠（air 清空不适用）
-    if (!isAirClear) {
-        const i32 maxStack = item->maxStackSize();
-        if (count > maxStack) {
-            count = maxStack;
-        }
-    }
-
-    // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /item replace entity ... air）
-    const ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
-
-    // 解析目标实体：对齐 vanilla ItemCommands.setEntityItem 的 Collection<Entity> 语义，
-    // @e 可命中马匹（500-514 库存）、村民（300-307 交易栏）等非玩家实体。
-    const std::vector<Entity*> targets = support::EntityResolver::resolve(source, selector);
+    std::vector<Entity*> targets = support::EntityResolver::resolve(source, selector);
     if (targets.empty()) {
-        source.sendFailure(::mc::text::literal("No entities matched the selector"));
+        source.sendFailure(::mc::text::translatable("argument.entity.notfound.entity"));
         return 0;
     }
 
-    // 验证槽位有效性
-    if (!slot.isValid()) {
-        source.sendFailure(::mc::text::literal("Invalid slot"));
-        return 0;
-    }
-
-    // 玩家槽位之外的槽位只可能存在于非玩家实体（马匹/村民）上，但玩家自身也可能作为
-    // @e 目标；两者都按同一套「槽位在实体上是否存在」判定处理。
-    std::vector<Entity*> changedEntities;
+    std::vector<Entity*> changed;
     for (Entity* entity : targets) {
         if (entity == nullptr || entity->isRemoved()) {
             continue;
         }
 
         bool success = false;
-        auto* playerEntity = dynamic_cast<Player*>(entity);
-        if (playerEntity != nullptr) {
-            const PlayerId playerId = playerEntity->playerId();
-            success = setEntitySlotItem(source, playerId, slot, stack);
+        if (auto* player = dynamic_cast<Player*>(entity); player != nullptr) {
+            success = support::setPlayerSlotItem(source, player->playerId(), slot, stack);
             if (success) {
-                syncInventoryToClient(source, playerId);
+                support::syncPlayerInventoryToClient(source, player->playerId());
             }
         } else {
-            success = setNonPlayerEntitySlotItem(*entity, slot, stack);
+            success = support::setNonPlayerEntitySlotItem(*entity, slot, stack);
         }
 
         if (success) {
-            changedEntities.push_back(entity);
+            changed.push_back(entity);
         }
     }
 
-    // 对齐 vanilla：无任何实体槽位被写入时报错（ERROR_TARGET_NO_CHANGES_KNOWN_ITEM）。
-    if (changedEntities.empty()) {
-        source.sendFailure(::mc::text::literal("No entities had slot " + describeSlot(slot) + " to replace"));
+    if (changed.empty()) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(_itemDisplayName(stack));
+        params.push_back(::mc::text::literal(std::to_string(slot.slotIndex())));
+        source.sendFailure(::mc::text::translatable("commands.item.target.no_changed.known_item", std::move(params)));
         return 0;
     }
 
-    // 反馈消息（对齐 vanilla commands.item.entity.set.success.single / .multiple 语义）。
-    std::unique_ptr<::mc::text::ITextComponent> itemComponent =
-        item != nullptr ? ::mc::text::translatable(item->getTranslationKey()) : ::mc::text::literal("air");
-    if (changedEntities.size() == 1) {
-        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
-        args.push_back(changedEntities.front()->getDisplayName());
-        args.push_back(std::move(itemComponent));
-        source.sendSuccess(::mc::text::translatable("commands.item.entity.set.success.single", std::move(args)), true);
-    } else {
-        std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
-        args.push_back(::mc::text::literal(std::to_string(changedEntities.size())));
-        args.push_back(std::move(itemComponent));
+    if (changed.size() == 1) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(changed.front()->getDisplayName());
+        params.push_back(_itemDisplayName(stack));
         source.sendSuccess(
-            ::mc::text::translatable("commands.item.entity.set.success.multiple", std::move(args)), true);
+            ::mc::text::translatable("commands.item.entity.set.success.single", std::move(params)), true);
+    } else {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(changed.size())));
+        params.push_back(_itemDisplayName(stack));
+        source.sendSuccess(
+            ::mc::text::translatable("commands.item.entity.set.success.multiple", std::move(params)), true);
     }
 
-    return static_cast<i32>(changedEntities.size());
+    return static_cast<i32>(changed.size());
 }
 
 i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    // 解析参数
     const Vector3i blockPos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     const ItemSlot slot = context.getArgument<ItemSlot>("slot");
-    const ItemInput itemInput = context.getArgument<ItemInput>("item");
+    const ItemStack stack = _createStack(context.getArgument<ItemInput>("item"), _requestedCount(context));
 
-    // 验证物品
-    if (!itemInput.isValid()) {
-        source.sendFailure(::mc::text::literal("Invalid item"));
+    const BlockPos pos(blockPos.x, blockPos.y, blockPos.z);
+    auto* world = source.world();
+    MC_ASSERT_RELEASE(world != nullptr);
+
+    auto* container = dynamic_cast<ContainerBlockEntity*>(world->getBlockEntity(pos));
+    if (container == nullptr) {
+        std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+        params.push_back(::mc::text::literal(std::to_string(pos.x)));
+        params.push_back(::mc::text::literal(std::to_string(pos.y)));
+        params.push_back(::mc::text::literal(std::to_string(pos.z)));
+        source.sendFailure(::mc::text::translatable("commands.item.target.not_a_container", std::move(params)));
         return 0;
     }
 
-    // air 物品特判：vanilla /replaceitem ... air 用空堆清空槽位。
-    const bool isAirClear = itemInput.isAir();
-    const Item* item = itemInput.getItem();
-    if (!isAirClear && item == nullptr) {
-        source.sendFailure(::mc::text::literal("Unknown item"));
+    if (!support::setBlockContainerSlot(*world, pos, slot.slotIndex(), stack)) {
+        source.sendFailure(
+            ::mc::text::translatableEscape("commands.item.target.no_such_slot", std::to_string(slot.slotIndex())));
         return 0;
     }
 
-    // 获取数量（默认为 1）
-    i32 count = 1;
-    if (context.hasArgument("count")) {
-        count = context.getArgument<i32>("count");
-    }
-
-    // 限制数量不超过物品最大堆叠（air 清空不适用）
-    if (!isAirClear) {
-        const i32 maxStack = item->maxStackSize();
-        if (count > maxStack) {
-            count = maxStack;
-        }
-    }
-
-    // 验证槽位有效性
-    if (!slot.isValid()) {
-        source.sendFailure(::mc::text::literal("Invalid slot"));
-        return 0;
-    }
-
-    // 对于方块容器，只接受 container.N 格式或纯数字格式的槽位
-    i32 slotIndex = slot.slotIndex();
-    // 允许的槽位范围：0-53 (container slots), 0-40 也可以（如果槽位编号小于容器大小）
-    // 装备槽位、末影箱槽位、马匹槽位、合成槽位、光标槽位、村民槽位不适用于方块容器
-    if (slot.isEquipmentSlot() || slot.isEnderChestSlot() || slot.isHorseSlot() || slot.isHorseChestSlot() ||
-        slot.isCraftingSlot() || slot.isCursorSlot() || slot.isVillagerSlot()) {
-        source.sendFailure(::mc::text::literal("Slot " + describeSlot(slot) + " is not valid for block containers"));
-        return 0;
-    }
-
-    // 槽位索引必须是非负整数
-    if (slotIndex < 0) {
-        source.sendFailure(::mc::text::literal("Invalid slot index for block container"));
-        return 0;
-    }
-
-    // 获取世界和方块实体
-    server::ServerWorld* world = source.world();
-    if (world == nullptr) {
-        source.sendFailure(::mc::text::literal("No world available"));
-        return 0;
-    }
-
-    BlockPos pos(blockPos.x, blockPos.y, blockPos.z);
-
-    // 创建物品堆（air 时用空堆清空槽位，对齐 vanilla /replaceitem ... air）
-    ItemStack stack = isAirClear ? ItemStack() : ItemStack(item, count);
-
-    // 设置物品到方块容器
-    bool success = setBlockSlotItem(world, pos, slotIndex, stack, source);
-    if (!success) {
-        return 0;
-    }
-
-    // 发送反馈消息：commands.item.block.set.success = "Replaced a slot at %s, %s, %s with %s"
-    std::unique_ptr<::mc::text::ITextComponent> itemComponent =
-        item != nullptr ? ::mc::text::translatable(item->getTranslationKey()) : ::mc::text::literal("air");
-    std::vector<std::unique_ptr<::mc::text::ITextComponent>> args;
-    args.push_back(::mc::text::literal(std::to_string(blockPos.x)));
-    args.push_back(::mc::text::literal(std::to_string(blockPos.y)));
-    args.push_back(::mc::text::literal(std::to_string(blockPos.z)));
-    args.push_back(std::move(itemComponent));
-    source.sendSuccess(::mc::text::translatable("commands.item.block.set.success", std::move(args)), true);
+    std::vector<std::unique_ptr<::mc::text::ITextComponent>> params;
+    params.push_back(::mc::text::literal(std::to_string(pos.x)));
+    params.push_back(::mc::text::literal(std::to_string(pos.y)));
+    params.push_back(::mc::text::literal(std::to_string(pos.z)));
+    params.push_back(_itemDisplayName(stack));
+    source.sendSuccess(::mc::text::translatable("commands.item.block.set.success", std::move(params)), true);
 
     return 1;
 }
