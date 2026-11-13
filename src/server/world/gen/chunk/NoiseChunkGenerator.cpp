@@ -167,6 +167,8 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_selectStructureStart(
     WorldGenRegion& region, const world::gen::structure::StructureSet& structureSet, i32 chunkX, i32 chunkZ)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "_selectStructureStart", "x", chunkX, "z", chunkZ);
+
     // 加权选择 + 失败回退重抽。
     // 参考: ChunkGenerator.createStructures()
     //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
@@ -272,6 +274,8 @@ NoiseChunkGenerator::StructureSelection NoiseChunkGenerator::_generateStructureS
     i32 chunkX,
     i32 chunkZ)
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "GenerateStructureStartsForSet", "x", chunkX, "z", chunkZ);
+
     // 单条目结构集：原版直接尝试生成，不做加权抽签（也就不消耗抽签随机数）。
     // 多条目结构集走 _selectStructureStart 的「抽签 — 失败剔除 — 重抽」。
     if (!placementState.isStructureChunk(structureSet, chunkX, chunkZ)) {
@@ -296,37 +300,46 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
     // 排斥区要问「另一个结构集在附近有没有落点」，单个放置规则看不到别的结构集。
     world::gen::structure::StructurePlacementState placementState(*m_biomeSource, static_cast<i64>(m_seed));
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
-    for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
-        if (structureSetPtr) {
-            // 群系不相交的结构集在这里被滤掉，与原版的快速预过滤同一口径。
-            placementState.addStructureSet(*structureSetPtr);
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "AddStructureSets", "x", chunk.x(), "z", chunk.z());
+        for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
+            if (structureSetPtr) {
+                // 群系不相交的结构集在这里被滤掉，与原版的快速预过滤同一口径。
+                placementState.addStructureSet(*structureSetPtr);
+            }
         }
     }
 
-    for (const auto* structureSet : placementState.structureSets()) {
-        // 已有同结构集的有效起点时不重复生成（原版 createStructures 开头的前置检查）。
-        bool hasExistingStart = false;
-        for (const auto& entry : structureSet->entries()) {
-            auto* existingStart = chunk.getStructureStart(entry.structureId);
-            if (existingStart && existingStart->isValid()) {
-                hasExistingStart = true;
-                break;
+    // 生成结构起点
+    {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.World.ChunkGen, "GenerateStructureStartsForSets", "x", chunk.x(), "z", chunk.z());
+        for (const auto* structureSet : placementState.structureSets()) {
+            // 已有同结构集的有效起点时不重复生成（原版 createStructures 开头的前置检查）。
+            bool hasExistingStart = false;
+            for (const auto& entry : structureSet->entries()) {
+                auto* existingStart = chunk.getStructureStart(entry.structureId);
+                if (existingStart && existingStart->isValid()) {
+                    hasExistingStart = true;
+                    break;
+                }
             }
-        }
-        if (hasExistingStart) {
-            continue;
-        }
+            if (hasExistingStart) {
+                continue;
+            }
 
-        auto selection = _generateStructureStartsForSet(region, placementState, *structureSet, chunkX, chunkZ);
-        if (selection.start != nullptr) {
-            chunk.addStructureStart(selection.structureId,
-                std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(selection.start)));
+            auto selection = _generateStructureStartsForSet(region, placementState, *structureSet, chunkX, chunkZ);
+            if (selection.start != nullptr) {
+                chunk.addStructureStart(selection.structureId,
+                    std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(selection.start)));
+            }
         }
     }
 
     // 通知 StructureCheck 缓存此区块的结构引用数据
-    // 对齐 MC 1.21.11 ServerLevel.onStructureStartsAvailable() 通过 structureCheck.onStructureLoad() 的调用
     {
+        MC_TRACE_SCOPED_EVENT(
+            TraceEvents.World.ChunkGen, "StructureCheckOnStructureLoad", "x", chunk.x(), "z", chunk.z());
         auto& structureCheck = m_structureManager->structureCheck();
         const u64 chunkPosId =
             (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u64>(static_cast<u32>(chunkZ));
@@ -790,15 +803,17 @@ BiomeId NoiseChunkGenerator::getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) c
 
 i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getHeight", "x", x, "z", z);
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
-    // 【必须走完整地形列】原版 `ChunkGenerator.getBaseHeight` 是
-    //   `getBaseColumn(x, z).getFirstAvailable(...) - 1`
-    // 即先求出**整列**方块状态，再找第一格满足高度图判据的位置。此前这里是自上而下
-    // 逐格重算密度、遇到第一个匹配就返回：凡是匹配地块上方仍有不匹配地块的列
-    // （叶簇、积雪、水面之上的薄层……）都会过早命中而偏低。末地城的 5x5 采样列落在
-    // 浮空岛上，整座城因此比原版低一格（差分能力 structure_starts 暴露）。
-    // 逐格早退只在上方全不匹配时与整列等价，这类偏差靠表现层几乎无法反推。
+    // 高度图语义：自上而下第一个满足判据的方块的 Y+1。这里必须使用**插值后的整列**
+    // （`getBaseColumn` 走 CellCache + NoiseInterpolator），不能逐格直接求 finalDensity：
+    // 直接求值绕过三线性插值，与区块实际生成结果不同，末地城曾因此整体低一格
+    // （差分能力 structure_starts 暴露）。
+    // 整列扫描与原版 `getBaseHeight`（iterateNoiseColumn + 判据早退）的结果等价，区别只在
+    // 原版把判据放在插值循环内部、命中即返回，本实现先把整列算完再自顶向下扫描。
+    // TODO: 按原版形态把判据下沉进 getBaseColumn 的插值循环并在命中时提前结束，可省掉
+    //       地表以下约 1/3 的 cell 填充与逐方块材质计算（角点 slice 仍需整列计算）。
     const NoiseColumn column = getBaseColumn(x, z);
     for (i32 y = column.minY() + column.height() - 1; y >= column.minY(); --y) {
         const BlockState* state = column.getBlock(y);
@@ -811,6 +826,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn");
+
     if (!m_randomState) {
         return NoiseColumn(m_settings.noise.minY, m_settings.noise.height);
     }
@@ -838,22 +855,29 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 
     // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
     // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
-        cellWidth,
-        cellHeight,
-        cellCountY,
-        alignedX,
-        minY,
-        alignedZ,
-        std::move(beardifier),
-        1); // cellCountXZ = 1 for single-column query
+    std::unique_ptr<world::gen::density::NoiseChunk> noiseChunk;
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn::Prepare");
+        noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
+            cellWidth,
+            cellHeight,
+            cellCountY,
+            alignedX,
+            minY,
+            alignedZ,
+            std::move(beardifier),
+            1); // cellCountXZ = 1 for single-column query
 
-    // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
-    _configureNoiseChunkMaterials(
-        *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
+        // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
+        _configureNoiseChunkMaterials(
+            *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
+    }
 
-    noiseChunk->initializeForFirstCellX();
-    noiseChunk->advanceCellX(0);
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn::SliceFill");
+        noiseChunk->initializeForFirstCellX();
+        noiseChunk->advanceCellX(0);
+    }
 
     // MC 1.21: allocate BlockState[] array for the full column
     NoiseColumn column(minY, noise.height);

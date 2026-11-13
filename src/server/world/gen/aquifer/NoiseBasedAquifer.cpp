@@ -23,6 +23,8 @@
 #include "NoiseBasedAquifer.hpp"
 #include "FluidStatus.hpp"
 #include "common/core/Types.hpp"
+#include "common/profiler/TraceCategories.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -77,11 +79,15 @@ NoiseBasedAquifer::NoiseBasedAquifer(const density::NoiseChunk& noiseChunk,
     m_aquiferStatusCache.resize(totalSize);
     m_aquiferStatusComputed.resize(totalSize, false);
 
-    const i32 maxSurfaceLevel = m_noiseChunk.maxPreliminarySurfaceLevel(fromGridX(m_minGridX, 0),
-                                    fromGridZ(m_minGridZ, 0),
-                                    fromGridX(maxGridX, X_RANGE - 1),
-                                    fromGridZ(maxGridZ, Z_RANGE - 1)) +
-        8;
+    const i32 maxSurfaceLevel = [&]() {
+        MC_TRACE_SCOPED_EVENT(
+            ::mc::trace::TraceEvents.World.ChunkGen, "NoiseBasedAquifer::ctor::MaxPreliminarySurface");
+        return m_noiseChunk.maxPreliminarySurfaceLevel(fromGridX(m_minGridX, 0),
+                   fromGridZ(m_minGridZ, 0),
+                   fromGridX(maxGridX, X_RANGE - 1),
+                   fromGridZ(maxGridZ, Z_RANGE - 1)) +
+            8;
+    }();
     const i32 skipGridY = gridY(maxSurfaceLevel + 12) + 1;
     m_skipSamplingAboveY = fromGridY(skipGridY, Y_RANGE + 2) - 1;
 }

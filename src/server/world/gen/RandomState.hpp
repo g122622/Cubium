@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/cache/Long2IntLRUCache.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
 #include "server/world/gen/density/NoiseRouter.hpp"
@@ -164,6 +165,22 @@ public:
         return m_worldSeed;
     }
 
+    /**
+     * @brief 维度级 preliminarySurfaceLevel 记忆（4 方块对齐的列 → 表面高度）
+     *
+     * `NoiseChunk::samplePreliminarySurfaceLevel` 在区块级还有一层同键缓存，但高度查询
+     * （`getBaseHeight`/`getBaseColumn`）每次都会新建一个单列 NoiseChunk，该层缓存随之作废；
+     * 而含水层构造要对**区块外扩一圈**的 4 方块网格逐列采样（主世界 11×11 = 121 次），
+     * 同一区块的每个高度查询都会把这 121 次重算一遍。这里按维度（种子 + 设置固定）做第二层缓存，
+     * 把这份纯函数的开销摊到全进程一次。
+     *
+     * 线程安全：LRU 自带互斥锁；不同世界/维度的 RandomState 各自持有，键域不含种子，不会串味。
+     */
+    [[nodiscard]] Long2IntLRUCache& preliminarySurfaceLevelCache() const
+    {
+        return m_preliminarySurfaceLevelCache;
+    }
+
     // === MC 1.21 噪声/随机工厂缓存 ===
 
     /**
@@ -244,6 +261,10 @@ private:
 
     // 位置随机工厂缓存（name → PositionalRandomFactory）
     std::unordered_map<std::string, std::unique_ptr<::mc::math::PositionalRandomFactory>> m_randomFactoryCache;
+
+    /// preliminarySurfaceLevel 维度级记忆（键 = 4 方块对齐列的打包坐标）。
+    /// 容量按 121 条/区块估算，65536 条覆盖约 540 个区块的采样范围，约数 MB。
+    mutable Long2IntLRUCache m_preliminarySurfaceLevelCache{1 << 16};
 
     // 并发保护：buildSurface 在并行 worker 池上运行，多个区块会并发调用
     // getOrCreateNoise/getOrCreateRandomFactory。命中路径用 shared_lock（读），

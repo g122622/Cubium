@@ -23,6 +23,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/util/cache/Long2IntLRUCache.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/climate/ParameterTypes.hpp"
 #include "common/world/biome/climate/Sampler.hpp"
@@ -992,6 +993,13 @@ private:
     /// 查询键并非只落在本区块的 4 方块网格内——Aquifer 的 `SURFACE_SAMPLING_OFFSETS_IN_CHUNKS`
     /// 会查询区块外 ±3 区块，故不能用定长数组替代（曾尝试 5×5 定长数组，边界推导错误）。
     mutable absl::flat_hash_map<i64, i32> m_preliminarySurfaceLevelCache;
+
+    /// 第二层 preliminarySurfaceLevel 记忆（维度级，RandomState 持有，nullptr 表示不启用）。
+    ///
+    /// 高度查询每次都会新建单列 NoiseChunk，第一层缓存无法跨调用保留；含水层构造要对区块
+    /// 外扩一圈的 4 方块网格逐列采样（主世界 121 列），同一区块的每个高度查询都会重算。
+    /// 该层按维度（种子+设置固定）缓存纯函数结果，使这份开销每个 4 方块列全进程只付一次。
+    Long2IntLRUCache* m_preliminarySurfaceLevelCacheL2 = nullptr;
 
     /// 含水层采样器（可能为 nullptr）
     std::unique_ptr<aquifer::Aquifer> m_aquifer;

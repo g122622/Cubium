@@ -395,6 +395,7 @@ NoiseChunk::NoiseChunk(const ::mc::world::gen::RandomState& randomState,
     // 方案X 阶段5-7：beardifier 直接传给 buildCompiledRouter OOP 组装 CellCache(Add(...))。
     // 阶段6 已删除 m_beardifier 成员与 apply（beardifier 所有权在 m_cellCaches 的 CellCache 内）。
     , m_router(buildCompiledRouter(randomState, std::move(beardifier)))
+    , m_preliminarySurfaceLevelCacheL2(&randomState.preliminarySurfaceLevelCache())
 {
     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunk::ctor");
 }
@@ -650,9 +651,24 @@ i32 NoiseChunk::samplePreliminarySurfaceLevel(i32 blockX, i32 blockZ) const
         return found->second;
     }
 
+    // 第二层：维度级记忆。高度查询每次新建单列 NoiseChunk，第一层缓存不跨调用保留，
+    // 而含水层构造要对区块外扩一圈的 4 方块网格逐列采样（主世界 11×11 = 121 次），
+    // 每次高度查询都会重算这 121 次。preliminarySurfaceLevel 只由（种子, 维度设置,
+    // 对齐列坐标）决定，故可安全跨调用复用。
+    if (m_preliminarySurfaceLevelCacheL2 != nullptr) {
+        i32 cachedLevel = 0;
+        if (m_preliminarySurfaceLevelCacheL2->get(cacheKey, cachedLevel)) {
+            m_preliminarySurfaceLevelCache.emplace(cacheKey, cachedLevel);
+            return cachedLevel;
+        }
+    }
+
     const i32 surfaceLevel =
         static_cast<i32>(std::floor(m_router.preliminarySurfaceLevel().compute(quartAlignedX, 0, quartAlignedZ)));
     m_preliminarySurfaceLevelCache.emplace(cacheKey, surfaceLevel);
+    if (m_preliminarySurfaceLevelCacheL2 != nullptr) {
+        m_preliminarySurfaceLevelCacheL2->put(cacheKey, surfaceLevel);
+    }
     return surfaceLevel;
 }
 

@@ -318,6 +318,25 @@ ChunkPrimer 在所有阶段直接维护 ChunkData 的群系和高度图，不持
 
 `getHeight`、`getBaseColumn` 与 NOISE 阶段共用含水层和矿脉初始化。单列仅缩小插值网格，不能禁用含水层或省略矿脉；规则返回空指针始终代表默认固体方块。含水层与矿脉使用维度级随机工厂，不能引用临时副本。
 
+### 15.1 结构起点的高度查询是生成期最大单点开销
+
+`STRUCTURE_STARTS` 阶段每次地形匹配的拼图接点都会调一次 `IChunkGenerator::getHeight`
+（原版 `JigsawPlacement` 的 `getFirstFreeHeight` 同款语义），一个村庄结构集在单个区块里
+可查 900+ 列；而每次查询都会新建单列 `NoiseChunk` + `NoiseBasedAquifer`，并重算两条插值
+slice。默认种子下单个 `_selectStructureStart` 实测 2.8s（852 列 × 2.75ms），改前占
+`GenerateStructureStarts` 总时长的 55%。
+
+- 追踪点（低频，保留）：`NoiseChunkGenerator::getHeight`（带列坐标）、
+  `NoiseChunkGenerator::getBaseColumn` 及其 `::Prepare` / `::SliceFill`、
+  `NoiseBasedAquifer::ctor::MaxPreliminarySurface`。看 trace 时先看 `Prepare` 占比：
+  含水层的 `maxPreliminarySurfaceLevel` 每次构造都要对区块外扩一圈的 4 方块网格逐列采样
+  （主世界 121 列），已由 `RandomState::preliminarySurfaceLevelCache()` 做维度级记忆
+  （见 `density/README.md`）。
+- 剩余大头是 `SliceFill`（两条 slice 的角点噪声采样，~0.79ms/列）：这是三线性插值的前提，
+  单列网格下已是最小量，不能靠"禁用含水层"绕过（见上一条）。
+- 不要用"逐格直接求 finalDensity 并早退"来省成本：绕过插值会与区块实际生成结果不同，
+  末地城曾因此低一格。按原版形态优化须把判据下沉进插值循环（`getHeight` 处的 TODO）。
+
 ### 16. 放置阶段的群系查询
 
 `WorldGenRegion::getBiome` 用 `BiomeManager` 选择经抖动的 quart 角点，再读取区域内已生成的区块群系。直接按方块所在的原始 quart 取值会使群系过滤器在边界放错树木和植被。`setSeed` 同时刷新群系缩放种子；不能重新计算噪声源代替读取存档群系。

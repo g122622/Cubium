@@ -208,5 +208,12 @@ continents/erosion/ridges 从逐点全精度 `NormalNoise::getValue`（单值缓
     与 `PerlinLayer::noiseWithSmear` 逐位一致，否则 BlendedNoise 边界 floor 跨越致远超 1e-9 漂移
 11. **EndIslands 种子**：使用 `LegacyRandomSource(seed).consumeCount(17292)` 初始化 SimplexNoise，
     确保与 Java 版生成相同的世界
+12. **preliminarySurfaceLevel 是两级缓存**：`NoiseChunk::samplePreliminarySurfaceLevel` 先查
+    区块级 `m_preliminarySurfaceLevelCache`，miss 再查 `RandomState::preliminarySurfaceLevelCache()`
+    （维度级 LRU）。含水层构造每次都要对区块外扩一圈的 4 方块网格逐列采样（主世界 11×11 = 121 列），
+    而结构起点的高度查询（`getBaseColumn`）每次都会新建单列 NoiseChunk，只有第二级能把这份
+    开销摊到全进程一次（实测单列 1.70ms → 0.32ms）。该函数只由（种子, 维度设置, 4 方块对齐列）
+    决定，键域不含种子，故第二级必须挂在 `RandomState` 上、**不能**做成跨世界的全局静态缓存。
+    替换/清空维度设置（`dimensionManager` 重建）时必须随 RandomState 一起丢弃
 
 - 预表面高度采用 absl::flat_hash_map 保存任意 quart 对齐坐标；含水层会查询区块外坐标，不能替换为本区块固定数组。使用 NoiseChunk 的目标通过 mc_gen 取得该链接依赖。
