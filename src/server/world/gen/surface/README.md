@@ -88,3 +88,9 @@ MC 1.21 中基岩不再由区块生成器直接放置，而是通过 SurfaceRule
 ### 6. 陶土带是维度级产物，不能在每区块的 Context 里重算
 
 恶地陶土带（`m_clayBands`，192 项）在 `SurfaceSystem` **构造期由 `fromHashOf("minecraft:clay_bands")` 生成一次**，`SurfaceRuleContext` 只按 const 引用借用。它依赖 `PositionalRandomFactory` 的派生种子，若下放到 per-chunk 的 `SurfaceRuleContext` 里生成，每区块都要重跑一次 MD5 哈希 + RNG 序列 + 堆分配。新增维度级派生数据时注意区分「每维度一次」与「每区块一次」。
+
+### 7. 生物群系必须按需惰性求值，不能每块都先算一遍
+
+规则树里只有 `temperature` 与 `biomeIs` 两类条件会问生物群系，而它们都在 `abovePreliminarySurface` 之后——绝大多数深部石头走不到那一步。`SurfaceRuleContext::biome()` 因此按 `updateY` 的步号记忆化（等价原版 `Suppliers.memoize`）：不查就不算。实测把「每块无条件先取一次」改成惰性后，`BuildSurface` 每区块 15.9ms → 4.2ms（同种子 A/B，−74%）。
+
+注意两点：其一，`WorldGenRegion::getBiome` 走的是**抖动后的**群系边界（`BiomeManager::selectQuartPosition`，8 个 quart 角点各 6 次 LCG），单次约 200ns，不能放进最内层循环无脑调用；其二，每列开头仍要 `setBiome(列级群系)` 一次，让 `updateXZ` 与首个 `updateY` 之间发生的查询拿到与旧实现一致的值。

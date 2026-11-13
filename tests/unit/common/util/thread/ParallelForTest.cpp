@@ -64,7 +64,9 @@ TEST(ParallelForTest, ExecutesEveryIndexExactlyOnce)
 TEST(ParallelForTest, ZeroCountDoesNothing)
 {
     std::atomic<i32> calls{0};
-    parallelFor(0, [&calls](i32) { calls.fetch_add(1, std::memory_order::relaxed); });
+    parallelFor(0, [&calls](i32) {
+        calls.fetch_add(1, std::memory_order::relaxed);
+    });
     EXPECT_EQ(calls.load(std::memory_order::acquire), 0);
 }
 

@@ -328,7 +328,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
     const i32 startX = chunkX * world::CHUNK_WIDTH;
     const i32 startZ = chunkZ * world::CHUNK_WIDTH;
 
-    // 创建上下文（含高度查询回调用于 steep 条件）
+    // 创建上下文（含生物群系与高度查询回调：前者惰性调用，后者用于 steep 条件）
     SurfaceRuleContext ctx(m_seaLevel,
         m_minY,
         m_height,
@@ -339,6 +339,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
         noiseChunk,
         m_positionalRandom,
         &m_randomState,
+        getBiomeAt,
         [&chunk, startX, startZ, this](i32 worldX, i32 worldZ) -> i32 {
             // 将世界坐标转换为本地坐标
             const i32 localX = worldX - startX;
@@ -371,6 +372,7 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
             // 更新 XZ（erodedBadlandsExtension 可能修改了高度图，需重新获取）
             ctx.updateXZ(worldX, worldZ);
+            // 列级群系：只在 updateXZ 与第一个 updateY 之间可能被查到，写入一次即可。
             ctx.setBiome(biomeId);
 
             // 从高度图获取表面高度（erodedBadlandsExtension 后重新获取）
@@ -425,12 +427,9 @@ void SurfaceSystem::buildSurface(ChunkPrimer& chunk,
 
                 stoneDepthAbove++;
 
-                // 更新 Y 相关状态
+                // 更新 Y 相关状态。生物群系不在这里取：规则树里只有 temperature/biomeIs
+                // 会问，交给 ctx.biome() 按需惰性求值（原版即 Suppliers.memoize 的语义）。
                 ctx.updateY(stoneDepthAbove, stoneDepthBelow, waterHeight, worldX, y, worldZ);
-
-                // 设置生物群系（使用当前位置的精确生物群系）
-                const BiomeId yBiomeId = getBiomeAt(worldX, y, worldZ);
-                ctx.setBiome(yBiomeId);
 
                 // 应用表面规则
                 const BlockState* replacement = m_surfaceRule->tryApply(worldX, y, worldZ, ctx);

@@ -22,6 +22,7 @@
 
 #include "server/world/gen/surface/SurfaceRuleContext.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
@@ -57,6 +58,7 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     const density::NoiseChunk& noiseChunk,
     const math::PositionalRandomFactory& positionalRandom,
     world::gen::RandomState* randomState,
+    BiomeProvider biomeProvider,
     HeightProvider heightProvider)
     : m_seaLevel(seaLevel)
     , m_minY(minY)
@@ -68,8 +70,21 @@ SurfaceRuleContext::SurfaceRuleContext(i32 seaLevel,
     , m_positionalRandom(positionalRandom)
     , m_randomState(randomState)
     , m_heightProvider(std::move(heightProvider))
+    , m_biomeProvider(std::move(biomeProvider))
     , m_clayBands(clayBands)
-{}
+{
+    MC_ASSERT_RELEASE(m_biomeProvider != nullptr);
+}
+
+BiomeId SurfaceRuleContext::biome() const
+{
+    // 每个 Y 步只求值一次：同时到达的多次条件查询复用同一个结果。
+    if (m_biomeStamp != m_updateCounterY) {
+        m_biome = m_biomeProvider(m_blockX, m_blockY, m_blockZ);
+        m_biomeStamp = m_updateCounterY;
+    }
+    return m_biome;
+}
 
 void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
 {
@@ -250,8 +265,8 @@ bool SurfaceRuleContext::temperature() const
 {
     // MC 1.21: SurfaceRules.TemperatureCondition uses Biome.coldEnoughToSnow(pos, seaLevel).
     // 使用 SurfaceRuleContext 中的 seaLevel 而非硬编码的 SEA_LEVEL
-    const Biome& biome = BiomeRegistry::instance().get(m_biome);
-    return biome.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, m_seaLevel);
+    const Biome& biomeDef = BiomeRegistry::instance().get(biome());
+    return biomeDef.doesSnowGenerate(m_blockX, m_blockY, m_blockZ, m_seaLevel);
 }
 
 } // namespace mc::world::gen::surface

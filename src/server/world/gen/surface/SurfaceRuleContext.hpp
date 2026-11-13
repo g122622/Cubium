@@ -71,6 +71,13 @@ public:
     using HeightProvider = std::function<i32(i32, i32)>;
 
     /**
+     * @brief 生物群系查询回调（惰性求值，见 biome()）
+     *
+     * 参数：(worldX, worldY, worldZ) → 该方块所在位置的生物群系
+     */
+    using BiomeProvider = std::function<BiomeId(i32, i32, i32)>;
+
+    /**
      * @brief 构建表面规则上下文
      * @param seaLevel 海平面高度
      * @param minY 世界最低 Y
@@ -82,6 +89,7 @@ public:
      * @param noiseChunk NoiseChunk 引用，用于查询 preliminarySurfaceLevel
      * @param positionalRandom 位置随机工厂（MC: noiseRandom，用于 getSurfaceDepth 抖动）
      * @param randomState RandomState 引用，用于噪声名称查找和随机工厂查找
+     * @param biomeProvider 生物群系查询回调（惰性调用，见 biome()）
      * @param heightProvider 高度查询回调（用于 steep 条件）
      */
     SurfaceRuleContext(i32 seaLevel,
@@ -94,6 +102,7 @@ public:
         const density::NoiseChunk& noiseChunk,
         const math::PositionalRandomFactory& positionalRandom,
         world::gen::RandomState* randomState,
+        BiomeProvider biomeProvider,
         HeightProvider heightProvider = nullptr);
 
     /** 更新 XZ 坐标（每列开始时调用） */
@@ -186,19 +195,31 @@ public:
         return m_height;
     }
 
-    [[nodiscard]] BiomeId biome() const
+    /**
+     * @brief 当前方块的生物群系（惰性求值，每个 Y 步记忆化一次）
+     *
+     * 表面规则树里只有 temperature / biomeIs 两类条件会问生物群系，而它们在
+     * abovePreliminarySurface 之后——绝大多数深部石头根本走不到那一步。因此这里按
+     * updateY 的步号记忆化：条件不查就一次也不查（与 MC 的 Suppliers.memoize 同构）。
+     * 查询位置是当前方块坐标，与 updateY 同步推进，故结果与"每块都先算一遍"逐位相同。
+     */
+    [[nodiscard]] BiomeId biome() const;
+
+    /**
+     * @brief 直接写入生物群系并标记为"本 Y 步有效"
+     *
+     * 只用于每列开头：让 updateXZ 与第一次 updateY 之间发生的查询仍拿到列级群系
+     * （与逐块求值前的旧行为一致）。
+     */
+    void setBiome(BiomeId biome)
     {
-        return m_biome;
+        m_biome = biome;
+        m_biomeStamp = m_updateCounterY;
     }
 
     [[nodiscard]] world::gen::RandomState* randomState() const
     {
         return m_randomState;
-    }
-
-    void setBiome(BiomeId biome)
-    {
-        m_biome = biome;
     }
 
     /** 地表次要噪声值（MC: getSurfaceSecondary） */
@@ -255,6 +276,9 @@ private:
     /// 高度查询回调（用于 steep 条件）
     HeightProvider m_heightProvider;
 
+    /// 生物群系查询回调（只在条件真正需要时才调用，见 biome()）
+    BiomeProvider m_biomeProvider;
+
     // 当前位置状态
     i32 m_blockX = 0;
     i32 m_blockZ = 0;
@@ -263,7 +287,9 @@ private:
     i32 m_stoneDepthBelow = 0;
     i32 m_waterHeight = 0;
     i32 m_surfaceDepth = 0;
-    BiomeId m_biome = 0;
+    /// 当前 Y 步的生物群系（惰性求值，m_biomeStamp == m_updateCounterY 时有效）
+    mutable BiomeId m_biome = 0;
+    mutable u64 m_biomeStamp = std::numeric_limits<u64>::max();
 
     // 条件缓存脏标记计数器（MC 1.21: SurfaceRules.Context.lastUpdateXZ/lastUpdateY）
     // updateXZ 时两者均自增（列变 → Y 缓存失效）；updateY 时仅 m_updateCounterY 自增。
