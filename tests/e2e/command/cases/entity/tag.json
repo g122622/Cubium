@@ -1,0 +1,20 @@
+{
+  "id": "entity/tag",
+  "title": "实体标签的添加、列举与移除",
+  "category": "entity",
+  "setup": [
+    "/setblock {x} {y-1} {z} minecraft:stone",
+    "/kill @e[type=armor_stand,distance=..5]",
+    "/summon minecraft:armor_stand {x} {y} {z}"
+  ],
+  "steps": [
+    { "command": "/tag @e[type=armor_stand,distance=..3,limit=1] add e2e_tag" },
+    { "command": "/tag @e[type=armor_stand,distance=..3,limit=1] list" },
+    { "command": "/tag @e[type=armor_stand,distance=..3,limit=1] remove e2e_tag" },
+    { "command": "/tag @e[type=armor_stand,distance=..3,limit=1] list" },
+    { "command": "/tag @e[type=armor_stand,distance=..3,limit=1] remove e2e_tag" },
+    { "command": "/kill @e[type=armor_stand,distance=..5]" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

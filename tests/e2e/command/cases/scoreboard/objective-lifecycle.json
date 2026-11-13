@@ -1,0 +1,39 @@
+{
+  "id": "scoreboard/objective_lifecycle",
+  "title": "目标的新增、重复新增、列举与删除",
+  "category": "scoreboard",
+  "setup": [
+    "/scoreboard objectives remove e2e_obj"
+  ],
+  "steps": [
+    { "command": "/scoreboard objectives add e2e_obj dummy" },
+    { "command": "/scoreboard objectives add e2e_obj dummy" },
+    { "command": "/scoreboard objectives list" },
+    { "command": "/scoreboard objectives remove e2e_obj" },
+    { "command": "/scoreboard objectives remove e2e_obj" },
+    { "command": "/scoreboard objectives list" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "目标名未用 [名称] 的高亮组件包裹",
+      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
+    },
+    {
+      "path": "steps[2].feedback",
+      "reason": "目标名未用 [名称] 的高亮组件包裹，且列举顺序不同（vanilla 为哈希序，Cubium 为创建序）",
+      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
+    },
+    {
+      "path": "steps[3].feedback",
+      "reason": "目标名未用 [名称] 的高亮组件包裹",
+      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
+    },
+    {
+      "path": "steps[5].feedback",
+      "reason": "目标名未用 [名称] 的高亮组件包裹，且列举顺序不同",
+      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
+    }
+  ]
+}

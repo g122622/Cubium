@@ -1,0 +1,25 @@
+{
+  "id": "block/setblock_modes",
+  "title": "setblock 的 replace、keep 与 destroy 模式",
+  "category": "block",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:air"
+  ],
+  "steps": [
+    { "command": "/setblock {x} {y} {z} minecraft:stone" },
+    { "command": "/setblock {x} {y} {z} minecraft:dirt replace" },
+    { "command": "/setblock {x} {y} {z} minecraft:gravel keep" },
+    { "command": "/setblock {x} {y} {z} minecraft:air replace" },
+    { "command": "/setblock {x} {y} {z} minecraft:gravel keep" },
+    { "command": "/setblock {x} {y} {z} minecraft:dirt replace" },
+    { "command": "/setblock {x} {y} {z} minecraft:air destroy" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[6].feedback",
+      "reason": "destroy 模式在当前目标为空气时被当作失败：Cubium 报「Could not set the block」，vanilla 仍报成功（并掉落原方块）",
+      "evidence": "src/server/command/commands/SetBlockCommand.cpp"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import mineflayer from "mineflayer";
 import { runStep, type StepResult } from "./driver/chat-driver.ts";
 import {
     COMMAND_BOT_USERNAME,
+    COMMAND_FEEDBACK_QUIET_MS,
     COMMAND_FEEDBACK_TIMEOUT_MS,
     COMMAND_MAX_PLAYERS,
     COMMAND_PROFILE,
@@ -36,6 +37,7 @@ import {
 import { normalizeFeedback } from "./compare/normalize.ts";
 import { compareCase, partitionDiffs, type CaseComparison, type ComparableSide } from "./compare/diff.ts";
 import { runProbes, type ProbeOutcome } from "./observe/probes.ts";
+import { installDatapack } from "./world/datapack.ts";
 import { createBot, type BotHandle } from "../../shared/bot/factory.ts";
 import { waitForEvent } from "../../shared/bot/wait.ts";
 import { writeOpsFile } from "../../shared/servers/ops.ts";
@@ -46,6 +48,14 @@ import { makeRunId, vanillaCacheDir } from "../../shared/servers/workspace.ts";
 
 /** 相邻棋盘之间的间隙。 */
 const BOARD_GAP = 8;
+
+/**
+ * 玩家落脚点相对棋盘中心的 Z 偏移。
+ *
+ * 玩家与工作区必须分开：用例的 `{x}/{y}/{z}` 是工作区中心，而玩家站在旁边的小平台上，
+ * 否则 `setblock {x} {y} {z}` 会把方块放进玩家身体里，`at @s` 的落点也会随时被用例改动。
+ */
+const PLAYER_ANCHOR_OFFSET_Z = -8;
 
 /** 单条用例在单侧的执行结果。 */
 export interface CaseRunResult {
@@ -154,6 +164,14 @@ async function runOneSide(
     writeOpsFile(opsPath, [COMMAND_BOT_USERNAME], kind);
 
     const vanillaWorldName = `command-${runId}`;
+    // 数据包必须在服务端启动前就位：vanilla 只在启动时扫描世界级 datapacks，
+    // 而世界目录此刻尚未创建，需要先建好目录再放包。
+    if (kind === "cubium") {
+        installDatapack(path.join(sideDir, "datapacks"));
+    } else {
+        installDatapack(path.join(vanillaCacheDir(), vanillaWorldName, "datapacks"));
+    }
+
     const server =
         kind === "cubium"
             ? await startCubiumServer({
@@ -214,21 +232,48 @@ async function runOneSide(
  * @returns 执行结果。
  */
 async function runOneCase(bot: BotLike, testCase: CommandCase, origin: BoardOrigin): Promise<CaseRunResult> {
-    // 传送本身不计入判定：两侧的 tp 反馈文案存在已知差异，而它只是棋盘定位手段。
+    // 定位不计入判定：先把玩家脚下的平台补回去（上一条用例可能拆过），再传送过去。
+    // 平台在 y-1、玩家站在 y，因此玩家 spawn 后不会因重力坠落导致坐标漂移。
+    const anchor = playerAnchorFor(origin);
     await runStep(
         bot,
-        substituteCoordinates("/tp @s {x} {y} {z} 0 0", origin),
+        `/setblock ${anchor.x} ${anchor.y - 1} ${anchor.z} minecraft:stone`,
         COMMAND_FEEDBACK_TIMEOUT_MS,
+        COMMAND_FEEDBACK_QUIET_MS,
+    );
+    await runStep(
+        bot,
+        `/tp @s ${anchor.x} ${anchor.y} ${anchor.z} 0 0`,
+        COMMAND_FEEDBACK_TIMEOUT_MS,
+        COMMAND_FEEDBACK_QUIET_MS,
     );
     for (const command of testCase.setup) {
-        await runStep(bot, substituteCoordinates(command, origin), COMMAND_FEEDBACK_TIMEOUT_MS);
+        await runStep(
+            bot,
+            substituteCoordinates(command, origin),
+            COMMAND_FEEDBACK_TIMEOUT_MS,
+            COMMAND_FEEDBACK_QUIET_MS,
+        );
     }
 
     const steps: StepResult[] = [];
     for (const step of testCase.steps) {
-        steps.push(await runStep(bot, substituteCoordinates(step.command, origin), COMMAND_FEEDBACK_TIMEOUT_MS));
+        steps.push(
+            await runStep(
+                bot,
+                substituteCoordinates(step.command, origin),
+                COMMAND_FEEDBACK_TIMEOUT_MS,
+                COMMAND_FEEDBACK_QUIET_MS,
+            ),
+        );
     }
-    const probes = await runProbes(bot, testCase.probes, origin, COMMAND_FEEDBACK_TIMEOUT_MS);
+    const probes = await runProbes(
+        bot,
+        testCase.probes,
+        origin,
+        COMMAND_FEEDBACK_TIMEOUT_MS,
+        COMMAND_FEEDBACK_QUIET_MS,
+    );
     return { caseId: testCase.id, steps, probes };
 }
 
@@ -238,6 +283,11 @@ type BotLike = Parameters<typeof runStep>[0];
 /** 按索引分配棋盘原点。 */
 function boardOriginForCase(index: number): BoardOrigin {
     return boardOriginFor(index, BOARD_BASE_Y, BOARD_SIZE, BOARD_GAP);
+}
+
+/** 玩家落脚点（与工作区同一高度，沿 Z 让开）。 */
+function playerAnchorFor(origin: BoardOrigin): BoardOrigin {
+    return { x: origin.x, y: origin.y, z: origin.z + PLAYER_ANCHOR_OFFSET_Z };
 }
 
 /**

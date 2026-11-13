@@ -32,6 +32,7 @@ export interface ProbeOutcome {
  * @param probes 探针定义。
  * @param origin 本用例的棋盘原点。
  * @param timeoutMs 单条探针等待反馈的上限。
+ * @param quietMs 反馈静默阈值（见 chat-driver）。
  * @returns 探针结果，顺序与输入一致。
  */
 export async function runProbes(
@@ -39,11 +40,12 @@ export async function runProbes(
     probes: readonly ProbeSpec[],
     origin: BoardOrigin,
     timeoutMs: number,
+    quietMs: number,
 ): Promise<readonly ProbeOutcome[]> {
     const outcomes: ProbeOutcome[] = [];
     for (const probe of probes) {
         const command = substituteCoordinates(probe.command, origin);
-        const step = await runStep(bot, command, timeoutMs);
+        const step = await runStep(bot, command, timeoutMs, quietMs);
         outcomes.push({ key: probe.key, command, text: normalizeFeedback(step.feedback) });
     }
     return outcomes;

@@ -1,0 +1,22 @@
+{
+  "id": "scoreboard/missing_score",
+  "title": "读取未设置分数的失败反馈",
+  "category": "scoreboard",
+  "setup": [
+    "/scoreboard objectives remove e2e_missing",
+    "/scoreboard objectives add e2e_missing dummy",
+    "/scoreboard players reset Nobody e2e_missing"
+  ],
+  "steps": [
+    { "command": "/scoreboard players get Nobody e2e_missing" },
+    { "command": "/scoreboard players remove Nobody e2e_missing 1" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[1].feedback",
+      "reason": "目标名未用 [名称] 的高亮组件包裹",
+      "evidence": "src/server/command/commands/ScoreboardCommand.cpp"
+    }
+  ]
+}

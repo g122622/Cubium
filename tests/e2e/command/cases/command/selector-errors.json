@@ -1,0 +1,24 @@
+{
+  "id": "command/selector_errors",
+  "title": "选择器找不到目标与非法的 limit",
+  "category": "command",
+  "setup": [],
+  "steps": [
+    { "command": "/tp @e[type=minecraft:e2e_no_such_entity] ~ ~ ~" },
+    { "command": "/give @e[limit=0] minecraft:stone" },
+    { "command": "/kill @e[type=armor_stand,distance=..3]" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "未知实体类型的选择器没有判为解析错误：vanilla 报「Incorrect argument」，Cubium 却按空选择器执行并报「Teleported 1 entities」（疑似回退成命令源自身）",
+      "evidence": "src/common/command/arguments/EntityArgument.cpp"
+    },
+    {
+      "path": "steps[1].feedback",
+      "reason": "limit 下界的解析错误不下发反馈",
+      "evidence": "src/server/network/play/ChatHandler.cpp"
+    }
+  ]
+}

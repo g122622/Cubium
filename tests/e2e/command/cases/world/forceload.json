@@ -1,0 +1,16 @@
+{
+  "id": "world/forceload",
+  "title": "区块强制加载的添加、查询与移除",
+  "category": "world",
+  "setup": [
+    "/forceload remove all"
+  ],
+  "steps": [
+    { "command": "/forceload add {x} {z}" },
+    { "command": "/forceload query" },
+    { "command": "/forceload remove {x} {z}" },
+    { "command": "/forceload query" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

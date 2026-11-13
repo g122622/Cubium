@@ -1,0 +1,27 @@
+{
+  "id": "data/block_get",
+  "title": "方块实体的整份读取、指定路径与缺失路径",
+  "category": "data",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:chest replace"
+  ],
+  "steps": [
+    { "command": "/data get block {x} {y} {z}" },
+    { "command": "/data get block {x} {y} {z} Items" },
+    { "command": "/data get block {x} {y} {z} e2e.missing.path" },
+    { "command": "/data get block {x} {y+1} {z}" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "方块实体数据缺少 1.20.5+ 的 components 字段（vanilla 输出 {Items:[],components:{},...}）",
+      "evidence": "src/server/command/commands/DataCommand.cpp"
+    },
+    {
+      "path": "steps[2].feedback",
+      "reason": "路径不存在的失败文案未对齐：vanilla 报「Found no elements matching e2e」，Cubium 报「Can't get e2e.missing.path; tag doesn't exist」",
+      "evidence": "src/server/command/commands/DataCommand.cpp"
+    }
+  ]
+}

@@ -50,6 +50,14 @@ export const COMMAND_SPAWN_TIMEOUT_MS = 30_000;
 /** 单条指令等待反馈的上限；超时表示该指令没有下发聊天反馈。 */
 export const COMMAND_FEEDBACK_TIMEOUT_MS = 1_500;
 
+/**
+ * 反馈静默阈值：收到消息后连续这么久没有新消息，就认为本指令的反馈已结束。
+ *
+ * 必须大于一个 tick（50ms）：一条指令的多行反馈可能跨 tick 到达；又必须远小于
+ * 下一条指令的发送间隔，否则会把延迟消息算进下一条。
+ */
+export const COMMAND_FEEDBACK_QUIET_MS = 120;
+
 /** 单条用例的上限（只用于兜住挂死）。 */
 export const COMMAND_CASE_TIMEOUT_MS = 60_000;
 

@@ -1,0 +1,28 @@
+{
+  "id": "world/worldborder",
+  "title": "世界边界的设置、扩张与查询",
+  "category": "world",
+  "setup": [
+    "/worldborder center {x} {z}",
+    "/worldborder set 100"
+  ],
+  "steps": [
+    { "command": "/worldborder get" },
+    { "command": "/worldborder add 10" },
+    { "command": "/worldborder get" },
+    { "command": "/worldborder set 29999984" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[1].feedback",
+      "reason": "宽度格式化不同：Cubium 输出整数，vanilla 保留一位小数",
+      "evidence": "src/server/command/commands/WorldBorderCommand.cpp"
+    },
+    {
+      "path": "steps[3].feedback",
+      "reason": "宽度格式化不同：Cubium 输出整数，vanilla 保留一位小数",
+      "evidence": "src/server/command/commands/WorldBorderCommand.cpp"
+    }
+  ]
+}

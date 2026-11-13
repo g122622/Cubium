@@ -1,0 +1,19 @@
+{
+  "id": "data/entity_get_merge",
+  "title": "实体数据读取、缺失路径与合并修改",
+  "category": "data",
+  "setup": [
+    "/setblock {x} {y-1} {z} minecraft:stone",
+    "/kill @e[type=armor_stand,distance=..5]",
+    "/summon minecraft:armor_stand {x} {y} {z}"
+  ],
+  "steps": [
+    { "command": "/data get entity @e[type=armor_stand,distance=..3,limit=1] Health" },
+    { "command": "/data get entity @e[type=armor_stand,distance=..3,limit=1] e2e.missing" },
+    { "command": "/data merge entity @e[type=armor_stand,distance=..3,limit=1] {Invisible:1b}" },
+    { "command": "/data get entity @e[type=armor_stand,distance=..3,limit=1] Invisible" },
+    { "command": "/kill @e[type=armor_stand,distance=..5]" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

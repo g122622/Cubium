@@ -1,0 +1,22 @@
+{
+  "id": "execute/conditions",
+  "title": "if/unless 的方块、分数与实体条件",
+  "category": "execute",
+  "setup": [
+    "/setblock {x} {y} {z} minecraft:stone",
+    "/scoreboard objectives remove e2e_exec",
+    "/scoreboard objectives add e2e_exec dummy",
+    "/scoreboard players set Alice e2e_exec 1"
+  ],
+  "steps": [
+    { "command": "/execute if block {x} {y} {z} minecraft:stone run say block-yes" },
+    { "command": "/execute if block {x} {y} {z} minecraft:dirt run say block-no" },
+    { "command": "/execute unless block {x} {y} {z} minecraft:dirt run say unless-yes" },
+    { "command": "/execute if score Alice e2e_exec matches 1 run say score-yes" },
+    { "command": "/execute if score Alice e2e_exec matches 2 run say score-no" },
+    { "command": "/execute if entity @s run say entity-yes" },
+    { "command": "/execute if entity @e[type=zombie,distance=..5] run say entity-no" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

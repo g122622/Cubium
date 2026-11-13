@@ -1,0 +1,14 @@
+{
+  "id": "world/time",
+  "title": "时间设置的反馈",
+  "category": "world",
+  "setup": [
+    "/time set day"
+  ],
+  "steps": [
+    { "command": "/time set midnight" },
+    { "command": "/time set day" }
+  ],
+  "probes": [],
+  "knownDiffs": []
+}

@@ -1,0 +1,31 @@
+{
+  "id": "function/schedule",
+  "title": "函数调度与取消的反馈",
+  "category": "function",
+  "setup": [
+    "/schedule clear e2e:hello"
+  ],
+  "steps": [
+    { "command": "/schedule function e2e:hello 1t" },
+    { "command": "/schedule clear e2e:hello" },
+    { "command": "/schedule function e2e:nonexistent 1t" }
+  ],
+  "probes": [],
+  "knownDiffs": [
+    {
+      "path": "steps[0].feedback",
+      "reason": "调度成功文案未对齐（Cubium 是自造文案）；且调度执行时命令源名称不同：Cubium 用「Console」，vanilla 用「Server」",
+      "evidence": "src/server/command/commands/ScheduleCommand.cpp"
+    },
+    {
+      "path": "steps[1].feedback",
+      "reason": "没有可取消的调度时文案未对齐 commands.schedule.clear.failed",
+      "evidence": "src/server/command/commands/ScheduleCommand.cpp"
+    },
+    {
+      "path": "steps[2].feedback",
+      "reason": "未知函数名多了单引号，未对齐 commands.function.unknown",
+      "evidence": "src/server/command/commands/ScheduleCommand.cpp"
+    }
+  ]
+}
