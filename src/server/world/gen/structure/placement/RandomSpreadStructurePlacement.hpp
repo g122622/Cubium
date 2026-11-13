@@ -68,14 +68,16 @@ public:
         std::optional<ExclusionZone> exclusionZone);
 
     /**
-     * @brief 检查指定区块是否是结构生成区块
+     * @brief 检查指定区块是否是结构生成区块（不含排斥区）
      *
      * 步骤：
      * 1. 计算此区块所在的网格位置
      * 2. 计算网格内的候选区块
      * 3. 如果候选区块不等于当前区块，返回 false
      * 4. 通过频率缩减检查
-     * 5. 通过排斥区检查
+     *
+     * 排斥区不在本方法内判定：它要问「另一个结构集在附近有没有落点」，需要看到整张
+     * 结构集表，由 `StructurePlacementState::passesExclusionZone` 负责。
      *
      * @param worldSeed 世界种子
      * @param chunkX 区块 X 坐标

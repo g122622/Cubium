@@ -1461,6 +1461,7 @@ add_library(mc_common STATIC
 
     # Thread utilities
     util/thread/UniversalWorkerPool.cpp
+    util/thread/ParallelFor.cpp
 
     # Concurrency utilities
     util/concurrent/ReentrantAreaLock.cpp

@@ -126,6 +126,15 @@ private:
         const placement::ConcentricRingsStructurePlacement& concentric) const;
 
     /**
+     * @brief 算出全部要塞的最终区块坐标（环布局 + 逐要塞群系搜索）
+     *
+     * 128 个要塞的搜索互相独立，内部按元素并行。只在 `ringPositions` 的缓存未命中
+     * 时被调用一次，由放置规则的单飞锁保证不会重复执行。
+     */
+    [[nodiscard]] std::vector<world::chunk::ChunkPos> _computeRingPositions(
+        const placement::ConcentricRingsStructurePlacement& concentric) const;
+
+    /**
      * @brief 复刻原版 `BiomeSource.findBiomeHorizontal`
      *
      * 以 quart 坐标做螺旋扫描，每命中一个偏好生物群系就用蓄水池抽样随机保留一个。

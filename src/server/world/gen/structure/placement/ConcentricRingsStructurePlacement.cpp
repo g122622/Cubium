@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -149,7 +150,7 @@ std::vector<ConcentricRingsStructurePlacement::RingEntry> ConcentricRingsStructu
     return result;
 }
 
-const std::vector<world::chunk::ChunkPos>& ConcentricRingsStructurePlacement::getRingPositions(i64 worldSeed) const
+const std::vector<world::chunk::ChunkPos>& ConcentricRingsStructurePlacement::ringLayoutChunks(i64 worldSeed) const
 {
     // 检查缓存是否有效
     if (m_cachedPositions.has_value() && m_cachedSeed == worldSeed) {
@@ -174,7 +175,7 @@ bool ConcentricRingsStructurePlacement::isStructureChunk(i64 worldSeed, i32 chun
 {
     // 同心环放置不需要频率缩减和排斥区检查
     // 直接在环形位置列表中查找
-    const auto& positions = getRingPositions(worldSeed);
+    const auto& positions = ringLayoutChunks(worldSeed);
 
     for (const auto& pos : positions) {
         if (pos.x == chunkX && pos.z == chunkZ) {
@@ -185,21 +186,18 @@ bool ConcentricRingsStructurePlacement::isStructureChunk(i64 worldSeed, i32 chun
     return false;
 }
 
-void ConcentricRingsStructurePlacement::setResolvedRingPositions(
-    i64 worldSeed, std::vector<world::chunk::ChunkPos> positions) const
-{
-    std::lock_guard<std::mutex> lock(m_cacheMutex);
-    m_resolvedPositions = std::move(positions);
-    m_resolvedSeed = worldSeed;
-}
-
-const std::vector<world::chunk::ChunkPos>* ConcentricRingsStructurePlacement::resolvedRingPositions(i64 worldSeed) const
+const std::vector<world::chunk::ChunkPos>& ConcentricRingsStructurePlacement::resolveRingPositions(
+    i64 worldSeed, const std::function<std::vector<world::chunk::ChunkPos>()>& compute) const
 {
     std::lock_guard<std::mutex> lock(m_cacheMutex);
     if (m_resolvedPositions.has_value() && m_resolvedSeed == worldSeed) {
-        return &m_resolvedPositions.value();
+        return m_resolvedPositions.value();
     }
-    return nullptr;
+
+    // 持锁计算：并发到达的判定线程在这里排队等待，而不是各跑一遍 128 次群系搜索。
+    m_resolvedPositions = compute();
+    m_resolvedSeed = worldSeed;
+    return m_resolvedPositions.value();
 }
 
 std::unique_ptr<StructurePlacement> ConcentricRingsStructurePlacement::clone() const

@@ -197,13 +197,22 @@ def main(argv):
 
         elif cmd == "args":
             name = rest[0]
+            # 数值参数与字符串参数分两张表：字符串参数（如给切片打的 debug.set 结构集名）
+            # 用 min/max 看不出来，必须按取值分组才看得出"谁贵"。
             tr.print(
-                f"{name} 的 debug 参数分布",
+                f"{name} 的 debug 参数分布（数值）",
                 f"""select a.key, count(*) n, min(a.int_value) min_i, max(a.int_value) max_i,
                            count(distinct a.int_value) distinct_i
                     from slice s join args a on a.arg_set_id = s.arg_set_id
-                    where s.name = {_q(name)}
+                    where s.name = {_q(name)} and a.int_value is not null
                     group by a.key order by n desc""",
+            )
+            tr.print(
+                f"{name} 的 debug 参数分布（字符串取值 top10）",
+                f"""select a.key, a.string_value, count(*) n
+                    from slice s join args a on a.arg_set_id = s.arg_set_id
+                    where s.name = {_q(name)} and a.string_value is not null
+                    group by a.key, a.string_value order by n desc limit 10""",
             )
 
         elif cmd == "buckets":

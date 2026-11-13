@@ -148,8 +148,16 @@ Set-Content (Join-Path $dir 'server_options.json') '{"world":{"levelSeed":"11451
     per-chunk 的追踪 = 可保留提交（见第 6 步）。
 12. **trace 正在被写**：Perfetto 在 `stopTracing()` 时才落盘，进程运行中文件可能不存在或不完整；
     崩溃路径可能只有半截 trace，先 `info` 看 `trace_bounds` 是否覆盖到问题时间窗。
+13. **同一函数被按维度重复调用时，必须按参数分组**：总次数会把"每个区块各调一次"和
+    "某个参数下多调 400 次"混在一起。给切片打上 `"set", xxx.path()` 这类字符串参数，
+    再用 `args` 的字符串取值表（或 `group by a.string_value`）分开统计，才能看出谁贵。
+14. **`slice` 总数正常不代表被测量对象正常**：先查 `stats` 里 `traced_buf_*dropped/overwrite/loss`
+    全为 0，确认 trace 完整，再去下"并发度只有 1"这类结论；反之若确有丢包，并发度、次数的
+    统计全部失效。
 
 ## 实战案例（本项目，勿重复踩）
+
+**案例一：结构起点装配过早**（`_selectStructureStart` 单次 4.2s）
 
 **现象**：`_selectStructureStart` 单次 4.2s，占启动期 chunk 生成的绝大部分。
 
@@ -178,6 +186,28 @@ Set-Content (Join-Path $dir 'server_options.json') '{"world":{"levelSeed":"11451
 改了什么：<文件:函数 + 一句话机制>
 快了多少：同种子 A/B <改前> → <改后>（−<%>）
 ```
+
+**案例二：一次性同心环搜索被逐区块重算**（`isPlacementChunk` 单次 235ms）
+
+**现象**：`initializeWorld` 3.0s，其中 2.7s 落在要塞（strongholds）的
+`StructurePlacementState::isPlacementChunk` 里，最长单次 2.19s。
+
+**归因链**：
+
+1. 给 `isStructureChunk` 的三个子步骤各加一条低频追踪（`debug.set` 打结构集名），
+   按 `debug.set` 分组后一眼看出：strongholds 一个结构集 238ms，其余 16 个合计 ~16ms。
+2. 强塞的 `isPlacementChunk` 走查表，表本身是一次性 128 次「半径 112 方块、step=1」的
+   群系搜索（每次 57×57=3249 次气候采样，合计 ~42 万次）。
+3. 该表缓存挂在放置规则上（`resolveRingPositions` 单飞），所以只在第一个区块上付一次钱；
+   剩余 2.5ms/2025 次 = 单纯查 128 个坐标，无需优化。
+4. 修复：128 个要塞的搜索彼此独立（各自 `fork()` 出来的随机流、群系源只读），用
+   `util::parallelFor` 按要塞并行；缓存改用"持锁计算"的单飞语义，避免并发区块任务各算一遍。
+5. 同种子 A/B：`GenerateRingPositions` 2716ms → **236ms（−91%）**，
+   `initializeWorld` 3007ms → **476ms（−84%）**，差分能力 structure_starts 845/845 仍一致。
+
+**教训**：判断"能不能并行"先看三件事——数据依赖（各自独立随机流）、输入是否只读、
+写目标是否按元素互斥。三者都满足就不必引入锁，也不必经过任务池（池内阻塞等待有自锁风险，
+见 `util/parallelFor` 的说明）。
 
 ## 交付前自检
 

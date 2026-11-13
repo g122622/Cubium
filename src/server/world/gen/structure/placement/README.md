@@ -51,13 +51,13 @@ StructurePlacement (抽象基类)
 
 RandomSpreadStructurePlacement 构造时 spacing <= separation 会导致 offsetRange <= 0，nextInt 崩溃。已有 MC_ASSERT_RELEASE 断言保护。
 
-### 2. ConcentricRings 缓存线程安全
+### 2. ConcentricRings 有两张表，别混用
 
-getRingPositions 使用双重检查锁和 mutex 保护缓存生成。首次调用成本较高（128 个要塞的位置计算），后续调用 O(1) 返回缓存。
+`ringLayoutChunks()` 只含环布局起点（每个要塞搜索方形的中心），供 /locate 用；`resolveRingPositions()` 才是经半径 112 群系搜索改写后的最终坐标，供区块生成判定用。两者最多相差 7 个区块，混用会让要塞位置判错。两张表各自按世界种子缓存，共用同一把 `m_cacheMutex`。
 
-### 3. 排斥区回调需外部注入
+### 3. 同心环解析必须单飞，且不能退化成逐区块重算
 
-ExclusionZone 的检查回调通过 setExclusionZoneChecker 注入，未设置时排斥区检查默认通过。使用前必须确保回调已设置。
+128 次群系搜索是秒级开销，而 `StructurePlacementState` 每个区块都会新建一个实例，所以缓存只能挂在放置规则上：`resolveRingPositions` 在持锁状态下计算，并发到达的判定线程排队等结果。若改成"每个实例各算一次"，729 个区块就是 729 次全量搜索；若把计算挪到锁外做双检，则并发线程会各跑一遍。搜索内部按要塞并行（`util::parallelFor`），因为每个要塞只用自己那条 fork 出来的随机流，对群系源只读。
 
 ### 4. FrequencyReductionMethod 对应特定结构
 
@@ -67,3 +67,7 @@ ExclusionZone 的检查回调通过 setExclusionZoneChecker 注入，未设置�
 - LegacyType3: 废弃矿井
 
 选错方法会导致结构位置与原版不一致。
+
+### 5. 排斥区不在本模块判定
+
+`ExclusionZone` 要求「另一个结构集在附近没有落点」，本模块看不到整张结构集表，只保管配置（`exclusionZone()`）；真正的检查在 `StructurePlacementState::passesExclusionZone`。所以 `RandomSpreadStructurePlacement::isStructureChunk` 只做候选位置 + 频率缩减，不要在这里补排斥区逻辑。

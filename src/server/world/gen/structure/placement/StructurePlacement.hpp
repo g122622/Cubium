@@ -85,12 +85,14 @@ public:
     virtual ~StructurePlacement() = default;
 
     /**
-     * @brief 检查指定区块是否是结构生成区块
+     * @brief 检查指定区块是否是结构生成区块（候选位置 + 频率缩减，不含排斥区）
      *
-     * 三步检查流程：
+     * 两步检查流程：
      * 1. 计算候选区块位置
      * 2. 频率缩减检查
-     * 3. 排斥区检查
+     *
+     * 排斥区不在这里判：它要问「另一个结构集在附近有没有落点」，需要看到整张结构集表，
+     * 由 `StructurePlacementState::passesExclusionZone` 负责。
      *
      * @param worldSeed 世界种子
      * @param chunkX 区块 X 坐标
@@ -116,17 +118,6 @@ public:
     virtual std::unique_ptr<StructurePlacement> clone() const = 0;
 
     /**
-     * @brief 设置排斥区检查回调
-     *
-     * 用于检查另一个 StructureSet 是否在指定区块附近有结构。
-     * 回调参数：(structureSetId, chunkX, chunkZ, worldSeed)
-     * 返回 true 表示该 StructureSet 在附近有结构。
-     *
-     * @param callback 排斥区检查回调函数
-     */
-    void setExclusionZoneChecker(std::function<bool(const ResourceLocation&, i32, i32, i64)> callback);
-
-    /**
      * @brief 频率缩减检查
      *
      * 根据 m_frequencyReduction 方法判断候选区块是否通过频率检查。
@@ -150,19 +141,6 @@ public:
     }
 
 protected:
-    /**
-     * @brief 排斥区检查
-     *
-     * 检查另一个 StructureSet 是否在此区块附近有结构，
-     * 如果有则当前区块不能生成结构。
-     *
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @param worldSeed 世界种子
-     * @return 是否通过排斥区检查（true = 没有排斥，可以生成）
-     */
-    bool applyInteractionsWithOtherStructures(i32 chunkX, i32 chunkZ, i64 worldSeed) const;
-
     /// 定位偏移（/locate 命令使用的偏移量）
     math::Vector3i m_locateOffset;
     /// 频率缩减方法
@@ -173,10 +151,6 @@ protected:
     i64 m_salt;
     /// 排斥区配置（可选）
     std::optional<ExclusionZone> m_exclusionZone;
-
-private:
-    /// 排斥区检查回调（由外部注入）
-    std::function<bool(const ResourceLocation&, i32, i32, i64)> m_exclusionZoneChecker;
 };
 
 } // namespace mc::world::gen::structure::placement

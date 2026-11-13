@@ -30,7 +30,7 @@ structure/
 ├── JigsawStructure.cpp
 ├── placement/                # 结构放置策略（MC 1.21.11 对齐）
 │   ├── StructurePlacement.hpp         # 放置基类、FrequencyReductionMethod、ExclusionZone
-│   ├── StructurePlacement.cpp         # 频率缩减检查、排斥区检查
+│   ├── StructurePlacement.cpp         # 频率缩减检查（排斥区由 StructurePlacementState 判）
 │   ├── RandomSpreadStructurePlacement.hpp  # 网格随机/三角分布（大多数结构）
 │   ├── RandomSpreadStructurePlacement.cpp
 │   ├── ConcentricRingsStructurePlacement.hpp # 同心环分布（要塞）
@@ -80,10 +80,10 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 生成流程:
 1. STRUCTURE_STARTS 阶段:
    - 遍历 StructureSetRegistry 中的每个 StructureSet
-   - StructurePlacement.isStructureChunk() 三步检查:
-     a. 计算候选区块位置（网格偏移 + 频率缩减）
-     b. 频率缩减检查（Default/LegacyType1/2/3）
-     c. 排斥区检查（如掠夺者前哨站排斥村庄）
+   - StructurePlacementState.isStructureChunk() 三步检查（短路求值，各步都有追踪事件）:
+     a. isPlacementChunk：候选区块位置（网格偏移；同心环先解析整张要塞表）
+     b. passesFrequencyReduction：频率缩减（Default/LegacyType1/2/3）
+     c. passesExclusionZone：排斥区（如掠夺者前哨站排斥村庄），逐区块递归 21×21 次
    - StructureSet.selectEntry() 按权重随机选择结构
    - Structure.generate() 创建 StructureStart（不写方块！）
 
@@ -199,6 +199,8 @@ FEATURES 和 Beardifier 阶段必须使用 `chunk.structureReferences()` 遍历�
 1. 候选区块计算（spacing/separation/spreadType/salt）
 2. 频率缩减（Default/LegacyType1/LegacyType2/LegacyType3）
 3. 排斥区（ExclusionZone，如掠夺者前哨站排斥村庄）
+
+三步由 `StructurePlacementState` 统一编排（`isStructureChunk`）。前两步是放置规则自己的事，第三步要问"另一个结构集在附近有没有落点"，只有持有整张结构集表的状态对象才做得了，所以 `StructurePlacement::isStructureChunk` 里**不含**排斥区。
 
 ### 4. FrequencyReductionMethod 差异
 

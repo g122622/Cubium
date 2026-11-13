@@ -9,15 +9,17 @@ thread/
 ├── ITask.hpp              # 任务接口定义（优先级、类型、执行接口）
 ├── UniversalWorkerPool.hpp   # 通用任务池头文件（服务端/客户端共用）
 ├── UniversalWorkerPool.cpp   # 通用任务池实现
+├── ParallelFor.hpp        # 临时线程扇出的并行遍历（一次性大块并行，不经过任务池）
+├── ParallelFor.cpp        # 动态取号的并行遍历实现
 └── README.md              # 本文档
 ```
 
 ## 内部模块关系
 
 ```
-UniversalWorkerPool
-       │
-       └── ITask (抽象接口)
+UniversalWorkerPool            ParallelFor
+       │                            │
+       └── ITask (抽象接口)          └── std::thread（临时线程，调用线程参与）
                 │
                 └── ChunkGenerateTask、StorageTask 等（具体实现）
 ```
@@ -29,6 +31,7 @@ UniversalWorkerPool
 | 依赖 | 用途 |
 |------|------|
 | `common/core/Types.hpp` | 基础类型（i8, i32, u64 等） |
+| `common/util/assert/AssertAll.hpp` | `parallelFor` 的参数校验断言 |
 | `perfetto` | 性能追踪 |
 | `<atomic>`, `<thread>`, `<queue>` | C++ 标准库 |
 
@@ -40,6 +43,7 @@ UniversalWorkerPool
 | `server/world/storage/task/StorageTaskManager` | 存储 IO 任务调度 |
 | `server/application/MinecraftServer` | 服务器持有 ServerCompute/ServerIO 池 |
 | `client/application/ClientApplication` | 客户端持有 ClientCompute 池（chunkmesh/皮肤等） |
+| `server/world/gen/structure/StructurePlacementState` | `parallelFor` 并行算 128 个要塞的群系搜索 |
 
 ## 容易踩的坑
 
@@ -142,3 +146,9 @@ pool.submit(task, [self](bool success, ITask* task) {
 - 在回调中访问的对象可以安全析构（`ClientWorld::destroy()` 依赖这一点在析构前等待在途回调）。
 
 不要改回 `pendingTaskCount() == 0 && runningTaskCount() == 0`：后者有两个提前返回窗口——回调在 `m_runningTaskCount` 递减之后才执行；worker "出队"到"标记运行"之间队列已空且运行数为 0。历史上这两者会让 `EXPECT_EQ(completedCount, numTasks)` 偶发少 1，也会让"等待回调结束后再析构"的守护失效。
+
+### 8. 池内任务要并行子任务时用 `parallelFor`，不要提交回同一个池
+
+池的工作线程里若"提交子任务 → 阻塞等结果"，会自锁：池的全部工作线程都可能正等着自己提交的子任务，而子任务还排在队列里没人执行。也不要在等待时"顺手执行池里的其它任务"——`ChunkGenerationScheduler` 依赖线程局部的调度上下文（`thread_local SyncSchedulingContext`），让工作线程跨任务执行会破坏该前提。
+
+`util::parallelFor` 用独立线程扇出（调用线程自己参与），只跑本次传入的 body，不触碰池内状态，因此在池内调用是安全的。代价是每次调用都有线程创建开销（毫秒级），只适合一次性、粒度较大的并行，不要在区块级热路径上反复调用。

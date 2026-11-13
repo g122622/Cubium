@@ -22,14 +22,19 @@
  */
 
 #include "StructurePlacementState.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/WorldgenRandom.hpp"
+#include "common/util/thread/ParallelFor.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 
 #include "server/world/gen/structure/Structure.hpp"
 #include "server/world/gen/structure/StructureManager.hpp"
 #include "server/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
+
+using namespace mc::trace;
 
 namespace mc::world::gen::structure {
 
@@ -83,12 +88,23 @@ void StructurePlacementState::addStructureSet(const StructureSet& structureSet)
 
 bool StructurePlacementState::isStructureChunk(const StructureSet& structureSet, i32 chunkX, i32 chunkZ) const
 {
+    // 三步按短路顺序求值：前一步不通过时后一步根本不执行，所以三个子步骤各自的追踪
+    // 事件数反映的是**真实调用次数**，不是"每个区块各跑三次"。
     return isPlacementChunk(structureSet, chunkX, chunkZ) && passesFrequencyReduction(structureSet, chunkX, chunkZ) &&
         passesExclusionZone(structureSet, chunkX, chunkZ);
 }
 
 bool StructurePlacementState::isPlacementChunk(const StructureSet& structureSet, i32 chunkX, i32 chunkZ) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+        "StructurePlacementState::isPlacementChunk",
+        "set",
+        structureSet.id().path(),
+        "chunkX",
+        chunkX,
+        "chunkZ",
+        chunkZ);
+
     const auto iter = m_concentric.find(&structureSet);
     if (iter != m_concentric.end()) {
         const auto& positions = ringPositions(*iter->second);
@@ -107,11 +123,28 @@ bool StructurePlacementState::isPlacementChunk(const StructureSet& structureSet,
 
 bool StructurePlacementState::passesFrequencyReduction(const StructureSet& structureSet, i32 chunkX, i32 chunkZ) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+        "StructurePlacementState::passesFrequencyReduction",
+        "set",
+        structureSet.id().path(),
+        "chunkX",
+        chunkX,
+        "chunkZ",
+        chunkZ);
     return structureSet.placement().applyAdditionalChunkRestrictions(chunkX, chunkZ, m_worldSeed);
 }
 
 bool StructurePlacementState::passesExclusionZone(const StructureSet& structureSet, i32 chunkX, i32 chunkZ) const
 {
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+        "StructurePlacementState::passesExclusionZone",
+        "set",
+        structureSet.id().path(),
+        "chunkX",
+        chunkX,
+        "chunkZ",
+        chunkZ);
+
     const auto& zone = structureSet.placement().exclusionZone();
     if (!zone.has_value()) {
         return true;
@@ -168,13 +201,23 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
     // 放置规则自带一份按世界种子缓存的最终坐标表。原版把 `List<ChunkPos>` 缓存在
     // `ChunkGeneratorStructureState.ringPositions` 里，与放置规则同生命周期；
     // 而 `StructurePlacementState` 每个区块（探针里是每个单元）都会新建一个，
-    // 只靠本实例的缓存会让 128 次螺旋扫描在每个单元重跑一遍——实测单个单元 2.3 秒，
-    // 542 个单元直接跑不完。
-    if (const auto* resolved = concentric.resolvedRingPositions(m_worldSeed); resolved != nullptr) {
-        auto& stored = m_ringPositions[&concentric];
-        stored = *resolved;
-        return stored;
-    }
+    // 只靠本实例的缓存会让 128 次群系搜索在每个单元重跑一遍——实测单个单元 2.3 秒，
+    // 542 个单元直接跑不完。`resolveRingPositions` 是单飞的：并发到达的区块生成线程
+    // 只有一个真正计算，其余排队等它的结果。
+    const auto& resolved = concentric.resolveRingPositions(m_worldSeed, [this, &concentric]() {
+        return _computeRingPositions(concentric);
+    });
+
+    // 复制到本实例：本实例是线程私有的，返回的引用不会因别的线程重算而失效。
+    auto& stored = m_ringPositions[&concentric];
+    stored = resolved;
+    return stored;
+}
+
+std::vector<world::chunk::ChunkPos> StructurePlacementState::_computeRingPositions(
+    const placement::ConcentricRingsStructurePlacement& concentric) const
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "StructurePlacementState::GenerateRingPositions");
 
     // 正常维度下 concentricRingsSeed == levelSeed（见上方说明），不是常量 0。
     const auto& layout = concentric.generateRingLayout(m_worldSeed);
@@ -199,27 +242,27 @@ const std::vector<world::chunk::ChunkPos>& StructurePlacementState::ringPosition
     // 相干，fork 到的随机源与原版完全不同。
     //
     // 现在由 `generateRingLayout` 在同一条流上取 fork 种子并随起点一起带出。
-    std::vector<world::chunk::ChunkPos> result;
-    result.reserve(layout.size());
-    for (const auto& entry : layout) {
-        // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
-        math::JavaLegacyRandom fork(entry.forkSeed);
-        // 结构生成走的是 8 参数重载，它内部固定步长 1、findClosest = false。
-        const auto found =
-            _findBiomeHorizontal(entry.chunk.x * 16 + 8, 0, entry.chunk.z * 16 + 8, 112, 1, preferred, fork);
-        if (found.has_value()) {
-            result.emplace_back(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4));
-        } else {
-            result.push_back(entry.chunk);
-        }
+    std::vector<world::chunk::ChunkPos> result(layout.size());
+
+    // 128 个要塞的搜索彼此完全独立：各自一条 fork 出来的随机流，对群系源只读，
+    // 写入目标按下标互不重叠。串行要跑几秒，这里按元素并行（为什么不用任务池见
+    // `util::parallelFor` 的说明）。
+    {
+        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "StructurePlacementState::SearchRingBiomes");
+        util::parallelFor(static_cast<i32>(layout.size()), [this, &layout, &preferred, &result](i32 index) {
+            const auto& entry = layout[static_cast<std::size_t>(index)];
+            // 原版 `LegacyRandomSource.fork()` 就是 `new LegacyRandomSource(nextLong())`。
+            math::JavaLegacyRandom fork(entry.forkSeed);
+            // 结构生成走的是 8 参数重载，它内部固定步长 1、findClosest = false。
+            const auto found =
+                _findBiomeHorizontal(entry.chunk.x * 16 + 8, 0, entry.chunk.z * 16 + 8, 112, 1, preferred, fork);
+            result[static_cast<std::size_t>(index)] = found.has_value()
+                ? world::chunk::ChunkPos(static_cast<i32>(found->x >> 4), static_cast<i32>(found->z >> 4))
+                : entry.chunk;
+        });
     }
 
-    // 回填到放置规则，让后续新建的判定状态直接复用（见上面的缓存读取）。
-    concentric.setResolvedRingPositions(m_worldSeed, result);
-
-    auto& stored = m_ringPositions[&concentric];
-    stored = std::move(result);
-    return stored;
+    return result;
 }
 
 std::optional<BlockPos> StructurePlacementState::_findBiomeHorizontal(i32 centerX,

@@ -17,7 +17,7 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
     ├── findNearestStructure(structureId)   # 按结构 ID 查找最近
     │       └── StructureSetRegistry → StructureSet → placement()
     │              ├── RandomSpreadStructurePlacement   # 网格搜索：getPotentialStructureChunk 枚举候选区块
-    │              └── ConcentricRingsStructurePlacement # 环形预计算：getRingPositions 直接取全部位置
+    │              └── ConcentricRingsStructurePlacement # 环形预计算：ringLayoutChunks 直接取全部环布局起点
     │       └── StructureCheck（缓存）── checkStart 过滤不含结构的区块
     │
     └── findNearestMapStructure(tagId)      # 按结构标签查找最近
@@ -27,7 +27,7 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
 **搜索流程**：以中心方块坐标为原点，将 `maxDistance` 向上取整为区块半径 `chunkRadius`。依据放置策略类型分支：
 
 - **RandomSpread**（如村庄、神庙）：按 `spacing` 划分网格，对每个网格单元用 `getPotentialStructureChunk(seed, baseX, baseZ)` 算出该网格的候选区块，经距离裁剪 + `isStructureChunk`（频率缩减 + 排斥区）校验 + `StructureCheck` 缓存过滤后，取距中心最近者。
-- **ConcentricRings**（要塞 Stronghold）：直接取 `getRingPositions(seed)` 预计算的全部环形区块位置，同样经距离裁剪 + 缓存过滤后取最近。
+- **ConcentricRings**（要塞 Stronghold）：直接取 `ringLayoutChunks(seed)` 预计算的全部环布局起点，同样经距离裁剪 + 缓存过滤后取最近。注意这里用的是**环布局起点**而非经群系搜索改写的最终坐标（见"容易踩的坑"最后一条）。
 
 **距离比较**：全程使用距离平方 `distSq` 避免开方，初始阈值 `maxDistance² + 1.0`（`findNearestStructure`）/ `numeric_limits<f64>::max()`（`findNearestMapStructure` 跨结构聚合）。
 
@@ -43,7 +43,7 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
 | `StructureSetRegistry` | 单例，`findByStructure(structureId)` 查结构所属 StructureSet |
 | `StructureSet` | `placement()` 取放置规则 |
 | `RandomSpreadStructurePlacement` | 网格放置：`spacing()` / `getPotentialStructureChunk()` |
-| `ConcentricRingsStructurePlacement` | 环形放置：`getRingPositions()` |
+| `ConcentricRingsStructurePlacement` | 环形放置：`ringLayoutChunks()` / `resolveRingPositions()` |
 | `StructurePlacement`（基类） | `isStructureChunk()` / `getLocatePos()` |
 | `StructureCheck` | 区块结构存在性缓存：`checkStart()` / `setFeatureCheckResult()` |
 | `StructureTags` | `getTag(tagId)` 取标签内结构 ID 列表 |
@@ -79,7 +79,7 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
 
 ### 2. worldSeed 类型转换
 
-`world.seed()` 返回 `u64`，算法内 `static_cast<i64>(world.seed())` 转有符号用于放置规则的哈希计算。`getPotentialStructureChunk` / `isStructureChunk` / `getRingPositions` 均接收 `i64` 种子。切勿误传 `u64` 导致重载解析或符号扩展差异。
+`world.seed()` 返回 `u64`，算法内 `static_cast<i64>(world.seed())` 转有符号用于放置规则的哈希计算。`getPotentialStructureChunk` / `isStructureChunk` / `ringLayoutChunks` / `resolveRingPositions` 均接收 `i64` 种子。切勿误传 `u64` 导致重载解析或符号扩展差异。
 
 ### 3. chunkRadius 向上取整
 
@@ -101,9 +101,13 @@ StructureLocator（无状态静态类，接收 const ServerWorld&）
 
 `StructureLocator` 命名空间刻意定为 `mc::server::structure` 而非与目录一致的 `mc::server::world::structure`。原因：`ServerWorld` 位于 `mc::server` 命名空间，其实现文件 `ServerWorld.cpp` 内大量以 `world::xxx` 引用 `mc::world` 命名空间的符号（`world::CHUNK_WIDTH`/`world::tick::TickPriority`/`world::gamerule::GameRuleKeys`/`world::redstone::RedstoneSystem` 等），依赖「`mc::server::world` 不存在故 `world::` 回退解析到 `mc::world`」这一名字查找回退。若把 `StructureLocator` 放进 `mc::server::world::structure`，会令 `mc::server::world` 命名空间首次出现在 `ServerWorld.cpp`，导致所有 `world::xxx` 引用改为优先匹配 `mc::server::world::xxx`（不存在）而编译失败。目录 `server/world/structure/` 与命名空间解耦，与 `WeatherManager`（目录 `server/world/weather/` 但命名空间 `mc::server`）同例。`ServerWorld.cpp` 内委托写 `structure::StructureLocator::...`（`mc::server` 内相对解析到 `mc::server::structure`）。
 
-### 3. `findNearestMapStructure` 只认已注册的结构标签
+### 8. `findNearestMapStructure` 只认已注册的结构标签
 
 按标签搜索要求标签已在 `StructureTags` 注册（内置标签在初始化时注册，数据包标签由 `StructureTagLoader` 合并；
 `minecraft:on_treasure_maps`、`dolphin_located` 等均有内置兜底成员）。未知标签返回空并打印 warn。
 调用方（藏宝图 `ExplorationMapFunction`、海豚寻宝）传入的是**标签 Id**，不是单个结构 Id；
 按单结构搜索请直接用 `findNearestStructure`。
+
+### 9. /locate 要塞用的是环布局起点，不是最终坐标
+
+`ConcentricRingsStructurePlacement` 上有两张表：`ringLayoutChunks()` 是环布局起点（半径 112 搜索方形的中心，/locate 用），`resolveRingPositions()` 是经群系搜索改写的最终坐标（区块生成判定用），两者最多相差 7 个区块。当前 /locate 走前者，所以要塞定位可能指到搜索方形中心而不是要塞实际位置（已留 TODO）。新增要塞相关查询时不要混用这两张表。

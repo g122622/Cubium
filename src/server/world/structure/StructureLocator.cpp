@@ -155,7 +155,11 @@ std::optional<BlockPos> StructureLocator::findNearestStructure(const ServerWorld
         }
     } else if (concentricRings != nullptr) {
         // ConcentricRings（要塞）：直接获取所有预计算位置，找最近的
-        const auto& ringPositions = concentricRings->getRingPositions(worldSeed);
+        // TODO: 这里取的是环布局起点（`ringLayoutChunks`），而区块生成判定用的是经
+        // 半径 112 群系搜索改写后的最终坐标表（`resolveRingPositions`），两者最多相差
+        // 7 个区块——/locate 因此可能定位到要塞搜索方形的中心而不是要塞实际位置。
+        // 修法是把本路径接到 `StructurePlacementState` 上，让两边共用同一张解析表。
+        const auto& ringPositions = concentricRings->ringLayoutChunks(worldSeed);
         for (const auto& chunkPos : ringPositions) {
             const i32 dx = chunkPos.x - centerChunkX;
             const i32 dz = chunkPos.z - centerChunkZ;

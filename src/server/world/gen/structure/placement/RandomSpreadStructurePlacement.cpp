@@ -105,16 +105,9 @@ bool RandomSpreadStructurePlacement::isStructureChunk(i64 worldSeed, i32 chunkX,
     }
 
     // 步骤3: 频率缩减检查
-    if (!applyAdditionalChunkRestrictions(chunkX, chunkZ, worldSeed)) {
-        return false;
-    }
-
-    // 步骤4: 排斥区检查
-    if (!applyInteractionsWithOtherStructures(chunkX, chunkZ, worldSeed)) {
-        return false;
-    }
-
-    return true;
+    // 排斥区不在这里判：它要问「另一个结构集在附近有没有落点」，需要看到整张结构集表，
+    // 由 StructurePlacementState::passesExclusionZone 完成。
+    return applyAdditionalChunkRestrictions(chunkX, chunkZ, worldSeed);
 }
 
 std::unique_ptr<StructurePlacement> RandomSpreadStructurePlacement::clone() const

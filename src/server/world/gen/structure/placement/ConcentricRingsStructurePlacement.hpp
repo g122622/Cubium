@@ -31,6 +31,7 @@
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -115,15 +116,18 @@ public:
     }
 
     /**
-     * @brief 获取所有环形位置（惰性计算并缓存）
+     * @brief 获取所有要塞的环布局起点（惰性计算并缓存）
      *
-     * 首次调用时根据世界种子生成所有要塞位置，后续调用直接返回缓存。
-     * 如果世界种子发生变化，会重新计算。
+     * 【只含布局，不含生物群系修正】返回的是每个要塞搜索方形的中心区块，也就是
+     * "打算在哪里找"；要塞真正落在哪里还要经一次半径 112 的群系搜索改写，见
+     * `resolveRingPositions`。区分两者很重要：两者最多相差 7 个区块。
+     *
+     * 首次调用时根据世界种子生成，后续直接返回缓存；世界种子变化时重算。
      *
      * @param worldSeed 世界种子
-     * @return 所有要塞的区块坐标列表
+     * @return 所有要塞的环布局起点区块坐标
      */
-    const std::vector<world::chunk::ChunkPos>& getRingPositions(i64 worldSeed) const;
+    const std::vector<world::chunk::ChunkPos>& ringLayoutChunks(i64 worldSeed) const;
 
     /**
      * @brief 一个要塞的「搜索起点 + 该点专用的 fork 种子」
@@ -179,22 +183,21 @@ private:
 
 public:
     /**
-     * @brief 设置经生物群系搜索改写后的最终候选区块表（按世界种子缓存）
+     * @brief 取经生物群系搜索改写后的最终要塞坐标表（单飞：并发调用只计算一次）
      *
-     * 原版把 `List<ChunkPos>` 缓存在 `ChunkGeneratorStructureState.ringPositions` 里，
-     * 与放置规则同生命周期；`StructurePlacementState` 每次判定都新建，因此它算出的
-     * 结果必须回填到这里，否则每个区块都要重跑 128 次螺旋扫描。
+     * 原版把这张表缓存在 `ChunkGeneratorStructureState.ringPositions` 里、与放置规则
+     * 同生命周期复用。而 `StructurePlacementState` 每个区块都会新建一个实例，所以缓存
+     * 必须落在放置规则上——否则 128 次群系搜索会在每个区块重跑一遍。
      *
-     * @param worldSeed 世界种子（作为缓存键）
-     * @param positions 最终坐标表
+     * 计算期间持锁：同时到达的多个区块生成线程只有一个真正计算，其余直接等结果
+     * （它们本来也要等这份数据才能继续判定）。
+     *
+     * @param worldSeed 世界种子（缓存键）
+     * @param compute 缓存未命中时的计算体，只在持锁的那一个线程上执行一次
+     * @return 最终坐标表；引用在「同一种子的这一次世界生命周期」内稳定
      */
-    void setResolvedRingPositions(i64 worldSeed, std::vector<world::chunk::ChunkPos> positions) const;
-
-    /**
-     * @brief 取经生物群系搜索改写后的最终候选区块表
-     * @return 命中缓存的表指针；未计算过返回 nullptr
-     */
-    [[nodiscard]] const std::vector<world::chunk::ChunkPos>* resolvedRingPositions(i64 worldSeed) const;
+    const std::vector<world::chunk::ChunkPos>& resolveRingPositions(
+        i64 worldSeed, const std::function<std::vector<world::chunk::ChunkPos>()>& compute) const;
 };
 
 } // namespace mc::world::gen::structure::placement

@@ -1540,6 +1540,8 @@ add_executable(mc_tests
     common/util/assert/AssertTest.cpp
     # UniversalWorkerPool 测试
     common/util/thread/UniversalWorkerPoolTest.cpp
+    # parallelFor 并行遍历测试
+    common/util/thread/ParallelForTest.cpp
     # UniversalWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
     server/world/scheduling/AreaTaskSchedulerTest.cpp
     # ReentrantAreaLock 区域锁测试

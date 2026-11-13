@@ -29,8 +29,7 @@
 #include "common/util/math/random/WorldgenRandom.hpp"
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
-#include <functional>
-#include <utility>
+#include <memory>
 
 namespace mc::world::gen::structure::placement {
 
@@ -94,40 +93,6 @@ bool StructurePlacement::applyAdditionalChunkRestrictions(i32 chunkX, i32 chunkZ
     }
 
     return true;
-}
-
-bool StructurePlacement::applyInteractionsWithOtherStructures(i32 chunkX, i32 chunkZ, i64 worldSeed) const
-{
-    // 没有排斥区配置时直接通过
-    if (!m_exclusionZone.has_value()) {
-        return true;
-    }
-
-    // 没有设置检查回调时直接通过
-    if (!m_exclusionZoneChecker) {
-        return true;
-    }
-
-    const auto& zone = m_exclusionZone.value();
-
-    // 在搜索半径内检查另一个 StructureSet 是否有结构
-    for (i32 dx = -zone.chunkCount; dx <= zone.chunkCount; ++dx) {
-        for (i32 dz = -zone.chunkCount; dz <= zone.chunkCount; ++dz) {
-            if (dx == 0 && dz == 0) {
-                continue;
-            }
-            if (m_exclusionZoneChecker(zone.otherSetId, chunkX + dx, chunkZ + dz, worldSeed)) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-void StructurePlacement::setExclusionZoneChecker(std::function<bool(const ResourceLocation&, i32, i32, i64)> callback)
-{
-    m_exclusionZoneChecker = std::move(callback);
 }
 
 } // namespace mc::world::gen::structure::placement
