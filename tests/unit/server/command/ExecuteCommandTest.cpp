@@ -38,6 +38,7 @@
 
 #include "common/BaseTestServer.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/command/CommandNode.hpp"
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/entity/entities/monster/undead/ZombieEntity.hpp"
@@ -49,6 +50,7 @@
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreCriteria.hpp"
+#include "common/util/text/ComponentFactory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/vanilla/VanillaBlocks.hpp"
@@ -56,6 +58,8 @@
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "server/bossbar/CustomServerBossInfo.hpp"
+#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteCommand.hpp"
 #include "server/command/commands/HelpCommand.hpp"
@@ -1124,4 +1128,195 @@ TEST_F(ExecuteCommandDataEntityTest, ReturnStopsFollowingFunctionCommands)
     EXPECT_EQ(result.failureCount, 0) << "/return must stop the remaining commands";
     ASSERT_TRUE(result.returnValue.has_value());
     EXPECT_EQ(*result.returnValue, 5);
+}
+
+// ============================================================================
+// execute store
+//
+// 用一条返回固定值的自定义命令作为嵌套命令，逐目标验证 result/success、scale、
+// 类型截断与 fork 分支。block/entity 目标需要真实世界与方块实体/实体，因此单独建 fixture。
+// ============================================================================
+
+namespace {
+
+/// 注册一个返回固定值的测试命令，供 execute store 读取嵌套命令的结果。
+void registerFixedResultCommand(mc::command::CommandDispatcher<mc::command::ServerCommandSource>& dispatcher,
+    const std::string& name,
+    mc::i32 value)
+{
+    auto node = std::make_shared<mc::command::LiteralCommandNode<mc::command::ServerCommandSource>>(name);
+    node->setCommand([value](mc::command::CommandContext<mc::command::ServerCommandSource>&) -> mc::i32 {
+        return value;
+    });
+    dispatcher.registerCommand(node);
+}
+
+} // namespace
+
+/// BaseTestServer 的 bossBarManager 是抛 "unused" 的测试桩；store bossbar 需要真实管理器。
+class ExecuteStoreTestServer final : public mc::test::BaseTestServer {
+public:
+    ExecuteStoreTestServer()
+        : m_bossBarManager(*this)
+    {}
+
+    [[nodiscard]] mc::server::CustomServerBossInfoManager& bossBarManager() override
+    {
+        return m_bossBarManager;
+    }
+
+    [[nodiscard]] const mc::server::CustomServerBossInfoManager& bossBarManager() const override
+    {
+        return m_bossBarManager;
+    }
+
+private:
+    mc::server::CustomServerBossInfoManager m_bossBarManager;
+};
+
+class ExecuteStoreTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        mc::VanillaBlocks::initialize();
+        mc::entity::VanillaEntities::registerAll();
+
+        mc::command::ExecuteCommand::registerTo(m_server.commandRegistry().dispatcher());
+        registerFixedResultCommand(m_server.commandRegistry().dispatcher(), "e2e_result_5", 5);
+
+        // 判据表由服务端启动阶段注册；测试里直接初始化，避免 getCriteria("dummy") 为空。
+        mc::scoreboard::ScoreCriteriaRegistry::instance().registerBuiltinCriteria();
+        auto* criteria = mc::scoreboard::ScoreCriteriaRegistry::instance().getCriteria("dummy");
+        ASSERT_NE(criteria, nullptr);
+        m_objective = m_server.scoreboard().addObjective("e2e_store", *criteria);
+        ASSERT_NE(m_objective, nullptr);
+
+        mc::server::ServerWorldConfig config;
+        config.viewDistance = 4;
+        config.dimension = 0;
+        config.seed = 12345;
+
+        auto world = createBiomeTestWorld(config);
+        m_world = world.get();
+        auto dimension = std::make_unique<mc::ServerDimension>(0, mc::DimensionType::overworld(), 12345, 4);
+        dimension->setWorld(std::move(world));
+        MC_ASSERT_RELEASE(m_server.dimensionManager().registerDimension(std::move(dimension)));
+
+        auto zombie = std::make_unique<mc::ZombieEntity>(mc::EntityInstanceId(1), mc::test::testEcsRegistry());
+        zombie->setWorld(m_world);
+        m_zombie = zombie.get();
+        m_world->entityManager().addEntity(std::move(zombie));
+
+        const mc::BlockPos commandBlockPos(4, 64, 4);
+        m_world->setBlockEntity(
+            commandBlockPos, std::make_unique<mc::blockentity::CommandBlockEntity>(commandBlockPos));
+
+        auto bossBar = std::make_unique<mc::server::CustomServerBossInfo>(
+            mc::ResourceLocation("e2e:bar"), mc::text::literal("Test"), m_server.bossBarManager());
+        m_bossBar = m_server.bossBarManager().add(std::move(bossBar));
+        ASSERT_NE(m_bossBar, nullptr);
+
+        m_console = mc::command::ServerCommandSource::forConsole(&m_server);
+    }
+
+    /// 执行一条命令；失败时返回 -1 并报出命令文本与错误。
+    mc::i32 run(const std::string& command)
+    {
+        const auto result = m_server.commandRegistry().execute(command, m_console);
+        if (result.failed()) {
+            ADD_FAILURE() << command << " failed: " << result.error().toString();
+            return -1;
+        }
+        return result.value();
+    }
+
+    /// 读取记分板分数；持有者没有分数时返回 sentinel。
+    mc::i32 scoreOf(const std::string& holder)
+    {
+        const auto* score = m_server.scoreboard().getScore(holder, *m_objective);
+        return score == nullptr ? -1 : score->getScorePoints();
+    }
+
+    ExecuteStoreTestServer m_server;
+    mc::command::ServerCommandSource m_console = mc::command::ServerCommandSource::forConsole(nullptr);
+    mc::server::ServerWorld* m_world = nullptr;
+    mc::ZombieEntity* m_zombie = nullptr;
+    mc::scoreboard::ScoreObjective* m_objective = nullptr;
+    mc::server::CustomServerBossInfo* m_bossBar = nullptr;
+};
+
+TEST_F(ExecuteStoreTest, StoreResultScoreWritesNestedResult)
+{
+    run("execute store result score #x e2e_store run e2e_result_5");
+    EXPECT_EQ(scoreOf("#x"), 5);
+}
+
+TEST_F(ExecuteStoreTest, StoreSuccessScoreWritesOneForSuccessfulCommand)
+{
+    run("execute store success score #ok e2e_store run e2e_result_5");
+    EXPECT_EQ(scoreOf("#ok"), 1);
+}
+
+TEST_F(ExecuteStoreTest, StoreSuccessScoreWritesZeroForUnknownNestedCommand)
+{
+    run("execute store success score #bad e2e_store run e2e_command_that_does_not_exist");
+    EXPECT_EQ(scoreOf("#bad"), 0);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultScoreWritesEveryHolderInList)
+{
+    run("execute store result score #a,#b e2e_store run e2e_result_5");
+    EXPECT_EQ(scoreOf("#a"), 5);
+    EXPECT_EQ(scoreOf("#b"), 5);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultStorageAppliesScale)
+{
+    run("execute store result storage e2e:scaled value int 2 run e2e_result_5");
+    const auto data = m_server.commandStorage().get(mc::ResourceLocation("e2e:scaled"));
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(data->get<mc::nbt::tags::int_tag>("value"), 10);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultStorageTruncatesByteLikeVanilla)
+{
+    // 5 * 100 = 500；原版先饱和到 int，再取低 8 位 → -12。
+    run("execute store result storage e2e:byte value byte 100 run e2e_result_5");
+    const auto data = m_server.commandStorage().get(mc::ResourceLocation("e2e:byte"));
+    ASSERT_NE(data, nullptr);
+    EXPECT_EQ(data->get<mc::nbt::tags::byte_tag>("value"), -12);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultBossbarValueAndMax)
+{
+    run("execute store result bossbar e2e:bar value run e2e_result_5");
+    EXPECT_EQ(m_bossBar->value(), 5);
+
+    run("execute store result bossbar e2e:bar max run e2e_result_5");
+    EXPECT_EQ(m_bossBar->max(), 5);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultBlockWritesBlockEntityNbt)
+{
+    run("execute store result block 4 64 4 SuccessCount int 1 run e2e_result_5");
+    auto* blockEntity = m_world->getBlockEntity(mc::BlockPos(4, 64, 4));
+    ASSERT_NE(blockEntity, nullptr);
+
+    mc::nbt::tags::compound_tag data;
+    blockEntity->saveToNBT(data);
+    EXPECT_EQ(data.get<mc::nbt::tags::int_tag>("SuccessCount"), 5);
+}
+
+TEST_F(ExecuteStoreTest, StoreResultEntityWritesEntityNbt)
+{
+    run("execute store result entity @e[limit=1] Health float 1 run e2e_result_5");
+    EXPECT_FLOAT_EQ(m_zombie->health(), 5.0f);
+}
+
+TEST_F(ExecuteStoreTest, StoreAppliesInsideForkBranch)
+{
+    // 首版只覆盖 store 位于 fork 之前的形态。`as ... store ...` 需要重定向路径把
+    // as 段带进执行链，属于既有 /execute 链式解析的缺口，留待后续批次。
+    run("execute store result score #fork e2e_store as @e[limit=1] run e2e_result_5");
+    EXPECT_EQ(scoreOf("#fork"), 5);
 }

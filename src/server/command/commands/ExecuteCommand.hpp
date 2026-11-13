@@ -53,11 +53,23 @@ namespace command {
  */
 class ExecuteCommand {
 public:
+    /**
+     * @brief 嵌套命令的执行结果
+     *
+     * success 区分「命令执行了且成功」与「解析/执行失败」，供 `execute store success` 使用；
+     * result 是命令自己返回的值，供 `execute store result` 使用。失败时两者分别为
+     * false / 0。
+     */
+    struct NestedCommandResult {
+        bool success;
+        i32 result;
+    };
+
     /// 注册命令及执行上下文修改器。
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
     /// 执行一条嵌套命令（/execute run 与 /return run 共用）。
-    static i32 executeNestedCommand(ServerCommandSource& source, const std::string& command);
+    static NestedCommandResult executeNestedCommand(ServerCommandSource& source, const std::string& command);
 
 private:
     static i32 _executeForwarded(CommandContext<ServerCommandSource>& context);

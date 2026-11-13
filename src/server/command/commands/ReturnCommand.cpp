@@ -100,7 +100,7 @@ i32 ReturnCommand::_returnRun(CommandContext<ServerCommandSource>& context)
     if (command.empty()) {
         // 原版这里是一条 dispatchCommand 的转发命令：run 后面没内容时实体本就存在，
         // 只是没有可执行命令，结果按失败返回而不是报错。
-        return ExecuteCommand::executeNestedCommand(source, "");
+        return ExecuteCommand::executeNestedCommand(source, "").result;
     }
     const std::string fullCommand = command[0] == '/' ? command : "/" + command;
     auto& registry = CommandRegistry::getGlobal();

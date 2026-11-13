@@ -54,6 +54,8 @@
 #include "common/item/loot/context/LootParameterSets.hpp"
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/scoreboard/core/Score.hpp"
+#include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/Vector2.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -65,6 +67,8 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "server/application/IServer.hpp"
+#include "server/bossbar/CustomServerBossInfo.hpp"
+#include "server/bossbar/CustomServerBossInfoManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/command/commands/ExecuteBlocksCondition.hpp"
@@ -76,10 +80,12 @@
 #include "server/function/FunctionManager.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -211,6 +217,279 @@ std::shared_ptr<CommandNode<ServerCommandSource>> conditionArg(
 std::shared_ptr<CommandNode<ServerCommandSource>> conditionLiteral(const char* name)
 {
     return std::make_shared<LiteralCommandNode<ServerCommandSource>>(name);
+}
+
+// ============================================================================
+// execute store
+// ============================================================================
+
+/// 把 result/success 值按原版 `(long)(value * scale)` 语义落到 i64：NaN 记 0，超界饱和。
+i64 _storeScaledLong(f64 value)
+{
+    if (std::isnan(value)) {
+        return 0;
+    }
+    if (value <= static_cast<f64>(std::numeric_limits<i64>::min())) {
+        return std::numeric_limits<i64>::min();
+    }
+    if (value >= static_cast<f64>(std::numeric_limits<i64>::max())) {
+        return std::numeric_limits<i64>::max();
+    }
+    return static_cast<i64>(value);
+}
+
+/// 把 result/success 值按原版 `(int)(value * scale)` 语义落到 i32：NaN 记 0，超界饱和。
+i32 _storeScaledInt(f64 value)
+{
+    if (std::isnan(value)) {
+        return 0;
+    }
+    if (value <= static_cast<f64>(std::numeric_limits<i32>::min())) {
+        return std::numeric_limits<i32>::min();
+    }
+    if (value >= static_cast<f64>(std::numeric_limits<i32>::max())) {
+        return std::numeric_limits<i32>::max();
+    }
+    return static_cast<i32>(value);
+}
+
+/**
+ * @brief 按 store 的 NBT 类型构造写入值
+ *
+ * 原版顺序是「先乘 scale，再转目标类型」：byte/short 走 `(byte)(int)(...)` / `(short)(int)(...)`，
+ * 即先饱和到 int 再取低位；long 单独饱和到 long。这里逐类型复现。
+ */
+std::unique_ptr<nbt::tags::tag> _makeStoreTag(ExecuteStoreNbtType type, i32 value, f64 scale)
+{
+    const f64 scaled = static_cast<f64>(value) * scale;
+    switch (type) {
+        case ExecuteStoreNbtType::Byte:
+            return std::make_unique<nbt::tags::byte_tag>(static_cast<i8>(_storeScaledInt(scaled)));
+        case ExecuteStoreNbtType::Short:
+            return std::make_unique<nbt::tags::short_tag>(static_cast<i16>(_storeScaledInt(scaled)));
+        case ExecuteStoreNbtType::Int:
+            return std::make_unique<nbt::tags::int_tag>(_storeScaledInt(scaled));
+        case ExecuteStoreNbtType::Long:
+            return std::make_unique<nbt::tags::long_tag>(_storeScaledLong(scaled));
+        case ExecuteStoreNbtType::Float:
+            return std::make_unique<nbt::tags::float_tag>(static_cast<f32>(scaled));
+        case ExecuteStoreNbtType::Double:
+            return std::make_unique<nbt::tags::double_tag>(scaled);
+    }
+    return nullptr;
+}
+
+// store 子树中的选择项（kind / target / NBT 类型 / bossbar 字段）都是字面量，执行链只保留
+// 修改器名，拿不到这些选择，因此在解析期写进上下文。末端参数解析完成时再把上下文收集成
+// 一条 ExecuteStoreSpec，供执行器在嵌套命令返回后使用。
+inline constexpr const char* kStoreKindKey = "executeStoreKind";
+inline constexpr const char* kStoreTargetKey = "executeStoreTarget";
+inline constexpr const char* kStoreNbtTypeKey = "executeStoreNbtType";
+inline constexpr const char* kStoreBossbarFieldKey = "executeStoreBossbarField";
+
+/**
+ * @brief 记录 store 段某个选择项的字面量节点
+ *
+ * bossbar 的 value/max 是末端字面量，本身就要落一条目标，因此可带一个记录回调；
+ * 其余选择项传空回调。
+ */
+class _StoreOptionNode : public LiteralCommandNode<ServerCommandSource> {
+public:
+    _StoreOptionNode(const std::string& name,
+        const char* key,
+        i32 value,
+        std::function<void(CommandContext<ServerCommandSource>&)> record)
+        : LiteralCommandNode<ServerCommandSource>(name)
+        , m_key(key)
+        , m_value(value)
+        , m_record(std::move(record))
+    {}
+
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    {
+        MC_TRY(LiteralCommandNode<ServerCommandSource>::parse(reader, context));
+        context.setArgument(m_key, m_value);
+        if (m_record) {
+            m_record(context);
+        }
+        return Result<void, CommandError>::ok();
+    }
+
+private:
+    const char* m_key;
+    i32 m_value;
+    std::function<void(CommandContext<ServerCommandSource>&)> m_record;
+};
+
+/**
+ * @brief 在 store 子树末端参数解析成功后记录一条目标
+ */
+template <typename T>
+class _StoreRecordingArgNode : public ArgumentCommandNode<ServerCommandSource, T> {
+public:
+    _StoreRecordingArgNode(const std::string& name,
+        std::shared_ptr<ArgumentType<T>> type,
+        std::function<void(CommandContext<ServerCommandSource>&)> record)
+        : ArgumentCommandNode<ServerCommandSource, T>(name, std::move(type))
+        , m_record(std::move(record))
+    {}
+
+    Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
+    {
+        MC_TRY((ArgumentCommandNode<ServerCommandSource, T>::parse(reader, context)));
+        m_record(context);
+        return Result<void, CommandError>::ok();
+    }
+
+private:
+    std::function<void(CommandContext<ServerCommandSource>&)> m_record;
+};
+
+/// 把上下文中已解析的 store 参数收集成一条 ExecuteStoreSpec 并追加。
+void _recordStoreSpec(CommandContext<ServerCommandSource>& context)
+{
+    ExecuteStoreSpec spec{};
+    // kind：0=result，1=success。
+    spec.kind =
+        context.getArgumentOr<i32>(kStoreKindKey, 0) == 0 ? ExecuteStoreKind::Result : ExecuteStoreKind::Success;
+    const i32 target = context.getArgumentOr<i32>(kStoreTargetKey, -1);
+
+    switch (target) {
+        case 0: { // score
+            spec.target = ExecuteStoreTarget::Score;
+            const std::string holdersText = context.getArgumentOr<std::string>("targets", std::string());
+            usize begin = 0;
+            while (begin <= holdersText.size()) {
+                const usize end = holdersText.find(',', begin);
+                const std::string holder =
+                    holdersText.substr(begin, end == std::string::npos ? std::string::npos : end - begin);
+                if (!holder.empty()) {
+                    spec.holders.push_back(holder);
+                }
+                if (end == std::string::npos) {
+                    break;
+                }
+                begin = end + 1;
+            }
+            spec.objective = context.getArgumentOr<std::string>("objective", std::string());
+            break;
+        }
+        case 1: { // bossbar
+            spec.target = ExecuteStoreTarget::Bossbar;
+            spec.bossbarId = context.getArgumentOr<ResourceLocation>("id", ResourceLocation());
+            spec.bossbarValue = context.getArgumentOr<i32>(kStoreBossbarFieldKey, 0) == 0;
+            break;
+        }
+        case 2: { // block
+            spec.target = ExecuteStoreTarget::Block;
+            spec.blockPos = context.getArgumentOr<Coordinates::Ptr>("targetPos", nullptr);
+            spec.path = context.getArgumentOr<NbtPath>("path", NbtPath());
+            spec.nbtType = static_cast<ExecuteStoreNbtType>(context.getArgumentOr<i32>(kStoreNbtTypeKey, 2));
+            spec.scale = context.getArgumentOr<f64>("scale", 1.0);
+            break;
+        }
+        case 3: { // entity
+            spec.target = ExecuteStoreTarget::Entity;
+            spec.entitySelector = context.getArgumentOr<EntitySelector>("target", EntitySelector());
+            spec.path = context.getArgumentOr<NbtPath>("path", NbtPath());
+            spec.nbtType = static_cast<ExecuteStoreNbtType>(context.getArgumentOr<i32>(kStoreNbtTypeKey, 2));
+            spec.scale = context.getArgumentOr<f64>("scale", 1.0);
+            break;
+        }
+        case 4: { // storage
+            spec.target = ExecuteStoreTarget::Storage;
+            spec.storageId = context.getArgumentOr<ResourceLocation>("target", ResourceLocation());
+            spec.path = context.getArgumentOr<NbtPath>("path", NbtPath());
+            spec.nbtType = static_cast<ExecuteStoreNbtType>(context.getArgumentOr<i32>(kStoreNbtTypeKey, 2));
+            spec.scale = context.getArgumentOr<f64>("scale", 1.0);
+            break;
+        }
+        default:
+            return;
+    }
+
+    auto specs =
+        context.getArgumentOr<std::shared_ptr<std::vector<ExecuteStoreSpec>>>(kExecuteStoreSpecsParam, nullptr);
+    if (specs == nullptr) {
+        specs = std::make_shared<std::vector<ExecuteStoreSpec>>();
+        context.setArgument(kExecuteStoreSpecsParam, specs);
+    }
+    specs->push_back(std::move(spec));
+}
+
+/**
+ * @brief 把一条 store 目标写到实际存储
+ *
+ * 原版 storeData 的异常被吞掉（路径不存在、目标不可写都只放弃本次写入），这里同样
+ * 静默返回；score/bossbar 目标不存在时也按原版「解析期已校验」处理，不额外报错。
+ */
+void _applyStoreSpec(const ExecuteStoreSpec& spec, ServerCommandSource& source, bool success, i32 result)
+{
+    server::IServer* server = source.server();
+    if (server == nullptr) {
+        return;
+    }
+
+    const i32 value = spec.kind == ExecuteStoreKind::Result ? result : (success ? 1 : 0);
+
+    switch (spec.target) {
+        case ExecuteStoreTarget::Score: {
+            auto* objective = server->scoreboard().getObjective(spec.objective);
+            if (objective == nullptr) {
+                return;
+            }
+            for (const auto& holder : spec.holders) {
+                if (mc::scoreboard::Score* score = server->scoreboard().getOrCreateScore(holder, *objective)) {
+                    score->setScorePoints(value);
+                }
+            }
+            return;
+        }
+        case ExecuteStoreTarget::Bossbar: {
+            auto* bossBar = server->bossBarManager().get(spec.bossbarId);
+            if (bossBar == nullptr) {
+                return;
+            }
+            if (spec.bossbarValue) {
+                bossBar->setValue(value);
+            } else {
+                bossBar->setMax(value);
+            }
+            return;
+        }
+        case ExecuteStoreTarget::Block:
+        case ExecuteStoreTarget::Entity:
+        case ExecuteStoreTarget::Storage: {
+            std::unique_ptr<IDataAccessor> accessor;
+            if (spec.target == ExecuteStoreTarget::Block) {
+                const Vector3i blockPos = spec.blockPos->getBlockPos(source.position(), source.rotation());
+                accessor =
+                    std::make_unique<BlockDataAccessor>(source.world(), BlockPos(blockPos.x, blockPos.y, blockPos.z));
+            } else if (spec.target == ExecuteStoreTarget::Entity) {
+                Entity* entity = support::EntityResolver::resolveSingle(source, spec.entitySelector);
+                if (entity == nullptr) {
+                    return;
+                }
+                accessor = std::make_unique<EntityDataAccessor>(entity);
+            } else {
+                accessor = std::make_unique<StorageDataAccessor>(&server->commandStorage(), spec.storageId);
+            }
+
+            auto dataResult = accessor->getData();
+            if (dataResult.failed()) {
+                return;
+            }
+            auto data = std::move(dataResult).value();
+            auto setResult = spec.path.set(*data, [&spec, value]() {
+                return _makeStoreTag(spec.nbtType, value, spec.scale);
+            });
+            if (setResult.failed()) {
+                return;
+            }
+            (void)accessor->mergeData(*data);
+            return;
+        }
+    }
 }
 
 /// 上下文键：`if score` 用了哪个比较运算符（`<`/`<=`/`=`/`>`/`>=`）。
@@ -405,11 +684,12 @@ std::vector<std::pair<std::string, std::shared_ptr<CommandNode<ServerCommandSour
 
 // ========== 嵌套命令执行 ==========
 
-i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std::string& command)
+ExecuteCommand::NestedCommandResult ExecuteCommand::executeNestedCommand(
+    ServerCommandSource& source, const std::string& command)
 {
     if (command.empty()) {
         source.sendFailure(::mc::text::literal("Empty command"));
-        return 0;
+        return {false, 0};
     }
 
     // 确保命令以 / 开头
@@ -424,14 +704,17 @@ i32 ExecuteCommand::executeNestedCommand(ServerCommandSource& source, const std:
     // 此前固定走 getGlobal()，导致通过实例注册表注册的命令永远无法被 execute ... run 调用。
     server::IServer* server = source.server();
     auto& registry = (server != nullptr) ? server->commandRegistry() : CommandRegistry::getGlobal();
-    auto result = registry.execute(cmd, source);
+    // 直接走 dispatcher：CommandRegistry::execute 只返回 i32，会丢掉 CommandResult 的
+    // success 标志，而 execute store success 需要它区分「执行了但结果为 0」与「执行失败」。
+    auto result = registry.dispatcher().execute(cmd, source);
 
     if (result.failed()) {
         source.sendFailure(::mc::text::literal(result.error().message()));
-        return 0;
+        return {false, 0};
     }
 
-    return result.value();
+    const CommandResult& commandResult = result.value();
+    return {commandResult.isSuccess(), commandResult.result()};
 }
 
 // ========== 命令注册 ==========
@@ -576,25 +859,30 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== store <result|success> <block|bossbar|entity|score|storage> ... ==========
     // 形状对齐原版 ExecuteCommand.addStoreArguments：
-    //   block <pos> <path> <类型> [<scale>]
+    //   block <pos> <path> <类型> <scale>
     //   bossbar <id> (value|max)
-    //   entity <target> <path> <类型> [<scale>]
+    //   entity <target> <path> <类型> <scale>
     //   score <targets> <objective>
-    //   storage <id> <path> <类型> [<scale>]
-    // 原版 store 子树没有任何可执行节点：命中 store 只表示「等下一条命令的结果」，链上还要
-    // 继续读 run。执行语义尚未接入，落到执行链时按「store 不完整」报错，不静默成功。
+    //   storage <id> <path> <类型> <scale>
+    // store 子树本身没有可执行节点：解析到末端时由记录节点把目标写进上下文，再重定向回
+    // execute 根继续读 run；执行器在嵌套命令返回后按目标写入。
     auto storeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("store");
-    for (const char* kind : {"result", "success"}) {
-        auto kindNode = child(kind);
+    const std::array<const char*, 2> kinds{"result", "success"};
+    const std::array<const char*, 6> storeNbtTypes{"byte", "short", "int", "long", "float", "double"};
+    for (usize kindIndex = 0; kindIndex < kinds.size(); ++kindIndex) {
+        auto kindNode =
+            std::make_shared<_StoreOptionNode>(kinds[kindIndex], kStoreKindKey, static_cast<i32>(kindIndex), nullptr);
 
-        // block <targetPos> <path> <类型> [<scale>]
+        // block <targetPos> <path> <类型> <scale>
         {
-            auto blockNode = child("block");
+            auto blockNode = std::make_shared<_StoreOptionNode>("block", kStoreTargetKey, 2, nullptr);
             auto pos = conditionArg("targetPos", BlockPosArgumentType::blockPos(), false);
             auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
-            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
-                auto typeNode = child(type);
-                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+            for (usize typeIndex = 0; typeIndex < storeNbtTypes.size(); ++typeIndex) {
+                auto typeNode = std::make_shared<_StoreOptionNode>(
+                    storeNbtTypes[typeIndex], kStoreNbtTypeKey, static_cast<i32>(typeIndex), nullptr);
+                typeNode->addChild(std::make_shared<_StoreRecordingArgNode<f64>>(
+                    "scale", DoubleArgumentType::doubleArg(), _recordStoreSpec));
                 path->addChild(typeNode);
             }
             pos->addChild(path);
@@ -604,26 +892,26 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
         // bossbar <id> (value|max)
         {
-            auto bossbarNode = child("bossbar");
+            auto bossbarNode = std::make_shared<_StoreOptionNode>("bossbar", kStoreTargetKey, 1, nullptr);
             auto id = conditionArg("id", ResourceLocationArgumentType::resourceLocation(), false);
             attachCommandSuggestions(id);
-            for (const char* field : {"value", "max"}) {
-                auto fieldNode = child(field);
-                id->addChild(fieldNode);
-            }
+            id->addChild(std::make_shared<_StoreOptionNode>("value", kStoreBossbarFieldKey, 0, _recordStoreSpec));
+            id->addChild(std::make_shared<_StoreOptionNode>("max", kStoreBossbarFieldKey, 1, _recordStoreSpec));
             bossbarNode->addChild(id);
             kindNode->addChild(bossbarNode);
         }
 
-        // entity <target> <path> <类型> [<scale>]
+        // entity <target> <path> <类型> <scale>
         {
-            auto entityNode = child("entity");
+            auto entityNode = std::make_shared<_StoreOptionNode>("entity", kStoreTargetKey, 3, nullptr);
             // 原版 store entity 的 target 是单实体参数（网络上 single 位为 1）。
             auto target = conditionArg("target", EntityArgumentType::entity(), false);
             auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
-            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
-                auto typeNode = child(type);
-                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+            for (usize typeIndex = 0; typeIndex < storeNbtTypes.size(); ++typeIndex) {
+                auto typeNode = std::make_shared<_StoreOptionNode>(
+                    storeNbtTypes[typeIndex], kStoreNbtTypeKey, static_cast<i32>(typeIndex), nullptr);
+                typeNode->addChild(std::make_shared<_StoreRecordingArgNode<f64>>(
+                    "scale", DoubleArgumentType::doubleArg(), _recordStoreSpec));
                 path->addChild(typeNode);
             }
             target->addChild(path);
@@ -633,24 +921,27 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
         // score <targets> <objective>
         {
-            auto scoreNode = child("score");
+            auto scoreNode = std::make_shared<_StoreOptionNode>("score", kStoreTargetKey, 0, nullptr);
             auto targets = conditionArg("targets", ScoreHolderArgumentType::scoreHolder(true), false);
             attachCommandSuggestions(targets);
-            targets->addChild(conditionArg("objective", ObjectiveNameArgumentType::objective(), false));
+            targets->addChild(std::make_shared<_StoreRecordingArgNode<std::string>>(
+                "objective", ObjectiveNameArgumentType::objective(), _recordStoreSpec));
 
             scoreNode->addChild(targets);
             kindNode->addChild(scoreNode);
         }
 
-        // storage <target> <path> <类型> [<scale>]
+        // storage <target> <path> <类型> <scale>
         {
-            auto storageNode = child("storage");
+            auto storageNode = std::make_shared<_StoreOptionNode>("storage", kStoreTargetKey, 4, nullptr);
             auto target = conditionArg("target", ResourceLocationArgumentType::resourceLocation(), false);
             attachCommandSuggestions(target);
             auto path = conditionArg("path", NbtPathArgumentType::nbtPath(), false);
-            for (const char* type : {"byte", "short", "int", "long", "float", "double"}) {
-                auto typeNode = child(type);
-                typeNode->addChild(conditionArg("scale", DoubleArgumentType::doubleArg(), false));
+            for (usize typeIndex = 0; typeIndex < storeNbtTypes.size(); ++typeIndex) {
+                auto typeNode = std::make_shared<_StoreOptionNode>(
+                    storeNbtTypes[typeIndex], kStoreNbtTypeKey, static_cast<i32>(typeIndex), nullptr);
+                typeNode->addChild(std::make_shared<_StoreRecordingArgNode<f64>>(
+                    "scale", DoubleArgumentType::doubleArg(), _recordStoreSpec));
                 path->addChild(typeNode);
             }
             target->addChild(path);
@@ -661,6 +952,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
         storeNode->addChild(kindNode);
     }
     executeNode->addChild(storeNode);
+    // run 节点在链中遇到 `store` 时需要沿同一棵子树解析（`execute as @e store ... run ...`）。
+    ExecuteRunNode::setStoreNode(storeNode);
 
     // ========== if / unless <条件> ==========
     // 条件子树逐条对齐原版 ExecuteCommand.Conditions.build：客户端只按这棵树补全与高亮，
@@ -811,6 +1104,11 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
     }
     context.setArgument(kParseMarkerParam, ExecuteParseMarker{});
 
+    // store 目标在解析期收集；执行期每条叶子命令（fork 的每个分支）执行完后各写一次，
+    // 与 vanilla 的 callback 链随 fork 复制语义一致。
+    const auto storeSpecs =
+        context.getArgumentOr<std::shared_ptr<std::vector<ExecuteStoreSpec>>>(kExecuteStoreSpecsParam, nullptr);
+
     const std::string command = context.getArgumentOr<std::string>("command", "");
     if (command.empty()) {
         source.sendFailure(::mc::text::literal("Empty command"));
@@ -930,7 +1228,13 @@ i32 ExecuteCommand::_executeForwarded(CommandContext<ServerCommandSource>& conte
             // on / store 等：执行链已能解析，语义留待后续批次。
         }
 
-        return total + executeNestedCommand(target, command);
+        const NestedCommandResult nested = executeNestedCommand(target, command);
+        if (storeSpecs != nullptr) {
+            for (const auto& spec : *storeSpecs) {
+                _applyStoreSpec(spec, target, nested.success, nested.result);
+            }
+        }
+        return total + (nested.success ? nested.result : 0);
     };
 
     return runChain(source, 0);

@@ -28,11 +28,17 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/CommandNode.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/NbtPath.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/block/base/types/BlockPos.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
 #include <cstddef>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -61,6 +67,65 @@ struct ExecuteParseMarker {
 
 /// 上下文里保存 {@link ExecuteParseMarker} 的槽名。
 inline constexpr const char* kParseMarkerParam = "commandParseMarker";
+
+/**
+ * @brief execute store 取的是嵌套命令的哪个值
+ */
+enum class ExecuteStoreKind {
+    Result,  ///< 嵌套命令的 result（实际结果值）
+    Success, ///< 嵌套命令是否成功（1/0）
+};
+
+/**
+ * @brief execute store 写入的目标种类
+ */
+enum class ExecuteStoreTarget {
+    Block,
+    Bossbar,
+    Entity,
+    Score,
+    Storage,
+};
+
+/**
+ * @brief execute store 写入 NBT 时的数值类型（决定截断方式）
+ */
+enum class ExecuteStoreNbtType {
+    Byte,
+    Short,
+    Int,
+    Long,
+    Float,
+    Double,
+};
+
+/**
+ * @brief 一条 execute store 段解析后的目标描述
+ *
+ * 解析期写入上下文；执行期在嵌套命令返回后按 kind 取值并写入目标。
+ * 字段按 target 分族使用，未使用的字段保持零值。
+ */
+struct ExecuteStoreSpec {
+    ExecuteStoreKind kind;
+    ExecuteStoreTarget target;
+
+    // score / bossbar
+    std::vector<std::string> holders;
+    std::string objective;
+    ResourceLocation bossbarId;
+    bool bossbarValue;
+
+    // block / entity / storage
+    Coordinates::Ptr blockPos;
+    EntitySelector entitySelector;
+    ResourceLocation storageId;
+    NbtPath path;
+    ExecuteStoreNbtType nbtType;
+    f64 scale;
+};
+
+/// 上下文里保存 execute store 目标列表（`std::shared_ptr<std::vector<ExecuteStoreSpec>>`）的槽名。
+inline constexpr const char* kExecuteStoreSpecsParam = "executeStoreSpecs";
 
 /**
  * @brief /execute 链末端的 run 节点（承担原版 ForwardingCommand 的角色）
@@ -128,6 +193,12 @@ public:
         return s_modifiers[index].lock();
     }
 
+    /// 注册 execute store 子树的根节点（弱引用，生命周期随命令树）。
+    static void setStoreNode(const std::weak_ptr<CommandNode<ServerCommandSource>>& storeNode)
+    {
+        s_storeNode = storeNode;
+    }
+
     Result<void, CommandError> parse(StringReader& reader, CommandContext<ServerCommandSource>& context) const override
     {
         MC_TRY(LiteralCommandNode<ServerCommandSource>::parse(reader, context));
@@ -146,6 +217,47 @@ public:
                 reader.setCursor(tokenStart);
                 reader.skipWhitespace();
                 break;
+            }
+
+            if (token == "store") {
+                // TODO: `as ... store ... run ...` 目前由 dispatcher 沿重定向路径解析，
+                //       as 段不会进入执行链；需要在重定向时把修改器段记入上下文，
+                //       才能与 store 位于 fork 之前时保持同等支持。
+                //
+                // store 的参数名（targets/path/scale 等）与链上修改器同名。记录节点在
+                // parse 期已把它们收进 ExecuteStoreSpec，这里把链上的原值恢复，避免执行期
+                // 的 as/at/if 读到 store 覆盖后的值。
+                std::vector<std::pair<std::string, std::any>> savedArguments;
+                for (const char* key : {"targets", "objective", "path", "scale", "targetPos", "target", "id"}) {
+                    if (context.hasArgument(key)) {
+                        savedArguments.emplace_back(key, context.getArgumentAny(key));
+                    }
+                }
+
+                reader.setCursor(tokenStart);
+                const auto storeParse = parseStoreSegment(reader, context);
+                for (auto& [key, value] : savedArguments) {
+                    context.setArgumentAny(key, std::move(value));
+                }
+
+                if (storeParse.failed()) {
+                    // store 段解析失败：与修改器参数失败一致，回退到段首把余下文本当作嵌套命令。
+                    reader.setCursor(tokenStart);
+                    reader.skipWhitespace();
+                    break;
+                }
+                chainText += "|store";
+
+                StringReader storeLookahead = reader;
+                storeLookahead.skipWhitespace();
+                if (!storeLookahead.canRead()) {
+                    break;
+                }
+                const std::string storeNext = storeLookahead.readUnquotedString();
+                if (storeNext != "run" && modifierIndex(storeNext) < 0) {
+                    break;
+                }
+                continue;
             }
 
             const i32 index = modifierIndex(token);
@@ -211,6 +323,77 @@ public:
     }
 
 private:
+    /**
+     * @brief 解析链中的 `store ...` 段
+     *
+     * `execute as @e store ... run ...` 里 store 不出现在修改器表中，run 节点必须自己
+     * 沿 store 子树把参数读掉。末端参数/字面量节点在 parse 时会把目标写进上下文，
+     * 执行器随后读取。
+     */
+    static Result<void, CommandError> parseStoreSegment(
+        StringReader& reader, CommandContext<ServerCommandSource>& context)
+    {
+        auto storeNode = s_storeNode.lock();
+        if (storeNode == nullptr) {
+            return CommandError(
+                CommandErrorType::DispatcherUnknownArgument, std::string("execute store is not registered"));
+        }
+        reader.skipWhitespace();
+        if (reader.readUnquotedString() != "store") {
+            return CommandError(CommandErrorType::DispatcherUnknownArgument, std::string("Expected 'store'"));
+        }
+        return parseStoreChildren(reader, context, *storeNode);
+    }
+
+    /// 沿 store 子树逐层读取：先试字面量子节点，再试唯一的参数子节点。
+    static Result<void, CommandError> parseStoreChildren(StringReader& reader,
+        CommandContext<ServerCommandSource>& context,
+        const CommandNode<ServerCommandSource>& node)
+    {
+        const CommandNode<ServerCommandSource>* current = &node;
+        while (true) {
+            const i32 save = reader.getCursor();
+            reader.skipWhitespace();
+            if (!reader.canRead()) {
+                return Result<void, CommandError>::ok();
+            }
+            const std::string token = reader.readUnquotedString();
+            reader.setCursor(save);
+            reader.skipWhitespace();
+
+            const auto& literals = current->getLiterals();
+            if (literals.find(token) != literals.end()) {
+                auto child = current->getChild(token);
+                if (child == nullptr) {
+                    return CommandError(
+                        CommandErrorType::DispatcherUnknownArgument, std::string("Unknown execute store option"));
+                }
+                MC_TRY(child->parse(reader, context));
+                current = child.get();
+                if (current->getLiterals().empty() && current->getArguments().empty()) {
+                    return Result<void, CommandError>::ok();
+                }
+                continue;
+            }
+
+            auto param = firstArgumentChild(*current);
+            if (param == nullptr) {
+                return CommandError(
+                    CommandErrorType::DispatcherUnknownArgument, std::string("Invalid execute store arguments"));
+            }
+            const i32 before = reader.getCursor();
+            MC_TRY(param->parse(reader, context));
+            if (reader.getCursor() == before) {
+                return CommandError(
+                    CommandErrorType::DispatcherUnknownArgument, std::string("Invalid execute store argument"));
+            }
+            current = param.get();
+            if (current->getLiterals().empty() && current->getArguments().empty()) {
+                return Result<void, CommandError>::ok();
+            }
+        }
+    }
+
     /// 本 run 已经选中过的修改器链（管道分隔）；顶层 run 为空。
     [[nodiscard]] std::string currentChain() const
     {
@@ -364,6 +547,7 @@ private:
 
     static inline std::vector<std::weak_ptr<CommandNode<ServerCommandSource>>> s_modifiers;
     static inline std::unordered_map<std::string, i32> s_modifierIndices;
+    static inline std::weak_ptr<CommandNode<ServerCommandSource>> s_storeNode;
 };
 
 } // namespace command
