@@ -32,8 +32,10 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
+#include <atomic>
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -574,6 +576,12 @@ public:
 
     /**
      * @brief 获取指定方块类型的所有方块信息
+     *
+     * 【线程安全】Palette 随 Template 被 TemplateManager 共享给所有区块生成线程，缓存又是
+     * 首次访问才建的惰性缓存，因此必须"建好前加锁、建好后无锁读"：`m_cacheBuilt` 用
+     * release/acquire 发布，保证读到 true 时整张表已经写完；此后不会再有人写它
+     * （只有拷贝/移动赋值会重置，而那发生在加载期）。
+     *
      * @param block 方块类型
      * @return 匹配的方块信息列表
      */
@@ -599,9 +607,13 @@ private:
     BlockVec m_blocks;
     /// 稀疏 NBT 表，键为 m_blocks 的下标，按键升序
     NbtTable m_nbt;
-    /// 按方块类型索引的缓存；元素指针指向 m_blocks 的堆缓冲，换缓冲后必须清空重建
+    /// 按方块类型索引的缓存；元素指针指向 m_blocks 的堆缓冲，换缓冲后必须清空重建。
+    /// 只由 getBlocksByType 的慢路径写入，受 m_cacheMutex 保护、由 m_cacheBuilt 发布。
     mutable std::unordered_map<const Block*, std::vector<const PaletteBlock*>> m_blockTypeCache;
-    mutable bool m_cacheBuilt = false;
+    /// 缓存是否已构建完成（release 写、acquire 读，见 getBlocksByType 的说明）
+    mutable std::atomic<bool> m_cacheBuilt{false};
+    /// 保护缓存构建的互斥锁（只保护"建"这一步，读路径无锁）
+    mutable std::mutex m_cacheMutex;
 
     void _buildCache() const;
 

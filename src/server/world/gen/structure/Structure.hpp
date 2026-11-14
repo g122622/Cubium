@@ -33,6 +33,7 @@
 #include "common/world/generation/base/DecorationStage.hpp"
 #include "server/world/gen/jigsaw/JigsawJunction.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
+#include <atomic>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -881,9 +882,37 @@ public:
      */
     StructureStart(const Structure& owner, i32 chunkX, i32 chunkZ);
     StructureStart(const StructureStart&) = delete;
-    StructureStart(StructureStart&&) noexcept = default;
+
+    // m_references 是原子量（不可拷贝/移动），故移动语义手写：搬运可变内容，计数按值转移。
+    StructureStart(StructureStart&& other) noexcept
+        : m_pieces(std::move(other.m_pieces))
+        , m_chunkX(other.m_chunkX)
+        , m_chunkZ(other.m_chunkZ)
+        , m_owner(other.m_owner)
+        , m_pieceBox(other.m_pieceBox)
+        , m_boundingBox(other.m_boundingBox)
+        , m_boundingBoxDirty(other.m_boundingBoxDirty)
+    {
+        m_references.store(other.m_references.load(std::memory_order::acquire), std::memory_order::release);
+    }
+
     StructureStart& operator=(const StructureStart&) = delete;
-    StructureStart& operator=(StructureStart&&) noexcept = default;
+
+    StructureStart& operator=(StructureStart&& other) noexcept
+    {
+        if (this != &other) {
+            m_pieces = std::move(other.m_pieces);
+            m_chunkX = other.m_chunkX;
+            m_chunkZ = other.m_chunkZ;
+            m_owner = other.m_owner;
+            m_pieceBox = other.m_pieceBox;
+            m_boundingBox = other.m_boundingBox;
+            m_boundingBoxDirty = other.m_boundingBoxDirty;
+            m_references.store(other.m_references.load(std::memory_order::acquire), std::memory_order::release);
+        }
+        return *this;
+    }
+
     ~StructureStart() = default;
 
     void addPiece(std::unique_ptr<StructurePiece> piece);
@@ -956,10 +985,14 @@ public:
 
     /**
      * @brief 增加引用计数
+     *
+     * 【必须原子】`StructureStart` 通过 shared_ptr 被邻居区块共享，而 STRUCTURE_REFERENCES
+     * 阶段在多个工作线程上并行跑，同一份起点的计数会被不同线程各加一次。relaxed 足够：
+     * 计数只用于"是否已达上限"的判定，不承担发布其它数据的作用。
      */
     void incrementRefCount() noexcept
     {
-        ++m_references;
+        m_references.fetch_add(1, std::memory_order::relaxed);
     }
 
     /**
@@ -967,7 +1000,7 @@ public:
      */
     [[nodiscard]] i32 getRefCount() const noexcept
     {
-        return m_references;
+        return m_references.load(std::memory_order::acquire);
     }
 
     /**
@@ -987,7 +1020,8 @@ private:
     std::vector<std::unique_ptr<StructurePiece>> m_pieces;
     i32 m_chunkX;
     i32 m_chunkZ;
-    i32 m_references = 0;                       ///< 引用计数，用于追踪多少个区块引用此结构
+    /// 引用计数：被多少个区块的 STRUCTURE_REFERENCES 引用过（多线程并发递增，故为原子量）
+    std::atomic<i32> m_references{0};
     const Structure* m_owner;                   ///< 拥有该起点的结构定义（决定地形适配外扩）
     StructureBoundingBox m_pieceBox;            ///< 片段并集（未外扩）
     mutable StructureBoundingBox m_boundingBox; ///< 外扩后的缓存，失效时按需重算

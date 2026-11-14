@@ -27,6 +27,7 @@
 #include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/cache/Long2IntLRUCache.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/util/math/random/PositionalRandomFactory.hpp"
@@ -806,6 +807,18 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getHeight", "x", x, "z", z);
     MC_ASSERT_RELEASE(m_randomState != nullptr);
 
+    // 维度级记忆：本函数是 (种子, 噪声设置, x, z, 高度图判据) 的纯函数，而每次未命中都要新建
+    // 一个单列 NoiseChunk（角点晶格约 196 次密度求值，实测 1.6ms 量级）。结构装配的地形贴合
+    // 会反复查询同一片区域，跨结构也会重叠，所以按维度记一层（键域不含种子，随 RandomState 走）。
+    // 键里放不下高度图类型，故只记忆热路径（结构贴地用的 WorldSurfaceWG）——其余类型不查不写。
+    const bool cacheable = type == HeightmapType::WorldSurfaceWG;
+    const i64 columnKey = Long2IntLRUCache::packCoords(x, z);
+    if (cacheable) {
+        if (i32 cached = 0; m_randomState->surfaceHeightCache().get(columnKey, cached)) {
+            return cached;
+        }
+    }
+
     // 高度图语义：自上而下第一个满足判据的方块的 Y+1。这里必须使用**插值后的整列**
     // （`getBaseColumn` 走 CellCache + NoiseInterpolator），不能逐格直接求 finalDensity：
     // 直接求值绕过三线性插值，与区块实际生成结果不同，末地城曾因此整体低一格
@@ -815,13 +828,19 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     // TODO: 按原版形态把判据下沉进 getBaseColumn 的插值循环并在命中时提前结束，可省掉
     //       地表以下约 1/3 的 cell 填充与逐方块材质计算（角点 slice 仍需整列计算）。
     const NoiseColumn column = getBaseColumn(x, z);
+    i32 result = m_settings.noise.minY;
     for (i32 y = column.minY() + column.height() - 1; y >= column.minY(); --y) {
         const BlockState* state = column.getBlock(y);
         if (state != nullptr && Heightmap::isOpaqueForType(type, state)) {
-            return y + 1;
+            result = y + 1;
+            break;
         }
     }
-    return m_settings.noise.minY;
+
+    if (cacheable) {
+        m_randomState->surfaceHeightCache().put(columnKey, result);
+    }
+    return result;
 }
 
 NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const

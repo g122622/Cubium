@@ -181,6 +181,21 @@ public:
         return m_preliminarySurfaceLevelCache;
     }
 
+    /**
+     * @brief 维度级地表高度记忆（方块列 (x, z) → `getHeight(WORLD_SURFACE_WG)` 的结果）
+     *
+     * `NoiseChunkGenerator::getHeight` 每次都要新建一个单列 NoiseChunk（角点晶格约 196 次
+     * 密度求值，单次 1.6ms 量级），而它是 (种子, 噪声设置, x, z) 的纯函数。结构装配的
+     * 地形贴合会成百上千次查询同一片区域，跨结构也会重叠，这里按维度做一层记忆。
+     *
+     * 线程安全：LRU 自带互斥锁；键域不含种子，故必须随 RandomState（每个世界/维度一份）走，
+     * 不能做成跨世界的全局静态缓存。替换维度设置时必须随 RandomState 一起丢弃。
+     */
+    [[nodiscard]] Long2IntLRUCache& surfaceHeightCache() const
+    {
+        return m_surfaceHeightCache;
+    }
+
     // === MC 1.21 噪声/随机工厂缓存 ===
 
     /**
@@ -265,6 +280,11 @@ private:
     /// preliminarySurfaceLevel 维度级记忆（键 = 4 方块对齐列的打包坐标）。
     /// 容量按 121 条/区块估算，65536 条覆盖约 540 个区块的采样范围，约数 MB。
     mutable Long2IntLRUCache m_preliminarySurfaceLevelCache{1 << 16};
+
+    /// 地表高度维度级记忆（键 = 方块列 (x, z) 的打包坐标）。
+    /// 结构装配的地形贴合查询集中在结构自己的占地区域（一个村庄约 400 列），
+    /// 65536 条足以覆盖出生区若干结构，约数 MB。
+    mutable Long2IntLRUCache m_surfaceHeightCache{1 << 16};
 
     // 并发保护：buildSurface 在并行 worker 池上运行，多个区块会并发调用
     // getOrCreateNoise/getOrCreateRandomFactory。命中路径用 shared_lock（读），

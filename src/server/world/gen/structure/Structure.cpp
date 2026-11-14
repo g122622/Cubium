@@ -875,7 +875,7 @@ void StructureStart::recalculateStructureSize()
 
 bool StructureStart::isRefCountBelowMax() const noexcept
 {
-    return m_references < getMaxRefCount();
+    return getRefCount() < getMaxRefCount();
 }
 
 void StructureStart::offset(i32 dx, i32 dy, i32 dz)

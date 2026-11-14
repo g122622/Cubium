@@ -477,7 +477,7 @@ Palette& Palette::operator=(const Palette& other)
         m_blocks = other.m_blocks;
         _copyNbtFrom(other);
         m_blockTypeCache.clear();
-        m_cacheBuilt = false;
+        m_cacheBuilt.store(false, std::memory_order::relaxed);
     }
     return *this;
 }
@@ -488,7 +488,7 @@ Palette& Palette::operator=(Palette&& other) noexcept
         m_blocks = std::move(other.m_blocks);
         m_nbt = std::move(other.m_nbt);
         m_blockTypeCache.clear();
-        m_cacheBuilt = false;
+        m_cacheBuilt.store(false, std::memory_order::relaxed);
     }
     return *this;
 }
@@ -531,18 +531,24 @@ const nbt::CompoundTag* Palette::nbtAt(size_t index) const
 
 const std::vector<const PaletteBlock*>& Palette::getBlocksByType(const Block& block) const
 {
-    // 检查缓存
-    auto it = m_blockTypeCache.find(&block);
-    if (it != m_blockTypeCache.end()) {
-        return it->second;
+    // 快路径：缓存已发布则直接无锁查表。acquire 与 _buildCache 末尾的 release 配对，
+    // 保证读到 true 时整张表已经写完，且此后不会再被写入。
+    if (m_cacheBuilt.load(std::memory_order::acquire)) {
+        const auto cached = m_blockTypeCache.find(&block);
+        if (cached != m_blockTypeCache.end()) {
+            return cached->second;
+        }
+        static const std::vector<const PaletteBlock*> empty;
+        return empty;
     }
 
-    // 构建缓存
-    if (!m_cacheBuilt) {
+    // 慢路径：并发首次访问时只有一个线程建表，其余线程在此排队。
+    std::lock_guard<std::mutex> lock(m_cacheMutex);
+    if (!m_cacheBuilt.load(std::memory_order::relaxed)) {
         _buildCache();
     }
 
-    it = m_blockTypeCache.find(&block);
+    const auto it = m_blockTypeCache.find(&block);
     if (it != m_blockTypeCache.end()) {
         return it->second;
     }
@@ -564,7 +570,8 @@ void Palette::_buildCache() const
             m_blockTypeCache[block].push_back(&blockInfo);
         }
     }
-    m_cacheBuilt = true;
+    // 最后一步才发布：release 保证上面所有插入对 acquire 读可见。
+    m_cacheBuilt.store(true, std::memory_order::release);
 }
 
 // ============================================================================

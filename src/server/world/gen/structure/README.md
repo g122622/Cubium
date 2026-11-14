@@ -394,3 +394,8 @@ mansionMarkerEntityTypeKey 这样的纯函数并配单元测试，而不是埋�
    原版错位——结构布局因此与原版不同。
 
 差分能力 `structure_starts` / `structure_start_single` / `structure_blocks_single` 覆盖这条路径。
+### 18. 结构装配的地形高度查询必须走维度级记忆
+
+`IChunkGenerator::getHeight(x, z, WorldSurfaceWG)` 每次未命中都要新建一个单列 `NoiseChunk`（角点晶格约 196 次密度求值，实测 1.4ms 量级），而拼图装配的地形贴合会成百上千次查询同一片区域（一个村庄约 400 列，跨结构还会重叠）。它是 (种子, 噪声设置, x, z, 高度图判据) 的纯函数，因此结果按维度缓存在 `RandomState::surfaceHeightCache()`。
+
+两个约束：索引键里放不下高度图类型，故只记忆结构贴地用的 `WorldSurfaceWG`；键域不含种子，所以缓存必须挂在 `RandomState` 上随世界/维度销毁，不能做成跨世界的全局静态缓存。
