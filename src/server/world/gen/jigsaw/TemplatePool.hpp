@@ -95,6 +95,13 @@ public:
     [[nodiscard]] std::vector<const JigsawPiece*> getShuffledPieces(math::IRandom& rng) const;
 
     /**
+     * @brief 将打乱后的拼图块写入可复用缓冲区
+     *
+     * 按权重展开并洗牌，随机数消耗顺序与返回 vector 的重载一致。
+     */
+    void getShuffledPieces(math::IRandom& rng, std::vector<const JigsawPiece*>& output) const;
+
+    /**
      * @brief 获取总权重（Σ 所有条目 weight）
      *
      * 对应 MC 1.21 StructureTemplatePool.getTotalWeight。

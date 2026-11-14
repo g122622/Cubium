@@ -178,6 +178,13 @@ public:
      */
     std::vector<JigsawJoint> getShuffledJoints(math::IRandom& rng) const;
 
+    /**
+     * @brief 将打乱后的连接点指针写入可复用缓冲区
+     *
+     * 调用方应确保本构件在使用这些指针期间存活。
+     */
+    void getShuffledJointPointers(math::IRandom& rng, std::vector<const JigsawJoint*>& output) const;
+
     const std::string& getName() const
     {
         return m_name;

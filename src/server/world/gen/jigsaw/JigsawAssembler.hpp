@@ -32,8 +32,10 @@
 #include "common/world/block/base/types/BlockPos.hpp"
 #include "server/world/gen/structure/base/StructureBoundingBox.hpp"
 
+#include <array>
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -278,6 +280,30 @@ public:
         math::IRandom& rng);
 
 private:
+    struct AssemblyScratch {
+        std::vector<const JigsawJoint*> parentJoints;
+        std::vector<const JigsawJoint*> candidateJoints;
+        std::vector<Rotation> rotations;
+        std::vector<const JigsawPiece*> shuffledPoolPieces;
+        std::vector<const JigsawPiece*> candidates;
+        // 缓冲区限定于单次装配，别名映射固定；净空估算仅由构件和旋转决定。
+        std::unordered_map<const JigsawPiece*, std::array<i32, 4>> expansionHeights;
+        u64 expansionQueries = 0;
+        u64 expansionComputations = 0;
+        u64 expansionCacheHits = 0;
+    };
+
+    static void tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
+        std::vector<std::unique_ptr<PlacedPiece>>& pieces,
+        SequencedPriorityIterator<PendingPiece>& pending,
+        const PendingPiece& state,
+        const PoolAliasLookup& aliasLookup,
+        IChunkGenerator& generator,
+        i32 maxDepth,
+        bool useExpansionHack,
+        math::IRandom& rng,
+        AssemblyScratch& scratch);
+
     /**
      * @brief use_expansion_hack 的净空估算：候选块还能从自身"朝内接点"长出多高
      *
@@ -299,7 +325,7 @@ private:
         const JigsawPiece& piece,
         Rotation rotation,
         const structure::StructureBoundingBox& localBox,
-        const std::vector<JigsawJoint>& joints,
+        const std::vector<const JigsawJoint*>& joints,
         const PoolAliasLookup& aliasLookup);
 
     /**
@@ -307,7 +333,7 @@ private:
      *
      * 原版对**每个候选元素**都重新洗牌一次旋转顺序——不是每个连接点、也不是全局一次。
      */
-    [[nodiscard]] static std::vector<Rotation> shuffledRotations(math::IRandom& rng);
+    static void shuffledRotations(math::IRandom& rng, std::vector<Rotation>& rotations);
 
     /**
      * @brief 从 StructureBoundingBox 构建 AxisAlignedBB（f32 坐标）

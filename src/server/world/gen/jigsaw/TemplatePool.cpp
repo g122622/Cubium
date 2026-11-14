@@ -115,18 +115,26 @@ const JigsawPiece* TemplatePool::getRandomPiece(math::IRandom& rng) const
 
 std::vector<const JigsawPiece*> TemplatePool::getShuffledPieces(math::IRandom& rng) const
 {
+    std::vector<const JigsawPiece*> expanded;
+    getShuffledPieces(rng, expanded);
+    return expanded;
+}
+
+void TemplatePool::getShuffledPieces(math::IRandom& rng, std::vector<const JigsawPiece*>& expanded) const
+{
     // 原版 `StructureTemplatePool.getShuffledTemplates` 是 `Util.shuffledCopy(this.templates, random)`，
     // 其中 `templates` 是**按权重展开**的列表：洗牌的规模是权重和，同一元素按权重出现多次。
     // 折叠后再洗牌会让随机数消耗与候选列表长度同时偏离原版（大权重池上尤其明显）。
-    std::vector<const JigsawPiece*> expanded;
-    expanded.reserve(static_cast<size_t>(m_totalWeight));
+    expanded.clear();
+    if (m_totalWeight > 0) {
+        expanded.reserve(static_cast<size_t>(m_totalWeight));
+    }
     for (const auto& entry : m_entries) {
         for (i32 i = 0; i < entry.weight; ++i) {
             expanded.push_back(entry.piece);
         }
     }
     rng.shuffle(expanded);
-    return expanded;
 }
 
 } // namespace jigsaw

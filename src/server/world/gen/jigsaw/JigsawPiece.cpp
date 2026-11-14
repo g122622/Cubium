@@ -84,6 +84,23 @@ std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::IRandom& rng) cons
     return shuffled;
 }
 
+void JigsawPiece::getShuffledJointPointers(math::IRandom& rng, std::vector<const JigsawJoint*>& shuffled) const
+{
+    const auto& joints = getJoints();
+    shuffled.clear();
+    if (shuffled.capacity() < joints.size()) {
+        shuffled.reserve(joints.size());
+    }
+    for (const JigsawJoint& joint : joints) {
+        shuffled.push_back(&joint);
+    }
+    rng.shuffle(shuffled);
+
+    std::stable_sort(shuffled.begin(), shuffled.end(), [](const JigsawJoint* a, const JigsawJoint* b) {
+        return a->selectionPriority > b->selectionPriority;
+    });
+}
+
 bool JigsawPiece::loadJointsFromTemplate(
     const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size) const
 {

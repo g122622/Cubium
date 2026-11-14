@@ -247,14 +247,12 @@ std::optional<ResolvedStart> JigsawAssembler::resolveStart(const TemplatePool& s
     return ResolvedStart{startPiece, rotation, *placement, std::move(aliasLookup)};
 }
 
-std::vector<Rotation> JigsawAssembler::shuffledRotations(math::IRandom& rng)
+void JigsawAssembler::shuffledRotations(math::IRandom& rng, std::vector<Rotation>& rotations)
 {
     // 对应 MC `Rotation.getShuffled(random)` = Util.shuffledCopy(values(), random)：
     // 对 [NONE, CW90, CW180, CCW90] 做一次 Fisher-Yates，消耗 3 次随机数。
-    std::vector<Rotation> rotations{
-        Rotation::None, Rotation::Clockwise90, Rotation::Clockwise180, Rotation::CounterClockwise90};
+    rotations.assign({Rotation::None, Rotation::Clockwise90, Rotation::Clockwise180, Rotation::CounterClockwise90});
     rng.shuffle(rotations);
-    return rotations;
 }
 
 std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoolRegistry& poolRegistry,
@@ -331,15 +329,28 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
 
     // 起始块深度为 0；队列元素记录**构件自身**的深度（对应 MC PieceState.depth）
     SequencedPriorityIterator<PendingPiece> pending;
+    AssemblyScratch scratch;
+    if (useExpansionHack) {
+        scratch.expansionHeights.reserve(256);
+    }
     const PendingPiece startState(pieces.back().get(), globalFreeShape, 0);
     tryPlacingChildren(
-        poolRegistry, pieces, pending, startState, aliasLookup, generator, maxDepth, useExpansionHack, rng);
+        poolRegistry, pieces, pending, startState, aliasLookup, generator, maxDepth, useExpansionHack, rng, scratch);
 
     while (pending.hasNext()) {
         const PendingPiece state = pending.next();
         tryPlacingChildren(
-            poolRegistry, pieces, pending, state, aliasLookup, generator, maxDepth, useExpansionHack, rng);
+            poolRegistry, pieces, pending, state, aliasLookup, generator, maxDepth, useExpansionHack, rng, scratch);
     }
+
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen,
+        "JigsawAssembler::ExpansionCacheStats",
+        "queries",
+        scratch.expansionQueries,
+        "computed",
+        scratch.expansionComputations,
+        "hits",
+        scratch.expansionCacheHits);
 
     std::vector<PlacedPiece> result;
     result.reserve(pieces.size());
@@ -359,6 +370,22 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
     bool useExpansionHack,
     math::IRandom& rng)
 {
+    AssemblyScratch scratch;
+    tryPlacingChildren(
+        poolRegistry, pieces, pending, state, aliasLookup, generator, maxDepth, useExpansionHack, rng, scratch);
+}
+
+void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
+    std::vector<std::unique_ptr<PlacedPiece>>& pieces,
+    SequencedPriorityIterator<PendingPiece>& pending,
+    const PendingPiece& state,
+    const PoolAliasLookup& aliasLookup,
+    IChunkGenerator& generator,
+    i32 maxDepth,
+    bool useExpansionHack,
+    math::IRandom& rng,
+    AssemblyScratch& scratch)
+{
     PlacedPiece& parent = *state.piece;
     const JigsawPiece& element = *parent.piece;
     const BlockPos& position = parent.position;
@@ -374,9 +401,10 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
     // 惰性创建一次，在同一父块的所有内部接点之间共享并被逐次扣减。
     std::shared_ptr<VoxelShape> localFree;
 
-    const std::vector<JigsawJoint> parentJoints = element.getShuffledJoints(rng);
-    for (size_t jointIndex = 0; jointIndex < parentJoints.size(); ++jointIndex) {
-        const JigsawJoint& parentJoint = parentJoints[jointIndex];
+    element.getShuffledJointPointers(rng, scratch.parentJoints);
+
+    for (const JigsawJoint* parentJointPtr : scratch.parentJoints) {
+        const JigsawJoint& parentJoint = *parentJointPtr;
 
         const JigsawOrientation parentOrientation = JigsawOrientations::rotate(parentJoint.orientation, rotation);
         const Direction parentFacing = JigsawOrientations::getFacing(parentOrientation);
@@ -423,37 +451,59 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
 
         // 候选元素列表（对应 MC 的 list 构造）：主池（深度未达上限时）+ 回退池。
         // 顺序不可交换——两次 shuffle 都会消耗随机数，且回退池永远追加在末尾。
-        std::vector<const JigsawPiece*> candidates;
+        scratch.candidates.clear();
         if (state.depth != maxDepth && pool != nullptr) {
-            const std::vector<const JigsawPiece*> shuffled = pool->getShuffledPieces(rng);
-            candidates.insert(candidates.end(), shuffled.begin(), shuffled.end());
+            pool->getShuffledPieces(rng, scratch.shuffledPoolPieces);
+            scratch.candidates.insert(
+                scratch.candidates.end(), scratch.shuffledPoolPieces.begin(), scratch.shuffledPoolPieces.end());
         }
         if (fallbackPool != nullptr) {
-            const std::vector<const JigsawPiece*> shuffled = fallbackPool->getShuffledPieces(rng);
-            candidates.insert(candidates.end(), shuffled.begin(), shuffled.end());
+            fallbackPool->getShuffledPieces(rng, scratch.shuffledPoolPieces);
+            scratch.candidates.insert(
+                scratch.candidates.end(), scratch.shuffledPoolPieces.begin(), scratch.shuffledPoolPieces.end());
         }
 
         bool placedForThisJoint = false;
-        for (const JigsawPiece* candidate : candidates) {
+        for (const JigsawPiece* candidate : scratch.candidates) {
             // 对应原版 `if (cand == EmptyPoolElement.INSTANCE) break;`——终止整个候选枚举
             if (candidate == nullptr || candidate->isEmpty()) {
                 break;
             }
 
             // 旋转顺序对**每个候选元素**重新洗牌一次（对应 MC `Rotation.getShuffled(random)`）
-            const std::vector<Rotation> rotations = shuffledRotations(rng);
-            for (const Rotation candidateRotation : rotations) {
+            shuffledRotations(rng, scratch.rotations);
+            for (const Rotation candidateRotation : scratch.rotations) {
                 // 候选块的连接点（该旋转下）与包围盒；顺序对每个旋转重新洗牌
-                const std::vector<JigsawJoint> candidateJoints = candidate->getShuffledJoints(rng);
-                const structure::StructureBoundingBox candidateLocalBox =
-                    JigsawTransform::calculateBoundingBox(*candidate, BlockPos(0, 0, 0), candidateRotation);
+                candidate->getShuffledJointPointers(rng, scratch.candidateJoints);
 
-                const i32 expansion = useExpansionHack
-                    ? estimateExpansionHeight(
-                          poolRegistry, *candidate, candidateRotation, candidateLocalBox, candidateJoints, aliasLookup)
-                    : 0;
+                i32 expansion = 0;
+                if (useExpansionHack) {
+                    // 同一装配内，同一构件/旋转的净空估算是确定值。
+                    ++scratch.expansionQueries;
+                    const size_t rotationIndex = static_cast<size_t>(candidateRotation);
+                    auto [cacheIt, inserted] = scratch.expansionHeights.try_emplace(candidate);
+                    if (inserted) {
+                        cacheIt->second.fill(-1);
+                    }
+                    i32& cachedExpansion = cacheIt->second[rotationIndex];
+                    if (cachedExpansion < 0) {
+                        ++scratch.expansionComputations;
+                        const structure::StructureBoundingBox candidateLocalBox =
+                            JigsawTransform::calculateBoundingBox(*candidate, BlockPos(0, 0, 0), candidateRotation);
+                        cachedExpansion = estimateExpansionHeight(poolRegistry,
+                            *candidate,
+                            candidateRotation,
+                            candidateLocalBox,
+                            scratch.candidateJoints,
+                            aliasLookup);
+                    } else {
+                        ++scratch.expansionCacheHits;
+                    }
+                    expansion = cachedExpansion;
+                }
 
-                for (const JigsawJoint& candidateJoint : candidateJoints) {
+                for (const JigsawJoint* candidateJointPtr : scratch.candidateJoints) {
+                    const JigsawJoint& candidateJoint = *candidateJointPtr;
                     // 候选连接点在该旋转下的局部位置与朝向
                     const BlockPos candidateJointPos = JigsawTransform::transformPosition(
                         candidateJoint.sourcePos, candidateRotation, Mirror::None, BlockPos(0, 0, 0));
@@ -580,7 +630,7 @@ i32 JigsawAssembler::estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
     const JigsawPiece& piece,
     Rotation rotation,
     const structure::StructureBoundingBox& localBox,
-    const std::vector<JigsawJoint>& joints,
+    const std::vector<const JigsawJoint*>& joints,
     const PoolAliasLookup& aliasLookup)
 {
     // 只有"矮"构件才预留竖直净空（原版阈值 16）：高塔类构件自身已经够高，不需要。
@@ -590,7 +640,8 @@ i32 JigsawAssembler::estimateExpansionHeight(TemplatePoolRegistry& poolRegistry,
     }
 
     i32 best = 0;
-    for (const auto& joint : joints) {
+    for (const JigsawJoint* jointPtr : joints) {
+        const JigsawJoint& joint = *jointPtr;
         // 连接面 = 连接点位置 + 朝向步进；只有落在候选块包围盒内部的接点才算"朝内"，
         // 朝外的接点通向结构外部，其高度不受本构件容纳能力约束。
         const BlockPos jointPos =
