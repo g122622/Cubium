@@ -399,3 +399,13 @@ mansionMarkerEntityTypeKey 这样的纯函数并配单元测试，而不是埋�
 `IChunkGenerator::getHeight(x, z, WorldSurfaceWG)` 每次未命中都要新建一个单列 `NoiseChunk`（角点晶格约 196 次密度求值，实测 1.4ms 量级），而拼图装配的地形贴合会成百上千次查询同一片区域（一个村庄约 400 列，跨结构还会重叠）。它是 (种子, 噪声设置, x, z, 高度图判据) 的纯函数，因此结果按维度缓存在 `RandomState::surfaceHeightCache()`。
 
 两个约束：索引键里放不下高度图类型，故只记忆结构贴地用的 `WorldSurfaceWG`；键域不含种子，所以缓存必须挂在 `RandomState` 上随世界/维度销毁，不能做成跨世界的全局静态缓存。
+### 19. 高度查询必须自顶向下分带早退，不能先填满整列
+
+`getBaseColumn` 会把整列 384 个方块都插值并落成方块状态，而高度查询只需要"自顶向下第一个满足判据的方块"。改为 `_scanTopmostOpaqueY`：单列 NoiseChunk 一次建好，然后按 8 个 cell 为一带自顶向下填角点 + 逐方块判断，命中即返回。
+
+分带填充（`NoiseChunk::fillColumnBandSlices`）的安全性依赖两条不变量，改动时务必守住：
+
+1. **每个被填角点各自递增一次 `interpolationCounter`**（`CacheOnce` 的位置级缓存靠它识别"换了位置"），因此已填角点的数值与整列一次填充逐位相同；
+2. **每带填充前必须复位**插值器的 `m_valueReady` 并 `invalidate()` 所有 `CellCache`，否则 `compute` 会返回上一带的旧值。
+
+另外该路径只支持 `cellCountXZ == 1` 的单列 NoiseChunk；区块批量生成仍走 `initializeForFirstCellX`/`advanceCellX`（它一次需要完整角点晶格），两条路径共用 `fillSliceRange`，只是 Y 范围不同。

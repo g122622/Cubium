@@ -153,12 +153,20 @@ f64 NoiseInterpolator::compute(i32 blockX, i32 blockY, i32 blockZ) const
 
 void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cellX)
 {
+    fillSliceRange(noiseChunk, isSlice0, cellX, 0, m_cellCountY + 1);
+}
+
+void NoiseInterpolator::fillSliceRange(NoiseChunk& noiseChunk, bool isSlice0, i32 cellX, i32 yBegin, i32 yEnd)
+{
     // MC 1.21 fillSlice 逻辑：
     // 1. 设置 cellStartBlockX 和 inCellX = 0
     // 2. 遍历 Z 列，设置 cellStartBlockZ 和 inCellZ = 0，递增 arrayInterpolationCounter
     // 3. 对每个插值器，使用 sliceFillingContextProvider 填充 Y 值
     //    sliceFillingContextProvider 在每个 Y 点设置 cellStartBlockY、递增 interpolationCounter、设置 inCellY=0
     // 4. 填充完后再次递增 arrayInterpolationCounter
+    //
+    // 分带填充（仅供单列查询的早退路径使用）只把第 3 步的 Y 范围收窄；每个被填角点仍然各自
+    // 递增一次 interpolationCounter，因此 CacheOnce 的位置级缓存语义与整列填充一致。
 
     const i32 cellWidth = noiseChunk.cellConfig().cellWidth;
     const i32 cellHeight = noiseChunk.cellConfig().cellHeight;
@@ -180,7 +188,7 @@ void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cel
         ++noiseChunk.m_arrayInterpolationCounter;
 
         const size_t zBase = static_cast<size_t>(z) * static_cast<size_t>(yPoints);
-        for (i32 y = 0; y < yPoints; ++y) {
+        for (i32 y = yBegin; y < yEnd; ++y) {
             // MC 1.21: sliceFillingContextProvider.fillAllDirectly / forIndex
             // 设置 cellStartBlockY, 递增 interpolationCounter, 设置 inCellY = 0
             noiseChunk.m_cellStartBlockY = (y + firstCellY) * cellHeight;
@@ -537,6 +545,43 @@ void NoiseChunk::advanceCellX(i32 cellX)
     // MC 1.21: fillSlice 临时将 cellStartBlockX 设置为下一个 cell 的值，
     // 这里修正回当前 cell 的值，供后续迭代使用
     m_cellStartBlockX = (m_firstCellX + cellX) * m_cellConfig.cellWidth;
+}
+
+void NoiseChunk::beginColumnBandFill()
+{
+    MC_ASSERT_RELEASE_MSG(
+        m_cellConfig.cellCountXZ == 1, "beginColumnBandFill only supports single-column NoiseChunk (cellCountXZ == 1)");
+
+    // 与 initializeForFirstCellX 一致的采样窗口开启：此后 CacheOnce 的位置级缓存才生效。
+    m_interpolating = true;
+    m_interpolationCounter = 0;
+}
+
+void NoiseChunk::fillColumnBandSlices(i32 yBegin, i32 yEnd)
+{
+    MC_ASSERT_RELEASE_MSG(m_cellConfig.cellCountXZ == 1,
+        "fillColumnBandSlices only supports single-column NoiseChunk (cellCountXZ == 1)");
+
+    // 与 initializeForFirstCellX/advanceCellX 相同的前置复位：本带要重算的角点，其下游缓存
+    // （插值器的位置缓存、CellCache 的 cell 数组）必须失效，否则 compute 会返回上一带的旧值。
+    for (auto& interp : m_interpolators) {
+        interp->resetValueReady();
+    }
+    for (auto& cache : m_cellCaches) {
+        cache->invalidate();
+    }
+
+    // 左列（slice0）与右列（slice1）都填：单列只有一个 X cell，两侧都要。
+    for (auto& interp : m_interpolators) {
+        interp->fillSliceRange(*this, true, m_firstCellX, yBegin, yEnd);
+    }
+    for (auto& interp : m_interpolators) {
+        interp->fillSliceRange(*this, false, m_firstCellX + 1, yBegin, yEnd);
+    }
+
+    // 与 advanceCellX 的收尾一致：填完右列后把 X 基准修正回当前 cell 的左列，
+    // 否则后续 updateForX/blockX() 会落在右列上。
+    m_cellStartBlockX = m_firstCellX * m_cellConfig.cellWidth;
 }
 
 void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)

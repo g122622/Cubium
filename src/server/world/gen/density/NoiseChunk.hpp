@@ -222,6 +222,22 @@ public:
     void fillSlice(class NoiseChunk& noiseChunk, bool isSlice0, i32 cellX);
 
     /**
+     * @brief 只填充指定 Y 角点区间的 slice 数据
+     *
+     * 供"只查一列、自顶向下扫描并在命中处早退"的调用方按带填充：整列一次填满要算
+     * `(cellCountY + 1)` 个 Y 角点，而地表通常在上部若干带内就命中，下方的角点纯属浪费。
+     *
+     * 与 fillSlice 的差别只有 Y 循环的范围；每个被填角点仍然各自递增一次
+     * `interpolationCounter`（CacheOnce 的位置级缓存据此识别"换了位置"），
+     * 因此已填角点的数值与整列填充逐位相同。
+     *
+     * @param cellX 该 slice 的 X 列索引（左列 = firstCellX，右列 = firstCellX + 1）
+     * @param yBegin 起始 Y 角点下标（含，0 = firstCellY 对应的角点）
+     * @param yEnd 结束 Y 角点下标（不含）
+     */
+    void fillSliceRange(class NoiseChunk& noiseChunk, bool isSlice0, i32 cellX, i32 yBegin, i32 yEnd);
+
+    /**
      * @brief 选中当前 cell 的 8 个角点值
      * @param cellY Y 方向 cell 索引（0-based）
      * @param cellZ Z 方向 cell 索引（0-based）
@@ -578,6 +594,27 @@ public:
      * @param cellX 当前 cell 的 X 索引
      */
     void advanceCellX(i32 cellX);
+
+    /**
+     * @brief 单列查询：开始按 Y 分带填充（每列查询只调一次）
+     *
+     * 与 `initializeForFirstCellX` 的复位语义一致，但不填充任何角点；之后由调用方
+     * 逐带调 `fillColumnBandSlices`，只填当前要扫的那一段 Y。仅支持 `cellCountXZ == 1`
+     * 的单列 NoiseChunk（区块批量路径必须继续用 `initializeForFirstCellX`/`advanceCellX`，
+     * 它一次需要完整的角点晶格）。
+     */
+    void beginColumnBandFill();
+
+    /**
+     * @brief 单列查询：填充 `[yBegin, yEnd)` 这一带 Y 角点的两侧 slice
+     *
+     * 填充前会使插值器位置缓存与 CellCache 的 cell 数组失效（这些缓存只对"上一次填的那些
+     * 角点"有效）。已填角点的数值与整列一次填充逐位相同。
+     *
+     * @param yBegin 起始 Y 角点下标（含，0 = firstCellY 对应角点）
+     * @param yEnd 结束 Y 角点下标（不含）
+     */
+    void fillColumnBandSlices(i32 yBegin, i32 yEnd);
 
     /**
      * @brief 选中当前 cell 的 XYZ 位置

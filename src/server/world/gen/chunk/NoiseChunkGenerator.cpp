@@ -823,19 +823,9 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     // （`getBaseColumn` 走 CellCache + NoiseInterpolator），不能逐格直接求 finalDensity：
     // 直接求值绕过三线性插值，与区块实际生成结果不同，末地城曾因此整体低一格
     // （差分能力 structure_starts 暴露）。
-    // 整列扫描与原版 `getBaseHeight`（iterateNoiseColumn + 判据早退）的结果等价，区别只在
-    // 原版把判据放在插值循环内部、命中即返回，本实现先把整列算完再自顶向下扫描。
-    // TODO: 按原版形态把判据下沉进 getBaseColumn 的插值循环并在命中时提前结束，可省掉
-    //       地表以下约 1/3 的 cell 填充与逐方块材质计算（角点 slice 仍需整列计算）。
-    const NoiseColumn column = getBaseColumn(x, z);
-    i32 result = m_settings.noise.minY;
-    for (i32 y = column.minY() + column.height() - 1; y >= column.minY(); --y) {
-        const BlockState* state = column.getBlock(y);
-        if (state != nullptr && Heightmap::isOpaqueForType(type, state)) {
-            result = y + 1;
-            break;
-        }
-    }
+    // 与原版 `getBaseHeight`（iterateNoiseColumn + 判据早退）等价：自顶向下逐带扫，
+    // 命中第一个满足判据的方块就返回，不再把下方的 cell 也填一遍。
+    const i32 result = _scanTopmostOpaqueY(x, z, type);
 
     if (cacheable) {
         m_randomState->surfaceHeightCache().put(columnKey, result);
@@ -856,10 +846,10 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
     const NoiseSettings& noise = m_settings.noise;
     const i32 minY = noise.minY;
     const i32 cellHeight = m_cellHeight;
-    const i32 cellWidth = m_cellWidth;
     const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
 
     // 对齐坐标到 cell 网格
+    const i32 cellWidth = m_cellWidth;
     const i32 cellX = math::floorDiv(x, cellWidth);
     const i32 cellZ = math::floorDiv(z, cellWidth);
     const i32 alignedX = cellX * cellWidth;
@@ -867,30 +857,7 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
     const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
-    // 原版 `iterateNoiseColumn` 固定使用 `DensityFunctions.BeardifierMarker.INSTANCE`：
-    // 结构落点扫描看到的是**原始地形**，不叠加任何已放置结构的地形贡献。结构地形适配
-    // （Beardifier）只在真正生成区块的噪声块（`_buildBeardifier`）里参与。
-    auto beardifier = std::make_unique<world::gen::density::BeardifierMarker>();
-
-    // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
-    // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
-    std::unique_ptr<world::gen::density::NoiseChunk> noiseChunk;
-    {
-        MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn::Prepare");
-        noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
-            cellWidth,
-            cellHeight,
-            cellCountY,
-            alignedX,
-            minY,
-            alignedZ,
-            std::move(beardifier),
-            1); // cellCountXZ = 1 for single-column query
-
-        // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
-        _configureNoiseChunkMaterials(
-            *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
-    }
+    std::unique_ptr<world::gen::density::NoiseChunk> noiseChunk = _createColumnNoiseChunk(alignedX, alignedZ);
 
     {
         MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn::SliceFill");
@@ -926,6 +893,96 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
 
     noiseChunk->stopInterpolation();
     return column;
+}
+
+std::unique_ptr<world::gen::density::NoiseChunk> NoiseChunkGenerator::_createColumnNoiseChunk(
+    i32 alignedX, i32 alignedZ) const
+{
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getBaseColumn::Prepare");
+
+    // 原版 `iterateNoiseColumn` 固定使用 `DensityFunctions.BeardifierMarker.INSTANCE`：
+    // 结构落点扫描看到的是**原始地形**，不叠加任何已放置结构的地形贡献。结构地形适配
+    // （Beardifier）只在真正生成区块的噪声块（`_buildBeardifier`）里参与。
+    auto beardifier = std::make_unique<world::gen::density::BeardifierMarker>();
+
+    // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
+    // 方案X 阶段5-7：传 *m_randomState，从维度级编译产物 newInstance 组装区块级 router。
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(*m_randomState,
+        m_cellWidth,
+        m_cellHeight,
+        math::floorDiv(m_settings.noise.height, m_cellHeight),
+        alignedX,
+        m_settings.noise.minY,
+        alignedZ,
+        std::move(beardifier),
+        1); // cellCountXZ = 1 for single-column query
+
+    // 单列查询也需要实际含水层和矿脉规则，不能用海平面填充代替。
+    _configureNoiseChunkMaterials(
+        *noiseChunk, math::floorDiv(alignedX, world::CHUNK_WIDTH), math::floorDiv(alignedZ, world::CHUNK_WIDTH));
+    return noiseChunk;
+}
+
+i32 NoiseChunkGenerator::_scanTopmostOpaqueY(i32 x, i32 z, HeightmapType type) const
+{
+    const NoiseSettings& noise = m_settings.noise;
+    const i32 minY = noise.minY;
+    const i32 cellHeight = m_cellHeight;
+    const i32 cellWidth = m_cellWidth;
+    const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
+    const i32 firstCellY = math::floorDiv(minY, cellHeight);
+
+    // 与 getBaseColumn 同样的 cell 对齐
+    const i32 cellX = math::floorDiv(x, cellWidth);
+    const i32 cellZ = math::floorDiv(z, cellWidth);
+    const i32 alignedX = cellX * cellWidth;
+    const i32 alignedZ = cellZ * cellWidth;
+    const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
+    const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
+
+    std::unique_ptr<world::gen::density::NoiseChunk> noiseChunk = _createColumnNoiseChunk(alignedX, alignedZ);
+    noiseChunk->beginColumnBandFill();
+
+    // 自顶向下按带扫描。带大小 8 个 cell：既不会一次填满整列（下方命中点以下的角点全浪费），
+    // 也不会把分带次数抬到影响性能的程度（每带都要让插值器/CellCache 的缓存失效）。
+    constexpr i32 kBandCells = 8;
+    for (i32 bandTop = cellCountY; bandTop > 0;) {
+        const i32 bandBottom = std::max(0, bandTop - kBandCells);
+        {
+            MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "NoiseChunkGenerator::getHeight::BandFill");
+            // cellY 需要 y 与 y+1 两个角点，故本带填充的角点区间是 [bandBottom, bandTop]。
+            noiseChunk->fillColumnBandSlices(bandBottom, bandTop + 1);
+        }
+
+        for (i32 cellY = bandTop - 1; cellY >= bandBottom; --cellY) {
+            noiseChunk->selectCellYZ(cellY, 0);
+
+            for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
+                const i32 blockY = (firstCellY + cellY) * cellHeight + inCellY;
+                const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
+                noiseChunk->updateForY(blockY, yLerp);
+                noiseChunk->updateForX(x, deltaX);
+                noiseChunk->updateForZ(z, deltaZ);
+
+                const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
+                const BlockState* blockState = noiseChunk->getInterpolatedState(density);
+                if (blockState == nullptr) {
+                    // 与 getBaseColumn 一致：插值器没有给出方块时用 defaultBlock 兜底，
+                    // 高度图判据必须看到与整列路径相同的方块状态。
+                    blockState = m_settings.defaultBlock;
+                }
+                if (Heightmap::isOpaqueForType(type, blockState)) {
+                    noiseChunk->stopInterpolation();
+                    return blockY + 1;
+                }
+            }
+        }
+
+        bandTop = bandBottom;
+    }
+
+    noiseChunk->stopInterpolation();
+    return minY;
 }
 
 i32 NoiseChunkGenerator::spawnInitialMobs(

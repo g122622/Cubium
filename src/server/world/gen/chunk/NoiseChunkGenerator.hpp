@@ -290,6 +290,25 @@ private:
         world::gen::density::NoiseChunk& noiseChunk, ChunkCoord chunkX, ChunkCoord chunkZ) const;
 
     /**
+     * @brief 创建一个只覆盖单个方块列（`cellCountXZ = 1`）的 NoiseChunk
+     *
+     * 含水层与矿脉规则与区块生成保持一致；Beardifier 用零贡献的占位（结构落点扫描看到的是
+     * 原始地形）。供 `getBaseColumn` 与 `_scanTopmostOpaqueY` 共用。
+     *
+     * @param alignedX / alignedZ 对齐到 cell 网格的方块坐标（cell 宽度的整数倍）
+     */
+    [[nodiscard]] std::unique_ptr<world::gen::density::NoiseChunk> _createColumnNoiseChunk(
+        i32 alignedX, i32 alignedZ) const;
+
+    /**
+     * @brief 自顶向下按 Y 分带扫描，返回该列第一个满足高度图判据的方块的 Y+1
+     *
+     * 与"整列填满再自顶向下扫描"结果逐位相同，区别只在命中后不再填下方的角点与方块。
+     * 没有命中时返回 `minY`（与原版 `getBaseHeight` 的兜底一致）。
+     */
+    [[nodiscard]] i32 _scanTopmostOpaqueY(i32 x, i32 z, HeightmapType type) const;
+
+    /**
      * @brief 使用基于单元的三线性插值生成噪声地形。
      */
     void _generateNoiseWithDensityFunction(WorldGenRegion& region, ChunkPrimer& chunk);
