@@ -30,6 +30,7 @@
 #include "common/physics/shape/BooleanOp.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
+#include "common/profiler/TraceEvents.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
@@ -54,6 +55,8 @@
 #include <optional>
 #include <utility>
 #include <vector>
+
+using namespace mc::trace;
 
 namespace mc {
 namespace world {
@@ -269,6 +272,8 @@ std::vector<PlacedPiece> JigsawAssembler::assembleFromStartPlacement(TemplatePoo
     const Rotation rotation = placement.rotation;
     const structure::StructureBoundingBox& boundingBox = placement.boundingBox;
 
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "JigsawAssembler::assembleFromStartPlacement");
+
     // 起始块贴世界顶/底边界检查已上移到阶段一（resolveStart）：原版该检查失败时连
     // GenerationStub 都不产生，装配根本不会被触发，因此这里不会再收到越界的起始块。
     // dimensionPadding 在本函数里只用于裁剪 freeShape 的 Y 范围（见下）。
@@ -362,6 +367,8 @@ void JigsawAssembler::tryPlacingChildren(TemplatePoolRegistry& poolRegistry,
     const i32 parentMinY = parentBox.minY();
     const bool isRigidParent = element.getPlacementBehaviour() == JigsawPlacementBehaviour::Rigid;
     const i32 parentGroundLevelDelta = parent.groundLevelDelta;
+
+    MC_TRACE_SCOPED_EVENT(TraceEvents.World.ChunkGen, "JigsawAssembler::tryPlacingChildren");
 
     // 父块"内部接点"共享的局部可放置空间（对应 MC 的 MutableObject localFree）：
     // 惰性创建一次，在同一父块的所有内部接点之间共享并被逐次扣减。
